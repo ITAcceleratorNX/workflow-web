@@ -27,7 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         : role === 'executor' ? '/executor/requests'
         : role === 'manager' ? '/manager/requests'
         : '/create-request'
-    const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : role === 'department-head' ? '/department-head/messages' : '/chat-bot'
+    const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : '/chat-bot'
     const profileHref = '/profile'
 
     // Цвета: активная вкладка — ярко белая, неактивные — приглушённые (хорошо видно на оранжевом)
