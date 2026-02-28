@@ -10,10 +10,11 @@ import {Calendar} from "@/components/ui/calendar"
 import {format} from "date-fns"
 import {ru} from "date-fns/locale"
 import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts"
-import {AlertTriangle, BarChart3, Calendar as CalendarLucid, Download} from "lucide-react"
+import {AlertTriangle, BarChart3, Calendar as CalendarLucid, ChevronLeft, Download} from "lucide-react"
 import {Card, CardContent} from "@/components/ui/card";
 import Header from "@/app/header/Header";
 import api from "@/lib/api";
+import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {useMediaQuery} from "@/hooks/use-media-query";
 import PullToRefresh from "@/components/pull-to-refresh";
@@ -727,6 +728,13 @@ export default function AdminWorkerStatisticsPage() {
   // Админ мобилка — тёмный дизайн как в заявках
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-6">
+      <Link
+        href="/admin-worker/management"
+        className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
+      >
+        <ChevronLeft className="h-5 w-5" />
+        Назад
+      </Link>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-white">Статистика</h1>
       </div>
