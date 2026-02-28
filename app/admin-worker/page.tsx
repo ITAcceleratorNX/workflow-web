@@ -266,6 +266,13 @@ export default function AdminWorkerDashboard() {
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
+  // На мобильной вкладка «Логи» доступна в профиле — сбрасываем её на главной при переходе на мобильный
+  useEffect(() => {
+    if (!isDesktop && activeTab === "logs") {
+      setActiveTab("meeting-rooms");
+    }
+  }, [isDesktop, activeTab]);
+
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [isClosingProgrammatically, setIsClosingProgrammatically] = useState(false);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
@@ -2481,9 +2488,11 @@ export default function AdminWorkerDashboard() {
                         <TabsTrigger value="change-head" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0">
                           Управление
                         </TabsTrigger>
+                        {isDesktop && (
                         <TabsTrigger value="logs" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0">
                           Логи
                         </TabsTrigger>
+                        )}
                         <TabsTrigger value="registration-requests" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0">
                           Регистрации
                         </TabsTrigger>
@@ -2514,9 +2523,11 @@ export default function AdminWorkerDashboard() {
                       <TabsTrigger value="change-head" className="text-sm px-3 py-2 whitespace-nowrap">
                         Управление
                       </TabsTrigger>
+                      {isDesktop && (
                       <TabsTrigger value="logs" className="text-sm px-3 py-2 whitespace-nowrap">
                         Логи
                       </TabsTrigger>
+                      )}
                       <TabsTrigger value="registration-requests" className="text-sm px-3 py-2 whitespace-nowrap">
                         Регистрации
                       </TabsTrigger>
@@ -3280,11 +3291,13 @@ export default function AdminWorkerDashboard() {
                   </div>
                 </TabsContent>
 
+                {isDesktop && (
                 <TabsContent value="logs">
                   <div className="w-full">
                   <LogsViewer userRole="admin-worker" isDesktop={isDesktop} />
                   </div>
                 </TabsContent>
+                )}
               </Tabs>
             </div>
             <div className="space-y-6 mb-20">

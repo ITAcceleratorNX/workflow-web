@@ -11,13 +11,14 @@ import {Calendar} from "@/components/ui/calendar"
 import {format} from "date-fns"
 import {ru} from "date-fns/locale"
 import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts"
-import {AlertTriangle, BarChart3, Calendar as CalendarLucid, Download} from "lucide-react"
+import {AlertTriangle, BarChart3, Calendar as CalendarLucid, ChevronLeft, Download} from "lucide-react"
 import Header from "@/app/header/Header";
 import api from "@/lib/api";
 import {useRouter} from "next/navigation";
 import {useMediaQuery} from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
+import Link from "next/link";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useStatsStore} from "@/stores/statsStore";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
@@ -415,13 +416,11 @@ export default function ManagerStatisticsPage() {
 
   const Stat = ({ label, value, onClick }: { label: string; value: number | string; onClick?: () => void }) => (
     <div
-      className={`rounded-lg border bg-white ${onClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+      className={`rounded-lg border p-3 ${isDesktop ? "bg-white" : "bg-[#2C2C2E] border-[#3A3A3C]"} ${onClick ? "cursor-pointer transition-colors " + (isDesktop ? "hover:bg-gray-50" : "hover:bg-[#353538] active:scale-[0.99]") : ""}`}
       onClick={onClick}
     >
-      <div className="p-3">
-        <div className="text-xs text-neutral-500">{label}</div>
-        <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
-      </div>
+      <div className={`text-xs ${isDesktop ? "text-neutral-500" : "text-[#8E8E93]"}`}>{label}</div>
+      <div className={`mt-1 text-2xl font-semibold tracking-tight ${isDesktop ? "" : "text-white"}`}>{value}</div>
     </div>
   )
 
@@ -466,15 +465,26 @@ export default function ManagerStatisticsPage() {
         onRefresh={handleRefresh}
       />
       <PullToRefresh onRefresh={handleRefresh}>
-        <main className="min-h-screen bg-[#F3F3F3] pb-20">
+        <main className={`min-h-screen pb-20 ${isDesktop ? "bg-[#F3F3F3]" : "bg-[#1C1C1E] pb-[calc(80px+env(safe-area-inset-bottom,0px))]"}`}>
+          {!isDesktop && (
+            <div className="px-3 pt-2 pb-1">
+              <Link
+                href="/manager/cabinet"
+                className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                Назад
+              </Link>
+            </div>
+          )}
           <section className="pt-3">
             <div className="mx-auto max-w-screen-sm px-3">
-              <Card className="border bg-white">
+              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
                 <CardContent className="flex flex-col gap-3 p-3">
-                  <div className="flex gap-3">
+                  <div className={`flex gap-3 ${!isDesktop ? "flex-col" : ""}`}>
                     <div className="flex-1">
                       <Select value={office} onValueChange={setOffice}>
-                        <SelectTrigger className="h-10 w-full">
+                        <SelectTrigger className={`h-10 w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                           <SelectValue placeholder="Офис" />
                         </SelectTrigger>
                         <SelectContent>
@@ -489,7 +499,7 @@ export default function ManagerStatisticsPage() {
                     </div>
                     <div className="flex-1">
                       <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
-                        <SelectTrigger className="h-10 w-full">
+                        <SelectTrigger className={`h-10 w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                           <SelectValue placeholder="Период" />
                         </SelectTrigger>
                         <SelectContent>
@@ -540,21 +550,21 @@ export default function ManagerStatisticsPage() {
 
           <section className="pt-3">
             <div className="mx-auto max-w-screen-sm px-3">
-              <Card className="border bg-white">
+              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
                 <CardContent className="p-3">
                   <div className="mb-3">
-                    <div className="text-sm font-medium">Динамика по дням</div>
-                    <div className="text-xs text-neutral-500">Количество заявок по дням</div>
+                    <div className={`text-sm font-medium ${!isDesktop ? "text-white" : ""}`}>Динамика по дням</div>
+                    <div className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-neutral-500"}`}>Количество заявок по дням</div>
                   </div>
 
                   <div className="mb-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">Фильтр по дате:</Label>
+                    <div className={`flex items-center gap-2 ${!isDesktop ? "flex-wrap" : ""}`}>
+                      <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Фильтр по дате:</Label>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={resetDateFilters}
-                        className="text-xs"
+                        className={`text-xs ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
                       >
                         Сбросить
                       </Button>
@@ -562,12 +572,12 @@ export default function ManagerStatisticsPage() {
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-xs text-gray-600">От:</Label>
+                        <Label className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>От:</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="w-full justify-start text-left font-normal"
+                              className={`w-full justify-start text-left font-normal ${!isDesktop ? "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10" : ""}`}
                             >
                               <CalendarLucid className="mr-2 h-4 w-4" />
                               {startDate ? format(startDate, "dd.MM", { locale: ru }) : "От"}
@@ -585,12 +595,12 @@ export default function ManagerStatisticsPage() {
                       </div>
 
                       <div>
-                        <Label className="text-xs text-gray-600">До:</Label>
+                        <Label className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>До:</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="w-full justify-start text-left font-normal"
+                              className={`w-full justify-start text-left font-normal ${!isDesktop ? "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10" : ""}`}
                             >
                               <CalendarLucid className="mr-2 h-4 w-4" />
                               {endDate ? format(endDate, "dd.MM", { locale: ru }) : "До"}
@@ -621,10 +631,10 @@ export default function ManagerStatisticsPage() {
                             </linearGradient>
                           </defs>
 
-                          <CartesianGrid strokeDasharray="3 3" stroke="#C4C4CE" />
-                          <XAxis dataKey="date" stroke="#040404" />
-                          <YAxis allowDecimals={false} stroke="#040404" />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? "#3A3A3C" : "#C4C4CE"} />
+                          <XAxis dataKey="date" stroke={!isDesktop ? "#8E8E93" : "#040404"} tick={!isDesktop ? { fill: "#8E8E93" } : undefined} />
+                          <YAxis allowDecimals={false} stroke={!isDesktop ? "#8E8E93" : "#040404"} tick={!isDesktop ? { fill: "#8E8E93" } : undefined} />
+                          <Tooltip contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
                           <Line
                             type="monotone"
                             dataKey="count"
@@ -636,17 +646,17 @@ export default function ManagerStatisticsPage() {
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="text-gray-500 text-center py-16">Нет данных для отображения</div>
+                      <div className={`text-center py-16 ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Нет данных для отображения</div>
                     )}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="text-sm font-medium mb-3">Экспорт данных</div>
-                    <div className="flex gap-2">
+                  <div className={`mt-4 pt-4 border-t ${!isDesktop ? "border-[#3A3A3C]" : "border-gray-200"}`}>
+                    <div className={`text-sm font-medium mb-3 ${!isDesktop ? "text-white" : ""}`}>Экспорт данных</div>
+                    <div className={`flex gap-2 ${!isDesktop ? "flex-col" : ""}`}>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className={`flex-1 w-full ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
                         onClick={() => handleExport("xlsx")}
                       >
                         <Download className="w-4 h-4 mr-2" />
@@ -655,7 +665,7 @@ export default function ManagerStatisticsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className={`flex-1 w-full ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
                         onClick={() => handleExport("pbix")}
                       >
                         <Download className="w-4 h-4 mr-2" />
@@ -670,11 +680,11 @@ export default function ManagerStatisticsPage() {
 
           <section className="pt-3">
             <div className="mx-auto max-w-screen-sm px-3">
-              <Card className="border bg-white">
+              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
                 <CardContent className="p-3">
                   <div className="mb-2">
-                    <div className="text-sm font-medium">Краткий обзор</div>
-                    <div className="text-xs text-neutral-500">
+                    <div className={`text-sm font-medium ${!isDesktop ? "text-white" : ""}`}>Краткий обзор</div>
+                    <div className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-neutral-500"}`}>
                       Всего заявок: {summary.total}, в работе: {summary.inWork}, выполнено: {summary.completed} ({summary.completionRate}%), просрочено: {summary.overdue} ({summary.overdueRate}%)
                     </div>
                   </div>
@@ -705,26 +715,26 @@ export default function ManagerStatisticsPage() {
                         return (
                           <div key={row.key} className="space-y-2">
                             <div
-                              className="flex items-center justify-between text-sm cursor-pointer hover:bg-[#F3F3F3] rounded p-1 transition-colors"
+                              className={`flex items-center justify-between text-sm cursor-pointer rounded p-1 transition-colors ${isDesktop ? "hover:bg-[#F3F3F3]" : "hover:bg-white/10 active:scale-[0.99]"}`}
                               onClick={() => {
-                                if (row.key === 'normal') {
+                                if (row.key === "normal") {
                                   handleNormalRequestsClick();
-                                } else if (row.key === 'urgent') {
+                                } else if (row.key === "urgent") {
                                   handleUrgentRequestsClick();
-                                } else if (row.key === 'planned') {
+                                } else if (row.key === "planned") {
                                   handlePlannedRequestsClick();
                                 }
                               }}
                             >
-                              <div className="flex items-center gap-2">
+                              <div className={`flex items-center gap-2 ${!isDesktop ? "text-white" : ""}`}>
                                 {row.icon}
                                 <span>{row.label}</span>
                               </div>
-                              <span className="font-medium">
+                              <span className={`font-medium ${!isDesktop ? "text-white" : ""}`}>
                                 {distribution[totalKey]} ({distribution[pctKey]}%)
                               </span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded bg-[#C4C4CE]/30">
+                            <div className={`h-2 w-full overflow-hidden rounded ${!isDesktop ? "bg-[#3A3A3C]" : "bg-[#C4C4CE]/30"}`}>
                               <div
                                 className="h-full bg-gradient-to-r from-[#114A65] to-[#B8400E] transition-all"
                                 style={{ width: `${distribution[pctKey]}%` }}
@@ -740,11 +750,14 @@ export default function ManagerStatisticsPage() {
             </div>
           </section>
 
+          {/* Статистика по переговорным, пиковые часы и календарь — только на десктопе */}
+          {isDesktop && (
           <section className="pt-3">
             <div className="mx-auto max-w-screen-sm px-3">
               <MeetingRoomStatistics />
             </div>
           </section>
+          )}
         </main>
       </PullToRefresh>
       {!isDesktop && <BottomNav
