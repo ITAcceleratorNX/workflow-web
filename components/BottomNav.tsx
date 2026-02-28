@@ -18,13 +18,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
     }
 
     // URLs для навигации
-    const homeHref = role === 'client' ? '/cabinet' : (role === 'admin-worker' || role === 'department-head' || role === 'executor' || role === 'manager') ? `/${role}?createRequest=false` : '/home'
+    const homeHref = role === 'client' ? '/cabinet' : role === 'manager' ? '/manager/cabinet' : (role === 'admin-worker' || role === 'department-head' || role === 'executor') ? `/${role}?createRequest=false` : '/home'
     const bookingHref = '/meeting-rooms'
     const requestsHref =
         role === 'client' ? '/requests'
         : role === 'admin-worker' ? '/admin-worker/requests'
         : role === 'department-head' ? '/department-head/requests'
         : role === 'executor' ? '/executor/requests'
+        : role === 'manager' ? '/manager/requests'
         : '/create-request'
     const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : role === 'department-head' ? '/department-head/messages' : '/chat-bot'
     const profileHref = '/profile'
@@ -79,10 +80,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
             path === '/home' ||
             (role && path === `/${role}`) ||
             (role === 'admin-worker' && path.startsWith('/admin-worker/management')) ||
-            (role === 'department-head' && path.startsWith('/department-head/management'))
+            (role === 'department-head' && path.startsWith('/department-head/management')) ||
+            (role === 'manager' && path.startsWith('/manager/cabinet'))
         if (isHomePath) return 'home'
         if (path === bookingHref || path.startsWith('/meeting-rooms')) return 'booking'
-        if (path === requestsHref || path === '/requests' || path === '/create-request' || path.startsWith('/admin-worker/requests') || path.startsWith('/department-head/requests') || path.startsWith('/executor/requests')) return 'requests'
+        if (path === requestsHref || path === '/requests' || path === '/create-request' || path.startsWith('/admin-worker/requests') || path.startsWith('/department-head/requests') || path.startsWith('/executor/requests') || path.startsWith('/manager/requests')) return 'requests'
         if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/department-head/messages')) return 'help'
         if (path === profileHref || path.startsWith('/profile')) return 'profile'
         return undefined

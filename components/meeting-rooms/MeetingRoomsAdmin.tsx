@@ -391,16 +391,18 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
-            Всего: {filteredRooms.length}
-          </Badge>
-          <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
-            Активных: {filteredRooms.filter((room) => room.isActive).length}
-          </Badge>
+      <div className="flex flex-col gap-4">
+        <div className={`flex flex-wrap items-center gap-2 ${isMobile ? "flex-col items-stretch" : ""}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
+              Всего: {filteredRooms.length}
+            </Badge>
+            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
+              Активных: {filteredRooms.filter((room) => room.isActive).length}
+            </Badge>
+          </div>
           <Button
-            className={isDark || isMobile ? "gap-2 bg-[#E25B21] hover:bg-[#D94F15] text-white" : "gap-2"}
+            className={`gap-2 ${isMobile ? "w-full" : ""} ${isDark || isMobile ? "bg-[#E25B21] hover:bg-[#D94F15] text-white" : ""}`}
             style={isDark || isMobile ? { color: "#ffffff" } : undefined}
             onClick={handleAddRoomClick}
           >
@@ -408,15 +410,15 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
             Добавить комнату
           </Button>
         </div>
-        <div className="flex flex-row flex-wrap gap-2 w-full items-center">
+        <div className={`flex gap-2 w-full items-center ${isMobile ? "flex-col" : "flex-row flex-wrap"}`}>
           {offices.length > 0 && (
-            <div className="flex-1 min-w-[160px]">
+            <div className={isMobile ? "w-full" : "flex-1 min-w-[160px]"}>
               <Select
                 value={selectedOfficeId === "all" ? "all" : selectedOfficeId.toString()}
                 onValueChange={(value) => setSelectedOfficeId(value === "all" ? "all" : Number(value))}
               >
-                <SelectTrigger className={`w-full ${isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}`}>
-                  <SelectValue placeholder="Фильтр по офису" />
+                <SelectTrigger className={`w-full ${isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+                <SelectValue placeholder="Фильтр по офису" />
                 </SelectTrigger>
                 <SelectContent className={isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
                   <SelectItem value="all">Все офисы</SelectItem>
@@ -429,14 +431,14 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
               </Select>
             </div>
           )}
-          <div className="flex-1 min-w-[160px]">
+          <div className={isMobile ? "w-full" : "flex-1 min-w-[160px]"}>
             <Select
               value={roomTypeFilter}
               onValueChange={(value) =>
                 setRoomTypeFilter(value as MeetingRoomType | "all")
               }
             >
-              <SelectTrigger className={`w-full ${isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full ${isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                 <SelectValue placeholder="Тип комнаты" />
               </SelectTrigger>
               <SelectContent className={isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
@@ -526,11 +528,11 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
                     <div className="space-y-2">
                       <Label>Тип комнаты</Label>
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
                         <Button
                           type="button"
                           variant={formState.room_type === "meeting" ? "default" : "outline"}
-                          className="rounded-full"
+                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "meeting" }))
                           }
@@ -540,7 +542,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         <Button
                           type="button"
                           variant={formState.room_type === "cabinet" ? "default" : "outline"}
-                          className="rounded-full"
+                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "cabinet" }))
                           }
@@ -552,11 +554,11 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
                     <div className="space-y-2">
                       <Label>Статус</Label>
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
                         <Button
                           type="button"
                           variant={formState.status === "available" ? "default" : "outline"}
-                          className="rounded-full"
+                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
                           onClick={() => setFormState((prev) => ({ ...prev, status: "available" }))}
                         >
                           Доступна
@@ -564,7 +566,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         <Button
                           type="button"
                           variant={formState.status === "booked" ? "default" : "outline"}
-                          className="rounded-full"
+                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
                           onClick={() => setFormState((prev) => ({ ...prev, status: "booked" }))}
                         >
                           Забронирована
@@ -659,11 +661,12 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
+              <div className={`flex flex-wrap items-center gap-2 pt-4 border-t ${isMobile ? "flex-col" : ""}`}>
                 {isEditing ? (
                   <Button
                     type="button"
                     variant="destructive"
+                    className={isMobile ? "w-full" : ""}
                     onClick={() => {
                       if (formState.id) {
                         const roomToRemove =
@@ -686,10 +689,10 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     Удалить
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" onClick={handleCancel}>
+                <Button type="button" variant="outline" onClick={handleCancel} className={isMobile ? "w-full" : ""}>
                   Отмена
                 </Button>
-                <Button type="button" onClick={handleSubmit} className="gap-2" disabled={loading}>
+                <Button type="button" onClick={handleSubmit} className={`gap-2 ${isMobile ? "w-full" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`} disabled={loading}>
                   <Save className="h-4 w-4" />
                   Сохранить
                 </Button>
@@ -700,9 +703,9 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
       <div className="space-y-4">
         {filteredRooms.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-10 text-center">
-            <h3 className="text-lg font-semibold">Комнаты не найдены</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className={`rounded-lg border border-dashed p-10 text-center ${isMobile ? "border-[#3A3A3C]" : ""}`}>
+            <h3 className={`text-lg font-semibold ${isMobile ? "text-white" : ""}`}>Комнаты не найдены</h3>
+            <p className={`mt-2 text-sm text-muted-foreground ${isMobile ? "text-[#8E8E93]" : ""}`}>
               {selectedOfficeId === "all" 
                 ? "Добавьте новую переговорную комнату."
                 : "Для выбранного офиса комнаты не найдены."}
@@ -720,13 +723,14 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                 showOffice={true}
                 darkTheme={isMobile}
                 footer={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(room)}>
+                  <div className={`flex gap-2 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
+                    <Button size="sm" variant="outline" className={isMobile ? "w-full justify-center border-[#3A3A3C] text-white hover:bg-[#3A3A3C]" : ""} onClick={() => handleEdit(room)}>
                       Редактировать
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
+                      className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""}
                       onClick={() =>
                         handleStatusChange(
                           room.id,
@@ -734,22 +738,24 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         )
                       }
                     >
-                      {room.status === "available" ? "Отметить как забронированную" : "Освободить"}
+                      {room.status === "available" ? (isMobile ? "Забронировать" : "Отметить как забронированную") : "Освободить"}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
+                      className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""}
                       onClick={() => handleToggleActive(room.id)}
                     >
-                      {room.isActive ? "Отправить на ремонт" : "Сделать активной"}
+                      {room.isActive ? (isMobile ? "На ремонт" : "Отправить на ремонт") : "Сделать активной"}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDuplicate(room.id)}>
+                    <Button size="sm" variant="ghost" className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""} onClick={() => handleDuplicate(room.id)}>
                       <Copy className="mr-1 h-4 w-4" />
                       Дублировать
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
+                      className={isMobile ? "w-full justify-center" : ""}
                       onClick={() => requestDeleteRoom(room)}
                     >
                       <Trash2 className="mr-1 h-4 w-4" />
