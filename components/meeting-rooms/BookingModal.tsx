@@ -31,7 +31,6 @@ interface BookingModalProps {
   onBookingSuccess?: () => void
   onSuccess?: (message: { title: string; message: string }) => void
   isPageMode?: boolean // Режим страницы для мобильных устройств
-  variant?: "default" | "dark"
 }
 
 // Генерация временных слотов с 9:00 до 00:00 (24:00)
@@ -58,9 +57,7 @@ export function BookingModal({
   onBookingSuccess,
   onSuccess,
   isPageMode = false,
-  variant = "default",
 }: BookingModalProps) {
-  const isDark = variant === "dark";
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState("")
@@ -73,36 +70,6 @@ export function BookingModal({
   const rejectModal = useRejectRequestModal()
   const router = useRouter()
   const [roomDetails, setRoomDetails] = useState<ApiMeetingRoom | null>(null)
-
-  // Lock body scroll while modal is open (prevents double scrollbars)
-  useEffect(() => {
-    if (!isOpen || isPageMode) return
-    if (typeof window === "undefined") return
-
-    const html = document.documentElement
-    const body = document.body
-    const prevHtmlOverflow = html.style.overflow
-    const prevHtmlScrollbarGutter = (html.style as any).scrollbarGutter as string | undefined
-    const prevBodyOverflow = body.style.overflow
-    const prevBodyPaddingRight = body.style.paddingRight
-
-    const scrollbarWidth = window.innerWidth - html.clientWidth
-    html.style.overflow = "hidden"
-    // Some layouts set `scrollbar-gutter: stable` which keeps a visible gutter/scrollbar.
-    // Force normal behavior while modal is open to avoid a second scrollbar track.
-    ;(html.style as any).scrollbarGutter = "auto"
-    body.style.overflow = "hidden"
-    if (scrollbarWidth > 0) {
-      body.style.paddingRight = `${scrollbarWidth}px`
-    }
-
-    return () => {
-      html.style.overflow = prevHtmlOverflow
-      ;(html.style as any).scrollbarGutter = prevHtmlScrollbarGutter ?? ""
-      body.style.overflow = prevBodyOverflow
-      body.style.paddingRight = prevBodyPaddingRight
-    }
-  }, [isOpen, isPageMode])
 
   // Загружаем детали комнаты
   useEffect(() => {
@@ -351,36 +318,31 @@ export function BookingModal({
         className={cn(
           isPageMode 
             ? "w-full min-h-screen rounded-none border-0 shadow-none" 
-            : "w-full max-w-4xl max-h-[90vh] overflow-y-auto",
-          !isPageMode && (isDark ? "custom-scrollbar-dark" : "custom-scrollbar"),
-          isDark && !isPageMode && "bg-[#1C1C1E] border-white/10 shadow-2xl"
+            : "w-full max-w-4xl max-h-[90vh] overflow-y-auto"
         )}
         onClick={(e) => !isPageMode && e.stopPropagation()}
       >
-      <CardHeader className={cn(isPageMode && "pb-4", isDark && "border-b border-white/10")}>
+      <CardHeader className={cn(isPageMode && "pb-4")}>
         <div className="flex items-center gap-4">
           {isPageMode && (
             <Button
               variant="ghost"
               onClick={onClose}
-              className={cn("-ml-2", isDark && "text-white hover:bg-white/10")}
+              className="-ml-2"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Назад
             </Button>
           )}
-          <CardTitle className={cn(isPageMode ? "" : "flex-1", isDark && "text-white")}>Бронирование</CardTitle>
+          <CardTitle className={isPageMode ? "" : "flex-1"}>Бронирование</CardTitle>
         </div>
         </CardHeader>
-        <CardContent className={cn("space-y-6", isDark && "text-white")}>
+        <CardContent className="space-y-6">
           {/* Информация о комнате */}
           {room && roomDetails && (
             <div className="space-y-4">
-              <div className={cn(
-                "rounded-xl border overflow-hidden",
-                isDark ? "border-white/10 bg-[#2C2C2E]" : "bg-card"
-              )}>
-                <div className={cn("relative aspect-video", isDark ? "bg-[#1A1A1A]" : "bg-muted")}>
+              <div className="rounded-lg border bg-card overflow-hidden">
+                <div className="relative aspect-video bg-muted">
                   {roomDetails.photos && roomDetails.photos.length > 0 ? (
                     <Image
                       src={roomDetails.photos[0]}
@@ -390,10 +352,7 @@ export function BookingModal({
                       sizes="(max-width: 768px) 100vw, 100%"
                     />
                   ) : (
-                    <div className={cn(
-                      "absolute inset-0 flex flex-col items-center justify-center gap-2",
-                      isDark ? "text-white/50" : "text-muted-foreground"
-                    )}>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
                       <ImageIcon className="h-12 w-12" />
                       <span className="text-sm">Фото не загружено</span>
                     </div>
@@ -402,12 +361,8 @@ export function BookingModal({
                     className={cn(
                       "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold shadow-lg",
                       roomDetails.status === "available"
-                        ? isDark
-                          ? "bg-[#2A9D8F] text-white border-0"
-                          : "bg-gradient-to-r from-[#114A65] to-[#114A65]/90 text-white backdrop-blur-md border border-[#114A65]/50"
-                        : isDark
-                          ? "bg-[#E85D2B]/90 text-white border-0"
-                          : "bg-gradient-to-r from-[#B8400E] to-[#B8400E]/90 text-white backdrop-blur-md border border-[#B8400E]/50"
+                        ? "bg-gradient-to-r from-[#114A65] to-[#114A65]/90 text-white backdrop-blur-md border border-[#114A65]/50"
+                        : "bg-gradient-to-r from-[#B8400E] to-[#B8400E]/90 text-white backdrop-blur-md border border-[#B8400E]/50"
                     )}
                   >
                     {roomDetails.status === "available" ? "Доступна" : "Забронирована"}
@@ -415,42 +370,37 @@ export function BookingModal({
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
-                    <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>{roomDetails.name}</h3>
+                    <h3 className="text-lg font-semibold">{roomDetails.name}</h3>
                     {roomDetails.description && (
-                      <p className={cn("text-sm mt-1", isDark ? "text-white/70" : "text-muted-foreground")}>{roomDetails.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{roomDetails.description}</p>
                     )}
                   </div>
-                  <Separator className={isDark ? "bg-white/10" : undefined} />
-                  <div className={cn("flex flex-wrap items-center gap-4 text-sm", isDark ? "text-white/80" : "text-muted-foreground")}>
-                    <div className="flex items-center gap-2">
-                      <Building2 className={cn("h-4 w-4 shrink-0", isDark ? "text-[#E85D2B]" : "text-primary")} />
+                  <Separator />
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Building2 className="h-4 w-4 text-primary" />
                       <span>{roomDetails.floor} этаж</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className={cn("h-4 w-4 shrink-0", isDark ? "text-[#2A9D8F]" : "text-primary")} />
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-4 w-4 text-primary" />
                       <span>до {roomDetails.capacity} человек</span>
                     </div>
                     {roomDetails.office && (
-                      <div className="flex items-center gap-2">
-                        <Building2 className={cn("h-4 w-4 shrink-0", isDark ? "text-[#E85D2B]" : "text-primary")} />
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Building2 className="h-4 w-4 text-primary" />
                         <span>{roomDetails.office.name}, {roomDetails.office.city}</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <Separator className={isDark ? "bg-white/10" : undefined} />
+              <Separator />
             </div>
           )}
           {selectedDate && selectedTimeSlot && (
-            <div className={cn(
-              "flex items-center gap-2 p-3 rounded-xl border",
-              isDark
-                ? "bg-[#E85D2B]/15 border-[#E85D2B]/30"
-                : "bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 border-[#114A65]/20"
-            )}>
-              <CalendarIcon className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
-              <span className={cn("text-sm", isDark ? "text-white" : "text-[#040404]")}>
+            <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 border border-[#114A65]/20 rounded-lg">
+              <CalendarIcon className="w-4 h-4 text-[#114A65]" />
+              <span className="text-sm text-[#040404]">
                 {format(selectedDate, "dd MMMM yyyy", { locale: ru })} {selectedTimeSlot}
               </span>
             </div>
@@ -458,15 +408,14 @@ export function BookingModal({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div className="space-y-2">
-              <Label className={isDark ? "text-white/90" : ""}>Дата</Label>
+              <Label>Дата</Label>
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !selectedDate && (isDark ? "text-white/50" : "text-muted-foreground"),
-                      isDark && "border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]"
+                      !selectedDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -477,13 +426,16 @@ export function BookingModal({
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className={cn("w-auto p-0", isDark && "bg-[#2C2C2E] border-white/10")} align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={(date) => {
                       setSelectedDate(date)
-                      if (date) setCalendarOpen(false)
+                      // Закрываем календарь после выбора даты
+                      if (date) {
+                        setCalendarOpen(false)
+                      }
                     }}
                     disabled={(date) => {
                       const today = new Date()
@@ -498,14 +450,14 @@ export function BookingModal({
 
             {selectedDate && (
               <div className="space-y-2">
-                <Label className={isDark ? "text-white/90" : ""}>Время</Label>
+                <Label>Время</Label>
                 {loadingAvailability ? (
                   <div className="flex items-center justify-center p-8">
-                    <div className={cn("w-4 h-4 border-2 border-t-transparent rounded-full animate-spin", isDark ? "border-[#E85D2B]" : "border-[#114A65]")} />
-                    <span className={cn("ml-2 text-sm", isDark ? "text-white/70" : "text-muted-foreground")}>Загрузка доступности...</span>
+                    <div className="w-4 h-4 border-2 border-[#114A65] border-t-transparent rounded-full animate-spin" />
+                    <span className="ml-2 text-sm text-muted-foreground">Загрузка доступности...</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
                     {TIME_SLOTS.map((slot) => {
                       const now = new Date()
                       const isToday = selectedDate.toDateString() === now.toDateString()
@@ -525,20 +477,22 @@ export function BookingModal({
                           disabled={isDisabled}
                           className={cn(
                             "w-full justify-start text-sm",
-                            selectedTimeSlot === slot.label && (
-                              isDark
-                                ? "bg-[#E85D2B] hover:bg-[#d14d1b] text-white border-0"
-                                : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
-                            ),
-                            !selectedTimeSlot && isDark && "border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]",
+                            selectedTimeSlot === slot.label &&
+                              "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white",
                             isDisabled && "opacity-50 cursor-not-allowed",
-                            isBooked && !selectedTimeSlot && (isDark ? "bg-red-500/20 border-red-500/40 text-red-400" : "bg-red-50 border-red-200 text-red-600")
+                            isBooked && !selectedTimeSlot && "bg-red-50 border-red-200 text-red-600"
                           )}
                           onClick={() => {
-                            if (!isDisabled) setSelectedTimeSlot(slot.label)
+                            if (!isDisabled) {
+                              setSelectedTimeSlot(slot.label)
+                            }
                           }}
                           title={
-                            isPast ? "Это время уже прошло" : isBooked ? "Это время уже забронировано" : undefined
+                            isPast
+                              ? "Это время уже прошло"
+                              : isBooked
+                              ? "Это время уже забронировано"
+                              : undefined
                           }
                         >
                           <div className="flex items-center justify-between gap-2 w-full min-w-0">
@@ -547,10 +501,7 @@ export function BookingModal({
                               <span className="truncate">{slot.label}</span>
                             </div>
                           {isBooked && (
-                              <span className={cn(
-                                "text-xs px-1.5 py-0.5 rounded flex-shrink-0",
-                                isDark ? "bg-red-500/30 text-red-300" : "bg-red-100 text-red-700"
-                              )}>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 flex-shrink-0">
                                 Занято
                               </span>
                           )}
@@ -565,30 +516,25 @@ export function BookingModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company-name" className={isDark ? "text-white/90" : ""}>Название компании (необязательно)</Label>
+            <Label htmlFor="company-name">Название компании (необязательно)</Label>
             <Input
               id="company-name"
               placeholder="Название компании"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className={isDark ? "bg-[#2C2C2E] border-white/20 text-white placeholder:text-white/40" : ""}
             />
           </div>
 
           <div className="flex gap-3 justify-end">
             {!isPageMode && (
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className={isDark ? "border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]" : ""}
-            >
+            <Button variant="outline" onClick={onClose}>
               Отмена
             </Button>
             )}
             <Button
               onClick={handleBooking}
               disabled={!selectedDate || !selectedTimeSlot || isSubmitting}
-              className={isDark ? "bg-[#E85D2B] hover:bg-[#d14d1b] text-white" : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D]"}
+              className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D]"
             >
               {isSubmitting ? "Бронирование..." : "Забронировать"}
             </Button>
@@ -630,17 +576,14 @@ export function BookingModal({
     )
   }
 
-  // В режиме модалки: скролл только внутри карточки, страница залочена
+  // В режиме модалки возвращаем с overlay
   return (
     <div
-      className={cn(
-        "fixed inset-0 z-50 p-4 flex items-center justify-center",
-        isDark ? "bg-black/60 backdrop-blur-sm" : "bg-black/50"
-      )}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       {content}
-
+      
       <RejectRequestModal
         isOpen={rejectModal.isOpen}
         onClose={rejectModal.hideReject}

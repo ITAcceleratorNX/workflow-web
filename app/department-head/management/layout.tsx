@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
+import { BottomNav } from "@/components/BottomNav";
 
 export default function DepartmentHeadManagementLayout({
   children,
@@ -30,18 +31,13 @@ export default function DepartmentHeadManagementLayout({
   }, [hydrated, user, router, clearAuth]);
 
   useEffect(() => {
-    document.body.classList.add("department-head-management");
-    return () => document.body.classList.remove("department-head-management");
-  }, []);
-
-  useEffect(() => {
-    if (!isDesktop) {
+    if (!isDesktop && pathname?.startsWith("/department-head/management")) {
       document.body.classList.add("admin-management-mobile");
     } else {
       document.body.classList.remove("admin-management-mobile");
     }
     return () => document.body.classList.remove("admin-management-mobile");
-  }, [isDesktop]);
+  }, [pathname, isDesktop]);
 
   const handleLogout = async () => {
     try {
@@ -58,16 +54,16 @@ export default function DepartmentHeadManagementLayout({
 
   return (
     <>
-      <Header handleLogout={handleLogout} notificationCount={0} role="Офис менеджер" theme="dark" />
+      <Header handleLogout={handleLogout} notificationCount={0} role="Офис менеджер" />
       <div
-        className="min-h-screen pb-6"
+        className="min-h-screen pb-20"
         style={{
           background: "linear-gradient(180deg, #1C1C1E 0%, #2C2C2E 50%, #1C1C1E 100%)",
         }}
       >
         {children}
       </div>
-      {/* BottomNav скрыта на страницах Управления */}
+      <BottomNav hidden={false} />
     </>
   );
 }

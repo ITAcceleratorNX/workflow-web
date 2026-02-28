@@ -85,14 +85,9 @@ const MAX_PHOTOS = 3;
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png"];
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file
 
-interface MeetingRoomsAdminProps {
-  variant?: "default" | "dark";
-}
-
-export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProps) {
+export function MeetingRoomsAdmin() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const isDark = variant === "dark";
   const formRef = useRef<HTMLDivElement>(null);
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const loading = useMeetingRoomsStore((state) => state.loading);
@@ -400,8 +395,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
             Активных: {filteredRooms.filter((room) => room.isActive).length}
           </Badge>
           <Button
-            className={isDark || isMobile ? "gap-2 bg-[#E25B21] hover:bg-[#D94F15] text-white" : "gap-2"}
-            style={isDark || isMobile ? { color: "#ffffff" } : undefined}
+            className={isMobile ? "gap-2 bg-[#F35713] hover:bg-[#E04D0F]" : "gap-2"}
             onClick={handleAddRoomClick}
           >
             <Plus className="h-4 w-4" />
