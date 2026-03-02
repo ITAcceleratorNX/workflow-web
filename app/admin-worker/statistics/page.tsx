@@ -548,17 +548,12 @@ export default function AdminWorkerStatisticsPage() {
     </div>
   )
 
-  // Десктоп — светлый дизайн с Header
+  // Десктоп — layout provides Header via RoleDesktopShell
   if (isDesktop) {
     return (
       <>
-        <Header
-          handleLogout={handleLogout}
-          notificationCount={0}
-          role="Администратор офиса"
-        />
         <PullToRefresh onRefresh={handleRefresh}>
-          <div className="min-h-screen bg-[#F3F3F3] pb-20">
+          <div className="min-h-screen bg-[#1A1A1A] pb-20">
             <div className="w-full max-w-screen-sm mx-auto px-3">
               <section className="pt-3">
                 <div className="grid grid-cols-2 gap-3">

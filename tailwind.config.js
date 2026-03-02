@@ -75,6 +75,11 @@ module.exports = {
           800: "#6b21a8",
           900: "#581c87",
         },
+        desktop: {
+          bg: "#1A1A1A",
+          primary: "#E85D2B",
+          accent: "#2A9D8F",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

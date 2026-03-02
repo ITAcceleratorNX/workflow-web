@@ -21,7 +21,7 @@ export default function ManagerRequestDetailPage() {
 
   useEffect(() => {
     if (isDesktop) {
-      router.replace(`/manager?tab=requests&requestId=${id}`);
+      router.replace(`/manager/requests?requestId=${id}`);
       return;
     }
   }, [isDesktop, router, id]);

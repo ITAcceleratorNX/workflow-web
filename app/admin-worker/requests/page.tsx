@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { sortRequests, useRequestStore } from "@/stores/useRequestStore";
 import { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
@@ -15,12 +15,15 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import api, { deleteRecurringTask } from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
+import { RequestDetails } from "@/components/RequestDetails";
 
 export default function AdminRequestsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token } = useAuthStore();
   const { toast } = useToast();
+  const requestIdFromUrl = searchParams?.get("requestId");
 
   const {
     incomingRequests,
@@ -77,15 +80,10 @@ export default function AdminRequestsPage() {
   );
 
   useEffect(() => {
-    if (isDesktop) {
-      router.push("/admin-worker");
-      return;
-    }
     fetchRequests(1);
-  }, [isDesktop, router]);
+  }, []);
 
   useEffect(() => {
-    if (isDesktop) return;
     fetchRequests(1);
   }, [filterIncomingStatus, filterIncomingType]);
 
@@ -149,15 +147,172 @@ export default function AdminRequestsPage() {
     []
   );
 
-  const handleCardClick = (request: RequestGroup) => {
-    router.push(`/admin-worker/requests/${request.id}`);
-  };
+  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
+  const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
 
-  if (isDesktop) return null;
+  useEffect(() => {
+    if (requestIdFromUrl && (incomingRequests.length > 0 || myRequests.length > 0)) {
+      const all = [...incomingRequests, ...myRequests];
+      const found = all.find((r) => String(r.id) === requestIdFromUrl);
+      if (found) setSelectedRequestData(found);
+      else setSelectedRequestData(null);
+    } else {
+      setSelectedRequestData(selectedRequest);
+    }
+  }, [requestIdFromUrl, incomingRequests, myRequests, selectedRequest]);
+
+  const handleCardClick = (request: RequestGroup) => {
+    if (isDesktop) {
+      setSelectedRequest(request);
+      router.push(`/admin-worker/requests?requestId=${request.id}`, { scroll: false });
+    } else {
+      router.push(`/admin-worker/requests/${request.id}`);
+    }
+  };
 
   const handleMyCardClick = (request: RequestGroup) => {
-    router.push(`/admin-worker/requests/${request.id}`);
+    if (isDesktop) {
+      setSelectedRequest(request);
+      router.push(`/admin-worker/requests?requestId=${request.id}`, { scroll: false });
+    } else {
+      router.push(`/admin-worker/requests/${request.id}`);
+    }
   };
+
+  const handleClosePanel = () => {
+    setSelectedRequest(null);
+    setSelectedRequestData(null);
+    router.push("/admin-worker/requests", { scroll: false });
+  };
+
+  const handleRequestUpdated = () => {
+    fetchRequests(1);
+    setSelectedRequest(null);
+    setSelectedRequestData(null);
+    router.push("/admin-worker/requests", { scroll: false });
+  };
+
+  if (isDesktop) {
+    const desktopRequests = activeTab === "incoming" ? filteredIncomingRequests : activeTab === "my-requests" ? filteredMyRequests : [];
+    const displayRequest = selectedRequestData ?? (requestIdFromUrl ? [...filteredIncomingRequests, ...filteredMyRequests].find((r) => String(r.id) === requestIdFromUrl) : null);
+
+    return (
+      <div className="h-full flex flex-col bg-[#1A1A1A]">
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex justify-between items-center">
+              <h1 className="text-xl font-bold text-white">Заявки</h1>
+              <Link href="/create-request">
+                <Button className="bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Создать
+                </Button>
+              </Link>
+            </div>
+            <div className="p-4 flex gap-2 flex-wrap">
+              <Select value={filterIncomingStatus} onValueChange={setFilterIncomingStatus}>
+                <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+                  <SelectValue placeholder="Статус" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#2C2C2E] border-white/10">
+                  <SelectItem value="all">Все</SelectItem>
+                  <SelectItem value="in_progress">В обработке</SelectItem>
+                  <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
+                  <SelectItem value="execution">Исполнение</SelectItem>
+                  <SelectItem value="completed">Завершено</SelectItem>
+                  <SelectItem value="overdue">Просрочено</SelectItem>
+                  <SelectItem value="rejected">Отклонено</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterIncomingType} onValueChange={setFilterIncomingType}>
+                <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+                  <SelectValue placeholder="Тип" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#2C2C2E] border-white/10">
+                  <SelectItem value="all">Все</SelectItem>
+                  <SelectItem value="normal">Обычная</SelectItem>
+                  <SelectItem value="urgent">Экстренная</SelectItem>
+                  <SelectItem value="planned">Плановая</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="px-4 py-2 flex gap-2 border-b border-white/5">
+              <button
+                onClick={() => setActiveTab("incoming")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "incoming" ? "bg-[#E85D2B] text-white" : "text-white/70 hover:bg-white/10"}`}
+              >
+                Входящие
+              </button>
+              <button
+                onClick={() => setActiveTab("my-requests")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "my-requests" ? "bg-[#E85D2B] text-white" : "text-white/70 hover:bg-white/10"}`}
+              >
+                Мои
+              </button>
+              <button
+                onClick={() => setActiveTab("recurring")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "recurring" ? "bg-[#E85D2B] text-white" : "text-white/70 hover:bg-white/10"}`}
+              >
+                Повторяющиеся
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              {loading ? (
+                <div className="text-center py-12 text-white/60">Загрузка...</div>
+              ) : activeTab === "recurring" ? (
+                <RecurringTasksList
+                  userRole="admin-worker"
+                  isDesktop={true}
+                  onShowMap={() => {}}
+                  onDeleteTask={async (id) => {
+                    try {
+                      await deleteRecurringTask(id);
+                      toast({ title: "Задача удалена" });
+                    } catch {
+                      toast({ title: "Ошибка", variant: "destructive" });
+                    }
+                  }}
+                />
+              ) : (
+                desktopRequests.map((request) => (
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                    onCardClick={activeTab === "incoming" ? handleCardClick : handleMyCardClick}
+                    renderCardHeader={renderCardHeader}
+                    userRole="admin-worker"
+                    variant="compact"
+                  />
+                ))
+              )}
+              {!loading && activeTab !== "recurring" && desktopRequests.length === 0 && (
+                <div className="text-center py-12 text-white/60">Нет заявок</div>
+              )}
+            </div>
+          </div>
+          {displayRequest && (
+            <div className="w-[420px] shrink-0 border-l border-white/10 flex flex-col bg-[#1A1A1A]">
+              <div className="p-3 border-b border-white/10 flex justify-between items-center">
+                <span className="font-semibold text-white">Заявка #{displayRequest.id}</span>
+                <Button variant="ghost" size="icon" className="text-white/70 hover:text-white" onClick={handleClosePanel}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <RequestDetails
+                  request={displayRequest}
+                  onClose={handleClosePanel}
+                  onRequestUpdated={handleRequestUpdated}
+                  userRole="admin-worker"
+                  sourceTab="incoming"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-6">

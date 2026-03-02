@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
 export default function ManagerLayout({
   children,
@@ -31,7 +32,6 @@ export default function ManagerLayout({
     }
 
     // На мобилке главная «Мой кабинет» — страница с карточками. Редирект /manager → /manager/cabinet только если в URL нет tab/requestId.
-    // Откладываем проверку, чтобы при переходе по ссылке /manager?tab=... URL успел обновиться до проверки.
     const t = setTimeout(() => {
       if (typeof window === "undefined") return;
       const currentSearch = new URLSearchParams(window.location.search);
@@ -46,7 +46,7 @@ export default function ManagerLayout({
     return () => clearTimeout(t);
   }, [hydrated, user, router, clearAuth, isDesktop, pathname]);
 
-  // Body class для тёмной темы Select/dropdown на мобилке (как у admin-worker)
+  // Body class для тёмной темы Select/dropdown на мобилке
   useEffect(() => {
     const isManagerPage = pathname === "/manager";
     const isManagerStatistics = pathname === "/manager/statistics";
@@ -62,18 +62,25 @@ export default function ManagerLayout({
     return null;
   }
 
-  // На мобилке тёмный фон для страниц кабинета менеджера (главная, статистика, заявки и т.д.), чтобы фон вокруг нижнего навбара совпадал
+  if (isDesktop) {
+    return (
+      <RoleDesktopShell role="manager">
+        {children}
+      </RoleDesktopShell>
+    );
+  }
+
   const isManagerMainPage = pathname === "/manager";
-  const isManagerMobileDarkPage =
+  const isManagerMobileWithNav =
     pathname?.startsWith("/manager/cabinet") ||
     pathname === "/manager/statistics" ||
-    pathname?.startsWith("/manager/requests");
-  const wrapWithDarkTheme = !isDesktop && (isManagerMainPage || isManagerMobileDarkPage);
+    pathname?.startsWith("/manager/requests") ||
+    pathname?.startsWith("/manager/management");
+  const wrapWithPadding = isManagerMainPage || isManagerMobileWithNav;
 
-  return wrapWithDarkTheme ? (
-    <div
-      className="min-h-screen min-h-[100dvh] pb-[calc(110px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E]"
-    >
+  // Обёртка без своего фона и без нижнего padding — полоса за навбаром заполняется фоном страницы (у каждой страницы свой pb + background)
+  return wrapWithPadding ? (
+    <div className="min-h-screen min-h-[100dvh] bg-transparent">
       {children}
     </div>
   ) : (

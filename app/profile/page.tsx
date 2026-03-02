@@ -282,6 +282,13 @@ export default function ProfilePage() {
         }
     }, [user, router])
 
+    // На десктопе admin/manager перенаправляем в раздел профиля (не модалка)
+    useEffect(() => {
+        if (user && isDesktop && (role === "admin-worker" || role === "manager")) {
+            router.replace(role === "admin-worker" ? "/admin-worker/profile" : "/manager/profile")
+        }
+    }, [user, isDesktop, role, router])
+
     const handleClose = () => {
         setIsOpen(false)
         router.back()
@@ -291,7 +298,12 @@ export default function ProfilePage() {
         return null
     }
 
-    // На десктопе показываем как модальное окно
+    // На десктопе admin/manager — редирект в useEffect, показываем null
+    if (isDesktop && (role === "admin-worker" || role === "manager")) {
+        return null
+    }
+
+    // На десктопе для остальных ролей показываем как модальное окно
     if (isDesktop) {
         return (
             <div className="min-h-screen bg-[#F3F3F3]">

@@ -75,6 +75,7 @@ import { ImportExcelModal } from "@/components/ImportExcelModal";
 import { deleteRecurringTask } from "@/lib/api";
 import PhotoModal from "@/components/photo/PhotoModal";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
+import { DashboardKpiCards } from "@/components/dashboard/DashboardKpiCards";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeManagement";
@@ -265,6 +266,27 @@ export default function AdminWorkerDashboard() {
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Legacy tab redirect: ?tab=... → dedicated routes for desktop
+  useEffect(() => {
+    if (!isDesktop) return;
+    const tab = searchParams?.get("tab");
+    if (tab === "statistics") {
+      router.replace("/admin-worker/statistics");
+      return;
+    }
+    if (tab === "incoming" || tab === "my-requests") {
+      router.replace("/admin-worker/requests");
+      return;
+    }
+    if (tab === "change-head") {
+      router.replace("/admin-worker/management");
+      return;
+    }
+    if (tab === "registration-requests") {
+      setActiveTab("registration-requests");
+    }
+  }, [isDesktop, searchParams, router]);
 
   // На мобильной вкладка «Логи» доступна в профиле — сбрасываем её на главной при переходе на мобильный
   useEffect(() => {
@@ -2380,77 +2402,27 @@ export default function AdminWorkerDashboard() {
 
   return (
       <>
-        <Header
-            handleLogout={handleLogout}
-            notificationCount={3}
-            role="Администратор"
-        />
+        {!isDesktop && (
+          <Header
+              handleLogout={handleLogout}
+              notificationCount={3}
+              role="Администратор"
+          />
+        )}
         <PullToRefresh onRefresh={handleRefresh}>
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${isDesktop ? "bg-[#1A1A1A]" : "bg-gray-50"}`}>
         <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
           {/* Quick Stats */}
           {isDesktop ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-yellow-100 rounded-lg">
-                        <Clock className="w-6 h-6 text-yellow-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Новые заявки</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.new ? (stats.statusCounts.new): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Users className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">В работе</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.inWork ? (stats.statusCounts.inWork): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Завершено</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.completed ? (stats.statusCounts.completed): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-red-100 rounded-lg">
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Просрочено</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.overdue ? (stats.statusCounts.overdue): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="mb-8">
+                <DashboardKpiCards
+                  stats={stats}
+                  createRequestHref="/create-request"
+                  createBookingHref="/meeting-rooms"
+                  statisticsHref="/admin-worker/statistics"
+                  requestsHref="/admin-worker/requests"
+                  variant="admin"
+                />
               </div>
           ): null}
 
@@ -2520,6 +2492,11 @@ export default function AdminWorkerDashboard() {
                       <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap">
                         Статистика
                       </TabsTrigger>
+                      {isDesktop && (
+                      <TabsTrigger value="workload" className="text-sm px-3 py-2 whitespace-nowrap">
+                        Загрузка
+                      </TabsTrigger>
+                      )}
                       <TabsTrigger value="change-head" className="text-sm px-3 py-2 whitespace-nowrap">
                         Управление
                       </TabsTrigger>
@@ -2620,6 +2597,12 @@ export default function AdminWorkerDashboard() {
                 <TabsContent value="meeting-rooms">
                   <MeetingRoomsAdmin />
                 </TabsContent>
+
+                {isDesktop && (
+                <TabsContent value="workload" className="pt-2">
+                  <MeetingRoomStatistics variant="dark" defaultShowCalendar />
+                </TabsContent>
+                )}
 
                 <TabsContent value="incoming">
                   <div className="space-y-4">

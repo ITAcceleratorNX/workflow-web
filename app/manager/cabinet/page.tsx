@@ -42,7 +42,7 @@ const cabinetCards = [
     title: "Управление",
     subtitle: "Офисы, пользователи, категории",
     icon: Settings,
-    href: "/manager?tab=management",
+    href: "/manager/management",
   },
   {
     key: "registration-requests",
