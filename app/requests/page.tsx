@@ -416,7 +416,7 @@ export default function RequestsPage() {
 
   const handleCardClick = useCallback((request: RequestGroup) => {
     if (role === "client" && !isDesktop && !isGuest) {
-      router.push(`/client/requests/${request.id}`)
+      router.push(`/client/requests/${request.id}?from=requests`)
       return
     }
     setSelectedRequest(request)
@@ -907,7 +907,7 @@ export default function RequestsPage() {
       />
 
       {/* Bottom Navigation */}
-      {!isDesktop && <BottomNav activeTab="requests" />}
+      {!isDesktop && <BottomNav activeTab="requests" darkBackground />}
 
       {/* Request Detail Modal */}
       {selectedRequest && renderRequestDetail()}

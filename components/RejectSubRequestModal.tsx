@@ -57,7 +57,7 @@ export const RejectSubRequestModal: React.FC<RejectSubRequestModalProps> = ({
   if (!isOpen || !request) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <Card className="w-full max-w-md">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">

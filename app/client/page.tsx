@@ -1153,10 +1153,7 @@ export default function ClientDashboard() {
                     setShowRatingModal(true)
                     openModal('ratingModal')
                   }}
-                  onDelete={(request) => {
-                    handleDeleteRequest(request);
-                    setShowDeleteRequestModal(true);
-                  }}
+                  onDelete={handleDeleteRequest}
               />
             </div>
           </div>
@@ -1861,6 +1858,7 @@ export default function ClientDashboard() {
     <BottomNav
         activeTab={activeTab === "requests" ? "requests" : activeTab === "meeting-rooms" ? "booking" : "home"}
         hidden={showCreateRequest || !!selectedRequest || showMapModal || showRatingModal || isModalOpen || !!selectedPhoto || showDeleteRequestModal}
+        darkBackground={activeTab === "requests"}
     />
   )}
         {/* Request Details — в портале, как у других ролей (полноэкранный тёмный стиль) */}

@@ -177,7 +177,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     <>
       {/* Мобильная версия (default) */}
       {!isDesktop && (
-        <div className="fixed inset-0 z-50 flex items-end safe-area-bottom">
+        <div className="fixed inset-0 z-[110] flex items-end safe-area-bottom">
           {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
