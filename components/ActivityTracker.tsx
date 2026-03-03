@@ -108,11 +108,78 @@ export function ActivityTracker() {
   const isStoppingRef = useRef<boolean>(false) // Защита от множественных остановок
   const isTrackingRef = useRef<boolean>(false) // Ref для отслеживания состояния
   const androidSensorCallbackRef = useRef<((data: any) => void) | null>(null) // Callback для Android датчиков
+  const [isMobileApp, setIsMobileApp] = useState(false)
+  const [stepCount, setStepCount] = useState<number | null>(null)
   
   // Синхронизация isTrackingRef с store
   useEffect(() => {
     isTrackingRef.current = isTracking
   }, [isTracking])
+
+  // Детекция запуска внутри мобильного приложения (iOS/Android WebView)
+  useEffect(() => {
+    let cancelled = false
+
+    const detectMobileApp = async () => {
+      if (typeof window === "undefined") return
+
+      try {
+        // React Native WebView (iOS/Android)
+        const rn = (window as any).ReactNativeWebView
+        if (rn?.postMessage) {
+          if (!cancelled) {
+            setIsMobileApp(true)
+          }
+          return
+        }
+
+        // Пытаемся аккуратно использовать существующие bridge-утилиты
+        const [{ iosBridge }, { androidBridge }] = await Promise.all([
+          import("@/lib/ios-bridge"),
+          import("@/lib/android-bridge"),
+        ])
+
+        const isIos = iosBridge.isIOSWebView()
+        const isAndroid = androidBridge.isAndroidWebView()
+
+        if (!cancelled) {
+          setIsMobileApp(isIos || isAndroid)
+        }
+      } catch (e) {
+        console.warn("Не удалось определить мобильное приложение для ActivityTracker:", e)
+      }
+    }
+
+    detectMobileApp()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Получение шагов из мобильного приложения (React Native WebView → window.postMessage)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data
+        if (!data || typeof data !== "object") return
+
+        if (data.type === "stepsUpdated" && typeof data.value === "number") {
+          setStepCount(data.value)
+        }
+      } catch {
+        // игнорируем не-JSON сообщения
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+
+    return () => {
+      window.removeEventListener("message", handleMessage)
+    }
+  }, [])
   
   // Проверка, используем ли мы Android WebView
   const isAndroidWebView = useRef<boolean>(false)
@@ -1083,6 +1150,31 @@ export function ActivityTracker() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {isMobileApp && (
+        <div className="mt-4 sm:mt-6">
+          <Card className="border-dashed border-[#114A65]/40 bg-[#114A65]/5">
+            <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs sm:text-sm font-medium text-[#040404]">
+                  Шагомер (мобильный режим)
+                </span>
+                <span className="text-[11px] sm:text-xs text-gray-500">
+                  Показатель шагов доступен только в мобильном приложении и не отображается в браузере.
+                </span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-lg sm:text-2xl font-bold text-[#114A65] leading-none">
+                  {stepCount !== null ? stepCount.toLocaleString("ru-RU") : "—"}
+                </span>
+                <span className="text-[11px] sm:text-xs text-gray-500 mt-1">
+                  шагов за сегодня
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
