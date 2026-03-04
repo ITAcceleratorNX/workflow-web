@@ -53,7 +53,12 @@ interface Statistics {
   }>
 }
 
-export function ActivityTracker() {
+interface ActivityTrackerProps {
+  /** Скрыть кнопку «Назад» когда трекер встроен на страницу (например /client) */
+  hideBackButton?: boolean;
+}
+
+export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps = {}) {
   // Используем глобальный store вместо локального состояния
   const {
     isTracking,
@@ -756,14 +761,16 @@ export function ActivityTracker() {
   if (user && (user.role !== 'executor' && user.role !== 'client')) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <Button
-          onClick={() => router.back()}
-          variant="ghost"
-          className="text-sm sm:text-base -ml-2"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Назад
-        </Button>
+        {!hideBackButton && (
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            className="text-sm sm:text-base -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Назад
+          </Button>
+        )}
         <Card>
           <CardContent className="p-4 sm:p-6">
             <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm text-center">
@@ -777,16 +784,16 @@ export function ActivityTracker() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Кнопка "Назад" */}
-      <Button
-        onClick={() => router.back()}
-        variant="ghost"
-        className="text-sm sm:text-base -ml-2"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Назад
-      </Button>
-      
+      {!hideBackButton && (
+        <Button
+          onClick={() => router.back()}
+          variant="ghost"
+          className="text-sm sm:text-base -ml-2"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Назад
+        </Button>
+      )}
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">

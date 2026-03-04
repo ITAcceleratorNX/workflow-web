@@ -18,6 +18,7 @@ import {useStatsStore} from "@/stores/statsStore"
 import {useAuthStore} from "@/stores/useAuthStore"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ProfileModal } from "@/components/ProfileModal"
+import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationsSidebar } from "@/components/notification/NotificationsSidebar"
 import { createClickableRequestIds } from "@/lib/notificationUtils"
@@ -303,15 +304,6 @@ export default function ProfilePage() {
         return null
     }
 
-    // На десктопе для остальных ролей показываем как модальное окно
-    if (isDesktop) {
-        return (
-            <div className="min-h-screen bg-[#F3F3F3]">
-                <ProfileModal isOpen={isOpen} onClose={handleClose} isFullScreen={false} />
-            </div>
-        )
-    }
-
     // На мобильных показываем как обычную страницу (стиль как login — без лого, надписи и уведомлений сверху)
     const inputClass = "h-12 rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white placeholder:text-[#6E6E6E] focus-visible:ring-2 focus-visible:ring-[#212121] focus-visible:ring-offset-0 focus-visible:ring-offset-[#040404]"
     const labelClass = "text-[15px] font-medium text-white"
@@ -320,7 +312,7 @@ export default function ProfilePage() {
     const tabListClass = "grid w-full rounded-xl border border-[#212121] bg-transparent p-1"
     const tabTriggerClass = "rounded-lg text-sm font-medium text-[#7F7F7F] transition-colors data-[state=active]:bg-[#212121] data-[state=active]:text-white"
 
-    return (
+    const profileContent = (
         <div
             className="min-h-screen bg-[#040404]"
             style={{
@@ -672,4 +664,26 @@ export default function ProfilePage() {
             {!isDesktop && <BottomNav activeTab="profile" />}
         </div>
     )
+
+    // На десктопе для клиента — как у админа/менеджера: ProfileModal asSection + сайдбар (ClientDesktopShell)
+    if (isDesktop && role === "client") {
+        return (
+            <ClientDesktopShell>
+                <div className="min-h-full bg-[#1A1A1A]">
+                    <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
+                </div>
+            </ClientDesktopShell>
+        )
+    }
+
+    // На десктопе для остальных ролей (executor и т.д.) — модальное окно
+    if (isDesktop) {
+        return (
+            <div className="min-h-screen bg-[#F3F3F3]">
+                <ProfileModal isOpen={isOpen} onClose={handleClose} isFullScreen={false} />
+            </div>
+        )
+    }
+
+    return profileContent
 }

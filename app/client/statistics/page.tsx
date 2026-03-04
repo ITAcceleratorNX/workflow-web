@@ -10,8 +10,6 @@ import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useStatsStore} from "@/stores/statsStore";
-import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
-
 interface Stats {
   totalRequests: number,
   activeRequests: number,
@@ -80,15 +78,16 @@ export default function ClientStatisticsPage() {
 
   return (
     <>
-      <Header
-        handleLogout={handleLogout}
-        notificationCount={0}
-        role="Клиент"
-        onRefresh={handleRefresh}
-      />
+      {!isDesktop && (
+        <Header
+          handleLogout={handleLogout}
+          notificationCount={0}
+          role="Клиент"
+        />
+      )}
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="min-h-screen bg-[#F3F3F3] pb-20">
-          <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
+        <div className={`min-h-screen pb-20 ${isDesktop ? "bg-[#1A1A1A]" : "bg-[#F3F3F3]"}`}>
+          <div className={`w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8 ${isDesktop ? "client-desktop-content" : ""}`}>
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -122,7 +121,6 @@ export default function ClientStatisticsPage() {
                   </div>
                 </CardContent>
               </Card>
-              <MeetingRoomStatistics />
             </div>
           </div>
         </div>

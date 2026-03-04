@@ -38,8 +38,8 @@ import {
   Bell,
   Ruler,
   Activity,
+  Home,
 } from "lucide-react"
-import Header from "@/app/header/Header";
 import api, { getOffices } from "@/lib/api";
 import {useRouter, useSearchParams} from "next/navigation";
 import {useNotificationStore} from "@/stores/notificationStore";
@@ -74,11 +74,13 @@ import {CompletedTaskReport} from "@/components/CompletedTaskReport";
 import SubRequestInfo from "@/components/SubRequestInfo";
 import Executors from "@/components/Executors";
 import { RequestDetails } from "@/components/RequestDetails";
+import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
 import PhotoModal from "@/components/photo/PhotoModal";
 import { MeetingRoomsCatalog } from "@/components/meeting-rooms/MeetingRoomsCatalog";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalculator";
 import { ClientSmartHomeControl } from "@/components/yandex-smart-home/ClientSmartHomeControl";
+import { ActivityTracker } from "@/components/ActivityTracker";
 
 interface Rating {
   id: number;
@@ -115,7 +117,7 @@ export default function ClientDashboard() {
   const { toast } = useToast()
   const rejectModal = useRejectRequestModal()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("meeting-rooms")
+  const [activeTab, setActiveTab] = useState("cabinet")
   const [showCreateRequest, setShowCreateRequest] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null)
   const [showRatingModal, setShowRatingModal] = useState(false)
@@ -160,20 +162,21 @@ export default function ClientDashboard() {
   const [pageSize] = useState(10);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   
-  // Обработка query параметра tab для установки активной вкладки
+  // Обработка query параметра tab: главный экран (Мой кабинет) = умный дом + activity трекер
   useEffect(() => {
     const tab = searchParams.get("tab")
     if (tab === "requests" || tab === "statistics" || tab === "meeting-rooms") {
       setActiveTab(tab)
+    } else if (!tab || tab === "cabinet") {
+      setActiveTab("cabinet")
     }
-    // По умолчанию остается meeting-rooms (бронирование)
   }, [searchParams])
   
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [isClosingProgrammatically, setIsClosingProgrammatically] = useState(false);
   const [offices, setOffices] = useState<any[]>([]);
   const [selectedOffice, setSelectedOffice] = useState<any | null>(null);
-  const [meetingRoomsTab, setMeetingRoomsTab] = useState<"book" | "my-bookings" | "smart-home">("book");
+  const [meetingRoomsTab, setMeetingRoomsTab] = useState<"book" | "my-bookings">("book");
   const [showDeskCalculator, setShowDeskCalculator] = useState(false);
 
   const lastRequestRef = useCallback((node: HTMLDivElement | null) => {
@@ -1114,8 +1117,8 @@ export default function ClientDashboard() {
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className={`font-bold text-base leading-tight line-clamp-2 text-[#040404]`}>
-                  Заявка #{requestGroup.id}
+<h3 className="font-bold text-base leading-tight line-clamp-2 text-card-foreground">
+                Заявка #{requestGroup.id}
                 </h3>
               </div>
               <div className="flex items-center gap-2 mt-1">
@@ -1167,222 +1170,51 @@ export default function ClientDashboard() {
       return;
     }
     setSelectedRequest(request);
-    openModal('requestDetails');
-  }, [openModal, isDesktop, router]);
+    // На десктопе в разделе «Заявки» детали показываются в правой панели (как у админа), модалку не открываем
+    if (activeTab !== "requests") openModal("requestDetails");
+  }, [openModal, isDesktop, router, activeTab]);
 
   return (
       <>
-        {/* Header - только на десктопе */}
-        {isDesktop && (
-          <Header
-              handleLogout={handleLogout}
-              notificationCount={notifications.length}
-              role="Клиент"
-          />
-        )}
       <PullToRefresh onRefresh={handleRefresh}>
       <div 
-        className={`min-h-screen pb-safe ${!isDesktop && activeTab === "requests" ? "bg-[#1C1C1E]" : "bg-[#F3F3F3]"}`}
+        className={`min-h-screen pb-safe ${isDesktop ? "bg-[#1A1A1A]" : activeTab === "requests" || activeTab === "cabinet" ? "bg-[#1C1C1E]" : "bg-[#F3F3F3]"}`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
-        {/* Quick Stats */}
-        {isDesktop && activeTab === "requests" ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-[#114A65]/10 rounded-lg">
-                      <Clock className="w-6 h-6 text-[#114A65]" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-[#114A65]">Активные заявки</p>
-                      <p className="text-2xl font-bold text-[#040404]">
-                        {stats && stats.activeRequests? (
-                            stats.activeRequests
-                        ): 0}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-gradient-to-br from-[#114A65]/20 to-[#114A65]/10 rounded-lg backdrop-blur-sm border border-[#114A65]/20">
-                      <CheckCircle className="w-6 h-6 text-[#114A65]" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-[#114A65]">Завершено</p>
-                      <p className="text-2xl font-bold text-[#040404]">
-                        {stats && stats.doneRequests ? (
-                            stats.doneRequests
-                        ): 0}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-gradient-to-br from-[#B8400E]/20 to-[#B8400E]/10 rounded-lg backdrop-blur-sm border border-[#B8400E]/20">
-                      <Star className="w-6 h-6 text-[#B8400E]" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-[#114A65]">Средняя оценка исполнителей</p>
-                      <p className="text-2xl font-bold text-[#040404]">
-                        {stats && stats.averageRating ? (
-                            stats.averageRating
-                        ): 0}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-[#114A65]/10 rounded-lg">
-                      <AlertTriangle className="w-6 h-6 text-[#114A65]" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Рейтинг</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {getRatingLabel(stats && stats.doneRequests ? (
-                            stats.doneRequests
-                        ): 0)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-        ) : null}
-
+        <div className={`w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8 ${isDesktop ? "client-desktop-content" : ""}`}>
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {/* Большие карточки на десктопе */}
-            {isDesktop && (
-              <div className="mb-8">
-                <div className="grid grid-cols-3 gap-6 mb-6">
-                  <Card
-                    className="cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border-2 hover:border-[#B8400E] bg-gradient-to-br from-white via-[#F3F3F3] to-white backdrop-blur-sm"
-                    onClick={() => {
-                      setActiveTab("meeting-rooms");
-                      setMeetingRoomsTab("book");
-                    }}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                        <div className="mb-4 w-full h-32 bg-gradient-to-br from-[#114A65]/20 via-[#B8400E]/10 to-[#114A65]/20 rounded-lg flex items-center justify-center relative overflow-hidden backdrop-blur-md border border-[#114A65]/20 shadow-lg">
-                          {/* Упрощенная иллюстрация комнаты */}
-                          <div className="absolute inset-0">
-                            {/* Окно */}
-                            <div className="absolute top-2 left-4 right-4 h-8 bg-gradient-to-r from-[#114A65]/40 to-[#114A65]/20 rounded border-2 border-[#114A65]/30 backdrop-blur-sm">
-                              <div className="grid grid-cols-2 h-full">
-                                <div className="border-r-2 border-[#114A65]/30"></div>
-                                <div></div>
-                              </div>
-                            </div>
-                            {/* Стол */}
-                            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-20 h-3 bg-gradient-to-r from-[#B8400E] to-[#B8400E]/80 rounded shadow-md"></div>
-                            {/* Стулья */}
-                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-8">
-                              <div className="w-4 h-4 bg-gradient-to-br from-[#114A65] to-[#114A65]/70 rounded-sm shadow-sm"></div>
-                              <div className="w-4 h-4 bg-gradient-to-br from-[#114A65] to-[#114A65]/70 rounded-sm shadow-sm"></div>
-                              <div className="w-4 h-4 bg-gradient-to-br from-[#114A65] to-[#114A65]/70 rounded-sm shadow-sm"></div>
-                              <div className="w-4 h-4 bg-gradient-to-br from-[#114A65] to-[#114A65]/70 rounded-sm shadow-sm"></div>
-                            </div>
-                          </div>
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#040404]">Бронирование комнат</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className="cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border-2 hover:border-[#B8400E] bg-gradient-to-br from-white via-[#F3F3F3] to-white backdrop-blur-sm"
-                    onClick={() => setActiveTab("requests")}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                        <div className="mb-4 w-full h-32 bg-gradient-to-br from-[#B8400E]/20 via-[#114A65]/10 to-[#B8400E]/20 rounded-lg flex items-center justify-center gap-4 backdrop-blur-md border border-[#B8400E]/20 shadow-lg">
-                          <Settings className="w-12 h-12 text-[#114A65]" strokeWidth={1.5} />
-                          <Wrench className="w-12 h-12 text-[#B8400E]" strokeWidth={1.5} />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#040404]">Сервисные заявки</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className="cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border-2 hover:border-[#B8400E] bg-gradient-to-br from-white via-[#F3F3F3] to-white backdrop-blur-sm"
-                    onClick={() => router.push('/client/statistics')}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                        <div className="mb-4 w-full h-32 bg-gradient-to-br from-[#114A65]/20 via-[#B8400E]/10 to-[#114A65]/20 rounded-lg flex items-center justify-center backdrop-blur-md border border-[#114A65]/20 shadow-lg">
-                          <BarChart3 className="w-16 h-16 text-[#114A65]" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#040404]">Статистика</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className="cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border-2 hover:border-[#B8400E] bg-gradient-to-br from-white via-[#F3F3F3] to-white backdrop-blur-sm"
-                    onClick={() => router.push('/activity-stats')}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                        <div className="mb-4 w-full h-32 bg-gradient-to-br from-[#114A65]/20 via-[#B8400E]/10 to-[#114A65]/20 rounded-lg flex items-center justify-center backdrop-blur-md border border-[#114A65]/20 shadow-lg">
-                          <Activity className="w-16 h-16 text-[#114A65]" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#040404]">Статистика активности</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Кнопки и элементы для meeting-rooms на десктопе */}
-                {activeTab === "meeting-rooms" && (
-                  <div className="mb-6 space-y-4">
-                    {/* Три кнопки */}
+            {/* Десктоп: главный экран — Умный дом + Activity трекер; Бронь — только офисы */}
+            {isDesktop && activeTab === "cabinet" && (
+              <div className="max-w-4xl mx-auto py-8 client-desktop-dark space-y-8">
+                <ClientSmartHomeControl />
+                <ActivityTracker hideBackButton />
+              </div>
+            )}
+            {isDesktop && activeTab === "meeting-rooms" && (
+                  <div className="mb-6 space-y-4 client-desktop-dark">
+                    {/* Две кнопки: Бронировать | Мои бронирования */}
                     <div className="flex gap-4">
                       <Button
-                        onClick={() => {
-                          setMeetingRoomsTab("book");
-                        }}
-                        className={`flex-1 h-12 rounded-lg font-medium shadow-lg backdrop-blur-sm transition-all duration-300 ${
+                        onClick={() => setMeetingRoomsTab("book")}
+                        className={`flex-1 h-12 rounded-lg font-medium transition-all duration-300 ${
                           meetingRoomsTab === "book"
-                            ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#9a360c] text-white"
-                            : "bg-gray-200 hover:bg-gray-300 text-gray-900"
+                            ? "bg-[#E85D2B] hover:bg-[#D94F15] text-white"
+                            : "bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white border border-[#212121]"
                         }`}
                       >
                         Бронировать
                       </Button>
                       <Button
-                        onClick={() => {
-                          setMeetingRoomsTab("my-bookings");
-                        }}
-                        className={`flex-1 h-12 rounded-lg font-medium ${
+                        onClick={() => setMeetingRoomsTab("my-bookings")}
+                        className={`flex-1 h-12 rounded-lg font-medium transition-all duration-300 ${
                           meetingRoomsTab === "my-bookings"
-                            ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#9a360c] text-white"
-                            : "bg-gray-200 hover:bg-gray-300 text-gray-900"
+                            ? "bg-[#E85D2B] hover:bg-[#D94F15] text-white"
+                            : "bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white border border-[#212121]"
                         }`}
                       >
                         Мои бронирования
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setMeetingRoomsTab("smart-home");
-                        }}
-                        className={`flex-1 h-12 rounded-lg font-medium ${
-                          meetingRoomsTab === "smart-home"
-                            ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#9a360c] text-white"
-                            : "bg-gray-200 hover:bg-gray-300 text-gray-900"
-                        }`}
-                      >
-                        Умный дом
                       </Button>
                     </div>
 
@@ -1391,14 +1223,12 @@ export default function ClientDashboard() {
                       <>
                         {/* Кнопка калькулятора */}
                         <Button
-                          onClick={() => {
-                            setShowDeskCalculator(!showDeskCalculator);
-                          }}
+                          onClick={() => setShowDeskCalculator(!showDeskCalculator)}
                           variant="outline"
-                          className="w-full h-12 bg-[#F3F3F3] border-[#C4C4CE] hover:bg-[#E8E8E8] rounded-lg flex items-center justify-center gap-2"
+                          className="w-full h-12 bg-[#2C2C2E] border-[#212121] hover:bg-[#3A3A3C] text-white rounded-lg flex items-center justify-center gap-2"
                         >
-                          <Ruler className="h-5 w-5 text-[#040404]" />
-                          <span className="font-medium text-[#040404]">Калькулятор высоты стола</span>
+                          <Ruler className="h-5 w-5" />
+                          <span className="font-medium">Калькулятор высоты стола</span>
                         </Button>
 
                         {/* Калькулятор высоты стола */}
@@ -1410,8 +1240,8 @@ export default function ClientDashboard() {
                         {/* Секция выбора офиса */}
                         <div className="space-y-3">
                           <div>
-                            <h2 className="text-lg font-semibold text-[#040404]">Выбрать офис</h2>
-                            <p className="text-sm text-[#C4C4CE]">Выберите офис для бронирования переговорной комнаты</p>
+                            <h2 className="text-lg font-semibold text-white">Выбрать офис</h2>
+                            <p className="text-sm text-white/60">Выберите офис для бронирования переговорной комнаты</p>
                           </div>
                           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             {offices.map((office: any) => (
@@ -1440,8 +1270,8 @@ export default function ClientDashboard() {
                                     )}
                                   </div>
                                   <div className="p-4">
-                                    <h3 className="font-semibold text-[#040404]">{office.name}</h3>
-                                    <p className="text-sm text-[#114A65] mt-1">{office.city}</p>
+                                    <h3 className="font-semibold text-white">{office.name}</h3>
+                                    <p className="text-sm text-[#E85D2B] mt-1">{office.city}</p>
                                     <p className="text-sm text-[#C4C4CE]">{office.address}</p>
                                   </div>
                                 </CardContent>
@@ -1452,70 +1282,45 @@ export default function ClientDashboard() {
                       </>
                     )}
                   </div>
-                )}
-              </div>
             )}
 
-            {/* Главная секция для мобильных - скрываем когда активна вкладка заявок */}
+            {/* Главная секция для мобильных: Мой кабинет (умный дом + трекер), Бронь, Заявки */}
             {!isDesktop && activeTab !== "requests" && (
               <div className="mb-6 space-y-5">
-                {/* Три карточки действий в одном ряду */}
                 <div className="grid grid-cols-3 gap-2">
                   <Card
-                    onClick={() => {
-                      setActiveTab("meeting-rooms");
-                      setMeetingRoomsTab("book");
-                    }}
+                    onClick={() => { router.replace("/client"); setActiveTab("cabinet"); }}
+                    className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-0 shadow-xl bg-[#1C1C1E] border border-[#E85D2B]/30 group"
+                  >
+                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-24">
+                      <Home className="h-8 w-8 text-[#E85D2B] mb-1" />
+                      <span className="text-[10px] font-bold text-white leading-tight text-center">Мой кабинет</span>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    onClick={() => { setActiveTab("meeting-rooms"); setMeetingRoomsTab("book"); }}
                     className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-0 shadow-xl bg-gradient-to-br from-[#114A65] via-[#0d3a4f] to-[#B8400E] group"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"></div>
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -mr-10 -mt-10"></div>
-                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full -ml-8 -mb-8"></div>
-                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-28">
-                      <div className="mb-1 transform group-hover:scale-110 transition-transform duration-300">
-                        <Building2 className="h-8 w-8 text-white drop-shadow-lg" />
-                      </div>
-                      <div className="flex flex-col items-center text-center">
-                        <span className="text-[10px] font-bold text-white leading-tight drop-shadow-md">Бронирование</span>
-                        <span className="text-[10px] font-bold text-white leading-tight drop-shadow-md">комнат</span>
-                      </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-24">
+                      <Building2 className="h-8 w-8 text-white drop-shadow-lg mb-1" />
+                      <span className="text-[10px] font-bold text-white leading-tight">Бронь</span>
                     </CardContent>
                   </Card>
                   <Card
                     onClick={() => setActiveTab("requests")}
                     className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-2 border-gray-200 shadow-lg bg-gradient-to-br from-white to-gray-50 group hover:border-[#114A65]/30"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#114A65]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-28">
-                      <div className="mb-1 transform group-hover:scale-110 transition-transform duration-300">
-                        <Wrench className="h-8 w-8 text-[#114A65]" />
-                      </div>
-                      <div className="flex flex-col items-center text-center">
-                        <span className="text-[10px] font-bold text-gray-900 leading-tight">Сервисные</span>
-                        <span className="text-[10px] font-bold text-gray-900 leading-tight">заявки</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    onClick={() => router.push('/activity-stats')}
-                    className="relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-2 border-gray-200 shadow-lg bg-gradient-to-br from-white to-gray-50 group hover:border-[#114A65]/30"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#114A65]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-28">
-                      <div className="mb-1 transform group-hover:scale-110 transition-transform duration-300">
-                        <Activity className="h-8 w-8 text-[#114A65]" />
-                      </div>
-                      <div className="flex flex-col items-center text-center">
-                        <span className="text-[10px] font-bold text-gray-900 leading-tight">Статистика</span>
-                        <span className="text-[10px] font-bold text-gray-900 leading-tight">активности</span>
-                      </div>
+                    <CardContent className="p-3 relative z-10 flex flex-col items-center justify-center h-24">
+                      <Wrench className="h-8 w-8 text-[#114A65] mb-1" />
+                      <span className="text-[10px] font-bold text-gray-900 leading-tight">Заявки</span>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Три кнопки переключения - показываются только для meeting-rooms */}
+                {/* Две кнопки переключения - только для Бронь (meeting-rooms) */}
                 {activeTab === "meeting-rooms" && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={() => {
                         setMeetingRoomsTab("book");
@@ -1529,9 +1334,7 @@ export default function ClientDashboard() {
                       Бронировать
                     </Button>
                     <Button
-                      onClick={() => {
-                        setMeetingRoomsTab("my-bookings");
-                      }}
+                      onClick={() => setMeetingRoomsTab("my-bookings")}
                       className={`h-12 text-xs px-2 rounded-xl font-semibold transition-all duration-300 shadow-md ${
                         meetingRoomsTab === "my-bookings"
                           ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white shadow-lg scale-105"
@@ -1539,18 +1342,6 @@ export default function ClientDashboard() {
                       }`}
                     >
                       Мои бронирования
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setMeetingRoomsTab("smart-home");
-                      }}
-                      className={`h-12 text-xs px-2 rounded-xl font-semibold transition-all duration-300 shadow-md ${
-                        meetingRoomsTab === "smart-home"
-                          ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white shadow-lg scale-105"
-                          : "bg-white border-2 border-gray-200 hover:border-[#114A65]/30 text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      Умный дом
                     </Button>
                   </div>
                 )}
@@ -1581,23 +1372,23 @@ export default function ClientDashboard() {
 
                     {/* Секция выбора офиса */}
                     <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-[#114A65]/5 to-[#B8400E]/5 rounded-xl p-4 border border-[#114A65]/10">
-                        <h2 className="text-xl font-bold text-gray-900 mb-1">Выбрать офис</h2>
-                        <p className="text-sm text-gray-600">Выберите офис для бронирования переговорной комнаты</p>
+                      <div className="bg-[#2C2C2E] rounded-xl p-4 border border-[#3A3A3C]">
+                        <h2 className="text-xl font-bold text-white mb-1">Выбрать офис</h2>
+                        <p className="text-sm text-[#8E8E93]">Выберите офис для бронирования переговорной комнаты</p>
                       </div>
                       <div className="overflow-x-auto -mx-2 px-2">
                         <div className="flex gap-4 pb-3" style={{ scrollbarWidth: 'thin' }}>
                           {offices.map((office: any) => (
                             <Card
                               key={office.id}
-                              className="min-w-[300px] cursor-pointer transition-all duration-300 hover:shadow-xl active:scale-[0.97] flex-shrink-0 border-2 border-gray-200 hover:border-[#114A65]/40 overflow-hidden group"
+                              className="min-w-[300px] cursor-pointer transition-all duration-300 hover:shadow-xl active:scale-[0.97] flex-shrink-0 border-2 border-[#3A3A3C] hover:border-[#E85D2B]/50 overflow-hidden group bg-[#2C2C2E]"
                               onClick={() => {
                                 setSelectedOffice(office);
                                 setActiveTab("meeting-rooms");
                               }}
                             >
                               <CardContent className="p-0">
-                                <div className="relative aspect-[4/3] bg-gradient-to-br from-[#114A65]/10 to-[#114A65]/5 overflow-hidden">
+                                <div className="relative aspect-[4/3] bg-[#1C1C1E] overflow-hidden">
                                   {office.photo ? (
                                     <>
                                       <Image
@@ -1607,26 +1398,26 @@ export default function ClientDashboard() {
                                         sizes="300px"
                                         className="object-cover transition-transform duration-300 group-hover:scale-110"
                                       />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     </>
                                   ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#114A65]/10 to-[#B8400E]/10">
-                                      <Building2 className="w-20 h-20 text-[#114A65] opacity-50" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-[#1C1C1E]">
+                                      <Building2 className="w-20 h-20 text-[#E85D2B] opacity-50" />
                                     </div>
                                   )}
                                   <div className="absolute top-3 right-3">
-                                    <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-md">
-                                      <span className="text-xs font-semibold text-[#114A65]">Выбрать</span>
+                                    <div className="bg-[#E85D2B] rounded-full px-3 py-1 shadow-md">
+                                      <span className="text-xs font-semibold text-white">Выбрать</span>
                                     </div>
                                   </div>
                                 </div>
-                                <div className="p-5 bg-white">
-                                  <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-[#114A65] transition-colors">{office.name}</h3>
+                                <div className="p-5 bg-[#2C2C2E] border-t border-[#3A3A3C]">
+                                  <h3 className="font-bold text-lg text-white mb-1 group-hover:text-[#E85D2B] transition-colors">{office.name}</h3>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <MapPin className="w-4 h-4 text-[#114A65]" />
-                                    <p className="text-sm font-medium text-[#114A65]">{office.city}</p>
+                                    <MapPin className="w-4 h-4 text-[#E85D2B]" />
+                                    <p className="text-sm font-medium text-[#E85D2B]">{office.city}</p>
                                   </div>
-                                  <p className="text-sm text-gray-600 leading-relaxed">{office.address}</p>
+                                  <p className="text-sm text-[#8E8E93] leading-relaxed">{office.address}</p>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1649,7 +1440,7 @@ export default function ClientDashboard() {
                       <div className="flex justify-between items-center mb-4">
                         <h1 className="text-2xl font-bold text-white">Заявки</h1>
                         <Link href="/create-request">
-                          <Button className="h-12 px-5 bg-[#F35713] hover:bg-[#E04A0A] text-white font-semibold rounded-2xl">
+                          <Button className="h-12 px-5 bg-[#E85D2B] hover:bg-[#D94F15] text-white font-semibold rounded-2xl">
                             <Plus className="h-4 w-4 mr-2" />
                             Создать
                           </Button>
@@ -1709,16 +1500,16 @@ export default function ClientDashboard() {
                     </div>
                   )}
 
-                  {/* Десктопная версия с фильтрами */}
+                  {/* Десктопная версия — как у админа: список слева, детали заявки в правой панели */}
                   {isDesktop && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-4 flex-1">
+                    <AdminManagerRequestsDesktopFrame
+                      filtersSlot={
+                        <>
                           <Select value={filterStatus} onValueChange={setFilterStatus}>
-                            <SelectTrigger className="flex-1 sm:w-48">
+                            <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
                               <SelectValue placeholder="Статус" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-[#2C2C2E] border-white/10">
                               <SelectItem value="all">Все</SelectItem>
                               <SelectItem value="in_progress">В обработке</SelectItem>
                               <SelectItem value="awaiting_assignment">Ожидает назначение</SelectItem>
@@ -1728,43 +1519,71 @@ export default function ClientDashboard() {
                             </SelectContent>
                           </Select>
                           <Select value={filterType} onValueChange={setFilterType}>
-                            <SelectTrigger className="flex-1 sm:w-48">
+                            <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
                               <SelectValue placeholder="Тип заявки" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-[#2C2C2E] border-white/10">
                               <SelectItem value="all">Все</SelectItem>
                               <SelectItem value="normal">Обычная</SelectItem>
                               <SelectItem value="urgent">Экстренная</SelectItem>
                               <SelectItem value="planned">Плановая</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
-                        <Button
-                          onClick={() => router.push('/create-request')}
-                          className="bg-[#114A65] hover:bg-[#0d3a4f]"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Создать заявку
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ contain: 'layout style paint' }}>
-                        {filteredRequests.slice(0, 50).map((requestGroup, index) => {
-                          const isLast = index === filteredRequests.length - 1;
-                          return (
-                            <RequestCard
-                              key={`incoming-desktop-${index}`}
-                              request={requestGroup}
-                              onCardClick={handleCardClick}
-                              renderCardHeader={renderCardHeader}
-                              isLast={isLast}
-                              lastElementRef={lastRequestRef}
-                              clientRating={clientRatings[requestGroup.id]}
-                              userRole="client"
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
+                        </>
+                      }
+                      listSlot={
+                        <>
+                          {filteredRequests.slice(0, 50).map((requestGroup, index) => {
+                            const isLast = index === filteredRequests.length - 1;
+                            return (
+                              <RequestCard
+                                key={`client-desktop-${requestGroup.id}`}
+                                request={requestGroup}
+                                onCardClick={handleCardClick}
+                                renderCardHeader={renderCardHeader}
+                                isLast={isLast}
+                                lastElementRef={lastRequestRef}
+                                clientRating={clientRatings[requestGroup.id]}
+                                userRole="client"
+                                variant="compact"
+                              />
+                            );
+                          })}
+                          {filteredRequests.length === 0 && (
+                            <div className="text-center py-12 text-white/60">У вас пока нет заявок</div>
+                          )}
+                        </>
+                      }
+                      detailSlot={
+                        selectedRequest ? (
+                          <RequestDetails
+                            request={selectedRequest}
+                            onClose={() => {
+                              setSelectedRequest(null);
+                              setShowComments(null);
+                              closeModal();
+                            }}
+                            onRequestUpdated={() => {
+                              setSelectedRequest(null);
+                              closeModal();
+                              fetchRequests(1);
+                            }}
+                            sourceTab="my-requests"
+                            hideFullModeButton
+                            userRole="client"
+                            fullModeRedirectBase="/client"
+                            onDelete={handleDeleteSubRequest}
+                            embedInPanel
+                          />
+                        ) : null
+                      }
+                      displayRequestId={selectedRequest?.id}
+                      onCloseDetail={() => {
+                        setSelectedRequest(null);
+                        setShowComments(null);
+                        closeModal();
+                      }}
+                    />
                   )}
                 </div>
               </TabsContent>
@@ -1808,17 +1627,21 @@ export default function ClientDashboard() {
                   </TabsContent>
 
                   <TabsContent value="meeting-rooms">
-                    {meetingRoomsTab === "smart-home" ? (
-                      <ClientSmartHomeControl />
-                    ) : (
-                      <MeetingRoomsCatalog 
-                        initialOffice={selectedOffice} 
-                        onOfficeChange={setSelectedOffice}
-                        initialTab={meetingRoomsTab === "book" ? "book" : "my-bookings"}
-                        onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
-                        showCalculator={showDeskCalculator}
-                        onCalculatorToggle={setShowDeskCalculator}
-                      />
+                    <MeetingRoomsCatalog
+                      initialOffice={selectedOffice}
+                      onOfficeChange={setSelectedOffice}
+                      initialTab={meetingRoomsTab === "book" ? "book" : "my-bookings"}
+                      onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
+                      showCalculator={showDeskCalculator}
+                      onCalculatorToggle={setShowDeskCalculator}
+                    />
+                  </TabsContent>
+                  <TabsContent value="cabinet">
+                    {!isDesktop && (
+                      <div className="client-mobile-dark space-y-6">
+                        <ClientSmartHomeControl />
+                        <ActivityTracker hideBackButton />
+                      </div>
                     )}
                   </TabsContent>
                 </Tabs>
@@ -1827,9 +1650,10 @@ export default function ClientDashboard() {
           {/* Sidebar - скрываем на мобильном в разделе заявок */}
           {(isDesktop || activeTab !== "requests") && (
             <div className="space-y-6 mb-20 mt-6 lg:mt-0">
-              <Card className="overflow-hidden">
+              <Card className={`overflow-hidden ${isDesktop ? "bg-transparent border-[#3A3A3C]" : ""}`}>
                 <CardContent className="p-0">
                   <NotificationsSidebar 
+                    variant="dark"
                     onNotificationClick={handleNotificationClick}
                     onRequestClick={(requestId) => {
                       const parsedId = parseInt(requestId.split('/')[0]);
@@ -1858,17 +1682,17 @@ export default function ClientDashboard() {
     <BottomNav
         activeTab={activeTab === "requests" ? "requests" : activeTab === "meeting-rooms" ? "booking" : "home"}
         hidden={showCreateRequest || !!selectedRequest || showMapModal || showRatingModal || isModalOpen || !!selectedPhoto || showDeleteRequestModal}
-        darkBackground={activeTab === "requests"}
+        darkBackground={activeTab === "requests" || activeTab === "cabinet"}
     />
   )}
-        {/* Request Details — в портале, как у других ролей (полноэкранный тёмный стиль) */}
-        {selectedRequest && typeof document !== "undefined" && createPortal(
+        {/* Request Details — в портале только на мобилке или когда открыто не из вкладки «Заявки»; на десктопе в «Заявках» детали в правой панели */}
+        {selectedRequest && typeof document !== "undefined" && (!isDesktop || activeTab !== "requests") && createPortal(
           <RequestDetails
             request={selectedRequest}
             onClose={() => {
               setSelectedRequest(null);
               setShowComments(null);
-              closeModal();
+              closeModalWithHistory();
             }}
             onRequestUpdated={() => {
               setSelectedRequest(null);
