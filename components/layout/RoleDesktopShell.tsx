@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { AdminManagerSidebar } from "./AdminManagerSidebar";
 import Header from "@/app/header/Header";
 import type { AdminManagerRole } from "@/lib/roleNavConfig";
+
+const SIDEBAR_COLLAPSED_KEY = "workflow-sidebar-collapsed";
 
 const roleTranslations: Record<string, string> = {
   client: "Клиент",
@@ -27,6 +29,23 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored !== null) setSidebarCollapsed(stored === "true");
+  }, []);
+
+  const handleSidebarToggle = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch (_) {}
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     clearAuth();
@@ -39,7 +58,11 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
 
   return (
     <div className="min-h-screen flex bg-[#1A1A1A]">
-      <AdminManagerSidebar role={role} />
+      <AdminManagerSidebar
+        role={role}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleSidebarToggle}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           handleLogout={handleLogout}
