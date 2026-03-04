@@ -1011,7 +1011,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   useEffect(() => {
     if (!hydrated) return; // ждём восстановления данных
 
-    if (!user || user.role !== "manager") {
+    if (!user || (user.role !== "manager" && user.role !== "admin-worker")) {
       Promise.all([
         clearNotifications,
         clearAuth,
@@ -1105,7 +1105,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setLoading(true);
       api.get(`/request-groups?${params.toString()}`)
         .then((response) => {
-          const newRequests = response.data.data;
+          const newRequests = response.data.data ?? [
+            ...(response.data.otherRequests || []),
+            ...(response.data.myRequests || []),
+          ];
           setRequests(newRequests);
           setHasMore(1 < response.data.totalPages);
           setPage(1);
@@ -1200,7 +1203,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       const url = `/request-groups?${queryString}`;
       
       const response = await api.get(url);
-      const newRequests = response.data.data;
+      const newRequests = response.data.data ?? [
+        ...(response.data.otherRequests || []),
+        ...(response.data.myRequests || []),
+      ];
       if (pageToLoad === 1) {
         setRequests(newRequests);
       } else {
@@ -2259,6 +2265,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   };
 
+  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+
   return (
     <>
       {!isDesktop && (
@@ -2276,7 +2284,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         {/* Назад — только на мобилке при просмотре раздела (как у admin-worker) */}
         {!isDesktop && (
           <Link
-            href="/manager/cabinet"
+            href={`${basePath}/cabinet`}
             className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -2362,8 +2370,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 }}
                 createRequestHref="/create-request"
                 createBookingHref="/meeting-rooms"
-                statisticsHref="/manager/statistics"
-                requestsHref="/manager/requests"
+                statisticsHref={`${basePath}/statistics`}
+                requestsHref={`${basePath}/requests`}
                 variant="manager"
                 hideActionButtons
               />
@@ -2374,7 +2382,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         <Tabs value={effectiveTab} onValueChange={(value) => {
           if (standaloneManagement) return;
           if (value === "statistics") {
-            router.push('/manager/statistics');
+            router.push(`${basePath}/statistics`);
           } else {
             setTab(value);
           }

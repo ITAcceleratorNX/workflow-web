@@ -83,7 +83,7 @@ export default function ManagerStatisticsPage() {
   useEffect(() => {
     if (!hydrated) return;
 
-    if (!user || user.role !== "manager") {
+    if (!user || (user.role !== "manager" && user.role !== "admin-worker")) {
       clearAuth();
       router.push("/login");
     }
@@ -100,19 +100,24 @@ export default function ManagerStatisticsPage() {
   }
 
   useEffect(() => {
-    if (token && user?.role === 'manager') {
-      fetchStats('manager')
-      fetchOffices()
+    if (token && (user?.role === 'manager' || user?.role === 'admin-worker')) {
+      fetchStats('manager');
+      if (user?.role === 'manager') fetchOffices();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
+  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+  const effectiveOffice = user?.role === "admin-worker" && user?.office_id
+    ? String(user.office_id)
+    : office;
+
   const chartData: ChartData[] = useMemo(() => {
     if (!managerStats || managerStats.length === 0) return [];
     
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -156,9 +161,9 @@ export default function ManagerStatisticsPage() {
   const distribution = useMemo(() => {
     if (!managerStats || managerStats.length === 0) return;
 
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -225,7 +230,7 @@ export default function ManagerStatisticsPage() {
       urgentPercent: pct(urgent),
       plannedPercent: pct(planned),
     }
-  }, [office, period, startDate, endDate, managerStats]);
+  }, [effectiveOffice, period, startDate, endDate, managerStats]);
 
   const summary = useMemo(() => {
     if (!managerStats || managerStats.length === 0) {
@@ -241,9 +246,9 @@ export default function ManagerStatisticsPage() {
       }
     }
     
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -308,7 +313,7 @@ export default function ManagerStatisticsPage() {
     const overdueRate = total > 0 ? Math.round((overdue / total) * 100) : 0
     const avgPerDay = Math.round(total / days)
     return { total, completed, overdue, inWork, newRequests, completionRate, overdueRate, avgPerDay }
-  }, [managerStats, office, period, startDate, endDate]);
+  }, [managerStats, effectiveOffice, period, startDate, endDate]);
 
   const handleRefresh = async () => {
     try {
@@ -429,35 +434,35 @@ export default function ManagerStatisticsPage() {
   )
 
   const handleTotalRequestsClick = () => {
-    router.push(`/manager`);
+    router.push(basePath);
   };
 
   const handleNewRequestsClick = () => {
-    router.push(`/manager?status=in_progress`);
+    router.push(`${basePath}?status=in_progress`);
   };
 
   const handleInWorkRequestsClick = () => {
-    router.push(`/manager?status=execution`);
+    router.push(`${basePath}?status=execution`);
   };
 
   const handleCompletedRequestsClick = () => {
-    router.push(`/manager?status=completed`);
+    router.push(`${basePath}?status=completed`);
   };
 
   const handleOverdueRequestsClick = () => {
-    router.push(`/manager?status=overdue`);
+    router.push(`${basePath}?status=overdue`);
   };
 
   const handleNormalRequestsClick = () => {
-    router.push(`/manager?priority=normal`);
+    router.push(`${basePath}?priority=normal`);
   };
 
   const handleUrgentRequestsClick = () => {
-    router.push(`/manager?priority=urgent`);
+    router.push(`${basePath}?priority=urgent`);
   };
 
   const handlePlannedRequestsClick = () => {
-    router.push(`/manager?priority=planned`);
+    router.push(`${basePath}?priority=planned`);
   };
 
   return (
@@ -474,7 +479,7 @@ export default function ManagerStatisticsPage() {
           {!isDesktop && (
             <div className="px-3 pt-2 pb-1">
               <Link
-                href="/manager/cabinet"
+                href={user?.role === "admin-worker" ? basePath : `${basePath}/cabinet`}
                 className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -491,21 +496,29 @@ export default function ManagerStatisticsPage() {
               <Card className={isDesktop ? "border border-white/10 bg-[#2C2C2E]" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
                 <CardContent className="flex flex-col gap-3 p-4">
                   <div className={`flex gap-3 ${!isDesktop ? "flex-col" : "flex-row"}`}>
-                    <div className="flex-1">
-                      <Select value={office} onValueChange={setOffice}>
-                        <SelectTrigger className={`h-10 w-full ${isDesktop ? "bg-[#1A1A1A] border-white/10 text-white" : "bg-[#2C2C2E] border-[#3A3A3C] text-white"}`}>
-                          <SelectValue placeholder="Офис" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Все офисы</SelectItem>
-                          {offices.map((o) => (
-                            <SelectItem key={o.id} value={String(o.id)}>
-                              {o.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {user?.role === "manager" ? (
+                      <div className="flex-1">
+                        <Select value={office} onValueChange={setOffice}>
+                          <SelectTrigger className={`h-10 w-full ${isDesktop ? "bg-[#1A1A1A] border-white/10 text-white" : "bg-[#2C2C2E] border-[#3A3A3C] text-white"}`}>
+                            <SelectValue placeholder="Офис" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Все офисы</SelectItem>
+                            {offices.map((o) => (
+                              <SelectItem key={o.id} value={String(o.id)}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <div className={`h-10 w-full flex items-center px-3 py-2 rounded-md text-sm ${isDesktop ? "bg-[#1A1A1A] border border-white/10 text-white" : "bg-[#2C2C2E] border border-[#3A3A3C] text-white"}`}>
+                          {user?.office?.name || "Офис"}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex-1">
                       <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
                         <SelectTrigger className={`h-10 w-full ${isDesktop ? "bg-[#1A1A1A] border-white/10 text-white" : "bg-[#2C2C2E] border-[#3A3A3C] text-white"}`}>

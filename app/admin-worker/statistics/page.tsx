@@ -2,6 +2,9 @@
 
 import "@/lib/android-bridge"
 import React, {useEffect, useState, useCallback, useMemo} from "react"
+import dynamic from "next/dynamic"
+
+const ManagerStatisticsPage = dynamic(() => import("@/app/manager/statistics/page"), { ssr: false })
 import {Button} from "@/components/ui/button"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
@@ -548,176 +551,9 @@ export default function AdminWorkerStatisticsPage() {
     </div>
   )
 
-  // Десктоп — layout provides Header via RoleDesktopShell
+  // На desktop показываем тот же интерфейс, что и у менеджера (Статистика)
   if (isDesktop) {
-    return (
-      <>
-        <PullToRefresh onRefresh={handleRefresh}>
-          <div className="min-h-screen bg-[#1A1A1A] pb-20">
-            <div className="w-full max-w-screen-sm mx-auto px-3">
-              <section className="pt-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Stat label="Всего" value={summary.total} />
-                  <Stat label="Новые" value={summary.newRequests ?? adminWorkerStats?.statusCounts?.new ?? 0} />
-                  <Stat label="В работе" value={summary.inWork ?? 0} />
-                  <Stat label="Завершено" value={`${summary.completed} (${summary.completionRate}%)`} />
-                  <Stat label="Просрочено" value={`${summary.overdue} (${summary.overdueRate}%)`} />
-                  <Stat label="В день (ср.)" value={summary.avgPerDay} />
-                </div>
-              </section>
-
-              <section className="pt-3">
-                <Card className="border bg-white">
-                  <CardContent className="flex flex-col gap-3 p-3">
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <div className="h-10 w-full flex items-center px-3 py-2 border border-input bg-background rounded-md text-sm">
-                          {user?.office?.name || "Офис"}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
-                          <SelectTrigger className="h-10 w-full">
-                            <SelectValue placeholder="Период" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="week">Неделя</SelectItem>
-                            <SelectItem value="month">Месяц</SelectItem>
-                            <SelectItem value="year">Год</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </section>
-
-              <section className="pt-3">
-                <Card className="border bg-white">
-                  <CardContent className="p-3">
-                    <div className="mb-3">
-                      <div className="text-sm font-medium">Динамика по дням</div>
-                      <div className="text-xs text-neutral-500">Количество заявок по дням</div>
-                    </div>
-                    <div className="mb-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm font-medium">Фильтр по дате:</Label>
-                        <Button variant="outline" size="sm" onClick={resetDateFilters} className="text-xs">Сбросить</Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-gray-600">От:</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                <CalendarLucid className="mr-2 h-4 w-4" />
-                                {startDate ? format(startDate, "dd.MM", { locale: ru }) : "От"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-600">До:</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                <CalendarLucid className="mr-2 h-4 w-4" />
-                                {endDate ? format(endDate, "dd.MM", { locale: ru }) : "До"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => startDate ? date < startDate : false} initialFocus />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-48">
-                      {chartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData}>
-                            <defs>
-                              <linearGradient id="kcellGradientDesktop" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#114A65" stopOpacity={1} />
-                                <stop offset="100%" stopColor="#B8400E" stopOpacity={0.8} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#C4C4CE" />
-                            <XAxis dataKey="date" stroke="#040404" />
-                            <YAxis allowDecimals={false} stroke="#040404" />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="count" stroke="url(#kcellGradientDesktop)" strokeWidth={2.5} dot={{ r: 4, stroke: "#114A65", strokeWidth: 1.5, fill: "#fff" }} activeDot={{ r: 6 }} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="text-gray-500 text-center py-16">Нет данных для отображения</div>
-                      )}
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="text-sm font-medium mb-3">Экспорт данных</div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleExport("xlsx")}>
-                          <Download className="w-4 h-4 mr-2" /> Excel
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleExport("pbix")}>
-                          <Download className="w-4 h-4 mr-2" /> Power BI
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </section>
-
-              {distribution && (
-                <section className="pt-3">
-                  <Card className="border bg-white">
-                    <CardContent className="p-3">
-                      <div className="mb-2">
-                        <div className="text-sm font-medium">Краткий обзор</div>
-                        <div className="text-xs text-neutral-500">
-                          Всего заявок: {summary.total}, в работе: {summary.inWork}, выполнено: {summary.completed} ({summary.completionRate}%), просрочено: {summary.overdue} ({summary.overdueRate}%)
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        {[
-                          { key: "normal", label: "Обычные", pctKey: "normalPercent", icon: <BarChart3 className="h-4 w-4 text-[#114A65]" /> },
-                          { key: "urgent", label: "Экстренные", pctKey: "urgentPercent", icon: <AlertTriangle className="h-4 w-4 text-[#B8400E]" /> },
-                          { key: "planned", label: "Плановые", pctKey: "plannedPercent", icon: <CalendarLucid className="h-4 w-4 text-[#114A65]" /> },
-                        ].map((row) => {
-                          const totalKey = row.key as "normal" | "urgent" | "planned";
-                          const pctKey = row.pctKey as "normalPercent" | "urgentPercent" | "plannedPercent";
-                          return (
-                            <div key={row.key} className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2">
-                                  {row.icon}
-                                  <span>{row.label}</span>
-                                </div>
-                                <span className="font-medium">{distribution[totalKey]} ({distribution[pctKey]}%)</span>
-                              </div>
-                              <div className="h-2 w-full overflow-hidden rounded bg-[#C4C4CE]/30">
-                                <div className="h-full bg-gradient-to-r from-[#114A65] to-[#B8400E] transition-all" style={{ width: `${distribution[pctKey]}%` }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </section>
-              )}
-
-              <section className="pt-3">
-                <MeetingRoomStatistics />
-              </section>
-            </div>
-          </div>
-        </PullToRefresh>
-      </>
-    );
+    return <ManagerStatisticsPage />;
   }
 
   // Админ мобилка — тёмный дизайн как в заявках

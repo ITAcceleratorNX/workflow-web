@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
@@ -12,6 +13,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+
+const ManagerDashboard = dynamic(() => import("@/app/manager/page"), { ssr: false });
 
 const managementCards = [
   {
@@ -53,6 +56,11 @@ const managementCards = [
 
 export default function ManagementPage() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // На desktop показываем тот же интерфейс, что и у менеджера (Управление)
+  if (isDesktop) {
+    return <ManagerDashboard standaloneManagement />;
+  }
 
   return (
     <div className={`w-full min-h-[calc(100vh-90px)] ${isDesktop ? "bg-[#1A1A1A]" : "bg-[#1C1C1E]"}`}>

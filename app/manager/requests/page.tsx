@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { subDays, subMonths, subYears, isAfter } from "date-fns";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { RequestGroup } from "@/stores/useRequestStore";
@@ -16,6 +16,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { BottomNav } from "@/components/BottomNav";
 import { RequestDetails } from "@/components/RequestDetails";
+import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
 
 type OfficeType = { id: number; name: string; city?: string; address?: string };
 
@@ -196,124 +197,113 @@ export default function ManagerRequestsPage() {
   };
 
   if (isDesktop) {
-    return (
-      <div className="h-full flex flex-col bg-[#1A1A1A]">
-        <div className="flex-1 flex min-h-0">
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex justify-between items-center">
-              <h1 className="text-xl font-bold text-white">Заявки</h1>
-              <Link href="/create-request">
-                <Button className="bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Создать
-                </Button>
-              </Link>
-            </div>
-            <div className="p-4 flex gap-2 flex-wrap">
-              <Select value={office} onValueChange={setOffice}>
-                <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
-                  <SelectValue placeholder="Офис" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="all">Все офисы</SelectItem>
-                  {offices.map((o) => (
-                    <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "year")}>
-                <SelectTrigger className="w-[120px] bg-[#2C2C2E] border-white/10 text-white">
-                  <SelectValue placeholder="Период" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="week">Неделя</SelectItem>
-                  <SelectItem value="month">Месяц</SelectItem>
-                  <SelectItem value="year">Год</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="in_progress">В обработке</SelectItem>
-                  <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
-                  <SelectItem value="execution">Исполнение</SelectItem>
-                  <SelectItem value="completed">Завершено</SelectItem>
-                  <SelectItem value="overdue">Просрочено</SelectItem>
-                  <SelectItem value="long_term">Долгосрочные</SelectItem>
-                  <SelectItem value="rejected">Отклонено</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
-                  <SelectValue placeholder="Тип" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="normal">Обычная</SelectItem>
-                  <SelectItem value="urgent">Экстренная</SelectItem>
-                  <SelectItem value="planned">Плановая</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 overflow-auto p-4 space-y-4">
-              {loading ? (
-                <div className="text-center py-12 text-white/60">Загрузка...</div>
-              ) : (
-                filteredRequests.map((request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                    onCardClick={handleCardClick}
-                    renderCardHeader={renderCardHeader}
-                    userRole="manager"
-                    variant="compact"
-                  />
-                ))
-              )}
-              {!loading && filteredRequests.length === 0 && (
-                <div className="text-center py-12 text-white/60">Нет заявок</div>
-              )}
-              {!loading && hasMore && filteredRequests.length > 0 && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    variant="outline"
-                    className="bg-transparent border-white/20 text-white hover:bg-[#E04A0A]"
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Загрузить ещё
-                  </Button>
-                </div>
-              )}
-            </div>
+    const listContent = (
+      <>
+        {loading ? (
+          <div className="text-center py-12 text-white/60">Загрузка...</div>
+        ) : (
+          filteredRequests.map((request) => (
+            <RequestCard
+              key={request.id}
+              request={request}
+              onCardClick={handleCardClick}
+              renderCardHeader={renderCardHeader}
+              userRole="manager"
+              variant="compact"
+            />
+          ))
+        )}
+        {!loading && filteredRequests.length === 0 && (
+          <div className="text-center py-12 text-white/60">Нет заявок</div>
+        )}
+        {!loading && hasMore && filteredRequests.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              className="bg-transparent border-white/20 text-white hover:bg-[#E04A0A]"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Загрузить ещё
+            </Button>
           </div>
-          {displayRequest && (
-            <div className="w-[420px] shrink-0 border-l border-white/10 flex flex-col bg-[#1A1A1A]">
-              <div className="p-3 border-b border-white/10 flex justify-between items-center">
-                <span className="font-semibold text-white">Заявка #{displayRequest.id}</span>
-                <Button variant="ghost" size="icon" className="text-white/70 hover:text-white" onClick={handleClosePanel}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="flex-1 overflow-auto min-h-0">
-                <RequestDetails
-                  request={displayRequest}
-                  onClose={handleClosePanel}
-                  onRequestUpdated={handleRequestUpdated}
-                  userRole="manager"
-                  sourceTab="myTasks"
-                  hideFullModeButton
-                  embedInPanel
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      </>
+    );
+
+    const filtersContent = (
+      <>
+        <Select value={office} onValueChange={setOffice}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Офис" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все офисы</SelectItem>
+            {offices.map((o) => (
+              <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "year")}>
+          <SelectTrigger className="w-[120px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Период" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="week">Неделя</SelectItem>
+            <SelectItem value="month">Месяц</SelectItem>
+            <SelectItem value="year">Год</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="in_progress">В обработке</SelectItem>
+            <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
+            <SelectItem value="execution">Исполнение</SelectItem>
+            <SelectItem value="completed">Завершено</SelectItem>
+            <SelectItem value="overdue">Просрочено</SelectItem>
+            <SelectItem value="long_term">Долгосрочные</SelectItem>
+            <SelectItem value="rejected">Отклонено</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Тип" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="normal">Обычная</SelectItem>
+            <SelectItem value="urgent">Экстренная</SelectItem>
+            <SelectItem value="planned">Плановая</SelectItem>
+          </SelectContent>
+        </Select>
+      </>
+    );
+
+    return (
+      <AdminManagerRequestsDesktopFrame
+        filtersSlot={filtersContent}
+        listSlot={listContent}
+        detailSlot={
+          displayRequest ? (
+            <RequestDetails
+              request={displayRequest}
+              onClose={handleClosePanel}
+              onRequestUpdated={handleRequestUpdated}
+              userRole="manager"
+              sourceTab="myTasks"
+              hideFullModeButton
+              embedInPanel
+            />
+          ) : null
+        }
+        displayRequestId={displayRequest?.id}
+        onCloseDetail={handleClosePanel}
+      />
     );
   }
 

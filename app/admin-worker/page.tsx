@@ -1,6 +1,9 @@
 "use client"
 
 import React, {useState, useRef, useEffect, useCallback, useMemo} from "react"
+import dynamic from "next/dynamic"
+
+const ManagerDashboard = dynamic(() => import("@/app/manager/page"), { ssr: false })
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -2399,6 +2402,11 @@ export default function AdminWorkerDashboard() {
       console.error("Ошибка при обновлении:", error);
     }
   };
+
+  // На desktop показываем тот же интерфейс, что и у менеджера (Мой кабинет) — после всех хуков
+  if (isDesktop) {
+    return <ManagerDashboard />;
+  }
 
   return (
       <>

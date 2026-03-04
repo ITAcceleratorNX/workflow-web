@@ -148,8 +148,8 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center space-x-3 group">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden p-1 shadow-lg transition-transform duration-300 group-hover:scale-105 ${variant === "dark" ? "bg-[#E85D2B]/20" : "bg-gradient-to-br from-[#114A65] to-[#B8400E]"}`}>
-                                <div className={`w-full h-full rounded-lg flex items-center justify-center ${variant === "dark" ? "bg-[#1A1A1A]" : "bg-white"}`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden p-1 shadow-lg transition-transform duration-300 group-hover:scale-105 bg-white`}>
+                                <div className={`w-full h-full rounded-lg flex items-center justify-center bg-white`}>
                                     <Image 
                                         src="/app-icon.png" 
                                         alt="App Icon" 
