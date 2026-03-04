@@ -124,13 +124,13 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
 
           <TabsContent value="day" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="outline" size="sm" onClick={() => navigateDay("prev")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateDay("prev")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h3 className={`text-lg font-semibold ${isDark ? "text-white" : ""}`}>
                 {format(selectedDate, "d MMMM yyyy", { locale: ru })}
               </h3>
-              <Button variant="outline" size="sm" onClick={() => navigateDay("next")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateDay("next")} className={isDark ? "bg-transparent  border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -199,14 +199,14 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
 
           <TabsContent value="week" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h3 className={`text-lg font-semibold ${isDark ? "text-white" : ""}`}>
                 {format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "d MMM", { locale: ru })}{" "}
                 - {format(addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), 6), "d MMM yyyy", { locale: ru })}
               </h3>
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

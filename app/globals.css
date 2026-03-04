@@ -12,6 +12,10 @@
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 197 70% 25%;
     --primary-foreground: 210 40% 98%;
+    /* Desktop admin/manager theme tokens (Background #1A1A1A, Primary #E85D2B, Accent #2A9D8F) */
+    --desktop-bg: 0 0% 10%;
+    --desktop-primary: 14 80% 56%;
+    --desktop-accent: 168 58% 39%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222.2 84% 4.9%;
     --muted: 210 40% 96%;

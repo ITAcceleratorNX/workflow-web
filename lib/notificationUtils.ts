@@ -45,35 +45,36 @@ export function hasRequestIds(content: string): boolean {
  * Создает JSX элементы с кликабельными ID заявок
  * @param content - контент уведомления
  * @param onRequestIdClick - обработчик клика по ID заявки
+ * @param linkClassName - опциональные классы для ссылки (например для тёмной темы)
  * @returns JSX элементы с кликабельными ID
  */
 export function createClickableRequestIds(
-  content: string, 
-  onRequestIdClick: (requestId: string) => void
+  content: string,
+  onRequestIdClick: (requestId: string) => void,
+  linkClassName?: string
 ): React.ReactNode[] {
   if (!content) return [content];
-  
+
   const requestIds = parseRequestIdsFromContent(content);
   if (requestIds.length === 0) return [content];
-  
-  // Создаем регулярное выражение для замены всех найденных ID
+
   const allPatterns = [
     /№\s*(\d+(?:\/\d+)?)/g,
     /заявк[аи]\s*№\s*(\d+(?:\/\d+)?)/gi,
     /подзаявк[аи]\s*№\s*(\d+(?:\/\d+)?)/gi,
   ];
-  
+
   let result = content;
-  
+
   allPatterns.forEach(pattern => {
     result = result.replace(pattern, (match, requestId) => {
       return match.replace(requestId, `<span class="request-id-link" data-request-id="${requestId}">${requestId}</span>`);
     });
   });
 
-  // Разбиваем на части и создаем элементы
   const parts = result.split(/(<span class="request-id-link"[^>]*>.*?<\/span>)/);
-  
+  const linkClass = linkClassName ?? "text-blue-600 underline cursor-pointer hover:text-blue-800";
+
   return parts.map((part, index) => {
     if (part.startsWith('<span class="request-id-link"')) {
       const match = part.match(/data-request-id="([^"]*)"/);
@@ -81,7 +82,7 @@ export function createClickableRequestIds(
         const requestId = match[1];
         return React.createElement('span', {
           key: index,
-          className: "text-blue-600 underline cursor-pointer hover:text-blue-800",
+          className: linkClass,
           onClick: (e: React.MouseEvent) => {
             e.stopPropagation();
             onRequestIdClick(requestId);

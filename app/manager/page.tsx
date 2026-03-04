@@ -70,13 +70,14 @@ import {RejectRequestModal} from "@/components/RejectRequestModal";
 import {CommentsModal} from "@/components/CommentsModal";
 import {CreateRequestModal} from "@/components/CreateRequestModal";
 import {MapModal} from "@/components/MapModal";
-import {LeaderIndicator} from "@/components/ui/leader-indicator";
 import {CompletedTaskReport} from "@/components/CompletedTaskReport";
 import {RequestCard} from "@/components/RequestCard";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import dynamic from 'next/dynamic';
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
+import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
+import { DashboardKpiCards } from "@/components/dashboard/DashboardKpiCards";
 
 const ManagerAnalytics = dynamic(() => import("@/components/ManagerAnalytics"), {
   loading: () => <div className="text-center py-8">Загрузка аналитики...</div>
@@ -145,7 +146,12 @@ interface Category {
   name: string
 }
 
-export default function ManagerDashboard() {
+interface ManagerDashboardProps {
+  /** Показать только раздел «Управление» (для страницы /manager/management) */
+  standaloneManagement?: boolean;
+}
+
+export default function ManagerDashboard({ standaloneManagement = false }: ManagerDashboardProps = {}) {
   // Optimized Zustand selectors
   const token = useAuthStore(state => state.token)
   const user = useAuthStore(state => state.user)
@@ -275,6 +281,8 @@ export default function ManagerDashboard() {
     if (tab !== "management") setManagementSubSection(null);
   }, [tab]);
 
+  const effectiveTab = standaloneManagement ? "management" : tab;
+
   const [newUser, setNewUser] = useState({
     id: 0,
     full_name: "",
@@ -323,6 +331,7 @@ export default function ManagerDashboard() {
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [isClosingProgrammatically, setIsClosingProgrammatically] = useState(false);
   const [managementSubSection, setManagementSubSection] = useState<"offices" | "categories" | "users" | null>(null);
+  const [managementDesktopTab, setManagementDesktopTab] = useState<"offices" | "categories" | "users" | "registration-requests">("offices");
 
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
@@ -488,14 +497,22 @@ export default function ManagerDashboard() {
     }
   }, []);
 
-  // Синхронизация вкладки с URL (при переходе из «Мой кабинет» /manager/cabinet по карточке)
-  const validTabs = ["meeting-rooms", "overview", "analytics", "management", "registration-requests"];
+  // Синхронизация вкладки с URL (при переходе из «Мой кабинет» /manager/cabinet по карточке). Таб «Управление» вынесен на отдельную страницу. На десктопе таб «Переговорные» скрыт.
+  const validTabs = isDesktop ? ["requests", "overview", "analytics", "workload", "logs"] : ["meeting-rooms", "overview", "analytics", "registration-requests"];
   useEffect(() => {
+    if (standaloneManagement) return;
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && validTabs.includes(tabFromUrl)) {
       setTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, standaloneManagement]);
+
+  // На десктопе таб «Переговорные» скрыт — при выборе переключаем на «Обзор»
+  useEffect(() => {
+    if (isDesktop && tab === "meeting-rooms") {
+      setTab("overview");
+    }
+  }, [isDesktop, tab]);
 
   useEffect(() => {
     const create = searchParams.get("createRequest")
@@ -541,6 +558,13 @@ export default function ManagerDashboard() {
       setDistribution(getRequestsDistribution(stats, office, period));
     }
   }, [stats, office, period]);
+
+  // Данные графика для таба «Заявки»: при выборе диапазона дат — по нему, иначе по period
+  const requestsChartData = useMemo(() => {
+    if (!stats.length) return chartData;
+    if (startDate && endDate) return prepareChartData(stats, office, period, startDate, endDate);
+    return chartData;
+  }, [chartData, stats, office, period, startDate, endDate]);
 
   const getRequestsDistribution = (stats: Stats[], selectedOffice: string, selectedPeriod: string) => {
     let filteredStats = stats;
@@ -987,7 +1011,7 @@ export default function ManagerDashboard() {
   useEffect(() => {
     if (!hydrated) return; // ждём восстановления данных
 
-    if (!user || user.role !== "manager") {
+    if (!user || (user.role !== "manager" && user.role !== "admin-worker")) {
       Promise.all([
         clearNotifications,
         clearAuth,
@@ -1081,7 +1105,10 @@ export default function ManagerDashboard() {
       setLoading(true);
       api.get(`/request-groups?${params.toString()}`)
         .then((response) => {
-          const newRequests = response.data.data;
+          const newRequests = response.data.data ?? [
+            ...(response.data.otherRequests || []),
+            ...(response.data.myRequests || []),
+          ];
           setRequests(newRequests);
           setHasMore(1 < response.data.totalPages);
           setPage(1);
@@ -1176,7 +1203,10 @@ export default function ManagerDashboard() {
       const url = `/request-groups?${queryString}`;
       
       const response = await api.get(url);
-      const newRequests = response.data.data;
+      const newRequests = response.data.data ?? [
+        ...(response.data.otherRequests || []),
+        ...(response.data.myRequests || []),
+      ];
       if (pageToLoad === 1) {
         setRequests(newRequests);
       } else {
@@ -2235,40 +2265,44 @@ export default function ManagerDashboard() {
     }
   };
 
+  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+
   return (
     <>
-      <Header
-          handleLogout={handleLogout}
-          notificationCount={notifications.length}
-          role="Руководитель"
-        />
+      {!isDesktop && (
+        <Header
+            handleLogout={handleLogout}
+            notificationCount={notifications.length}
+            role="Руководитель"
+          />
+      )}
 
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className={`min-h-screen ${isDesktop ? "bg-gray-50" : "bg-transparent"}`}>
+    <div className={`min-h-screen bg-[#1A1A1A] ${!isDesktop ? "pb-[calc(110px+env(safe-area-inset-bottom,0px))]" : ""}`}>
       {/* Header */}
       <main className={`px-4 py-4 sm:px-6 sm:py-8 max-w-7xl mx-auto ${!isDesktop ? "manager-mobile-content" : ""}`}>
         {/* Назад — только на мобилке при просмотре раздела (как у admin-worker) */}
         {!isDesktop && (
           <Link
-            href="/manager/cabinet"
+            href={`${basePath}/cabinet`}
             className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
           >
             <ChevronLeft className="h-5 w-5" />
             Назад
           </Link>
         )}
-        {/* Фильтры: на десктопе всегда; на мобилке только в разделе «Обзор» */}
-        {(isDesktop || tab === "overview") && (
+        {/* Фильтры: на десктопе всегда; на мобилке только в разделе «Обзор» (скрыты на странице «Управление») */}
+        {(isDesktop || tab === "overview") && !standaloneManagement && (
         <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-3">
           <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
             <Select value={office} onValueChange={setOffice}>
-              <SelectTrigger className={`w-full sm:w-48 ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full sm:w-48 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                 <SelectValue placeholder="Офис" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все офисы</SelectItem>
+              <SelectContent className={isDesktop ? "bg-[#2C2C2E] border-white/10" : ""}>
+                <SelectItem value="all" className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>Все офисы</SelectItem>
                 {offices.map((office:any, index) => (
-                  <SelectItem key={index} value={office.id}>
+                  <SelectItem key={index} value={office.id} className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>
                     {office.name}
                   </SelectItem>
                 ))}
@@ -2276,13 +2310,13 @@ export default function ManagerDashboard() {
             </Select>
 
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className={`w-full sm:w-48 ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full sm:w-48 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                 <SelectValue placeholder="Период" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">Неделя</SelectItem>
-                <SelectItem value="month">Месяц</SelectItem>
-                <SelectItem value="year">Год</SelectItem>
+              <SelectContent className={isDesktop ? "bg-[#2C2C2E] border-white/10" : ""}>
+                <SelectItem value="week" className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>Неделя</SelectItem>
+                <SelectItem value="month" className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>Месяц</SelectItem>
+                <SelectItem value="year" className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>Год</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -2293,7 +2327,7 @@ export default function ManagerDashboard() {
             <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center min-w-[150px] h-10 px-4"
+                className="flex items-center justify-center min-w-[150px] h-10 px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white"
                 onClick={() => handleExport("xlsx")}
             >
               <Download className="w-4 h-4 mr-2" />
@@ -2303,7 +2337,7 @@ export default function ManagerDashboard() {
             <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center min-w-[150px] h-10 px-4"
+                className="flex items-center justify-center min-w-[150px] h-10 px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white"
                 onClick={() => handleExport("pbix")}
             >
               <Download className="w-4 h-4 mr-2" />
@@ -2314,7 +2348,7 @@ export default function ManagerDashboard() {
             {isDesktop ? (
                 <Button
                     onClick={() => router.push('/create-request')}
-                    className="flex items-center justify-center bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white min-w-[150px] h-10 px-4"
+                    className="flex items-center justify-center bg-[#E85D2B] hover:bg-[#E04A0A] text-white min-w-[150px] h-10 px-4"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Создать заявку
@@ -2324,55 +2358,38 @@ export default function ManagerDashboard() {
         </div>
         )}
 
-        {/* KPI Cards - Mobile optimized grid */}
-        {isDesktop ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-3 sm:mb-6">
-              <StatCard
-                  title="Всего заявок"
-                  value={kpi.total}
-                  icon={<BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />}
-                  delta="+12%"
-                  positive
-                  bg="bg-blue-100"
-              />
-              <StatCard
-                  title="Завершено"
-                  value={kpi.completed}
-                  icon={<CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />}
-                  delta="+8%"
-                  positive
-                  bg="bg-green-100"
-              />
-              <StatCard
-                  title="Просрочено"
-                  value={kpi.overdue}
-                  icon={<AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />}
-                  delta="-3%"
-                  positive={false}
-                  bg="bg-red-100"
-              />
-              <StatCard
-                  title="Экстренные"
-                  value={kpi.emergency}
-                  icon={<AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6 text-orange-600" />}
-                  delta="+2"
-                  positive
-                  bg="bg-orange-100"
+        {/* KPI Cards - unified dashboard component (скрыты на отдельной странице «Управление») */}
+        {isDesktop && !standaloneManagement ? (
+            <div className="mb-6">
+              <DashboardKpiCards
+                counts={{
+                  new: kpi.emergency,
+                  inWork: Math.max(0, kpi.total - kpi.completed - kpi.overdue),
+                  completed: kpi.completed,
+                  overdue: kpi.overdue,
+                }}
+                createRequestHref="/create-request"
+                createBookingHref="/meeting-rooms"
+                statisticsHref={`${basePath}/statistics`}
+                requestsHref={`${basePath}/requests`}
+                variant="manager"
+                hideActionButtons
               />
             </div>
           ):null}
 
-        {/* Mobile-optimized Tabs */}
-        <Tabs value={tab} onValueChange={(value) => {
+        {/* Mobile-optimized Tabs (список табов скрыт на отдельной странице «Управление») */}
+        <Tabs value={effectiveTab} onValueChange={(value) => {
+          if (standaloneManagement) return;
           if (value === "statistics") {
-            router.push('/manager/statistics');
+            router.push(`${basePath}/statistics`);
           } else {
             setTab(value);
           }
         }}>
           <div className="w-full mb-3">
             {/* На мобилке табы не показываем — только контент раздела, переключение через «Назад» → кабинет */}
-            {isDesktop && (
+            {isDesktop && !standaloneManagement && (
             <div className="w-full mb-2 sm:hidden">
               <div className="overflow-x-auto">
                 <TabsList className="flex w-max min-w-full gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1">
@@ -2391,9 +2408,11 @@ export default function ManagerDashboard() {
                   <TabsTrigger value="analytics" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
                     Аналитика
                   </TabsTrigger>
-                  <TabsTrigger value="management" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
-                    Управление
+                  {isDesktop && (
+                  <TabsTrigger value="workload" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
+                    Загрузка
                   </TabsTrigger>
+                  )}
                   {isDesktop && (
                   <TabsTrigger value="logs" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0">
                     Логи
@@ -2407,276 +2426,234 @@ export default function ManagerDashboard() {
             </div>
             )}
 
-            {/* на больших экранах */}
+            {/* на больших экранах (скрыто на странице «Управление»). На десктопе таб «Переговорные» не показываем */}
+            {!standaloneManagement && (
             <div className="hidden sm:block">
               <div className="overflow-x-auto">
-                <TabsList className="flex flex-wrap sm:flex-nowrap gap-2 h-auto items-stretch">
-                  <TabsTrigger value="meeting-rooms" className="text-sm px-3 py-2 whitespace-nowrap h-auto flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4 flex-shrink-0" />
-                    Переговорные
-                  </TabsTrigger>
-                  <TabsTrigger value="requests" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
+                <TabsList className="bg-[#2C2C2E] border border-white/10 p-1">
+                  <TabsTrigger value="requests" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Заявки
                   </TabsTrigger>
-                  <TabsTrigger value="overview" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Обзор
                   </TabsTrigger>
-                  <TabsTrigger value="analytics" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
+                  <TabsTrigger value="analytics" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Аналитика
                   </TabsTrigger>
-                  <TabsTrigger value="management" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
-                    Управление
-                  </TabsTrigger>
                   {isDesktop && (
-                  <TabsTrigger value="logs" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
+                  <TabsTrigger value="workload" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+                    Загрузка
+                  </TabsTrigger>
+                  )}
+                  {isDesktop && (
+                  <TabsTrigger value="logs" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Логи
                   </TabsTrigger>
                   )}
-                  <TabsTrigger value="registration-requests" className="text-sm px-3 py-2 whitespace-nowrap h-auto">
-                    Регистрации
-                  </TabsTrigger>
-                  <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap h-auto flex items-center gap-1.5">
-                    <BarChart3 className="h-4 w-4 flex-shrink-0" />
-                    Статистика
-                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
+            )}
           </div>
 
+          {!isDesktop && (
           <TabsContent value="registration-requests" className="pt-2 sm:pt-0 mb-20">
             <RegistrationRequestsManager />
           </TabsContent>
+          )}
 
           {isDesktop && (
           <TabsContent value="requests" className="pt-2 sm:pt-0 mb-20">
-            {/* График для десктопа */}
-            {isDesktop && (
-            <Card className="mb-4">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg sm:text-xl">Динамика заявок</CardTitle>
-                <CardDescription className="text-sm">Количество заявок по дням</CardDescription>
+            {/* Только график в тёмном режиме */}
+            <Card className="border border-white/10 bg-[#1A1A1A] overflow-hidden">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <CardTitle className="text-lg sm:text-xl text-white">Динамика заявок</CardTitle>
+                <CardDescription className="text-sm text-gray-400">Количество заявок по дням</CardDescription>
               </CardHeader>
-              <CardContent>
-                    {/* Селектор интервала дат для десктопа */}
-                    <div className="mb-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm font-medium">Фильтр по дате:</Label>
-                        <Button
+              <CardContent className="pt-4">
+                {/* Фильтр по дате */}
+                <div className="mb-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium text-gray-300">Период:</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={resetDateFilters}
+                      className="text-xs border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]"
+                    >
+                      Сбросить
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-gray-400">От</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
                             variant="outline"
-                            size="sm"
-                            onClick={resetDateFilters}
-                            className="text-xs"
-                        >
-                          Сбросить
-                        </Button>
-                      </div>
-
-                      {/* Выбор интервала дат */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-xs text-gray-600">От:</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                              >
-                                <CalendarLucid className="mr-2 h-4 w-4" />
-                                {startDate ? format(startDate, "dd.MM.yyyy", { locale: ru }) : "Начальная дата"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                  mode="single"
-                                  selected={startDate}
-                                  onSelect={setStartDate}
-                                  initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-
-                        <div>
-                          <Label className="text-xs text-gray-600">До:</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
-                              >
-                                <CalendarLucid className="mr-2 h-4 w-4" />
-                                {endDate ? format(endDate, "dd.MM.yyyy", { locale: ru }) : "Конечная дата"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                  mode="single"
-                                  selected={endDate}
-                                  onSelect={setEndDate}
-                                  disabled={(date) => startDate ? date < startDate : false}
-                                  initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    </div>
-
-                <div className="h-48 sm:h-64">
-                  {chartData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                          <defs>
-                            <linearGradient id="kcellGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#8E24AA" stopOpacity={1} />
-                              <stop offset="100%" stopColor="#6A1B9A" stopOpacity={0.8} />
-                            </linearGradient>
-                          </defs>
-
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis allowDecimals={false} />
-                              <TooltipForTabs />
-                          <Line
-                              type="monotone"
-                              dataKey="count"
-                              stroke="url(#kcellGradient)"
-                              strokeWidth={2.5}
-                              dot={{ r: 4, stroke: '#6A1B9A', strokeWidth: 1.5, fill: '#fff' }}
-                              activeDot={{ r: 6 }}
+                            className="w-full justify-start text-left font-normal mt-1 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]"
+                          >
+                            <CalendarLucid className="mr-2 h-4 w-4 text-gray-400" />
+                            {startDate ? format(startDate, "dd.MM.yyyy", { locale: ru }) : "Начальная дата"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-[#2C2C2E] border-white/10" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                            className="rounded-md border-0 bg-[#2C2C2E] text-white [&_*]:text-white [&_button]:text-white [&_button:hover]:bg-white/10"
                           />
-                        </LineChart>
-                      </ResponsiveContainer>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-400">До</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal mt-1 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C]"
+                          >
+                            <CalendarLucid className="mr-2 h-4 w-4 text-gray-400" />
+                            {endDate ? format(endDate, "dd.MM.yyyy", { locale: ru }) : "Конечная дата"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-[#2C2C2E] border-white/10" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            disabled={(date) => startDate ? date < startDate : false}
+                            initialFocus
+                            className="rounded-md border-0 bg-[#2C2C2E] text-white [&_*]:text-white [&_button]:text-white [&_button:hover]:bg-white/10"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-56 sm:h-72">
+                  {requestsChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={requestsChartData}>
+                        <defs>
+                          <linearGradient id="requestsChartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#E85D2B" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#B8400E" stopOpacity={0.85} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                          axisLine={{ stroke: "rgba(255,255,255,0.15)" }}
+                          tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                          axisLine={{ stroke: "rgba(255,255,255,0.15)" }}
+                          tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                        />
+                        <TooltipForTabs
+                          contentStyle={{ backgroundColor: "#2C2C2E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "#fff" }}
+                          labelStyle={{ color: "#9CA3AF" }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke="url(#requestsChartGradient)"
+                          strokeWidth={2.5}
+                          dot={{ r: 4, stroke: "#E85D2B", strokeWidth: 1.5, fill: "#1A1A1A" }}
+                          activeDot={{ r: 6, fill: "#E85D2B", stroke: "#fff", strokeWidth: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   ) : (
-                      <div className="text-gray-500 text-center py-16">Нет данных для отображения</div>
+                    <div className="text-gray-400 text-center py-16">Нет данных для отображения</div>
                   )}
                 </div>
               </CardContent>
             </Card>
-            )}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 mb-4">
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все</SelectItem>
-                    <SelectItem value="in_progress">В обработке</SelectItem>
-                    <SelectItem value="awaiting_assignment">Ожидает назначение</SelectItem>
-                    <SelectItem value="assigned">Назначен</SelectItem>
-                    <SelectItem value="execution">Исполнение</SelectItem>
-                    <SelectItem value="completed">Завершено</SelectItem>
-                    <SelectItem value="overdue">Просрочено</SelectItem>
-                    <SelectItem value="long_term">Долгосрочные</SelectItem>
-                    <SelectItem value="rejected">Отклоненные</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Тип заявки" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все</SelectItem>
-                    <SelectItem value="normal">Обычная</SelectItem>
-                    <SelectItem value="urgent">Экстренная</SelectItem>
-                    <SelectItem value="planned">Плановая</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ contain: 'layout style paint' }}>
-                {filteredRequests.map((requestGroup, index) => {
-                  const isLast = index === filteredRequests.length - 1;
-                  return (
-                      <RequestCard
-                          key={`incoming-${index}`}
-                          request={requestGroup}
-                          onCardClick={handleCardClick}
-                          renderCardHeader={renderCardHeader}
-                          isLast={isLast}
-                          lastElementRef={lastRequestRef}
-                      />
-                  );
-                })}
-              </div>
-            </div>
           </TabsContent>
           )}
 
           <TabsContent value="overview" className="pt-2 sm:pt-0 space-y-4 sm:space-y-6 mb-20">
-
-            {/* Distribution */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg sm:text-xl">Распределение по типам</CardTitle>
+            {/* Distribution — тёмная тема на десктопе */}
+            <Card className={isDesktop ? "border border-white/10 bg-[#1A1A1A]" : ""}>
+              <CardHeader className={`pb-3 ${isDesktop ? "border-b border-white/10" : ""}`}>
+                <CardTitle className={`text-lg sm:text-xl ${isDesktop ? "text-white" : ""}`}>
+                  Распределение по типам
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isDesktop ? "pt-4" : ""}>
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm sm:text-base">Обычные</span>
+                    <span className={`text-sm sm:text-base ${isDesktop ? "text-gray-300" : ""}`}>Обычные</span>
                     <div className="flex items-center space-x-2">
-                      <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${distribution.normalPercent}%`}}></div>
+                      <div className={`w-16 sm:w-24 rounded-full h-2 ${isDesktop ? "bg-[#2C2C2E]" : "bg-gray-200"}`}>
+                        <div className={`h-2 rounded-full ${isDesktop ? "bg-[#3B82F6]" : "bg-blue-600"}`} style={{ width: `${distribution.normalPercent}%`}}></div>
                       </div>
-                      <span className="text-sm font-medium w-8">{distribution.normal}</span>
+                      <span className={`text-sm font-medium w-8 ${isDesktop ? "text-white" : ""}`}>{distribution.normal}</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm sm:text-base">Экстренные</span>
+                    <span className={`text-sm sm:text-base ${isDesktop ? "text-gray-300" : ""}`}>Экстренные</span>
                     <div className="flex items-center space-x-2">
-                      <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
-                        <div className="bg-red-600 h-2 rounded-full" style={{ width: `${distribution.urgentPercent}%`}}></div>
+                      <div className={`w-16 sm:w-24 rounded-full h-2 ${isDesktop ? "bg-[#2C2C2E]" : "bg-gray-200"}`}>
+                        <div className={`h-2 rounded-full ${isDesktop ? "bg-[#E85D2B]" : "bg-red-600"}`} style={{ width: `${distribution.urgentPercent}%`}}></div>
                       </div>
-                      <span className="text-sm font-medium w-8">{distribution.urgent}</span>
+                      <span className={`text-sm font-medium w-8 ${isDesktop ? "text-white" : ""}`}>{distribution.urgent}</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm sm:text-base">Плановые</span>
+                    <span className={`text-sm sm:text-base ${isDesktop ? "text-gray-300" : ""}`}>Плановые</span>
                     <div className="flex items-center space-x-2">
-                      <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full" style={{ width: `${distribution.plannedPercent}%` }}></div>
+                      <div className={`w-16 sm:w-24 rounded-full h-2 ${isDesktop ? "bg-[#2C2C2E]" : "bg-gray-200"}`}>
+                        <div className={`h-2 rounded-full ${isDesktop ? "bg-[#22C55E]" : "bg-green-600"}`} style={{ width: `${distribution.plannedPercent}%` }}></div>
                       </div>
-                      <span className="text-sm font-medium w-8">{distribution.planned}</span>
+                      <span className={`text-sm font-medium w-8 ${isDesktop ? "text-white" : ""}`}>{distribution.planned}</span>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Уведомления только на десктопе — в мобилке они есть в профиле */}
-            {isDesktop && (
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <NotificationsSidebar 
-                  onNotificationClick={handleNotificationClick}
-                  onRequestClick={(requestId) => {
-                    // Парсим ID заявки (может быть в формате "123" или "123/1")
-                    const parsedId = parseInt(requestId.split('/')[0]);
-                    const request = requests.find(r => r.id === parsedId);
-                    if (request) {
-                      setSelectedRequest(request);
-                      openModal('requestDetails');
-                      return true; // Заявка найдена
-                    }
-                    return false; // Заявка не найдена
-                  }}
-                />
-              </CardContent>
-            </Card>
-            )}
           </TabsContent>
 
           <TabsContent value="analytics" className="pt-2 sm:pt-0 mb-20">
             <ManagerAnalytics />
           </TabsContent>
 
+          {isDesktop && (
+          <TabsContent value="workload" className="pt-2 sm:pt-0 mb-20">
+            <MeetingRoomStatistics variant="dark" defaultShowCalendar />
+          </TabsContent>
+          )}
+
+          {!isDesktop && (
           <TabsContent value="meeting-rooms" className="pt-2 sm:pt-0 mb-20">
             <MeetingRoomsAdmin />
           </TabsContent>
+          )}
 
-          {/* Management Tab Content for Manager */}
+          {/* Management Tab Content for Manager — тёмная тема при standaloneManagement или на мобилке */}
           <TabsContent value="management" className="pt-2 sm:pt-0">
+            {(() => {
+              const mgmtDark = standaloneManagement || !isDesktop;
+              const mgmtCardCl = mgmtDark ? "border-white/10 bg-[#2C2C2E]" : "";
+              const mgmtTitleCl = mgmtDark ? "text-white" : "";
+              const mgmtDescCl = mgmtDark ? "text-white/70" : "";
+              const mgmtInputCl = mgmtDark ? "bg-[#1A1A1A] border-white/10 text-white placeholder:text-white/50" : "";
+              const mgmtLabelCl = mgmtDark ? "text-white/80" : "";
+              const mgmtMutedCl = mgmtDark ? "text-white/60" : "text-muted-foreground";
+              const mgmtBtnPrimary = mgmtDark ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "";
+              const mgmtRowCl = mgmtDark ? "bg-[#2C2C2E] border-white/10 text-white" : "bg-gray-50";
+              const mgmtTextCl = mgmtDark ? "text-white" : "text-gray-700";
+              const mgmtBorderCl = mgmtDark ? "border-white/10" : "";
+              return (
             <div className="space-y-6 mb-20">
               {/* Мобильная: выбор подраздела (офисы, категории, пользователи) */}
               {!isDesktop && managementSubSection === null && (
@@ -2686,8 +2663,8 @@ export default function ManagerDashboard() {
                     onClick={() => setManagementSubSection("offices")}
                     className="w-full text-left rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-5 flex items-center gap-4 hover:bg-[#353538] active:scale-[0.99] transition-all"
                   >
-                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#F35713]/20">
-                      <Building2 className="h-6 w-6 text-[#F35713]" />
+                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#E85D2B]/20">
+                      <Building2 className="h-6 w-6 text-[#E85D2B]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Управление офисами</h3>
@@ -2700,8 +2677,8 @@ export default function ManagerDashboard() {
                     onClick={() => setManagementSubSection("categories")}
                     className="w-full text-left rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-5 flex items-center gap-4 hover:bg-[#353538] active:scale-[0.99] transition-all"
                   >
-                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#F35713]/20">
-                      <FolderOpen className="h-6 w-6 text-[#F35713]" />
+                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#E85D2B]/20">
+                      <FolderOpen className="h-6 w-6 text-[#E85D2B]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Категории услуг</h3>
@@ -2714,8 +2691,8 @@ export default function ManagerDashboard() {
                     onClick={() => setManagementSubSection("users")}
                     className="w-full text-left rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-5 flex items-center gap-4 hover:bg-[#353538] active:scale-[0.99] transition-all"
                   >
-                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#F35713]/20">
-                      <Users className="h-6 w-6 text-[#F35713]" />
+                    <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-[#E85D2B]/20">
+                      <Users className="h-6 w-6 text-[#E85D2B]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Управление пользователями</h3>
@@ -2739,53 +2716,85 @@ export default function ManagerDashboard() {
                 </Button>
               )}
 
-              {/* Office Management Card (Moved here) */}
-              {(isDesktop || managementSubSection === "offices") && (
-              <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+              {/* Десктоп: табы переключения подразделов управления */}
+              {isDesktop && (
+                <Tabs value={managementDesktopTab} onValueChange={(v) => setManagementDesktopTab(v as "offices" | "categories" | "users" | "registration-requests")} className="w-full">
+                  <TabsList className="w-full justify-start rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 gap-1 h-auto min-h-0 mb-4">
+                    <TabsTrigger
+                      value="offices"
+                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                    >
+                      Управление офисами
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="categories"
+                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                    >
+                      Управление категориями услуг
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="users"
+                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                    >
+                      Управление пользователями
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="registration-requests"
+                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                    >
+                      Регистрации
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+
+              {/* Карточки управления: на десктопе по табу, на мобиле по выбранному подразделу */}
+              {/* Office Management Card */}
+              {((isDesktop && managementDesktopTab === "offices") || (!isDesktop && managementSubSection === "offices")) && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
-                  <CardTitle className={!isDesktop ? "text-white" : ""}>Управление офисами</CardTitle>
-                  <CardDescription className={!isDesktop ? "text-[#8E8E93]" : ""}>Добавление и управление офисами компании</CardDescription>
+                  <CardTitle className={mgmtTitleCl}>Управление офисами</CardTitle>
+                  <CardDescription className={mgmtDescCl}>Добавление и управление офисами компании</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Форма добавления офиса */}
                   <div className={`flex flex-col gap-3 ${isDesktop ? "sm:flex-row sm:gap-2" : ""}`}>
                     <Input
                         placeholder="Город нового офиса"
                         value={newOfficeCity}
                         onChange={(e) => setNewOfficeCity(e.target.value)}
-                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]" : ""}`}
+                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                     />
                     <Input
                         placeholder="Расположение нового офиса"
                         value={newOfficeAddress}
                         onChange={(e) => setNewOfficeAddress(e.target.value)}
-                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]" : ""}`}
+                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                     />
                     <Input
                         placeholder="Название нового офиса"
                         value={newOfficeName}
                         onChange={(e) => setNewOfficeName(e.target.value)}
-                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]" : ""}`}
+                        className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                     />
                     <Button
                         onClick={handleAddOffice}
                         disabled={!newOfficeName.trim()}
-                        className={`w-full ${isDesktop ? "sm:w-auto" : ""} bg-[#F35713]`}
+                        className={`w-full ${isDesktop ? "sm:w-auto" : ""} ${mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}`}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Добавить офис
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : "text-muted-foreground"}`}>Фото офиса (опционально)</Label>
+                    <Label className={`text-sm font-medium ${mgmtLabelCl || "text-muted-foreground"}`}>Фото офиса (опционально)</Label>
                     <Input
                       type="file"
                       accept="image/*"
                       ref={newOfficePhotoInputRef}
                       onChange={handleNewOfficePhotoChange}
-                      className={!isDesktop ? "text-white file:text-white" : ""}
+                      className={mgmtDark ? "bg-transparent text-white file:text-white" : ""}
                     />
-                    <p className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-muted-foreground"}`}>Поддерживаются JPG, PNG или WebP до 2 МБ</p>
+                    <p className={`text-xs ${mgmtMutedCl || "text-muted-foreground"}`}>Поддерживаются JPG, PNG или WebP до 2 МБ</p>
                     {newOfficePhoto ? (
                       <div className="flex items-center gap-4">
                         <div className="relative h-24 w-40 overflow-hidden rounded-lg border bg-muted">
@@ -2810,15 +2819,15 @@ export default function ManagerDashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className={!isDesktop ? "text-white" : ""}>Существующие офисы ({offices.length}):</Label>
+                    <Label className={mgmtTitleCl || ""}>Существующие офисы ({offices.length}):</Label>
                     {offices.length === 0 ? (
-                        <p className={`text-sm italic ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Нет добавленных офисов.</p>
+                        <p className={`text-sm italic ${mgmtMutedCl || "text-gray-500"}`}>Нет добавленных офисов.</p>
                     ) : (
                         <div className="grid grid-cols-1 gap-2">
                           {offices.map((officeItem, index) => (
                               <div
                                   key={index}
-                                  className={`flex flex-col justify-between items-stretch p-3 rounded-lg border space-y-2 sm:space-y-0 ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C]" : "bg-gray-50 sm:flex-row sm:items-center"}`}
+                                  className={`flex flex-col justify-between items-stretch p-3 rounded-lg border space-y-2 sm:space-y-0 ${mgmtRowCl} ${isDesktop && !mgmtDark ? "sm:flex-row sm:items-center" : ""}`}
                               >
                                 {editingOfficeId === officeItem.id ? (
                                     <div className="w-full space-y-3">
@@ -2829,7 +2838,7 @@ export default function ManagerDashboard() {
                                                 setEditedOffice({ ...editedOffice, name: e.target.value })
                                             }
                                             placeholder="Название офиса"
-                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}
+                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                                         />
                                         <Input
                                             value={editedOffice.city}
@@ -2837,7 +2846,7 @@ export default function ManagerDashboard() {
                                                 setEditedOffice({ ...editedOffice, city: e.target.value })
                                             }
                                             placeholder="Город"
-                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}
+                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                                         />
                                         <Input
                                             value={editedOffice.address}
@@ -2845,12 +2854,12 @@ export default function ManagerDashboard() {
                                                 setEditedOffice({ ...editedOffice, address: e.target.value })
                                             }
                                             placeholder="Адрес"
-                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}
+                                            className={`w-full ${isDesktop ? "sm:flex-1" : ""} ${mgmtInputCl}`}
                                         />
                                       </div>
                                       <div className={`flex flex-col gap-2 ${isDesktop ? "sm:flex-row" : ""}`}>
                                         <div className="flex-1">
-                                          <Label className={`text-sm font-medium mb-1 block ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Начало рабочих часов</Label>
+                                          <Label className={`text-sm font-medium mb-1 block ${mgmtLabelCl || ""}`}>Начало рабочих часов</Label>
                                           <Input
                                             type="time"
                                             value={editedOffice.working_hours_start?.substring(0, 5) || "08:00"}
@@ -2858,11 +2867,11 @@ export default function ManagerDashboard() {
                                               const timeValue = e.target.value + ":00";
                                               setEditedOffice({ ...editedOffice, working_hours_start: timeValue });
                                             }}
-                                            className={`w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}
+                                            className={`w-full ${mgmtInputCl}`}
                                           />
                                         </div>
                                         <div className="flex-1">
-                                          <Label className={`text-sm font-medium mb-1 block ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Конец рабочих часов</Label>
+                                          <Label className={`text-sm font-medium mb-1 block ${mgmtLabelCl || ""}`}>Конец рабочих часов</Label>
                                           <Input
                                             type="time"
                                             value={editedOffice.working_hours_end?.substring(0, 5) || "18:00"}
@@ -2870,7 +2879,7 @@ export default function ManagerDashboard() {
                                               const timeValue = e.target.value + ":00";
                                               setEditedOffice({ ...editedOffice, working_hours_end: timeValue });
                                             }}
-                                            className={`w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}
+                                            className={`w-full ${mgmtInputCl}`}
                                           />
                                         </div>
                                       </div>
@@ -2882,21 +2891,21 @@ export default function ManagerDashboard() {
                                           onChange={(e) =>
                                             setEditedOffice({ ...editedOffice, auto_track_enabled: e.target.checked })
                                           }
-                                          className="h-4 w-4 rounded border-gray-300 text-[#114A65] focus:ring-[#114A65]"
+                                          className={`h-4 w-4 rounded border-gray-300 ${mgmtDark ? "text-[#E85D2B] focus:ring-[#E85D2B]" : "text-[#114A65] focus:ring-[#114A65]"}`}
                                         />
-                                        <Label htmlFor={`auto-track-${officeItem.id}`} className={`text-sm font-medium cursor-pointer ${!isDesktop ? "text-[#8E8E93]" : ""}`}>
+                                        <Label htmlFor={`auto-track-${officeItem.id}`} className={`text-sm font-medium cursor-pointer ${mgmtLabelCl || ""}`}>
                                           Автоматическое отслеживание активности
                                         </Label>
                                       </div>
                                       <div className="space-y-2">
-                                        <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : "text-muted-foreground"}`}>Фото офиса</Label>
+                                        <Label className={`text-sm font-medium ${mgmtLabelCl || "text-muted-foreground"}`}>Фото офиса</Label>
                                         <Input
                                           type="file"
                                           accept="image/*"
                                           onChange={handleEditOfficePhotoChange}
-                                          className={!isDesktop ? "text-white" : ""}
+                                          className={mgmtDark ? "text-white" : ""}
                                         />
-                                        <p className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-muted-foreground"}`}>Поддерживаются JPG, PNG или WebP до 2 МБ</p>
+                                        <p className={`text-xs ${mgmtMutedCl || "text-muted-foreground"}`}>Поддерживаются JPG, PNG или WebP до 2 МБ</p>
                                         {editedOffice.photo ? (
                                           <div className="flex items-center gap-4">
                                             <div className="relative h-24 w-40 overflow-hidden rounded-lg border bg-muted">
@@ -2922,14 +2931,14 @@ export default function ManagerDashboard() {
                                       <div className={`flex flex-col gap-2 ${isDesktop ? "sm:flex-row" : ""}`}>
                                         <Button
                                             onClick={() => handleUpdateOffice(officeItem.id)}
-                                            className={`w-full ${isDesktop ? "sm:w-auto" : ""} bg-green-600 hover:bg-green-700`}
+                                            className={`w-full ${isDesktop ? "sm:w-auto" : ""} ${mgmtDark ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "bg-green-600 hover:bg-green-700"}`}
                                         >
                                           Сохранить
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             onClick={handleCancelOfficeEdit}
-                                            className={`w-full ${isDesktop ? "sm:w-auto" : ""} ${!isDesktop ? "text-[#8E8E93] hover:bg-white/10" : ""}`}
+                                            className={`w-full ${isDesktop ? "sm:w-auto" : ""} ${mgmtDark ? "text-white/70 hover:bg-white/10" : ""}`}
                                         >
                                           Отмена
                                         </Button>
@@ -2937,23 +2946,23 @@ export default function ManagerDashboard() {
                                     </div>
                                 ) : (
                                     <>
-                                      <div className={`flex w-full flex-col gap-3 sm:flex-row ${!isDesktop ? "text-white" : "text-gray-700"}`}>
+                                      <div className={`flex w-full flex-col gap-3 sm:flex-row ${mgmtTextCl}`}>
                                         <div className="flex-1 min-w-0">
                                         <div className="text-lg font-semibold">{officeItem.name}</div>
-                                        <div className={`text-sm ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>
+                                        <div className={`text-sm ${mgmtMutedCl}`}>
                                           Город: <span className="font-medium">{officeItem.city}</span>
                                         </div>
-                                        <div className={`text-sm ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>
+                                        <div className={`text-sm ${mgmtMutedCl}`}>
                                           Адрес: <span className="font-medium">{officeItem.address}</span>
                                         </div>
                                         {officeItem.working_hours_start && officeItem.working_hours_end && (
-                                          <div className={`text-sm ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>
+                                          <div className={`text-sm ${mgmtMutedCl}`}>
                                             Рабочие часы: <span className="font-medium">
                                               {officeItem.working_hours_start.substring(0, 5)} - {officeItem.working_hours_end.substring(0, 5)}
                                             </span>
                                           </div>
                                         )}
-                                        <div className={`text-sm ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>
+                                        <div className={`text-sm ${mgmtMutedCl}`}>
                                           Автотрекинг: <span className="font-medium">
                                             {officeItem.auto_track_enabled ? "Включен" : "Выключен"}
                                           </span>
@@ -2987,7 +2996,7 @@ export default function ManagerDashboard() {
                                                 auto_track_enabled: officeItem.auto_track_enabled ?? false,
                                               });
                                             }}
-                                            className={`w-full sm:w-auto ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                                            className={`bg-transparent sm:w-auto ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
                                         >
                                           ✎ Редактировать
                                         </Button>
@@ -2998,7 +3007,7 @@ export default function ManagerDashboard() {
                                               setOfficeToDelete(officeItem);
                                               setShowDeleteOfficeModal(true);
                                             }}
-                                                className={`w-full sm:w-auto text-red-500 hover:text-red-400 ${!isDesktop ? "hover:bg-red-500/10" : "hover:bg-red-50 hover:text-red-700"}`}
+                                                className={`w-full sm:w-auto text-red-500 hover:text-red-400 ${mgmtDark ? "hover:bg-red-500/10" : "hover:bg-red-50 hover:text-red-700"}`}
                                             >
                                               <Trash2 className="w-4 h-4 mr-1 inline" />
                                               Удалить
@@ -3017,29 +3026,28 @@ export default function ManagerDashboard() {
               )}
 
               {/* Управление категориями услуг */}
-              {(isDesktop || managementSubSection === "categories") && (
-              <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
-                  <CardTitle className={!isDesktop ? "text-white" : ""}>Управление категориями услуг</CardTitle>
-                  <CardDescription className={!isDesktop ? "text-[#8E8E93]" : ""}>Создание и удаление категорий услуг</CardDescription>
+                  <CardTitle className={mgmtTitleCl}>Управление категориями услуг</CardTitle>
+                  <CardDescription className={mgmtDescCl}>Создание и удаление категорий услуг</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Форма создания категории */}
                   <div className="space-y-2">
-                    <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Создать новую категорию</Label>
+                    <Label className={`text-sm font-medium ${mgmtLabelCl || ""}`}>Создать новую категорию</Label>
                     <div className={`flex flex-col gap-2 ${isDesktop ? "sm:flex-row" : ""}`}>
                       <Input
                         type="text"
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Название категории"
-                        className={`flex-1 min-w-0 ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]" : ""}`}
+                        className={`flex-1 min-w-0 ${mgmtInputCl}`}
                         disabled={isCreatingCategory}
                       />
                       <Button
                         onClick={handleCreateCategory}
                         disabled={!newCategoryName.trim() || isCreatingCategory}
-                        className={`bg-green-600 hover:bg-green-700 text-white w-full ${isDesktop ? "sm:w-auto" : ""}`}
+                        className={`${mgmtDark ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "bg-green-600 hover:bg-green-700 text-white"} w-full ${isDesktop ? "sm:w-auto" : ""}`}
                       >
                         {isCreatingCategory ? (
                           <div className="flex items-center gap-2">
@@ -3053,12 +3061,11 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
 
-                  {/* Форма удаления категории */}
                   <div className="space-y-2">
-                    <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Удалить категорию</Label>
+                    <Label className={`text-sm font-medium ${mgmtLabelCl || ""}`}>Удалить категорию</Label>
                     <div className={`flex flex-col gap-2 min-w-0 ${isDesktop ? "sm:flex-row" : ""}`}>
                       <Select onValueChange={(categoryId) => setCategoryToDelete(parseInt(categoryId) || null)} value={categoryToDelete?.toString() || ""}>
-                        <SelectTrigger className={`flex-1 min-w-0 w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+                        <SelectTrigger className={`flex-1 min-w-0 w-full ${mgmtInputCl}`}>
                           <SelectValue placeholder="Выберите категорию для удаления" />
                         </SelectTrigger>
                         <SelectContent>
@@ -3100,18 +3107,16 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
 
-                  {/* Отображение ошибок */}
                   {categoryError && (
-                    <div className={`p-3 rounded-md ${!isDesktop ? "bg-red-500/20 border border-red-500/50" : "bg-red-50 border border-red-200"}`}>
-                      <p className={`text-sm ${!isDesktop ? "text-red-400" : "text-red-600"}`}>{categoryError}</p>
+                    <div className={`p-3 rounded-md ${mgmtDark ? "bg-red-500/20 border border-red-500/50" : "bg-red-50 border border-red-200"}`}>
+                      <p className={`text-sm ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{categoryError}</p>
                     </div>
                   )}
 
-                  {/* Список существующих категорий */}
                   <div className="space-y-2">
-                    <Label className={!isDesktop ? "text-white" : ""}>Существующие категории ({categories.length}):</Label>
+                    <Label className={mgmtTitleCl || ""}>Существующие категории ({categories.length}):</Label>
                     {categories.length === 0 ? (
-                      <p className={`text-sm italic ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Нет добавленных категорий.</p>
+                      <p className={`text-sm italic ${mgmtMutedCl || "text-gray-500"}`}>Нет добавленных категорий.</p>
                     ) : (
                       <div className="grid grid-cols-1 gap-2">
                         {categories.map((category) => {
@@ -3119,12 +3124,12 @@ export default function ManagerDashboard() {
                           return (
                             <div
                               key={category.id}
-                              className={`flex justify-between items-center p-3 rounded-lg border ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C]" : "bg-gray-50"}`}
+                              className={`flex justify-between items-center p-3 rounded-lg border ${mgmtRowCl}`}
                             >
-                              <div className={!isDesktop ? "text-white" : "text-gray-700"}>
+                              <div className={mgmtTextCl}>
                                 <div className="text-lg font-semibold">{category.name}</div>
                                 {hasExecutors && (
-                                  <div className={`text-sm ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Есть исполнители</div>
+                                  <div className={`text-sm ${mgmtMutedCl}`}>Есть исполнители</div>
                                 )}
                               </div>
                             </div>
@@ -3138,11 +3143,11 @@ export default function ManagerDashboard() {
               )}
 
               {/* Управление пользователями */}
-              {(isDesktop || managementSubSection === "users") && (
-              <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+              {((isDesktop && managementDesktopTab === "users") || (!isDesktop && managementSubSection === "users")) && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
-                  <CardTitle className={!isDesktop ? "text-white" : ""}>Управление пользователями</CardTitle>
-                  <CardDescription className={!isDesktop ? "text-[#8E8E93]" : ""}>Редактирование и удаление пользователей</CardDescription>
+                  <CardTitle className={mgmtTitleCl}>Управление пользователями</CardTitle>
+                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4 mb-8">
@@ -3155,13 +3160,13 @@ export default function ManagerDashboard() {
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                        className={!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]" : ""}
+                        className={mgmtInputCl}
                     />
 
                     <Button
                         onClick={handleSearch}
                         disabled={isSearching}
-                        className={`w-full ${isDesktop ? "sm:w-auto min-w-[120px]" : ""}`}
+                        className={`w-full ${isDesktop ? "sm:w-auto min-w-[120px]" : ""} ${mgmtBtnPrimary ? mgmtBtnPrimary : ""}`}
                     >
                       {isSearching ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -3180,21 +3185,19 @@ export default function ManagerDashboard() {
                                 setRoleFilter(null);
                               fetchUsers(1);
                             }}
-                            className={!isDesktop ? "w-full border-[#3A3A3C] text-white hover:bg-white/10" : ""}
+                            className={mgmtDark ? "w-full border-white/10 text-white hover:bg-white/10" : ""}
                         >
                             Сбросить все
                         </Button>
                     )}
                   </div>
 
-                    {/* Фильтры */}
                     <div className={`grid grid-cols-1 gap-3 ${isDesktop ? "sm:grid-cols-2" : ""}`}>
-                      {/* Фильтр по офису */}
                       <Select 
                           value={officeFilter?.toString() || "all"} 
                           onValueChange={(value) => setOfficeFilter(value === "all" ? null : parseInt(value))}
                       >
-                        <SelectTrigger className={!isDesktop ? "w-full bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
+                        <SelectTrigger className={`w-full ${mgmtInputCl}`}>
                           <SelectValue placeholder="Фильтр по офису" />
                         </SelectTrigger>
                         <SelectContent>
@@ -3207,12 +3210,11 @@ export default function ManagerDashboard() {
                         </SelectContent>
                       </Select>
 
-                      {/* Фильтр по роли */}
                       <Select 
                           value={roleFilter || "all"} 
                           onValueChange={(value) => setRoleFilter(value === "all" ? null : value)}
                       >
-                        <SelectTrigger className={!isDesktop ? "w-full bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
+                        <SelectTrigger className={`w-full ${mgmtInputCl}`}>
                           <SelectValue placeholder="Фильтр по роли" />
                         </SelectTrigger>
                         <SelectContent>
@@ -3226,27 +3228,26 @@ export default function ManagerDashboard() {
                       </Select>
                     </div>
 
-                    {/* Индикатор активных фильтров */}
                     {(officeFilter || roleFilter) && (
                       <div className="flex flex-wrap gap-2">
-                        <span className={`text-sm w-full ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>Активные фильтры:</span>
+                        <span className={`text-sm w-full ${mgmtMutedCl}`}>Активные фильтры:</span>
                         {officeFilter && (
-                          <Badge variant="secondary" className={`text-xs ${!isDesktop ? "bg-[#3A3A3C] text-white border-0" : ""}`}>
+                          <Badge variant="secondary" className={`text-xs ${mgmtDark ? "bg-white/10 text-white border-0" : ""}`}>
                             Офис: {offices.find(o => o.id === officeFilter)?.name}
                             <button
                               onClick={() => setOfficeFilter(null)}
-                              className={`ml-1 ${!isDesktop ? "text-[#8E8E93] hover:text-white" : "text-gray-500 hover:text-gray-700"}`}
+                              className={`ml-1 ${mgmtDark ? "text-white/70 hover:text-white" : "text-gray-500 hover:text-gray-700"}`}
                             >
                               ×
                             </button>
                           </Badge>
                         )}
                         {roleFilter && (
-                          <Badge variant="secondary" className={`text-xs ${!isDesktop ? "bg-[#3A3A3C] text-white border-0" : ""}`}>
+                          <Badge variant="secondary" className={`text-xs ${mgmtDark ? "bg-white/10 text-white border-0" : ""}`}>
                             Роль: {roleTranslations[roleFilter] || roleFilter}
                             <button
                               onClick={() => setRoleFilter(null)}
-                              className={`ml-1 ${!isDesktop ? "text-[#8E8E93] hover:text-white" : "text-gray-500 hover:text-gray-700"}`}
+                              className={`ml-1 ${mgmtDark ? "text-white/70 hover:text-white" : "text-gray-500 hover:text-gray-700"}`}
                             >
                               ×
                             </button>
@@ -3256,29 +3257,28 @@ export default function ManagerDashboard() {
                     )}
                   </div>
 
-                  {/* Форма редактирования пользователя */}
                   {editingUserId && (
-                    <div className={`space-y-4 p-4 rounded-lg ${!isDesktop ? "bg-[#2C2C2E]/80 border border-[#3A3A3C]" : "bg-blue-50 border border-blue-200"}`}>
-                      <h3 className={`text-lg font-semibold ${!isDesktop ? "text-white" : "text-blue-800"}`}>Редактирование пользователя</h3>
+                    <div className={`space-y-4 p-4 rounded-lg ${mgmtDark ? "bg-[#2C2C2E]/80 border border-white/10" : "bg-blue-50 border border-blue-200"}`}>
+                      <h3 className={`text-lg font-semibold ${mgmtDark ? "text-white" : "text-blue-800"}`}>Редактирование пользователя</h3>
                       
                       <div className={`grid grid-cols-1 gap-3 ${isDesktop ? "sm:grid-cols-2 md:grid-cols-3" : ""}`}>
                         <Input
                             placeholder="Полное имя"
                             value={newUser.full_name}
                             onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
-                            className={!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}
+                            className={mgmtInputCl}
                         />
                         <Input
                             placeholder="Номер телефона"
                             value={newUser.phone}
                             onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                            className={!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}
+                            className={mgmtInputCl}
                         />
                         <Select
                             value={String(newUser.office_id === 0 ? "" : newUser.office_id)}
                             onValueChange={(val) => setNewUser({ ...newUser, office_id: Number(val) })}
                         >
-                          <SelectTrigger className={!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
+                          <SelectTrigger className={mgmtInputCl}>
                             <SelectValue placeholder="Офис" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3296,7 +3296,7 @@ export default function ManagerDashboard() {
                             value={newUser.role}
                             onValueChange={(val) => setNewUser({ ...newUser, role: val, category_id: 0 })}
                         >
-                          <SelectTrigger className={!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
+                          <SelectTrigger className={mgmtInputCl}>
                             <SelectValue placeholder="Роль" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3310,14 +3310,13 @@ export default function ManagerDashboard() {
                         </Select>
                       </div>
 
-                      {formErrors && <p className={`text-sm ${!isDesktop ? "text-red-400" : "text-red-500"}`}>{formErrors}</p>}
+                      {formErrors && <p className={`text-sm ${mgmtDark ? "text-red-400" : "text-red-500"}`}>{formErrors}</p>}
 
-                      {/* Кнопки сохранить и отмена */}
                       <div className={`flex flex-col gap-2 min-w-0 ${isDesktop ? "sm:flex-row sm:flex-wrap" : ""}`}>
                         <Button
                             onClick={handleUpdateUser}
                             disabled={!isValidUser || loading}
-                            className={`bg-green-600 hover:bg-green-700 w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""}`}
+                            className={`w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""} ${mgmtDark ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "bg-green-600 hover:bg-green-700"}`}
                         >
                           Сохранить изменения
                         </Button>
@@ -3335,7 +3334,7 @@ export default function ManagerDashboard() {
                               });
                               setFormErrors(null);
                             }}
-                            className={`w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""} ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                            className={`w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""} ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
                         >
                           Отмена
                         </Button>
@@ -3343,37 +3342,34 @@ export default function ManagerDashboard() {
                     </div>
                   )}
 
-                  {/* Список пользователей */}
                   <div className="space-y-2 mt-4">
-                    <Label className={!isDesktop ? "text-white" : ""}>Пользователи ({pagination.totalItems}):</Label>
+                    <Label className={mgmtTitleCl || ""}>Пользователи ({pagination.totalItems}):</Label>
 
                     {users.length === 0 ? (
-                        <p className={`text-sm italic ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Нет пользователей.</p>
+                        <p className={`text-sm italic ${mgmtMutedCl || "text-gray-500"}`}>Нет пользователей.</p>
                     ) : (
                         <div className="grid grid-cols-1 gap-3">
                           {users.map((user: any, index: number) => (
                               <div
                                   key={index}
-                                  className={`flex flex-col gap-3 p-3 rounded-lg border sm:flex-row sm:justify-between sm:items-center ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C]" : "bg-gray-50"}`}
+                                  className={`flex flex-col gap-3 p-3 rounded-lg border sm:flex-row sm:justify-between sm:items-center ${mgmtRowCl}`}
                               >
-                                {/* Информация о пользователе */}
                                 <div className="flex-1 min-w-0 max-w-full sm:max-w-[75%]">
-                                  <div className={`font-semibold truncate ${!isDesktop ? "text-white" : "text-gray-800"}`}>{user.full_name}</div>
+                                  <div className={`font-semibold truncate ${mgmtTextCl}`}>{user.full_name}</div>
                                   {user.phone && (
-                                    <div className={`text-sm truncate ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>{user.phone}</div>
+                                    <div className={`text-sm truncate ${mgmtMutedCl}`}>{user.phone}</div>
                                   )}
-                                  <div className={`text-xs truncate ${!isDesktop ? "text-[#8E8E93]" : "text-gray-400"}`}>
+                                  <div className={`text-xs truncate ${mgmtMutedCl}`}>
                                     {roleTranslations[user.role] || user.role} • {user.office?.name || "Офис не указан"}
                                   </div>
                                 </div>
 
-                                {/* Кнопки действий */}
                                 <div className={`flex gap-2 justify-end flex-shrink-0 ${!isDesktop ? "flex-row" : ""}`}>
                                   <Button
                                       size={isDesktop ? "icon" : "sm"}
                                       variant="outline"
                                       onClick={() => handleEditUser(user)}
-                                      className={!isDesktop ? "flex-1 border-[#3A3A3C] text-white hover:bg-white/10 sm:flex-none" : ""}
+                                      className={mgmtDark ? "bg-transparent flex-1 border-white/10 text-white hover:bg-white/10 sm:flex-none" : ""}
                                   >
                                     ✎ {!isDesktop && "Редактировать"}
                                   </Button>
@@ -3385,7 +3381,7 @@ export default function ManagerDashboard() {
                                         setUserToDelete(user);
                                         setShowDeleteUserModal(true);
                                       }}
-                                          className={`text-red-500 hover:text-red-400 ${!isDesktop ? "flex-1 hover:bg-red-500/10 sm:flex-none" : "hover:text-red-700"}`}
+                                          className={`text-red-500 hover:text-red-400 ${mgmtDark ? "flex-1 hover:bg-red-500/10 sm:flex-none" : "hover:text-red-700"}`}
                                       >
                                         <Trash2 className="w-4 h-4" />
                                         {!isDesktop && " Удалить"}
@@ -3396,9 +3392,8 @@ export default function ManagerDashboard() {
                         </div>
                     )}
 
-                    {/* Пагинация */}
                     <div className={`flex flex-col gap-3 mt-4 ${isDesktop ? "sm:flex-row sm:justify-between sm:items-center" : ""}`}>
-                      <div className={`text-sm order-2 sm:order-1 ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>
+                      <div className={`text-sm order-2 sm:order-1 ${mgmtMutedCl}`}>
                         Показано {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}-
                         {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} из {pagination.totalItems}
                       </div>
@@ -3407,7 +3402,7 @@ export default function ManagerDashboard() {
                             variant="outline"
                             disabled={pagination.currentPage === 1}
                             onClick={() => handlePageChange(pagination.currentPage - 1)}
-                            className={`flex-1 ${isDesktop ? "sm:flex-none" : ""} ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                            className={`bg-transparent flex-1 ${isDesktop ? "sm:flex-none" : ""} ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
                         >
                           Назад
                         </Button>
@@ -3415,7 +3410,7 @@ export default function ManagerDashboard() {
                             variant="outline"
                             disabled={pagination.currentPage * pagination.itemsPerPage >= pagination.totalItems}
                             onClick={() => handlePageChange(pagination.currentPage + 1)}
-                            className={`flex-1 ${isDesktop ? "sm:flex-none" : ""} ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                            className={`bg-transparent flex-1 ${isDesktop ? "sm:flex-none" : ""} ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
                         >
                           Вперед
                         </Button>
@@ -3426,13 +3421,22 @@ export default function ManagerDashboard() {
               </Card>
               )}
 
+              {/* Регистрации — только десктоп в разделе Управление */}
+              {isDesktop && managementDesktopTab === "registration-requests" && (
+                <div className="pt-2 mb-20">
+                  <RegistrationRequestsManager variant="dark" />
+                </div>
+              )}
+
             </div>
+            );
+            })()}
           </TabsContent>
 
           {isDesktop && (
           <TabsContent value="logs" className="pt-2 sm:pt-0">
             <div className="w-full pb-20">
-            <LogsViewer userRole="manager" isDesktop={isDesktop} />
+            <LogsViewer userRole="manager" isDesktop={isDesktop} dark />
             </div>
           </TabsContent>
           )}
