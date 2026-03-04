@@ -4,7 +4,7 @@ import React, {useCallback, useEffect, useRef, useState, useMemo} from "react"
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Badge} from "@/components/ui/badge"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Input} from "@/components/ui/input"
 import {Textarea} from "@/components/ui/textarea"
@@ -41,7 +41,7 @@ import {
 } from "lucide-react"
 import axios from "axios";
 import Header from "@/app/header/Header";
-import api, { createServiceCategory, deleteServiceCategory, getExecutorsByCategory, type Office as ApiOffice } from "@/lib/api";
+import api, { createServiceCategory, deleteServiceCategory, getExecutorsByCategory, getOfficeUsers, changeUserPassword, changeCategoryHead, type Office as ApiOffice } from "@/lib/api";
 import {CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip as TooltipForTabs} from "recharts";
 import {format, isAfter, subDays, subMonths, subYears} from "date-fns";
 import {useNotificationStore} from "@/stores/notificationStore";
@@ -90,6 +90,8 @@ import Executors from "@/components/Executors";
 import PhotoModal from "@/components/photo/PhotoModal";
 import {RatingModal} from "@/components/RatingModal";
 import RegistrationRequestsManager from "@/components/RegistrationRequestsManager";
+import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeManagement";
+import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { getPreviewUrl } from "@/lib/imageOptimization";
 
 const roleTranslations: Record<string, string> = {
@@ -159,6 +161,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const categories = useCategoryStore(state => state.categories)
   const fetchCategories = useCategoryStore(state => state.fetchCategories)
   const clearCategories = useCategoryStore(state => state.clearCategories)
+  const createSubcategory = useCategoryStore(state => state.createSubcategory)
+  const deleteSubcategory = useCategoryStore(state => state.deleteSubcategory)
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const approveModal = useAcceptRequestModal()
@@ -185,6 +189,13 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const [isDeletingCategory, setIsDeletingCategory] = useState(false)
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [categoriesWithExecutors, setCategoriesWithExecutors] = useState<Set<number>>(new Set())
+  // Состояния для управления подкатегориями (только для админа на десктопе)
+  const [selectedCategoryForSubcategory, setSelectedCategoryForSubcategory] = useState<number | null>(null)
+  const [newSubcategoryName, setNewSubcategoryName] = useState("")
+  const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false)
+  const [subcategoryToDelete, setSubcategoryToDelete] = useState<number | null>(null)
+  const [isDeletingSubcategory, setIsDeletingSubcategory] = useState(false)
+  const [subcategoryError, setSubcategoryError] = useState<string | null>(null)
   const [showCreateRequestModal, setShowCreateRequestModal] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(true)
   const { notifications, setNotifications, setNotificationLoading, clearNotifications } = useNotificationStore()
@@ -331,7 +342,25 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [isClosingProgrammatically, setIsClosingProgrammatically] = useState(false);
   const [managementSubSection, setManagementSubSection] = useState<"offices" | "categories" | "users" | null>(null);
-  const [managementDesktopTab, setManagementDesktopTab] = useState<"offices" | "categories" | "users" | "registration-requests">("offices");
+  const [managementDesktopTab, setManagementDesktopTab] = useState<"offices" | "categories" | "subcategories" | "users" | "registration-requests" | "smart-home">("offices");
+
+  // Офисные пользователи для смены пароля/роли (десктоп)
+  const [officeUsers, setOfficeUsers] = useState<{ id: number; full_name: string; phone?: string; role: string }[]>([]);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [selectedUserForRole, setSelectedUserForRole] = useState<number | null>(null);
+  const [newRole, setNewRole] = useState("");
+  const [isChangingRole, setIsChangingRole] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [selectedCategoryForHead, setSelectedCategoryForHead] = useState<number | null>(null);
+  const [selectedExecutorForHead, setSelectedExecutorForHead] = useState<number | null>(null);
+  const [availableExecutorsForHead, setAvailableExecutorsForHead] = useState<{ id: number; user?: { full_name: string }; specialty: string }[]>([]);
+  const [isLoadingExecutorsForHead, setIsLoadingExecutorsForHead] = useState(false);
+  const [isChangingHead, setIsChangingHead] = useState(false);
+  const [changeHeadError, setChangeHeadError] = useState<string | null>(null);
 
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
@@ -1872,6 +1901,143 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   }
 
+  const handleCreateSubcategory = async () => {
+    if (!selectedCategoryForSubcategory || !newSubcategoryName.trim() || !token) return;
+    setIsCreatingSubcategory(true);
+    setSubcategoryError(null);
+    try {
+      await createSubcategory(token, {
+        name: newSubcategoryName.trim(),
+        category_id: selectedCategoryForSubcategory,
+      });
+      toast({
+        title: "Подкатегория создана",
+        description: `Подкатегория "${newSubcategoryName}" успешно создана`,
+      });
+      setSelectedCategoryForSubcategory(null);
+      setNewSubcategoryName("");
+      fetchCategories(token);
+    } catch (error: any) {
+      setSubcategoryError(error?.message || "Ошибка при создании подкатегории");
+    } finally {
+      setIsCreatingSubcategory(false);
+    }
+  };
+
+  const handleDeleteSubcategory = async () => {
+    if (!subcategoryToDelete || !token) return;
+    setIsDeletingSubcategory(true);
+    setSubcategoryError(null);
+    try {
+      await deleteSubcategory(token, subcategoryToDelete);
+      toast({
+        title: "Подкатегория удалена",
+        description: "Подкатегория успешно удалена",
+      });
+      setSubcategoryToDelete(null);
+      fetchCategories(token);
+    } catch (error: any) {
+      setSubcategoryError(error?.message || "Ошибка при удалении подкатегории");
+    } finally {
+      setIsDeletingSubcategory(false);
+    }
+  };
+
+  // Загрузка пользователей офиса для смены пароля/роли на десктопе
+  useEffect(() => {
+    if (!isDesktop || effectiveTab !== "management" || !user?.office_id) return;
+    getOfficeUsers(user.office_id)
+      .then((res) => setOfficeUsers(res.data || []))
+      .catch(() => setOfficeUsers([]));
+  }, [isDesktop, effectiveTab, user?.office_id]);
+
+  // Загрузка исполнителей категории для смены руководителя
+  useEffect(() => {
+    if (!selectedCategoryForHead) {
+      setAvailableExecutorsForHead([]);
+      setSelectedExecutorForHead(null);
+      return;
+    }
+    setIsLoadingExecutorsForHead(true);
+    setChangeHeadError(null);
+    getExecutorsByCategory(selectedCategoryForHead)
+      .then((res) => {
+        const list = (res.data || []).filter((e: any) => e.user?.role === "executor");
+        setAvailableExecutorsForHead(list);
+      })
+      .catch(() => {
+        setChangeHeadError("Не удалось загрузить исполнителей");
+        setAvailableExecutorsForHead([]);
+      })
+      .finally(() => setIsLoadingExecutorsForHead(false));
+  }, [selectedCategoryForHead]);
+
+  const handleChangePasswordForUser = async () => {
+    if (!selectedUserForPassword || !newPassword.trim()) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Пароли не совпадают");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Пароль должен содержать минимум 6 символов");
+      return;
+    }
+    setPasswordError(null);
+    setIsChangingPassword(true);
+    try {
+      await changeUserPassword(selectedUserForPassword, newPassword);
+      toast({ title: "Пароль изменён", description: "Пароль пользователя успешно изменён" });
+      setSelectedUserForPassword(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordError(err?.response?.data?.message || "Ошибка при смене пароля");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleChangeRoleForUser = async () => {
+    if (!selectedUserForRole || !newRole) return;
+    setRoleError(null);
+    setIsChangingRole(true);
+    try {
+      await api.put(`/users/${selectedUserForRole}`, { role: newRole });
+      toast({ title: "Роль изменена", description: "Роль пользователя успешно изменена" });
+      setSelectedUserForRole(null);
+      setNewRole("");
+      setOfficeUsers((prev) =>
+        prev.map((u) => (u.id === selectedUserForRole ? { ...u, role: newRole } : u))
+      );
+    } catch (err: any) {
+      setRoleError(err?.response?.data?.error || "Ошибка при смене роли");
+    } finally {
+      setIsChangingRole(false);
+    }
+  };
+
+  const handleChangeCategoryHead = async () => {
+    if (!selectedCategoryForHead || !selectedExecutorForHead) return;
+    setIsChangingHead(true);
+    setChangeHeadError(null);
+    try {
+      const response = await changeCategoryHead(selectedCategoryForHead, selectedExecutorForHead);
+      let message = `Новый руководитель: ${response.data?.newHead?.name || "назначен"}`;
+      if (response.data?.processedTasks?.message) {
+        message += `\n\n${response.data.processedTasks.message}`;
+      }
+      toast({ title: "Руководитель изменён", description: message });
+      setSelectedCategoryForHead(null);
+      setSelectedExecutorForHead(null);
+      setAvailableExecutorsForHead([]);
+      if (token) fetchCategories(token);
+    } catch (err: any) {
+      setChangeHeadError(err?.response?.data?.message || "Не удалось сменить руководителя");
+    } finally {
+      setIsChangingHead(false);
+    }
+  };
+
   // Функция для обновления заявки
   const handleUpdateRequest = async () => {
     if (!selectedRequest) return;
@@ -2280,7 +2446,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     <PullToRefresh onRefresh={handleRefresh}>
     <div className={`min-h-screen bg-[#1A1A1A] ${!isDesktop ? "pb-[calc(110px+env(safe-area-inset-bottom,0px))]" : ""}`}>
       {/* Header */}
-      <main className={`px-4 py-4 sm:px-6 sm:py-8 max-w-7xl mx-auto ${!isDesktop ? "manager-mobile-content" : ""}`}>
+      <main className={`px-4 py-4 sm:px-5 sm:py-6 md:px-6 md:py-8 lg:px-8 max-w-7xl mx-auto min-w-0 ${!isDesktop ? "manager-mobile-content" : ""}`}>
         {/* Назад — только на мобилке при просмотре раздела (как у admin-worker) */}
         {!isDesktop && (
           <Link
@@ -2293,10 +2459,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         )}
         {/* Фильтры: на десктопе всегда; на мобилке только в разделе «Обзор» (скрыты на странице «Управление») */}
         {(isDesktop || tab === "overview") && !standaloneManagement && (
-        <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-3">
-          <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:flex-wrap sm:justify-between sm:items-center sm:space-y-0 sm:gap-3 mb-3">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:flex-wrap sm:space-y-0 sm:space-x-0 sm:gap-3 sm:items-center">
             <Select value={office} onValueChange={setOffice}>
-              <SelectTrigger className={`w-full sm:w-48 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full sm:w-44 md:w-48 min-w-0 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                 <SelectValue placeholder="Офис" />
               </SelectTrigger>
               <SelectContent className={isDesktop ? "bg-[#2C2C2E] border-white/10" : ""}>
@@ -2310,7 +2476,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
             </Select>
 
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className={`w-full sm:w-48 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full sm:w-44 md:w-48 min-w-0 ${isDesktop ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : !isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
                 <SelectValue placeholder="Период" />
               </SelectTrigger>
               <SelectContent className={isDesktop ? "bg-[#2C2C2E] border-white/10" : ""}>
@@ -2321,26 +2487,26 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
             </Select>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
             {isDesktop && (
                 <>
             <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center min-w-[150px] h-10 px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white"
+                className="flex items-center justify-center min-w-0 sm:min-w-[100px] md:min-w-[150px] h-10 px-3 sm:px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white text-xs sm:text-sm"
                 onClick={() => handleExport("xlsx")}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 mr-2 shrink-0" />
               Excel
             </Button>
 
             <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center min-w-[150px] h-10 px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white"
+                className="flex items-center justify-center min-w-0 sm:min-w-[100px] md:min-w-[150px] h-10 px-3 sm:px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white text-xs sm:text-sm"
                 onClick={() => handleExport("pbix")}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 mr-2 shrink-0" />
               Power BI
             </Button>
                 </>
@@ -2348,9 +2514,9 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
             {isDesktop ? (
                 <Button
                     onClick={() => router.push('/create-request')}
-                    className="flex items-center justify-center bg-[#E85D2B] hover:bg-[#E04A0A] text-white min-w-[150px] h-10 px-4"
+                    className="flex items-center justify-center bg-[#E85D2B] hover:bg-[#E04A0A] text-white min-w-0 sm:min-w-[120px] md:min-w-[150px] h-10 px-3 sm:px-4 text-xs sm:text-sm"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 mr-2 shrink-0" />
                   Создать заявку
                 </Button>
             ): null}
@@ -2360,7 +2526,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
         {/* KPI Cards - unified dashboard component (скрыты на отдельной странице «Управление») */}
         {isDesktop && !standaloneManagement ? (
-            <div className="mb-6">
+            <div className="mb-4 md:mb-6">
               <DashboardKpiCards
                 counts={{
                   new: kpi.emergency,
@@ -2391,8 +2557,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
             {/* На мобилке табы не показываем — только контент раздела, переключение через «Назад» → кабинет */}
             {isDesktop && !standaloneManagement && (
             <div className="w-full mb-2 sm:hidden">
-              <div className="overflow-x-auto">
-                <TabsList className="flex w-max min-w-full gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1">
+              <TabsListScrollArea>
+                <TabsList className="flex flex-nowrap flex-shrink-0 gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1 min-w-0">
                   <TabsTrigger value="meeting-rooms" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 flex items-center gap-1 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
                     <Building2 className="h-3.5 w-3.5" />
                     Переговорные
@@ -2422,36 +2588,36 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     Регистрации
                   </TabsTrigger>
                 </TabsList>
-              </div>
+              </TabsListScrollArea>
             </div>
             )}
 
             {/* на больших экранах (скрыто на странице «Управление»). На десктопе таб «Переговорные» не показываем */}
             {!standaloneManagement && (
-            <div className="hidden sm:block">
-              <div className="overflow-x-auto">
-                <TabsList className="bg-[#2C2C2E] border border-white/10 p-1">
-                  <TabsTrigger value="requests" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+            <div className="hidden sm:block w-full max-w-full">
+              <TabsListScrollArea>
+                <TabsList className="flex flex-nowrap flex-shrink-0 gap-1 bg-[#2C2C2E] border border-white/10 p-1 min-w-0">
+                  <TabsTrigger value="requests" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Заявки
                   </TabsTrigger>
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+                  <TabsTrigger value="overview" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Обзор
                   </TabsTrigger>
-                  <TabsTrigger value="analytics" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+                  <TabsTrigger value="analytics" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Аналитика
                   </TabsTrigger>
                   {isDesktop && (
-                  <TabsTrigger value="workload" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+                  <TabsTrigger value="workload" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Загрузка
                   </TabsTrigger>
                   )}
                   {isDesktop && (
-                  <TabsTrigger value="logs" className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
+                  <TabsTrigger value="logs" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Логи
                   </TabsTrigger>
                   )}
                 </TabsList>
-              </div>
+              </TabsListScrollArea>
             </div>
             )}
           </div>
@@ -2716,35 +2882,53 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 </Button>
               )}
 
-              {/* Десктоп: табы переключения подразделов управления */}
+              {/* Десктоп: табы переключения подразделов управления (таб подкатегорий только у админа) */}
               {isDesktop && (
-                <Tabs value={managementDesktopTab} onValueChange={(v) => setManagementDesktopTab(v as "offices" | "categories" | "users" | "registration-requests")} className="w-full">
-                  <TabsList className="w-full justify-start rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 gap-1 h-auto min-h-0 mb-4">
+                <Tabs value={managementDesktopTab} onValueChange={(v) => setManagementDesktopTab(v as "offices" | "categories" | "subcategories" | "users" | "registration-requests" | "smart-home")} className="w-full">
+                  <TabsListScrollArea className="mb-4">
+                    <TabsList className="flex flex-nowrap flex-shrink-0 justify-start gap-1 rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 h-auto min-h-0 min-w-0">
                     <TabsTrigger
                       value="offices"
-                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
                     >
                       Управление офисами
                     </TabsTrigger>
                     <TabsTrigger
                       value="categories"
-                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
                     >
                       Управление категориями услуг
                     </TabsTrigger>
+                    {["admin-worker", "manager"].includes(user?.role) && (
+                      <TabsTrigger
+                        value="subcategories"
+                        className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      >
+                        Управление подкатегориями
+                      </TabsTrigger>
+                    )}
                     <TabsTrigger
                       value="users"
-                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
                     >
                       Управление пользователями
                     </TabsTrigger>
                     <TabsTrigger
                       value="registration-requests"
-                      className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
                     >
                       Регистрации
                     </TabsTrigger>
+                    {user?.role === "admin-worker" && (
+                      <TabsTrigger
+                        value="smart-home"
+                        className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
+                      >
+                        Умный дом
+                      </TabsTrigger>
+                    )}
                   </TabsList>
+                  </TabsListScrollArea>
                 </Tabs>
               )}
 
@@ -3142,15 +3326,227 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               </Card>
               )}
 
+              {/* Управление подкатегориями — только для админа на десктопе */}
+              {isDesktop && ["admin-worker", "manager"].includes(user?.role) && managementDesktopTab === "subcategories" && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
+                <CardHeader>
+                  <CardTitle className={mgmtTitleCl}>Управление подкатегориями</CardTitle>
+                  <CardDescription className={mgmtDescCl}>Создание и удаление подкатегорий услуг</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className={`text-sm font-medium ${mgmtLabelCl || ""}`}>Создать новую подкатегорию</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Select
+                        value={selectedCategoryForSubcategory?.toString() || ""}
+                        onValueChange={(v) => setSelectedCategoryForSubcategory(v ? parseInt(v) : null)}
+                      >
+                        <SelectTrigger className={mgmtInputCl}>
+                          <SelectValue placeholder="Выберите категорию" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id.toString()}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="text"
+                        value={newSubcategoryName}
+                        onChange={(e) => setNewSubcategoryName(e.target.value)}
+                        placeholder="Название подкатегории"
+                        className={mgmtInputCl}
+                        disabled={isCreatingSubcategory}
+                      />
+                    </div>
+                    <Button
+                      onClick={handleCreateSubcategory}
+                      disabled={!selectedCategoryForSubcategory || !newSubcategoryName.trim() || isCreatingSubcategory}
+                      className={mgmtDark ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "bg-green-600 hover:bg-green-700 text-white"}
+                    >
+                      {isCreatingSubcategory ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Создание...</span>
+                        </div>
+                      ) : (
+                        "Создать подкатегорию"
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className={`text-sm font-medium ${mgmtLabelCl || ""}`}>Удалить подкатегорию</Label>
+                    <div className="flex flex-col gap-2 sm:flex-row min-w-0">
+                      <Select
+                        value={subcategoryToDelete?.toString() || ""}
+                        onValueChange={(v) => setSubcategoryToDelete(v ? parseInt(v) : null)}
+                      >
+                        <SelectTrigger className={`flex-1 min-w-0 ${mgmtInputCl}`}>
+                          <SelectValue placeholder="Выберите подкатегорию для удаления" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.flatMap((cat) =>
+                            (cat.subcategories || []).map((sub) => (
+                              <SelectItem key={sub.id} value={sub.id.toString()}>
+                                {cat.name} → {sub.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={handleDeleteSubcategory}
+                        disabled={!subcategoryToDelete || isDeletingSubcategory}
+                        variant="destructive"
+                        className="flex-shrink-0"
+                      >
+                        {isDeletingSubcategory ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Удаление...</span>
+                          </div>
+                        ) : (
+                          "Удалить"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {subcategoryError && (
+                    <div className={`p-3 rounded-md ${mgmtDark ? "bg-red-500/20 border border-red-500/50" : "bg-red-50 border border-red-200"}`}>
+                      <p className={`text-sm ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{subcategoryError}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              )}
+
+              {/* Умный дом — только для админа на десктопе (тёмная тема) */}
+              {isDesktop && user?.role === "admin-worker" && managementDesktopTab === "smart-home" && (
+              <div className="space-y-6">
+                <SmartHomeManagement dark />
+                <YandexSmartHomeAdmin dark />
+              </div>
+              )}
+
               {/* Управление пользователями */}
               {((isDesktop && managementDesktopTab === "users") || (!isDesktop && managementSubSection === "users")) && (
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление пользователями</CardTitle>
-                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей</CardDescription>
+                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей, смена пароля, роли и руководителя категории</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4 mb-8">
+                  {/* Смена пароля, смена роли, руководитель категории */}
+                  {isDesktop && (
+                    <div className="space-y-6 pb-6 border-b border-white/10">
+                      <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
+                        <h4 className={`text-sm font-semibold mb-3 ${mgmtTitleCl}`}>Смена пароля</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                          <div className="space-y-1">
+                            <Label className={mgmtLabelCl}>Пользователь</Label>
+                            <Select value={selectedUserForPassword?.toString() || ""} onValueChange={(v) => setSelectedUserForPassword(v ? parseInt(v) : null)}>
+                              <SelectTrigger className={mgmtInputCl}><SelectValue placeholder="Выберите" /></SelectTrigger>
+                              <SelectContent>
+                                {officeUsers.map((u) => (
+                                  <SelectItem key={u.id} value={u.id.toString()}>{u.full_name} {u.phone && `(${u.phone})`}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className={mgmtLabelCl}>Новый пароль</Label>
+                            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Новый пароль" className={mgmtInputCl} disabled={isChangingPassword} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className={mgmtLabelCl}>Подтверждение</Label>
+                            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Повторите пароль" className={mgmtInputCl} disabled={isChangingPassword} />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button onClick={handleChangePasswordForUser} disabled={!selectedUserForPassword || !newPassword || !confirmPassword || isChangingPassword} size="sm" className={mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}>{isChangingPassword ? "..." : "Изменить пароль"}</Button>
+                            <Button variant="outline" size="sm" onClick={() => { setNewPassword(""); setConfirmPassword(""); setSelectedUserForPassword(null); setPasswordError(null); }} disabled={isChangingPassword}>Очистить</Button>
+                          </div>
+                        </div>
+                        {passwordError && <p className={`text-xs mt-2 ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{passwordError}</p>}
+                      </div>
+
+                      <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
+                        <h4 className={`text-sm font-semibold mb-3 ${mgmtTitleCl}`}>Смена роли</h4>
+                        <div className="flex flex-wrap gap-3 items-end">
+                          <div className="space-y-1 min-w-[180px]">
+                            <Label className={mgmtLabelCl}>Пользователь</Label>
+                            <Select value={selectedUserForRole?.toString() || ""} onValueChange={(v) => setSelectedUserForRole(v ? parseInt(v) : null)}>
+                              <SelectTrigger className={mgmtInputCl}><SelectValue placeholder="Выберите" /></SelectTrigger>
+                              <SelectContent>
+                                {officeUsers.map((u) => (
+                                  <SelectItem key={u.id} value={u.id.toString()}>{u.full_name} — {roleTranslations[u.role] || u.role}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1 min-w-[160px]">
+                            <Label className={mgmtLabelCl}>Новая роль</Label>
+                            <Select value={newRole} onValueChange={setNewRole}>
+                              <SelectTrigger className={mgmtInputCl}><SelectValue placeholder="Роль" /></SelectTrigger>
+                              <SelectContent>
+                                {["client", "admin-worker", "department-head", "executor", "manager"].map((r) => (
+                                  <SelectItem key={r} value={r}>{roleTranslations[r] || r}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button onClick={handleChangeRoleForUser} disabled={!selectedUserForRole || !newRole || isChangingRole} size="sm" className={mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}>{isChangingRole ? "..." : "Изменить роль"}</Button>
+                        </div>
+                        {roleError && <p className={`text-xs mt-2 ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{roleError}</p>}
+                      </div>
+
+                      <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
+                        <h4 className={`text-sm font-semibold mb-3 ${mgmtTitleCl}`}>Руководитель категории</h4>
+                        <div className="flex flex-wrap gap-3 items-end">
+                          <div className="space-y-1 min-w-[180px]">
+                            <Label className={mgmtLabelCl}>Категория</Label>
+                            <Select value={selectedCategoryForHead?.toString() || ""} onValueChange={(v) => { const id = parseInt(v); setSelectedCategoryForHead(id || null); setSelectedExecutorForHead(null); }} disabled={isLoadingExecutorsForHead || isChangingHead}>
+                              <SelectTrigger className={mgmtInputCl}><SelectValue placeholder="Выберите категорию" /></SelectTrigger>
+                              <SelectContent>
+                                {categories.map((c) => (
+                                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {selectedCategoryForHead && (
+                            <div className="space-y-1 min-w-[200px]">
+                              <Label className={mgmtLabelCl}>Новый руководитель</Label>
+                              <Select value={selectedExecutorForHead?.toString() || ""} onValueChange={(v) => setSelectedExecutorForHead(v ? parseInt(v) : null)} disabled={isLoadingExecutorsForHead}>
+                                <SelectTrigger className={mgmtInputCl}>
+                                  <SelectValue placeholder={isLoadingExecutorsForHead ? "Загрузка..." : "Исполнитель"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableExecutorsForHead.length === 0 && !isLoadingExecutorsForHead ? (
+                                    <SelectItem value="none" disabled>Нет исполнителей</SelectItem>
+                                  ) : (
+                                    availableExecutorsForHead.map((e) => (
+                                      <SelectItem key={e.id} value={e.id.toString()}>{e.user?.full_name} — {e.specialty}</SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          <Button onClick={handleChangeCategoryHead} disabled={!selectedCategoryForHead || !selectedExecutorForHead || isChangingHead} size="sm" className={mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}>{isChangingHead ? "..." : "Сменить руководителя"}</Button>
+                          {(selectedCategoryForHead || selectedExecutorForHead) && (
+                            <Button variant="outline" size="sm" onClick={() => { setSelectedCategoryForHead(null); setSelectedExecutorForHead(null); setAvailableExecutorsForHead([]); }} disabled={isChangingHead}>Сбросить</Button>
+                          )}
+                        </div>
+                        {changeHeadError && <p className={`text-xs mt-2 ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{changeHeadError}</p>}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Поиск и фильтры пользователей */}
                   <div className="space-y-3">
                     {/* Поиск по имени */}
@@ -3334,7 +3730,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                               });
                               setFormErrors(null);
                             }}
-                            className={`w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""} ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
+                            className={`bg-transparent w-full ${isDesktop ? "sm:w-auto flex-shrink-0" : ""} ${mgmtDark ? "border-white/10 text-white hover:bg-white/10" : ""}`}
                         >
                           Отмена
                         </Button>

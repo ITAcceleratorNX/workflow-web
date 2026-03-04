@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Clock, Star, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
@@ -229,9 +229,9 @@ export default function ManagerAnalytics() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className={`w-full mb-3 ${isDesktop ? "overflow-visible" : ""}`}>
-          <div className={isDesktop ? "overflow-visible" : "overflow-x-auto"}>
-            <TabsList className={`${isDesktop ? "flex w-full rounded-xl bg-[#2C2C2E] border border-white/10 p-1.5 gap-1 [&>button]:flex-1 [&>button]:min-w-0" : "flex w-max min-w-full gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1"}`}>
+        <div className="w-full mb-3 min-w-0">
+          <TabsListScrollArea>
+            <TabsList className={`flex flex-nowrap flex-shrink-0 gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1 min-w-0 ${isDesktop ? "bg-[#2C2C2E] border-white/10 p-1.5 [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap" : ""}`}>
               <TabsTrigger value="sla" className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 truncate ${isDesktop ? "data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
                 SLA
               </TabsTrigger>
@@ -242,7 +242,7 @@ export default function ManagerAnalytics() {
                 {isDesktop ? "Детальная статистика" : "Детальная"}
               </TabsTrigger>
             </TabsList>
-          </div>
+          </TabsListScrollArea>
         </div>
 
         <TabsContent value="sla" className="space-y-6">

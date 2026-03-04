@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Save, Loader2, Mail, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -339,8 +339,9 @@ export default function ProfilePage() {
                 </div>
 
                 <Tabs defaultValue="profile" className="space-y-6">
-                    <TabsList className={`${tabListClass} ${gridCols}`}>
-                        <TabsTrigger value="profile" className={tabTriggerClass}>
+                    <TabsListScrollArea>
+                        <TabsList className={`${tabListClass} ${gridCols} w-max min-w-full [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap`}>
+                            <TabsTrigger value="profile" className={tabTriggerClass}>
                             Профиль
                         </TabsTrigger>
                         <TabsTrigger value="password" className={tabTriggerClass}>
@@ -354,7 +355,8 @@ export default function ProfilePage() {
                                 Логи
                             </TabsTrigger>
                         )}
-                    </TabsList>
+                        </TabsList>
+                    </TabsListScrollArea>
 
                     {/* Вкладка: Профиль */}
                     <TabsContent value="profile" className="space-y-6 mt-0">

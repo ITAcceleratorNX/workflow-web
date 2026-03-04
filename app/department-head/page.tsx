@@ -7,7 +7,7 @@ import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Badge} from "@/components/ui/badge"
 import { LeaderIndicator } from "@/components/ui/leader-indicator";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Input} from "@/components/ui/input"
 import {
   AlertTriangle,
@@ -1737,8 +1737,8 @@ export default function DepartmentHeadDashboard() {
                 <div className="mb-3">
                   {/* на телефоне только табы */}
                   <div className="w-full mb-2 sm:hidden">
-                    <div className="overflow-x-auto">
-                      <TabsList className="flex w-max min-w-full bg-[#3A3A3C] p-1 rounded-xl gap-1">
+                    <TabsListScrollArea>
+                      <TabsList className="flex flex-nowrap flex-shrink-0 min-w-0 bg-[#3A3A3C] p-1 rounded-xl gap-1">
                         <TabsTrigger value="meeting-rooms" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5" />
@@ -1767,35 +1767,35 @@ export default function DepartmentHeadDashboard() {
                           <span className="hidden sm:inline">Управление</span>
                         </TabsTrigger>
                       </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                   </div>
 
                   {/* на больших экранах */}
-                  <div className="hidden sm:flex justify-between items-center gap-3">
-                    <div className="flex-1 overflow-x-auto">
-                      <TabsList className="flex min-w-max gap-2 bg-[#3A3A3C] p-1 rounded-xl">
-                        <TabsTrigger value="meeting-rooms" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                  <div className="hidden sm:flex justify-between items-center gap-3 min-w-0">
+                    <TabsListScrollArea className="flex-1 min-w-0">
+                      <TabsList className="flex flex-nowrap flex-shrink-0 gap-2 min-w-0 bg-[#3A3A3C] p-1 rounded-xl">
+                        <TabsTrigger value="meeting-rooms" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <Building2 className="h-4 w-4" />
                           Переговорные
                         </TabsTrigger>
-                      <TabsTrigger value="incoming" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="incoming" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Входящие заявки
                       </TabsTrigger>
-                      <TabsTrigger value="my-requests" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="my-requests" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Мои заявки
                       </TabsTrigger>
-                      <TabsTrigger value="recurring-tasks" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="recurring-tasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Повторяющиеся
                       </TabsTrigger>
-                      <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="statistics" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                         Аналитика
                       </TabsTrigger>
-                        <TabsTrigger value="management" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="management" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <LayoutGrid className="h-4 w-4" />
                           Управление
                       </TabsTrigger>
                     </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                     <Button
                         onClick={() => router.push('/create-request')}
                         className="bg-[#E25B21] hover:bg-[#D94F15] text-white"

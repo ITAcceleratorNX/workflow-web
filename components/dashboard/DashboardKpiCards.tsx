@@ -85,21 +85,21 @@ export function DashboardKpiCards({
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 min-w-0">
         {kpiCards.map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.label} href={requestsHref}>
+            <Link key={item.label} href={requestsHref} className="min-w-0">
               <Card className={`bg-[#2C2C2E] border ${item.borderColor} hover:border-[#E85D2B]/50 transition-colors cursor-pointer`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${item.color}`}>
-                      <Icon className="w-5 h-5" />
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                    <div className={`p-1.5 md:p-2 rounded-lg shrink-0 ${item.color}`}>
+                      <Icon className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
-                    <div>
-                      <p className="text-xs text-white/60">{item.label}</p>
-                      <p className="text-xl font-bold text-white">{item.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] md:text-xs text-white/60 truncate">{item.label}</p>
+                      <p className="text-lg md:text-xl font-bold text-white">{item.value}</p>
                     </div>
                   </div>
                 </CardContent>

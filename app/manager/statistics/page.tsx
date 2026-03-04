@@ -3,7 +3,7 @@
 import "@/lib/android-bridge"
 import React, {useEffect, useState, useCallback, useMemo} from "react"
 import {Card, CardContent, CardHeader, CardTitle, CardDescription} from "@/components/ui/card"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Button} from "@/components/ui/button"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
@@ -776,11 +776,13 @@ export default function ManagerStatisticsPage() {
             );
             return isDesktop ? (
               <Tabs defaultValue="stats" className="w-full px-4 pt-4">
-                <TabsList className="w-full justify-start rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 gap-1 h-auto min-h-0 mb-4">
-                  <TabsTrigger value="stats" className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Статистика</TabsTrigger>
-                  <TabsTrigger value="analytics" className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Аналитика</TabsTrigger>
-                  <TabsTrigger value="workload" className="rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Загрузка</TabsTrigger>
-                </TabsList>
+                <TabsListScrollArea className="mb-4">
+                  <TabsList className="flex flex-nowrap flex-shrink-0 justify-start gap-1 rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 h-auto min-h-0 min-w-0">
+                    <TabsTrigger value="stats" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Статистика</TabsTrigger>
+                    <TabsTrigger value="analytics" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Аналитика</TabsTrigger>
+                    <TabsTrigger value="workload" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Загрузка</TabsTrigger>
+                  </TabsList>
+                </TabsListScrollArea>
                 <TabsContent value="stats" className="mt-0">
                   <div className="w-full">{statsContent}</div>
                 </TabsContent>

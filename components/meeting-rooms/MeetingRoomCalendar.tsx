@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getMeetingRoomDailyCalendar,
@@ -117,10 +117,12 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
       </CardHeader>
       <CardContent>
         <Tabs value={mode} onValueChange={(value) => setMode(value as CalendarMode)}>
-          <TabsList className={`mb-4 ${isDark ? "bg-[#3D3D3D] text-gray-400" : ""}`}>
-            <TabsTrigger value="day" className={isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}>День</TabsTrigger>
-            <TabsTrigger value="week" className={isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}>Неделя</TabsTrigger>
-          </TabsList>
+          <TabsListScrollArea className="mb-4">
+            <TabsList className={`flex flex-nowrap flex-shrink-0 gap-1 min-w-0 ${isDark ? "bg-[#3D3D3D] text-gray-400" : ""}`}>
+              <TabsTrigger value="day" className={`flex-shrink-0 whitespace-nowrap ${isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}`}>День</TabsTrigger>
+              <TabsTrigger value="week" className={`flex-shrink-0 whitespace-nowrap ${isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}`}>Неделя</TabsTrigger>
+            </TabsList>
+          </TabsListScrollArea>
 
           <TabsContent value="day" className="space-y-4">
             <div className="flex items-center justify-between mb-4">

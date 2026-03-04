@@ -16,6 +16,7 @@ export default function ManagerLayout({
   const searchParams = useSearchParams();
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isLargeDesktop = useMediaQuery("(min-width: 1200px)");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function ManagerLayout({
       return;
     }
 
-    // На мобилке главная «Мой кабинет» — страница с карточками. Редирект /manager → /manager/cabinet только если в URL нет tab/requestId.
+    // На мобилке и на малом десктопе (до 1200px) «Мой кабинет» — страница с карточками. Редирект /manager → /manager/cabinet если в URL нет tab/requestId.
     const t = setTimeout(() => {
       if (typeof window === "undefined") return;
       const currentSearch = new URLSearchParams(window.location.search);
@@ -39,12 +40,14 @@ export default function ManagerLayout({
       const hasRequestId = currentSearch.get("requestId");
       const hasParams = !!hasTab || !!hasRequestId;
 
-      if (!isDesktop && pathname === "/manager" && !hasParams) {
-        router.replace("/manager/cabinet");
+      if (pathname === "/manager" && !hasParams) {
+        if (!isDesktop || !isLargeDesktop) {
+          router.replace("/manager/cabinet");
+        }
       }
     }, 0);
     return () => clearTimeout(t);
-  }, [hydrated, user, router, clearAuth, isDesktop, pathname]);
+  }, [hydrated, user, router, clearAuth, isDesktop, isLargeDesktop, pathname]);
 
   // Body class для тёмной темы Select/dropdown на мобилке
   useEffect(() => {

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -877,11 +877,13 @@ export function ActivityTracker() {
       </Card>
 
       <Tabs defaultValue="stats" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="stats" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Статистика</TabsTrigger>
-          <TabsTrigger value="intervals" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Интервалы</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Настройки</TabsTrigger>
-        </TabsList>
+        <TabsListScrollArea>
+          <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col h-auto [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
+            <TabsTrigger value="stats" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Статистика</TabsTrigger>
+            <TabsTrigger value="intervals" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Интервалы</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Настройки</TabsTrigger>
+          </TabsList>
+        </TabsListScrollArea>
 
         <TabsContent value="stats" className="space-y-4 mt-4">
           <Card>

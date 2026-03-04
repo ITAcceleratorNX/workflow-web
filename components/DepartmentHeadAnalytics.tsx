@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Star, AlertTriangle } from "lucide-react";
@@ -237,10 +237,10 @@ export default function DepartmentHeadAnalytics() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="w-full mb-3">
-          <div className="overflow-x-auto">
+        <div className="w-full mb-3 min-w-0">
+          <TabsListScrollArea>
             <TabsList
-              className="flex w-max min-w-full gap-1 p-1 rounded-xl"
+              className="flex flex-nowrap flex-shrink-0 gap-1 p-1 rounded-xl min-w-0 [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap"
               style={{ background: "rgba(255,255,255,0.12)" }}
             >
               <TabsTrigger
@@ -257,12 +257,12 @@ export default function DepartmentHeadAnalytics() {
               </TabsTrigger>
               <TabsTrigger
                 value="detailed"
-                className="rounded-lg text-sm whitespace-nowrap data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=inactive]:text-white/70"
+                className="rounded-lg text-sm data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=inactive]:text-white/70"
               >
                 Детальная статистика
               </TabsTrigger>
             </TabsList>
-          </div>
+          </TabsListScrollArea>
         </div>
 
         <TabsContent value="sla" className="space-y-6 mt-4">

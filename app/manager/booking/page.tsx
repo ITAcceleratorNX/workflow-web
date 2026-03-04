@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { MeetingRoomCalendar } from "@/components/meeting-rooms/MeetingRoomCalendar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, BarChart3, Calendar } from "lucide-react";
 
 export default function ManagerBookingPage() {
@@ -18,29 +18,31 @@ export default function ManagerBookingPage() {
         <h1 className="text-2xl font-bold text-white mb-6">Бронь переговорных</h1>
 
         <Tabs defaultValue="rooms" className="space-y-6">
-          <TabsList className="bg-[#2C2C2E] border border-white/10 p-1">
-            <TabsTrigger
+          <TabsListScrollArea>
+            <TabsList className="flex flex-nowrap flex-shrink-0 gap-1 min-w-0 bg-[#2C2C2E] border border-white/10 p-1">
+              <TabsTrigger
               value="rooms"
-              className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
+              className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
             >
               <Building2 className="w-4 h-4 mr-2" />
               Переговорные
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
+              className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Аналитика
             </TabsTrigger>
             <TabsTrigger
               value="heatmap"
-              className="data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
+              className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Пики занятости
             </TabsTrigger>
           </TabsList>
+          </TabsListScrollArea>
 
           <TabsContent value="rooms">
             <MeetingRoomsAdmin variant="dark" />

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Save, X, Loader2, Mail, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -465,8 +465,8 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false, asSection 
                 <div className="overflow-y-auto pb-4" style={{ height: 'calc(100vh - 64px)' }}>
                     <div className="p-4">
                     <Tabs defaultValue="profile" className="px-6">
-                        {/* Вкладки с stopPropagation */}
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsListScrollArea className="mb-6">
+                            <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
                             <TabsTrigger
                                 value="profile"
                                 className="text-sm"
@@ -489,6 +489,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false, asSection 
                                 Уведомления
                             </TabsTrigger>
                         </TabsList>
+                        </TabsListScrollArea>
 
                         {/* Вкладка: Профиль */}
                         <TabsContent value="profile" className="space-y-4">
@@ -855,30 +856,31 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false, asSection 
                 {/* Контент с прокруткой */}
                 <div className="max-h-[70vh] overflow-y-auto p-1">
                     <Tabs defaultValue="profile" className="px-6">
-                        {/* Вкладки с stopPropagation */}
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
-                            <TabsTrigger
-                                value="profile"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Профиль
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="password"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Пароль
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="notifications"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Уведомления
-                            </TabsTrigger>
-                        </TabsList>
+                        <TabsListScrollArea className="mb-6">
+                            <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
+                                <TabsTrigger
+                                    value="profile"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Профиль
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="password"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Пароль
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="notifications"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Уведомления
+                                </TabsTrigger>
+                            </TabsList>
+                        </TabsListScrollArea>
 
                         {/* Вкладка: Профиль */}
                         <TabsContent value="profile" className="space-y-4">

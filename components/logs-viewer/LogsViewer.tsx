@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Calendar as CalendarIcon, Filter, RefreshCw, Eye, User, Clock, Activity, Star, Bell } from "lucide-react"
@@ -505,8 +505,9 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
     <div className="space-y-6 w-full max-w-full overflow-hidden">
       {/* Табы */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full grid-cols-3 ${dark ? "bg-[#2C2C2E] border-[#3A3A3C]" : ""}`}>
-          <TabsTrigger value="requests" className={`flex items-center gap-2 ${dark ? "text-[#8E8E93] data-[state=active]:bg-[#F35713] data-[state=active]:text-white" : ""}`}>
+        <TabsListScrollArea>
+          <TabsList className={`grid w-max min-w-full grid-cols-3 grid-flow-col [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap ${dark ? "bg-[#2C2C2E] border-[#3A3A3C]" : ""}`}>
+            <TabsTrigger value="requests" className={`flex items-center gap-2 ${dark ? "text-[#8E8E93] data-[state=active]:bg-[#F35713] data-[state=active]:text-white" : ""}`}>
             <Activity className="w-4 h-4" />
             Заявки
           </TabsTrigger>
@@ -519,6 +520,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
             Уведомления
           </TabsTrigger>
         </TabsList>
+        </TabsListScrollArea>
 
         <TabsContent value="requests" className="space-y-6">
           {/* Статистика */}

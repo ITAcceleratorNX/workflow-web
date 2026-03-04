@@ -91,7 +91,9 @@ export function isNavItemActive(item: NavItem, pathname: string, role: AdminMana
   const path = pathname?.split("?")[0] || "";
   switch (item.key) {
     case "dashboard":
-      return role === "admin-worker" ? path === "/admin-worker" : path === "/manager";
+      return role === "admin-worker"
+        ? path === "/admin-worker"
+        : path === "/manager" || path === "/manager/cabinet";
     case "booking":
       return path === "/meeting-rooms" || path.startsWith("/meeting-rooms") ||
         (role === "admin-worker" && path.startsWith("/admin-worker/booking")) ||
