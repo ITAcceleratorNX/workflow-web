@@ -162,15 +162,20 @@ export default function ClientDashboard() {
   const [pageSize] = useState(10);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   
-  // Обработка query параметра tab: главный экран (Мой кабинет) = умный дом + activity трекер
+  // Обработка query параметра tab: на десктопе «Заявки» открываются по URL /client/requests (как у админа)
   useEffect(() => {
     const tab = searchParams.get("tab")
+    const requestId = searchParams.get("requestId")
+    if (isDesktop && tab === "requests") {
+      router.replace("/client/requests" + (requestId ? `?requestId=${requestId}` : ""))
+      return
+    }
     if (tab === "requests" || tab === "statistics" || tab === "meeting-rooms") {
       setActiveTab(tab)
     } else if (!tab || tab === "cabinet") {
       setActiveTab("cabinet")
     }
-  }, [searchParams])
+  }, [searchParams, isDesktop, router])
   
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [isClosingProgrammatically, setIsClosingProgrammatically] = useState(false);

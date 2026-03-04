@@ -69,6 +69,7 @@ import PhotoModal from "@/components/photo/PhotoModal";
 import { ExecutorRoomsRequestsView } from "@/components/meeting-rooms/ExecutorRoomsRequestsView";
 import {DeleteConfirmationModal} from "@/components/DeleteConfirmationModal";
 import { QRScanner } from "@/components/QRScanner";
+import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell";
 
 const API_BASE_URL = 'https://workflow-back-zpk4.onrender.com/api';
 
@@ -1023,7 +1024,7 @@ export default function ExecutorDashboard() {
   // Переключение вкладки из URL (для навигации с блоков)
   useEffect(() => {
     const tab = searchParams.get("tab")
-    const validTabs = ["meeting-rooms", "tasks", "myTasks", "completed", "scan-qr", "statistics"]
+    const validTabs = ["meeting-rooms", "tasks", "myTasks", "completed", "scan-qr", "statistics", "booking"]
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab)
     }
@@ -1750,8 +1751,115 @@ export default function ExecutorDashboard() {
     }
   };
 
+  const desktopTab = searchParams?.get("tab");
+  const isDesktopBooking = isDesktop && desktopTab === "booking";
+
   return (
       <>
+        {isDesktop ? (
+          <ExecutorDesktopShell
+            rightSlot={
+              <NotificationsSidebar
+                variant="dark"
+                onNotificationClick={handleNotificationClick}
+              />
+            }
+          >
+            <div className="client-desktop-content p-6 lg:p-8 max-w-6xl mx-auto">
+              {isDesktopBooking ? (
+                <div className="client-desktop-dark">
+                  <h1 className="text-xl font-semibold text-white mb-4">Бронирование</h1>
+                  <ExecutorRoomsRequestsView
+                    offices={offices}
+                    myRequests={myRequests}
+                    assignedRequests={assignedRequests}
+                    completedRequests={completedRequests}
+                    onRequestClick={(request) => router.push(`/executor/requests?requestId=${request.id}`)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <AlertTriangle className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Просрочено</p>
+                          <p className="text-xl font-bold text-white">{stats?.overdue ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <Clock className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">В работе</p>
+                          <p className="text-xl font-bold text-white">{stats?.inWork ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <CheckCircle className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Завершено</p>
+                          <p className="text-xl font-bold text-white">{stats?.completed ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <Star className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Рейтинг</p>
+                          <p className="text-xl font-bold text-white">{myRating ?? "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <section className="client-desktop-dark">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-white">Текущие задачи</h2>
+                      <Link href="/executor/requests">
+                        <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                          Все заявки
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="space-y-3">
+                      {assignedRequests
+                        ?.slice()
+                        ?.sort((a: any, b: any) => getTaskTypeOrder(a.request_type || a.type) - getTaskTypeOrder(b.request_type || b.type))
+                        ?.map((request: any, index: number) => (
+                          <RequestCard
+                            key={request.id ?? index}
+                            request={request}
+                            onCardClick={() => router.push(`/executor/requests?requestId=${request.id}`)}
+                            renderCardHeader={renderCardHeader}
+                            clientRating={clientRatings[request.id]}
+                            userRole="executor"
+                            variant="compact"
+                          />
+                        ))}
+                      {(!assignedRequests || assignedRequests.length === 0) && (
+                        <p className="text-white/60 text-sm py-4">Нет назначенных задач</p>
+                      )}
+                    </div>
+                  </section>
+                </>
+              )}
+            </div>
+          </ExecutorDesktopShell>
+        ) : (
+          <>
         <Header
             handleLogout={handleLogout}
             notificationCount={notifications.length}
@@ -1771,57 +1879,9 @@ export default function ExecutorDashboard() {
             className="rounded-t-[32px] px-4 pt-6 pb-8 lg:px-8"
             style={{ 
               background: 'linear-gradient(180deg, #E25B21 0%, #E25B21 60%, #4A2510 85%, #1C1C1E 100%)',
-              minHeight: isDesktop ? 'auto' : 'calc(100vh - 200px)',
+              minHeight: 'calc(100vh - 200px)',
             }}
           >
-          {isDesktop ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="rounded-2xl p-6" style={{ background: '#D94F15' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <AlertTriangle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Просрочено</p>
-                      <p className="text-2xl font-bold text-white">{stats?.overdue || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#1A9A8A' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">В работе</p>
-                      <p className="text-2xl font-bold text-white">{stats?.inWork || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#1A9A8A' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Завершено</p>
-                      <p className="text-2xl font-bold text-white">{stats?.completed || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#D94F15' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <Star className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Рейтинг</p>
-                      <p className="text-2xl font-bold text-white">{myRating ?? '—'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-          ):null}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -2102,8 +2162,10 @@ export default function ExecutorDashboard() {
 
       </div>
       </PullToRefresh>
+          </>
+        )}
 
-        {/* Black background extension for safe area */}
+        {!isDesktop && (
         <div
           className="fixed bottom-0 left-0 right-0 z-0"
           style={{
@@ -2111,6 +2173,7 @@ export default function ExecutorDashboard() {
             background: '#1C1C1E',
           }}
         />
+        )}
 
         {/* Модалка */}
         {isModalOpen && selectedNotification && (

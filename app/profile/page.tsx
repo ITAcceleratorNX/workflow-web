@@ -19,6 +19,7 @@ import {useAuthStore} from "@/stores/useAuthStore"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell"
+import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationsSidebar } from "@/components/notification/NotificationsSidebar"
 import { createClickableRequestIds } from "@/lib/notificationUtils"
@@ -665,10 +666,10 @@ export default function ProfilePage() {
         </div>
     )
 
-    // На десктопе для клиента — как у админа/менеджера: ProfileModal asSection + сайдбар (ClientDesktopShell)
+    // На десктопе для клиента — ProfileModal asSection + сайдбар (ClientDesktopShell)
     if (isDesktop && role === "client") {
         return (
-            <ClientDesktopShell>
+            <ClientDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
                 <div className="min-h-full bg-[#1A1A1A]">
                     <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
                 </div>
@@ -676,10 +677,21 @@ export default function ProfilePage() {
         )
     }
 
-    // На десктопе для остальных ролей (executor и т.д.) — модальное окно
+    // На десктопе для исполнителя — тот же стиль: ExecutorDesktopShell + ProfileModal asSection
+    if (isDesktop && role === "executor") {
+        return (
+            <ExecutorDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
+                <div className="min-h-full bg-[#1A1A1A]">
+                    <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
+                </div>
+            </ExecutorDesktopShell>
+        )
+    }
+
+    // На десктопе для остальных ролей (department-head и т.д.) — модальное окно
     if (isDesktop) {
         return (
-            <div className="min-h-screen bg-[#F3F3F3]">
+            <div className="min-h-screen bg-[#1A1A1A]">
                 <ProfileModal isOpen={isOpen} onClose={handleClose} isFullScreen={false} />
             </div>
         )

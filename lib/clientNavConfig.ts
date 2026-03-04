@@ -11,7 +11,7 @@ export interface ClientNavItem {
 export const clientNavItems: ClientNavItem[] = [
   { key: "cabinet", label: "Мой кабинет", href: "/client", icon: House },
   { key: "booking", label: "Бронь", href: "/client?tab=meeting-rooms", icon: LayoutGrid },
-  { key: "requests", label: "Заявки", href: "/client?tab=requests", icon: Wrench },
+  { key: "requests", label: "Заявки", href: "/client/requests", icon: Wrench },
   { key: "statistics", label: "Статистика", href: "/client/statistics", icon: BarChart3 },
   { key: "messages", label: "Сообщения", href: "/chat-bot", icon: MessageCircle },
   { key: "profile", label: "Профиль", href: "/profile", icon: User },
@@ -27,7 +27,7 @@ export function isClientNavItemActive(item: ClientNavItem, pathname: string, sea
     case "booking":
       return path === "/client" && tab === "meeting-rooms";
     case "requests":
-      return path === "/client" && tab === "requests";
+      return path.startsWith("/client/requests");
     case "statistics":
       return path.startsWith("/client/statistics");
     case "messages":

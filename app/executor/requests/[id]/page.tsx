@@ -32,7 +32,7 @@ export default function ExecutorRequestDetailPage() {
 
   useEffect(() => {
     if (isDesktop) {
-      router.replace(`/executor?tab=tasks&requestId=${id}`);
+      router.replace(`/executor/requests?requestId=${id}`);
       return;
     }
   }, [isDesktop, router, id]);
