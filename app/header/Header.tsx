@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import Image from "next/image";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createClickableRequestIds } from "@/lib/notificationUtils";
+import { formatDateOnly } from "@/lib/dateTimeUtils";
 
 interface NotificationItem {
   id: string;
@@ -129,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({
         if (diffInMinutes < 60) return `${diffInMinutes} мин`;
         if (diffInHours < 24) return `${diffInHours} ч`;
         if (diffInDays < 7) return `${diffInDays} дн`;
-        return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+        return formatDateOnly(date);
     };
 
     return (

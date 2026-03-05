@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import { formatTimeOnly } from "@/lib/dateTimeUtils";
 import {useMediaQuery} from "@/hooks/use-media-query";
 import {
     AlertDialog,
@@ -90,10 +91,7 @@ export function CommentList({
                     <div className="space-y-3">
                         {displayedComments.map((c) => {
                             const isOwnComment = c.user.id === currentUserId;
-                            const formattedTime = new Date(c.timestamp).toLocaleString("ru-RU", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
+                            const formattedTime = formatTimeOnly(c.timestamp);
 
                             return (
                                 <div

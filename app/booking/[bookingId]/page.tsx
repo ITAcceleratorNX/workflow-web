@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { BottomNav } from "@/components/BottomNav"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useGuestDemoStore } from "@/stores/useGuestDemoStore"
+import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils"
 
 export default function BookingQRPage() {
   const params = useParams()
@@ -105,20 +106,11 @@ export default function BookingQRPage() {
   }
 
   const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("ru-RU", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })
+    return formatDateOnly(dateString)
   }
 
   const formatTime = (dateString: string | Date) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    return formatTimeOnly(dateString)
   }
 
   if (loading) {

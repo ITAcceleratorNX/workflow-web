@@ -1,6 +1,7 @@
 "use client"
 
 import { CalendarClock as CalendarLucid } from "lucide-react"
+import { formatDateTime } from "@/lib/dateTimeUtils"
 
 interface PhotoModalProps {
     selectedPhoto: any;
@@ -34,21 +35,10 @@ export default function PhotoModal({ selectedPhoto, onClose }: PhotoModalProps) 
                                     <CalendarLucid className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                                     <span className="text-xs md:text-sm font-medium leading-tight">
                     <span className="block md:hidden">
-                      {new Date(selectedPhoto.created_at).toLocaleString("ru-RU", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                      })}
+                      {formatDateTime(selectedPhoto.created_at)}
                     </span>
                     <span className="hidden md:block">
-                      {new Date(selectedPhoto.created_at).toLocaleString("ru-RU", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                      })}
+                      {formatDateTime(selectedPhoto.created_at)}
                     </span>
                   </span>
                                 </div>

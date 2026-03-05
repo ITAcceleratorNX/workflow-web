@@ -66,6 +66,7 @@ import {IconInfoModal} from "@/components/IconInfoModal";
 import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
+import { formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import {RejectRequestModal} from "@/components/RejectRequestModal";
 import {CommentsModal} from "@/components/CommentsModal";
 import {CreateRequestModal} from "@/components/CreateRequestModal";
@@ -3886,7 +3887,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 })}
               </p>
               <p className="text-xs text-gray-500 mt-4">
-                Получено: {new Date(selectedNotification.created_at).toLocaleString()}
+        Получено: {formatNotificationDateTime(selectedNotification.created_at)}
               </p>
             </div>
           </div>
@@ -3975,11 +3976,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 <div>
                         <Label className="text-sm font-medium text-blue-800">Запланировано на: </Label>
                         <span className="text-sm text-blue-700">
-                          {new Date(selectedRequest.planned_date).toLocaleDateString('ru-RU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateLong(selectedRequest.planned_date)}
                         </span>
                 </div>
                 </div>
@@ -4199,13 +4196,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
                 <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
                   <Clock className="w-4 h-4 mr-1" />
-                  {new Date(selectedRequest.created_date).toLocaleString("ru-RU", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })}
+                  {formatDateTime(selectedRequest.created_date)}
                 </div>
 
                 {/* Фотографии группы заявок (только before) */}

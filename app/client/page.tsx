@@ -63,6 +63,7 @@ import {IconInfoModal} from "@/components/IconInfoModal";
 import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
+import { formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import { getPreviewUrl } from '@/lib/imageOptimization';
 import {MapModal} from "@/components/MapModal";
 import {CreateRequestModal} from "@/components/CreateRequestModal";
@@ -1787,7 +1788,7 @@ export default function ClientDashboard() {
                   })}
                 </p>
                 <p className="text-xs text-gray-500 mt-4">
-                  Получено: {new Date(selectedNotification.created_at).toLocaleString()}
+                  Получено: {formatNotificationDateTime(selectedNotification.created_at)}
                 </p>
               </div>
             </div>

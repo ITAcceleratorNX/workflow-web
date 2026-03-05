@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast"
 import { NotificationsSidebar } from "@/components/notification/NotificationsSidebar"
 import { createClickableRequestIds } from "@/lib/notificationUtils"
 import { LogsViewer } from "@/components/logs-viewer"
+import { formatNotificationDateTime } from "@/lib/dateTimeUtils"
 const roleTranslations: Record<string, string> = {
     client: "Клиент",
     "admin-worker": "Администратор офиса",
@@ -656,7 +657,7 @@ export default function ProfilePage() {
                             })}
                         </div>
                         <p className="text-xs mt-4 text-[#7F7F7F]">
-                            {new Date(selectedNotification.created_at).toLocaleString()}
+                            {formatNotificationDateTime(selectedNotification.created_at)}
                         </p>
                     </div>
                 </div>

@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from "@/stores/useAuthStore";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
+import { formatTimeOnly } from "@/lib/dateTimeUtils";
 type Message = {
     from: "user" | "bot";
     text: string;
@@ -605,7 +606,7 @@ export default function ChatPage() {
                                         <div className={`px-4 py-3 rounded-2xl max-w-[85%] ${msg.sender === "admin" ? "bg-[#2C2C2E] text-white rounded-tl-none" : "bg-[#F35713] text-white rounded-tr-none"}`}>
                                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                                             <p className={`text-xs mt-1 ${msg.sender === "admin" ? "text-gray-500" : "text-white/70"}`}>
-                                                {new Date(msg.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                                                {formatTimeOnly(msg.created_at)}
                                             </p>
                                         </div>
                                         {msg.sender === "user" && (

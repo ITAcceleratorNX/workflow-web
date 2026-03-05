@@ -7,6 +7,7 @@ import { Bell, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { createClickableRequestIds } from '@/lib/notificationUtils'
 import { useRequestFromNotification } from '@/hooks/useRequestFromNotification'
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal'
+import { formatDateOnly } from '@/lib/dateTimeUtils'
 
 interface Notification {
     id: number
@@ -68,11 +69,7 @@ export function NotificationsSidebar({
         if (diffInHours < 24) return `${diffInHours} ч назад`
         if (diffInDays < 7) return `${diffInDays} дн назад`
 
-        return date.toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        })
+        return formatDateOnly(dateStr)
     }
 
     const getNotificationIcon = (title: string) => {

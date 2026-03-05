@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight, Clock } from "lucide-react"
 import { RequestGroup } from "@/stores/useRequestStore"
 import { getThumbnailUrl } from "@/lib/imageOptimization"
+import { formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
 
 interface RequestCardProps {
   request: RequestGroup
@@ -71,28 +72,14 @@ function RequestCardComponent({
   variant = 'default'
 }: RequestCardProps) {
 
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-  }, [])
-
-  const formatDateLong = useCallback((dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("ru-RU", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }) + ' г. в ' + date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }, [])
-
-  const formattedDate = useMemo(() => formatDate(request.created_date), [request.created_date, formatDate])
-  const formattedDateLong = useMemo(() => formatDateLong(request.created_date), [request.created_date, formatDateLong])
+  const formattedDate = useMemo(
+    () => formatDateOnly(request.created_date),
+    [request.created_date]
+  )
+  const formattedDateLong = useMemo(
+    () => formatDateTime(request.created_date),
+    [request.created_date]
+  )
   
   const handleClick = useCallback(() => onCardClick(request), [onCardClick, request])
   

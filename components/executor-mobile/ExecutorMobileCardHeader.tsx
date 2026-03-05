@@ -3,6 +3,7 @@
 import React from "react";
 import { CardHeader } from "@/components/ui/card";
 import { RequestGroup } from "@/stores/useRequestStore";
+import { formatDateOnly } from "@/lib/dateTimeUtils";
 
 function getRecurrenceText(recurrenceType: string, interval: number) {
   switch (recurrenceType) {
@@ -17,14 +18,6 @@ function getRecurrenceText(recurrenceType: string, interval: number) {
     default:
       return "Повторяющаяся";
   }
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 }
 
 export function ExecutorMobileCardHeader({ requestGroup }: { requestGroup: RequestGroup }) {
@@ -66,7 +59,7 @@ export function ExecutorMobileCardHeader({ requestGroup }: { requestGroup: Reque
               </span>
               {requestGroup.next_due_date && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full text-green-600 bg-green-50 border border-green-200">
-                  📅 Следующая: {formatDate(requestGroup.next_due_date)}
+                  📅 Следующая: {formatDateOnly(requestGroup.next_due_date)}
                 </span>
               )}
             </div>

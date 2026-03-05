@@ -14,6 +14,7 @@ import { useActivityTrackerStore } from "@/stores/useActivityTrackerStore"
 import { useRouter } from "next/navigation"
 import api, { getOffices } from "@/lib/api"
 import { findNearestOffice } from "@/lib/utils"
+import { formatDateTime, formatTimeOnly } from "@/lib/dateTimeUtils"
 
 interface LocationData {
   latitude: number
@@ -930,7 +931,7 @@ export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps
                 </div>
                 {statistics.lastStandUpTime && (
                   <div className="text-xs text-[#114A65] mt-1">
-                    Последнее: {new Date(statistics.lastStandUpTime).toLocaleTimeString()}
+                    Последнее: {formatTimeOnly(statistics.lastStandUpTime)}
                   </div>
                 )}
               </div>
@@ -978,7 +979,7 @@ export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1 break-words">
-                        {new Date(interval.start).toLocaleTimeString()} - {new Date(interval.end).toLocaleTimeString()}
+                        {formatTimeOnly(interval.start)} - {formatTimeOnly(interval.end)}
                       </div>
                     </div>
                   ))}
@@ -1049,7 +1050,7 @@ export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs sm:text-sm text-blue-800">
                     <Clock className="h-3 w-3 inline mr-1" />
-                    Последнее напоминание: {new Date(healthReminders.lastReminderTime).toLocaleString('ru-RU')}
+                    Последнее напоминание: {formatDateTime(healthReminders.lastReminderTime)}
                   </p>
                 </div>
               )}

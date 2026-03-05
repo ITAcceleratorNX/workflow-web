@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle, Loader2, Trash2, Home } from "lucide-react"
 import api, { getYandexTokens, deleteYandexTokens, refreshYandexTokens } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { formatDateTime } from "@/lib/dateTimeUtils"
 
 interface YandexToken {
   id: number
@@ -149,9 +150,9 @@ export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps
                 <CheckCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${dark ? "text-blue-300" : "text-blue-600"}`} />
                 <div className={`text-sm ${successTextCl}`}>
                   <p className="font-medium mb-1">Токены настроены</p>
-                  <p>Создано: {new Date(existingToken.created_at).toLocaleString("ru-RU")}</p>
+                  <p>Создано: {formatDateTime(existingToken.created_at)}</p>
                   {existingToken.expires_at && (
-                    <p>Истекает: {new Date(existingToken.expires_at).toLocaleString("ru-RU")}</p>
+                    <p>Истекает: {formatDateTime(existingToken.expires_at)}</p>
                   )}
                   <p className={`text-xs mt-2 ${dark ? "text-blue-300/90" : "text-blue-600"}`}>Токены хранятся только на сервере и не отправляются на фронтенд</p>
                 </div>

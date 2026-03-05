@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { getSupportTickets, getSupportTicketMessages, sendSupportMessage, type SupportTicket, type SupportMessage } from "@/lib/api";
 import { MessageCircle, Send, Loader2, User, ArrowLeft, Headphones } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatTimeOnly } from "@/lib/dateTimeUtils";
 
 export interface AdminMessagesProps {
   /** When false, hide input and send button (manager view-only mode) */
@@ -176,10 +177,7 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
                                         <p
                                             className={`text-xs mt-1 ${m.sender === "admin" ? "text-white/80" : "text-gray-500"}`}
                                         >
-                                            {new Date(m.created_at).toLocaleTimeString("ru-RU", {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
+                                            {formatTimeOnly(m.created_at)}
                                         </p>
                                     </div>
                                     {m.sender === "admin" && (
