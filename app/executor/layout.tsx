@@ -35,6 +35,11 @@ export default function ExecutorLayout({
     const hasParams =
       searchParams?.get("tab") || searchParams?.get("requestId") || searchParams?.get("createRequest") ||
       urlParams?.get("tab") || urlParams?.get("requestId") || urlParams?.get("createRequest");
+    if (isDesktop && pathname === "/executor" && (searchParams?.get("requestId") || urlParams?.get("requestId"))) {
+      const rid = searchParams?.get("requestId") || urlParams?.get("requestId");
+      router.replace(`/executor/requests?requestId=${rid}`);
+      return;
+    }
     if (!isDesktop && pathname === "/executor" && !hasParams) {
       router.replace("/executor/management");
     }

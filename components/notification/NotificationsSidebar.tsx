@@ -7,6 +7,7 @@ import { Bell, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { createClickableRequestIds } from '@/lib/notificationUtils'
 import { useRequestFromNotification } from '@/hooks/useRequestFromNotification'
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal'
+import { formatDateOnly } from '@/lib/dateTimeUtils'
 
 interface Notification {
     id: number
@@ -68,11 +69,7 @@ export function NotificationsSidebar({
         if (diffInHours < 24) return `${diffInHours} ч назад`
         if (diffInDays < 7) return `${diffInDays} дн назад`
 
-        return date.toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        })
+        return formatDateOnly(dateStr)
     }
 
     const getNotificationIcon = (title: string) => {
@@ -81,7 +78,7 @@ export function NotificationsSidebar({
         if (lowerTitle.includes('принята') || lowerTitle.includes('одобрена')) {
             return (
                 <CheckCircle
-                    className={`w-4 h-4 ${isDark ? 'text-[#F35713]' : 'text-[#114A65]'}`}
+                    className={`w-4 h-4 ${isDark ? 'text-[#E85D2B]' : 'text-[#114A65]'}`}
                 />
             )
         }
@@ -89,14 +86,14 @@ export function NotificationsSidebar({
         if (lowerTitle.includes('завершена') || lowerTitle.includes('выполнена')) {
             return (
                 <CheckCircle
-                    className={`w-4 h-4 ${isDark ? 'text-[#F35713]' : 'text-[#114A65]'}`}
+                    className={`w-4 h-4 ${isDark ? 'text-[#E85D2B]' : 'text-[#114A65]'}`}
                 />
             )
         }
 
         if (lowerTitle.includes('просрочена') || lowerTitle.includes('отклонена')) {
             return (
-                <AlertCircle className="w-4 h-4 text-[#F35713]" />
+                <AlertCircle className="w-4 h-4 text-[#E85D2B]" />
             )
         }
 
@@ -112,7 +109,7 @@ export function NotificationsSidebar({
 
         if (isDark) {
             if (isRead) return 'bg-[#3A3A3C]/50 border-[#3A3A3C]'
-            return 'bg-[#3A3A3C] border-[#F35713]/30'
+            return 'bg-[#3A3A3C] border-[#E85D2B]/30'
         }
 
         if (isRead)
@@ -155,7 +152,7 @@ export function NotificationsSidebar({
                     <div className="flex items-center gap-3">
                         <div
                             className="w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{ background: isDark ? '#E25B21' : '#D94F15' }}>
+                            style={{ background: isDark ? '#E85D2B' : '#D94F15' }}>
                             <Bell className="h-4 w-4 text-white" />
                         </div>
 
@@ -175,7 +172,7 @@ export function NotificationsSidebar({
                             <div
                                 className={`flex items-center gap-2 ${isDark ? 'text-[#8E8E93]' : 'text-gray-500'}`}>
                                 <div
-                                    className={`w-4 h-4 border-2 border-t-transparent rounded-full animate-spin ${isDark ? 'border-[#F35713]' : 'border-[#114A65]'}`} />
+                                    className={`w-4 h-4 border-2 border-t-transparent rounded-full animate-spin ${isDark ? 'border-[#E85D2B]' : 'border-[#114A65]'}`} />
                                 <span className="text-sm">Загрузка...</span>
                             </div>
                         </div>
@@ -217,7 +214,7 @@ export function NotificationsSidebar({
 
                                                 {!n.is_read && (
                                                     <span
-                                                        className="flex-shrink-0 px-2 py-0.5 text-xs font-medium text-[#F35713] bg-[#F35713]/20 rounded-full whitespace-nowrap">
+                                                        className="flex-shrink-0 px-2 py-0.5 text-xs font-medium text-[#E85D2B] bg-[#E85D2B]/20 rounded-full whitespace-nowrap">
                                                         Новое
                                                     </span>
                                                 )}
@@ -245,7 +242,7 @@ export function NotificationsSidebar({
                                         onClick={onLoadMore}
                                         disabled={loadingMore}
                                         className={`w-full py-2.5 rounded-xl border text-sm font-medium transition-colors ${isDark
-                                            ? 'border-[#3A3A3C] text-[#F35713] hover:bg-[#3A3A3C] disabled:opacity-50'
+                                            ? 'border-[#3A3A3C] text-[#E85D2B] hover:bg-[#3A3A3C] disabled:opacity-50'
                                             : 'border-[#114A65]/30 text-[#114A65] hover:bg-[#114A65]/10 disabled:opacity-50'
                                             }`}
                                     >

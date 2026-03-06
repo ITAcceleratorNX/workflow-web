@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getMeetingRoomDailyCalendar,
@@ -117,20 +117,22 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
       </CardHeader>
       <CardContent>
         <Tabs value={mode} onValueChange={(value) => setMode(value as CalendarMode)}>
-          <TabsList className={`mb-4 ${isDark ? "bg-[#3D3D3D] text-gray-400" : ""}`}>
-            <TabsTrigger value="day" className={isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}>День</TabsTrigger>
-            <TabsTrigger value="week" className={isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}>Неделя</TabsTrigger>
-          </TabsList>
+          <TabsListScrollArea className="mb-4">
+            <TabsList className={`flex flex-nowrap flex-shrink-0 gap-1 min-w-0 ${isDark ? "bg-[#3D3D3D] text-gray-400" : ""}`}>
+              <TabsTrigger value="day" className={`flex-shrink-0 whitespace-nowrap ${isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}`}>День</TabsTrigger>
+              <TabsTrigger value="week" className={`flex-shrink-0 whitespace-nowrap ${isDark ? "data-[state=active]:bg-[#5A5A5A] data-[state=active]:text-white data-[state=inactive]:text-gray-400" : ""}`}>Неделя</TabsTrigger>
+            </TabsList>
+          </TabsListScrollArea>
 
           <TabsContent value="day" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="outline" size="sm" onClick={() => navigateDay("prev")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateDay("prev")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h3 className={`text-lg font-semibold ${isDark ? "text-white" : ""}`}>
                 {format(selectedDate, "d MMMM yyyy", { locale: ru })}
               </h3>
-              <Button variant="outline" size="sm" onClick={() => navigateDay("next")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateDay("next")} className={isDark ? "bg-transparent  border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -199,14 +201,14 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
 
           <TabsContent value="week" className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h3 className={`text-lg font-semibold ${isDark ? "text-white" : ""}`}>
                 {format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "d MMM", { locale: ru })}{" "}
                 - {format(addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), 6), "d MMM yyyy", { locale: ru })}
               </h3>
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className={isDark ? "border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className={isDark ? "bg-transparent border-[#3A3A3C] text-white hover:bg-gray-700" : ""}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

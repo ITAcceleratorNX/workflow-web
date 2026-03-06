@@ -1,13 +1,15 @@
 "use client"
 
 import React, {useCallback, useEffect, useState, useRef, useMemo} from "react"
+
+import { DepartmentHeadDesktopDashboard } from "./DepartmentHeadDesktopDashboard"
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Badge} from "@/components/ui/badge"
 import { LeaderIndicator } from "@/components/ui/leader-indicator";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Input} from "@/components/ui/input"
 import {
   AlertTriangle,
@@ -59,6 +61,7 @@ import {IconInfoModal} from "@/components/IconInfoModal";
 import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { getPreviewUrl } from "@/lib/imageOptimization";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
+import { formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
 import {CommentsModal} from "@/components/CommentsModal";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
@@ -171,6 +174,13 @@ export default function DepartmentHeadDashboard() {
   const [upcomingTasksRefreshTrigger, setUpcomingTasksRefreshTrigger] = useState(0);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [showDeleteRequestModal, setShowDeleteRequestModal] = useState(false)
+
+  // На desktop скрываем вкладку «Аналитика» — переключаем на другую, если она выбрана
+  useEffect(() => {
+    if (isDesktop && activeTab === "statistics") {
+      setActiveTab("meeting-rooms");
+    }
+  }, [isDesktop, activeTab]);
 
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [userRatings, setUserRatings] = useState<Record<number, any>>({});
@@ -1649,6 +1659,11 @@ export default function DepartmentHeadDashboard() {
     closeModalWithHistory();
   };
 
+  // На desktop для department-head: без табов, с секцией «Текущие заявки» (awaiting_assignment)
+  if (isDesktop) {
+    return <DepartmentHeadDesktopDashboard />;
+  }
+
   return (
       <>
         <Header
@@ -1737,8 +1752,8 @@ export default function DepartmentHeadDashboard() {
                 <div className="mb-3">
                   {/* на телефоне только табы */}
                   <div className="w-full mb-2 sm:hidden">
-                    <div className="overflow-x-auto">
-                      <TabsList className="flex w-max min-w-full bg-[#3A3A3C] p-1 rounded-xl gap-1">
+                    <TabsListScrollArea>
+                      <TabsList className="flex flex-nowrap flex-shrink-0 min-w-0 bg-[#3A3A3C] p-1 rounded-xl gap-1">
                         <TabsTrigger value="meeting-rooms" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5" />
@@ -1755,10 +1770,12 @@ export default function DepartmentHeadDashboard() {
                         <TabsTrigger value="recurring-tasks" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden">Повторяющиеся</span>
                         </TabsTrigger>
+                        {!isDesktop && (
                         <TabsTrigger value="statistics" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden">Аналитика</span>
                           <span className="hidden sm:inline">Аналитика</span>
                         </TabsTrigger>
+                        )}
                         <TabsTrigger value="management" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden flex items-center gap-1">
                             <LayoutGrid className="h-3.5 w-3.5" />
@@ -1767,35 +1784,37 @@ export default function DepartmentHeadDashboard() {
                           <span className="hidden sm:inline">Управление</span>
                         </TabsTrigger>
                       </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                   </div>
 
                   {/* на больших экранах */}
-                  <div className="hidden sm:flex justify-between items-center gap-3">
-                    <div className="flex-1 overflow-x-auto">
-                      <TabsList className="flex min-w-max gap-2 bg-[#3A3A3C] p-1 rounded-xl">
-                        <TabsTrigger value="meeting-rooms" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                  <div className="hidden sm:flex justify-between items-center gap-3 min-w-0">
+                    <TabsListScrollArea className="flex-1 min-w-0">
+                      <TabsList className="flex flex-nowrap flex-shrink-0 gap-2 min-w-0 bg-[#3A3A3C] p-1 rounded-xl">
+                        <TabsTrigger value="meeting-rooms" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <Building2 className="h-4 w-4" />
                           Переговорные
                         </TabsTrigger>
-                      <TabsTrigger value="incoming" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="incoming" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Входящие заявки
                       </TabsTrigger>
-                      <TabsTrigger value="my-requests" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="my-requests" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Мои заявки
                       </TabsTrigger>
-                      <TabsTrigger value="recurring-tasks" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      <TabsTrigger value="recurring-tasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Повторяющиеся
                       </TabsTrigger>
-                      <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      {!isDesktop && (
+                      <TabsTrigger value="statistics" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                         Аналитика
                       </TabsTrigger>
-                        <TabsTrigger value="management" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                      )}
+                        <TabsTrigger value="management" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <LayoutGrid className="h-4 w-4" />
                           Управление
                       </TabsTrigger>
                     </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                     <Button
                         onClick={() => router.push('/create-request')}
                         className="bg-[#E25B21] hover:bg-[#D94F15] text-white"
@@ -1845,10 +1864,12 @@ export default function DepartmentHeadDashboard() {
                         </div>
                       </div>
                     </div>
+                    {!isDesktop && (
                     <div className="rounded-2xl p-4 sm:p-6" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}>
                       <h3 className="text-base sm:text-lg font-bold text-white mb-4">Аналитика</h3>
                       <DepartmentHeadAnalytics />
                     </div>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -2143,7 +2164,7 @@ export default function DepartmentHeadDashboard() {
                   })}
                 </p>
                 <p className="text-xs text-gray-500 mt-4">
-                  Получено: {new Date(selectedNotification.created_at).toLocaleString()}
+                  Получено: {formatNotificationDateTime(selectedNotification.created_at)}
                 </p>
               </div>
             </div>
@@ -2178,11 +2199,7 @@ export default function DepartmentHeadDashboard() {
                   <div>
                           <Label className="text-sm font-medium text-blue-800">Запланировано на: </Label>
                           <span className="text-sm text-blue-700">
-                          {new Date(selectedRequest.planned_date).toLocaleDateString('ru-RU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateLong(selectedRequest.planned_date)}
                         </span>
                   </div>
                       </div>
@@ -2362,13 +2379,7 @@ export default function DepartmentHeadDashboard() {
 
                   <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
                     <Clock className="w-4 h-4 mr-1" />
-                    {new Date(selectedRequest.created_date).toLocaleString("ru-RU", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
+                    {formatDateTime(selectedRequest.created_date)}
                   </div>
 
                   {/* Фотографии группы заявок (только before) */}
@@ -2570,6 +2581,7 @@ export default function DepartmentHeadDashboard() {
                   <Button
                     variant="outline"
                     onClick={handleCloseRedirectModal}
+                    className="bg-transparent"
                   >
                     Отмена
                   </Button>
@@ -2639,6 +2651,7 @@ export default function DepartmentHeadDashboard() {
             executors={executors}
             userServiceCategoryId={user?.service_category_id}
             onSuccess={handleAssignExecutorsSuccess}
+            variant="dark"
         />
 
         {/* Модальное окно изменения исполнителей */}
@@ -2649,6 +2662,7 @@ export default function DepartmentHeadDashboard() {
             executors={executors}
             userServiceCategoryId={user?.service_category_id}
             onSuccess={handleChangeExecutorsSuccess}
+            variant="dark"
         />
 
         {/* Модал импорта Excel */}

@@ -5,16 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, Building2, X, ExternalLink, CheckCircle2, AlertCircle, MapPin, Users } from "lucide-react"
-import { format } from "date-fns"
-import { ru } from "date-fns/locale"
 import { getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking } from "@/lib/api"
+import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useToast } from "@/hooks/use-toast"
 import { useRejectRequestModal } from "@/hooks/use-reject-modal"
 import { RejectRequestModal } from "@/components/RejectRequestModal"
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
-export function MyBookings() {
+interface MyBookingsProps {
+  variant?: "default" | "dark"
+}
+
+export function MyBookings({ variant = "default" }: MyBookingsProps) {
+  const isDark = variant === "dark";
   const [bookings, setBookings] = useState<MeetingRoomBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
@@ -218,8 +223,11 @@ export function MyBookings() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#114A65] border-t-transparent"></div>
-        <p className="text-muted-foreground text-lg">Загрузка ваших бронирований...</p>
+        <div className={cn(
+          "animate-spin rounded-full h-12 w-12 border-4 border-t-transparent",
+          isDark ? "border-[#E85D2B]" : "border-[#114A65]"
+        )}></div>
+        <p className={cn("text-lg", isDark ? "text-white/60" : "text-muted-foreground")}>Загрузка ваших бронирований...</p>
       </div>
     )
   }
@@ -231,26 +239,38 @@ export function MyBookings() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-[#114A65] to-[#0d3a4f] rounded-xl p-6 text-white shadow-lg">
-        <h2 className="text-3xl font-bold mb-2">Мои бронирования</h2>
-        <p className="text-white/90 text-lg">Управляйте своими бронированиями переговорных комнат</p>
+      <div className={cn(
+        "rounded-xl p-6 shadow-lg",
+        isDark ? "bg-[#2C2C2E] border border-[#3A3A3C]" : "bg-gradient-to-r from-[#114A65] to-[#0d3a4f] text-white"
+      )}>
+        <h2 className={cn("text-2xl font-bold mb-2", isDark && "text-white")}>Мои бронирования</h2>
+        <p className={cn("text-lg", isDark ? "text-white/70" : "text-white/90")}>Управляйте своими бронированиями переговорных комнат</p>
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           {activeBookings.length > 0 && (
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full",
+              isDark ? "bg-[#1A1A1A]" : "bg-white/20 backdrop-blur-sm"
+            )}>
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <span>{activeBookings.length} активных</span>
+              <span className={isDark ? "text-white/80" : ""}>{activeBookings.length} активных</span>
             </div>
           )}
           {upcomingBookings.length > 0 && (
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full",
+              isDark ? "bg-[#1A1A1A]" : "bg-white/20 backdrop-blur-sm"
+            )}>
               <Calendar className="w-4 h-4" />
-              <span>{upcomingBookings.length} предстоящих</span>
+              <span className={isDark ? "text-white/80" : ""}>{upcomingBookings.length} предстоящих</span>
             </div>
           )}
           {pastBookings.length > 0 && (
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full",
+              isDark ? "bg-[#1A1A1A]" : "bg-white/20 backdrop-blur-sm"
+            )}>
               <CheckCircle2 className="w-4 h-4" />
-              <span>{pastBookings.length} завершенных</span>
+              <span className={isDark ? "text-white/80" : ""}>{pastBookings.length} завершенных</span>
             </div>
           )}
         </div>
@@ -274,34 +294,38 @@ export function MyBookings() {
         title="Отменить бронирование?"
         description={
           bookingToCancel
-            ? `Вы уверены, что хотите отменить бронирование комнаты "${bookingToCancel.meetingRoom?.name || bookingToCancel.meeting_room?.name || `Комната #${bookingToCancel.meeting_room_id}`}" на ${format(new Date(bookingToCancel.start_time), "dd MMMM yyyy", { locale: ru })} с ${format(new Date(bookingToCancel.start_time), "HH:mm", { locale: ru })} до ${format(new Date(bookingToCancel.end_time), "HH:mm", { locale: ru })}?`
+            ? `Вы уверены, что хотите отменить бронирование комнаты "${bookingToCancel.meetingRoom?.name || bookingToCancel.meeting_room?.name || `Комната #${bookingToCancel.meeting_room_id}`}" на ${formatDateOnly(bookingToCancel.start_time)} с ${formatTimeOnly(bookingToCancel.start_time)} до ${formatTimeOnly(bookingToCancel.end_time)}?`
             : "Вы уверены, что хотите отменить бронирование?"
         }
         confirmText="Отменить бронирование"
         cancelText="Нет, оставить"
         isLoading={cancellingId !== null && bookingToCancel?.id === cancellingId}
+        variant={isDark ? "dark" : "default"}
       />
 
       {activeBookings.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-            <h3 className="text-xl font-bold text-gray-900">Активные бронирования</h3>
+            <h3 className={cn("text-xl font-bold", isDark ? "text-white" : "text-gray-900")}>Активные бронирования</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeBookings.map((booking) => {
               const statusBadge = getStatusBadge(booking.status || 'in_progress')
               return (
-                <Card key={booking.id} className="relative border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-white to-blue-50/30">
+                <Card key={booking.id} className={cn(
+                  "relative shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl",
+                  isDark ? "border-[#3A3A3C] bg-[#2C2C2E] hover:border-blue-500/50" : "border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50/30"
+                )}>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200/20 rounded-bl-full"></div>
                   <CardHeader className="relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-900 mb-1 break-words line-clamp-2">
+                        <CardTitle className={cn("text-lg font-bold mb-1 break-words line-clamp-2", isDark ? "text-white" : "text-gray-900")}>
                           {booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`}
                         </CardTitle>
                         {booking.company_name && (
-                          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                          <p className={cn("text-sm mt-1 flex items-center gap-1", isDark ? "text-white/60" : "text-gray-600")}>
                             <Users className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="truncate">{booking.company_name}</span>
                           </p>
@@ -315,29 +339,21 @@ export function MyBookings() {
                   </CardHeader>
                   <CardContent className="space-y-4 relative">
                     <div className="space-y-3 text-sm">
-                      <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                        <Calendar className="w-4 h-4 text-[#114A65]" />
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                        <Calendar className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                         <span className="font-medium">
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
+                          {formatDateOnly(booking.start_time)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-[#114A65]" />
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                        <Clock className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                         <span className="font-medium">
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
-                        <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                          <MapPin className="w-4 h-4 text-[#114A65]" />
+                        <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                          <MapPin className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                           <span className="font-medium">{(booking.meetingRoom?.office || booking.office)?.name}</span>
                         </div>
                       )}
@@ -346,7 +362,7 @@ export function MyBookings() {
                       <Button
                         variant="default"
                         size="sm"
-                        className="w-full bg-gradient-to-r from-[#114A65] to-[#0d3a4f] hover:from-[#0d3a4f] hover:to-[#114A65] text-white shadow-md"
+                        className={cn("w-full text-white shadow-md", isDark ? "bg-[#E85D2B] hover:bg-[#D94F15]" : "bg-gradient-to-r from-[#114A65] to-[#0d3a4f] hover:from-[#0d3a4f] hover:to-[#114A65]")}
                         onClick={() => handleOpenBookingPage(booking.id)}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
@@ -355,7 +371,7 @@ export function MyBookings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                        className={cn("w-full", isDark ? "border-red-500/50 text-red-400 hover:bg-red-500/20" : "border-red-300 text-red-600 hover:bg-red-50")}
                         onClick={() => handleCancelClick(booking)}
                         disabled={cancellingId === booking.id}
                       >
@@ -375,22 +391,25 @@ export function MyBookings() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full"></div>
-            <h3 className="text-xl font-bold text-gray-900">Предстоящие бронирования</h3>
+            <h3 className={cn("text-xl font-bold", isDark ? "text-white" : "text-gray-900")}>Предстоящие бронирования</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcomingBookings.map((booking) => {
               const statusBadge = getStatusBadge(booking.status || 'scheduled')
               return (
-                <Card key={booking.id} className="relative border-2 border-amber-100 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.01] bg-gradient-to-br from-white to-amber-50/20">
+                <Card key={booking.id} className={cn(
+                  "relative shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.01] rounded-xl",
+                  isDark ? "border-[#3A3A3C] bg-[#2C2C2E] hover:border-amber-500/50" : "border-2 border-amber-100 bg-gradient-to-br from-white to-amber-50/20"
+                )}>
                   <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/30 rounded-bl-full"></div>
                   <CardHeader className="relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-900 mb-1 break-words line-clamp-2">
+                        <CardTitle className={cn("text-lg font-bold mb-1 break-words line-clamp-2", isDark ? "text-white" : "text-gray-900")}>
                           {booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`}
                         </CardTitle>
                         {booking.company_name && (
-                          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                          <p className={cn("text-sm mt-1 flex items-center gap-1", isDark ? "text-white/60" : "text-gray-600")}>
                             <Users className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="truncate">{booking.company_name}</span>
                           </p>
@@ -404,29 +423,21 @@ export function MyBookings() {
                   </CardHeader>
                   <CardContent className="space-y-4 relative">
                     <div className="space-y-3 text-sm">
-                      <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                        <Calendar className="w-4 h-4 text-[#114A65]" />
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                        <Calendar className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                         <span className="font-medium">
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
+                          {formatDateOnly(booking.start_time)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-[#114A65]" />
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                        <Clock className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                         <span className="font-medium">
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
-                        <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
-                          <MapPin className="w-4 h-4 text-[#114A65]" />
+                        <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/80 bg-[#1A1A1A]" : "text-gray-700 bg-white/60")}>
+                          <MapPin className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
                           <span className="font-medium">{(booking.meetingRoom?.office || booking.office)?.name}</span>
                         </div>
                       )}
@@ -435,7 +446,7 @@ export function MyBookings() {
                       <Button
                         variant="default"
                         size="sm"
-                        className="w-full bg-gradient-to-r from-[#114A65] to-[#0d3a4f] hover:from-[#0d3a4f] hover:to-[#114A65] text-white shadow-md"
+                        className={cn("w-full text-white shadow-md", isDark ? "bg-[#E85D2B] hover:bg-[#D94F15]" : "bg-gradient-to-r from-[#114A65] to-[#0d3a4f] hover:from-[#0d3a4f] hover:to-[#114A65]")}
                         onClick={() => handleOpenBookingPage(booking.id)}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
@@ -444,7 +455,7 @@ export function MyBookings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                        className={cn("w-full", isDark ? "border-red-500/50 text-red-400 hover:bg-red-500/20" : "border-red-300 text-red-600 hover:bg-red-50")}
                         onClick={() => handleCancelClick(booking)}
                         disabled={cancellingId === booking.id}
                       >
@@ -464,22 +475,25 @@ export function MyBookings() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-red-600 rounded-full"></div>
-            <h3 className="text-xl font-bold text-gray-900">Отмененные бронирования</h3>
+            <h3 className={cn("text-xl font-bold", isDark ? "text-white" : "text-gray-900")}>Отмененные бронирования</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {cancelledBookings.map((booking) => {
               const statusBadge = getStatusBadge(booking.status || 'cancelled')
               return (
-                <Card key={booking.id} className="relative opacity-70 border-2 border-red-100 bg-gradient-to-br from-white to-red-50/10">
+                <Card key={booking.id} className={cn(
+                  "relative opacity-90 rounded-xl",
+                  isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/80" : "border-2 border-red-100 bg-gradient-to-br from-white to-red-50/10"
+                )}>
                   <div className="absolute top-0 right-0 w-20 h-20 bg-red-100/20 rounded-bl-full"></div>
                   <CardHeader className="relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-700 mb-1 line-through break-words line-clamp-2">
+                        <CardTitle className={cn("text-lg font-bold mb-1 line-through break-words line-clamp-2", isDark ? "text-white/80" : "text-gray-700")}>
                           {booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`}
                         </CardTitle>
                         {booking.company_name && (
-                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                          <p className={cn("text-sm mt-1 flex items-center gap-1", isDark ? "text-white/50" : "text-gray-500")}>
                             <Users className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="truncate">{booking.company_name}</span>
                           </p>
@@ -493,29 +507,19 @@ export function MyBookings() {
                   </CardHeader>
                   <CardContent className="space-y-3 relative">
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-gray-500 bg-white/40 p-2 rounded-lg">
-                        <Calendar className="w-4 h-4 text-red-400" />
-                        <span>
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
-                        </span>
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/50 bg-[#1A1A1A]" : "text-gray-500 bg-white/40")}>
+                        <Calendar className={cn("w-4 h-4", isDark ? "text-red-400/80" : "text-red-400")} />
+                          <span>{formatDateOnly(booking.start_time)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500 bg-white/40 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-red-400" />
+                      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/50 bg-[#1A1A1A]" : "text-gray-500 bg-white/40")}>
+                        <Clock className={cn("w-4 h-4", isDark ? "text-red-400/80" : "text-red-400")} />
                         <span>
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
-                        <div className="flex items-center gap-2 text-gray-500 bg-white/40 p-2 rounded-lg">
-                          <MapPin className="w-4 h-4 text-red-400" />
+                        <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "text-white/50 bg-[#1A1A1A]" : "text-gray-500 bg-white/40")}>
+                          <MapPin className={cn("w-4 h-4", isDark ? "text-red-400/80" : "text-red-400")} />
                           <span>{(booking.meetingRoom?.office || booking.office)?.name}</span>
                         </div>
                       )}
@@ -532,22 +536,25 @@ export function MyBookings() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-500 rounded-full"></div>
-            <h3 className="text-xl font-bold text-gray-900">Завершенные бронирования</h3>
+            <h3 className={cn("text-xl font-bold", isDark ? "text-white" : "text-gray-900")}>Завершенные бронирования</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pastBookings.map((booking) => {
               const statusBadge = getStatusBadge(booking.status || 'completed')
               return (
-                <Card key={booking.id} className="relative opacity-85 border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-white to-gray-50/30">
+                <Card key={booking.id} className={cn(
+                  "relative opacity-95 rounded-xl shadow-sm hover:shadow-md transition-all duration-300",
+                  isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/90" : "border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50/30"
+                )}>
                   <div className="absolute top-0 right-0 w-20 h-20 bg-gray-100/30 rounded-bl-full"></div>
                   <CardHeader className="relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-bold text-gray-700 mb-1 break-words line-clamp-2">
+                        <CardTitle className={cn("text-lg font-bold mb-1 break-words line-clamp-2", isDark ? "text-white/90" : "text-gray-700")}>
                           {booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`}
                         </CardTitle>
                         {booking.company_name && (
-                          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                          <p className={cn("text-sm mt-1 flex items-center gap-1", isDark ? "text-white/60" : "text-gray-600")}>
                             <Users className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="truncate">{booking.company_name}</span>
                           </p>
@@ -563,22 +570,12 @@ export function MyBookings() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-gray-600 bg-white/60 p-2 rounded-lg">
                         <Calendar className="w-4 h-4 text-gray-500" />
-                        <span>
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
-                        </span>
+                        <span>{formatDateOnly(booking.start_time)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600 bg-white/60 p-2 rounded-lg">
                         <Clock className="w-4 h-4 text-gray-500" />
                         <span>
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (

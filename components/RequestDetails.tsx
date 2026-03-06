@@ -15,6 +15,7 @@ import {
   Calendar as CalendarLucid,
 } from "lucide-react";
 import { RequestGroup, SubRequest } from "@/stores/useRequestStore";
+import { formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils";
 import Executors from "@/components/Executors";
 import { RoleBasedActionMenu } from "@/components/action-menu/RoleBasedActionMenu";
 import { CompletedTaskReport } from "@/components/CompletedTaskReport";
@@ -129,6 +130,8 @@ export interface RequestDetailsProps {
   onRateRequest?: (request: any) => void;
   /** executor/client: удалить подзаявку */
   onDelete?: (request: any) => void;
+  /** встроить в боковую панель (десктоп) — без fixed, как в мобилке */
+  embedInPanel?: boolean;
 }
 
 export function RequestDetails({
@@ -150,6 +153,7 @@ export function RequestDetails({
   onRateClient: onRateClientProp,
   onRateRequest: onRateRequestProp,
   onDelete: onDeleteProp,
+  embedInPanel = false,
 }: RequestDetailsProps) {
   const basePath = fullModeRedirectBase ?? ROLE_BASE_PATH[userRoleProp] ?? "/admin-worker";
   const router = useRouter();
@@ -377,18 +381,22 @@ export function RequestDetails({
   }
 
   if (!subRequest) {
+    const wrapperClass = embedInPanel
+      ? "flex flex-col h-full bg-[#1C1C1E]"
+      : "fixed inset-0 z-[100] bg-[#1C1C1E] flex flex-col";
     return (
-      <div className="fixed inset-0 z-[100] bg-[#1C1C1E] flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-800"
-            aria-label="Назад к заявкам"
-          >
-            <ArrowLeft className="w-6 h-6 text-white" />
-          </button>
-          <h1 className="text-xl font-bold text-white">Заявка #{selectedRequest.id}</h1>
-        </div>
+      <div
+        className={wrapperClass}
+        style={embedInPanel ? undefined : { paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {!embedInPanel && (
+          <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800" aria-label="Назад к заявкам">
+              <ArrowLeft className="w-6 h-6 text-white" />
+            </button>
+            <h1 className="text-xl font-bold text-white">Заявка #{selectedRequest.id}</h1>
+          </div>
+        )}
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-gray-400">Нет данных заявки</p>
         </div>
@@ -396,89 +404,106 @@ export function RequestDetails({
     );
   }
 
+  const actionBar = (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => {
+          setShowComments(hasComments ? null : subRequest.id);
+        }}
+        className="p-2 rounded-full hover:bg-gray-800"
+      >
+        <MessageCircle
+          className={`w-5 h-5 ${
+            hasComments ? "text-[#F35713]" : "text-gray-400"
+          }`}
+        />
+      </button>
+      <RoleBasedActionMenu
+        request={subRequest}
+        requestGroup={selectedRequest}
+        isDesktop={embedInPanel}
+        userRole={userRoleProp}
+        isSubRequest={true}
+        variant="admin"
+        onRateRequest={
+          onRateRequestProp ??
+          (() => {
+            setRequestToRate(subRequest);
+            setRatingValue(userRatings[subRequest.id]?.rating || 0);
+            setRatingComment("");
+            setShowRatingModal(true);
+          })
+        }
+        onRateClient={
+          onRateClientProp ??
+          (() => {
+            setClientRatingValue(selectedRequest.clientRatings?.[0]?.rating || 0);
+            setClientRatingComment("");
+            setShowClientRatingModal(true);
+          })
+        }
+        onDelete={onDeleteProp ?? handleDeleteSubRequest}
+        onToggleLongTerm={onToggleLongTermProp ?? handleToggleLongTerm}
+        onAssignExecutor={
+          onAssignExecutorProp ? () => onAssignExecutorProp(subRequest) : () => openFullMode()
+        }
+        onChangeExecutors={
+          onChangeExecutorsProp ? () => onChangeExecutorsProp(subRequest) : () => openFullMode()
+        }
+        onRedirectToOtherDepartment={
+          onRedirectToOtherDepartmentProp
+            ? () => onRedirectToOtherDepartmentProp(subRequest)
+            : onExecutorRedirectProp
+              ? () => onExecutorRedirectProp(subRequest)
+              : () => openFullMode()
+        }
+        onReject={onRejectProp}
+        onStartTask={onStartTaskProp}
+        onCompleteTask={onCompleteTaskProp}
+        onAddComment={() =>
+          setShowComments(
+            showComments === subRequest.id ? null : subRequest.id
+          )
+        }
+      />
+    </div>
+  );
+
+  const wrapperClass = embedInPanel
+    ? "flex flex-col h-full bg-[#1C1C1E] min-h-0"
+    : "fixed inset-0 z-[100] bg-[#1C1C1E]";
+  const wrapperStyle = embedInPanel ? undefined : { paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' };
+  const contentPaddingBottom = embedInPanel ? "pb-4" : "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]";
+
   return (
     <>
-      <div className="fixed inset-0 z-[100] bg-[#1C1C1E]" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-            <button
-              onClick={() => {
-                setShowComments(null);
-                onClose();
-              }}
-              className="p-2 rounded-full hover:bg-gray-800"
-              aria-label="Назад к заявкам"
-            >
-              <ArrowLeft className="w-6 h-6 text-white" />
-            </button>
-            <h1 className="text-xl font-bold text-white flex-1">
-              Заявка #{selectedRequest.id}
-            </h1>
-            <div className="flex items-center gap-1">
+      <div className={wrapperClass} style={wrapperStyle}>
+        <div className="flex flex-col h-full min-h-0">
+          {!embedInPanel && (
+            <div className="flex items-center gap-3 p-4 border-b border-gray-800">
               <button
                 onClick={() => {
-                  setShowComments(hasComments ? null : subRequest.id);
+                  setShowComments(null);
+                  onClose();
                 }}
                 className="p-2 rounded-full hover:bg-gray-800"
+                aria-label="Назад к заявкам"
               >
-                <MessageCircle
-                  className={`w-5 h-5 ${
-                    hasComments ? "text-[#F35713]" : "text-gray-400"
-                  }`}
-                />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
-              <RoleBasedActionMenu
-                request={subRequest}
-                requestGroup={selectedRequest}
-                isDesktop={false}
-                userRole={userRoleProp}
-                isSubRequest={true}
-                variant="admin"
-                onRateRequest={
-                  onRateRequestProp ??
-                  (() => {
-                    setRequestToRate(subRequest);
-                    setRatingValue(userRatings[subRequest.id]?.rating || 0);
-                    setRatingComment("");
-                    setShowRatingModal(true);
-                  })
-                }
-                onRateClient={
-                  onRateClientProp ??
-                  (() => {
-                    setClientRatingValue(selectedRequest.clientRatings?.[0]?.rating || 0);
-                    setClientRatingComment("");
-                    setShowClientRatingModal(true);
-                  })
-                }
-                onDelete={onDeleteProp ?? handleDeleteSubRequest}
-                onToggleLongTerm={onToggleLongTermProp ?? handleToggleLongTerm}
-                onAssignExecutor={
-                  onAssignExecutorProp ? () => onAssignExecutorProp(subRequest) : () => openFullMode()
-                }
-                onChangeExecutors={
-                  onChangeExecutorsProp ? () => onChangeExecutorsProp(subRequest) : () => openFullMode()
-                }
-                onRedirectToOtherDepartment={
-                  onRedirectToOtherDepartmentProp
-                    ? () => onRedirectToOtherDepartmentProp(subRequest)
-                    : onExecutorRedirectProp
-                      ? () => onExecutorRedirectProp(subRequest)
-                      : () => openFullMode()
-                }
-                onReject={onRejectProp}
-                onStartTask={onStartTaskProp}
-                onCompleteTask={onCompleteTaskProp}
-                onAddComment={() =>
-                  setShowComments(
-                    showComments === subRequest.id ? null : subRequest.id
-                  )
-                }
-              />
+              <h1 className="text-xl font-bold text-white flex-1">
+                Заявка #{selectedRequest.id}
+              </h1>
+              {actionBar}
             </div>
-          </div>
+          )}
+          {embedInPanel && (
+            <div className="flex items-center justify-end gap-1 p-2 border-b border-gray-800 shrink-0">
+              {actionBar}
+            </div>
+          )}
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
+          <div className={`flex-1 overflow-y-auto p-4 space-y-4 min-h-0 ${contentPaddingBottom}`}>
             <div className="flex items-center gap-2 flex-wrap">
               {getStatusIcon(selectedRequest.status)}
               <span className="text-white">
@@ -508,13 +533,7 @@ export function RequestDetails({
                   <div>
                     <p className="text-gray-400 text-sm">Запланировано на</p>
                     <p className="text-white">
-                      {new Date(
-                        selectedRequest.planned_date
-                      ).toLocaleDateString("ru-RU", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                    {formatDateOnly(selectedRequest.planned_date)}
                     </p>
                   </div>
                 </div>
@@ -592,7 +611,7 @@ export function RequestDetails({
               <div className="bg-[#1C1C1E] rounded-xl p-4 [&_.bg-white]:bg-gray-800/50 [&_.text-gray-700]:text-gray-200 [&_.text-gray-400]:text-gray-400 [&_.border-gray-200]:border-gray-600">
                 <CompletedTaskReport
                   subRequest={subRequest}
-                  isDesktop={false}
+                  isDesktop={embedInPanel}
                   onPhotoClick={(url) =>
                     setSelectedPhoto({ url, created_at: undefined })
                   }
@@ -646,13 +665,7 @@ export function RequestDetails({
             <div className="bg-[#1C1C1E] rounded-xl p-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-gray-400" />
               <p className="text-white">
-                {new Date(selectedRequest.created_date).toLocaleString("ru-RU", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(selectedRequest.created_date)}
               </p>
             </div>
 
@@ -933,7 +946,7 @@ export function RequestDetails({
         onClose={() => setShowComments(null)}
         requestId={showComments}
         currentUserId={user?.id ?? null}
-        isDesktop={false}
+        isDesktop={embedInPanel}
         variant="admin"
       />
 
@@ -942,7 +955,7 @@ export function RequestDetails({
           isOpen={!!showIconInfo}
           iconInfo={showIconInfo}
           onClose={() => setShowIconInfo(null)}
-          isDesktop={false}
+          isDesktop={embedInPanel}
         />
       )}
 

@@ -91,8 +91,47 @@ interface UserInfo {
     role: string
 }
 
-export function SmartHomeManagement() {
+interface SmartHomeManagementProps {
+    /** Тёмная тема (для раздела Управление на десктопе у админа) */
+    dark?: boolean
+}
+
+export function SmartHomeManagement({ dark = false }: SmartHomeManagementProps) {
     const { toast } = useToast()
+
+    const d = dark
+    const cardBg = d ? "bg-[#2C2C2E]" : "bg-white"
+    const cardBorder = d ? "border-white/10" : "border-gray-200"
+    const cardHover = d ? "hover:bg-[#3A3A3C] hover:border-[#E85D2B]/30" : "hover:border-blue-300 hover:bg-blue-50/50"
+    const titleCl = d ? "text-white" : "text-gray-900"
+    const mutedCl = d ? "text-white/60" : "text-gray-500"
+    const iconBg = d ? "bg-[#E85D2B]/20" : "bg-blue-50"
+    const iconCl = d ? "text-[#E85D2B]" : "text-blue-600"
+    const sidebarBg = d ? "bg-[#2C2C2E]" : "bg-white"
+    const sidebarHeadBg = d ? "bg-[#1A1A1A] border-white/10" : "bg-gray-50 border-gray-200"
+    const sidebarHeadText = d ? "text-white/80" : "text-gray-700"
+    const roomItemSelected = d ? "bg-[#E85D2B]/20 border-l-[#E85D2B]" : "bg-blue-50 border-l-blue-500"
+    const roomItemHover = d ? "hover:bg-white/5" : "hover:bg-gray-50"
+    const roomItemText = d ? "text-white/90" : "text-gray-700"
+    const roomItemTextSelected = d ? "text-[#E85D2B]" : "text-blue-700"
+    const rowBg = d ? "bg-[#1A1A1A] border-white/10" : "bg-gray-50 border-gray-100"
+    const rowText = d ? "text-white/90" : "text-gray-800"
+    const addFormBg = d ? "bg-[#E85D2B]/10 border-[#E85D2B]/30" : "bg-blue-50 border-blue-200"
+    const addFormText = d ? "text-[#E85D2B]" : "text-blue-800"
+    const addFormInput = d ? "bg-[#1A1A1A] border-white/10 text-white focus:border-[#E85D2B]" : "border-blue-200 bg-white focus:border-blue-400"
+    const addFormGreenBg = d ? "bg-green-500/10 border-green-500/30" : "bg-green-50 border-green-200"
+    const addFormGreenText = d ? "text-green-300" : "text-green-800"
+    const addFormGreenInput = d ? "bg-[#1A1A1A] border-white/10 text-white focus:border-green-400" : "border-green-200 bg-white focus:border-green-400"
+    const btnPrimary = d ? "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+    const btnGreen = d ? "bg-green-600 hover:bg-green-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"
+    const btnCancel = d ? "text-white/70 hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"
+    const btnGhost = d ? "hover:bg-white/10" : "hover:bg-gray-100"
+    const btnRemove = d ? "border-white/20 text-white/80 hover:bg-red-500/20 hover:text-red-400" : "text-gray-600 bg-white border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+    const emptyCl = d ? "text-white/50" : "text-gray-400"
+    const loaderCl = d ? "text-white/50" : "text-gray-400"
+    const userAvatarBg = d ? "bg-white/10" : "bg-gray-200"
+    const userAvatarIcon = d ? "text-white/60" : "text-gray-500"
+    const accessLabel = d ? "text-green-400" : "text-green-600"
 
     // --- Step state ---
     const [step, setStep] = useState<"offices" | "cabinets">("offices")
@@ -446,22 +485,22 @@ export function SmartHomeManagement() {
         return (
             <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                        <Home className="w-5 h-5 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${iconBg}`}>
+                        <Home className={`w-5 h-5 ${iconCl}`} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Управление умным домом</h2>
-                        <p className="text-sm text-gray-500">Выберите офис для управления устройствами</p>
+                        <h2 className={`text-lg font-semibold ${titleCl}`}>Управление умным домом</h2>
+                        <p className={`text-sm ${mutedCl}`}>Выберите офис для управления устройствами</p>
                     </div>
                 </div>
 
                 {loadingOffices ? (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        <span className="ml-2 text-sm text-gray-500">Загрузка офисов...</span>
+                        <Loader2 className={`w-6 h-6 animate-spin ${loaderCl}`} />
+                        <span className={`ml-2 text-sm ${mutedCl}`}>Загрузка офисов...</span>
                     </div>
                 ) : offices.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500 text-sm">
+                    <div className={`text-center py-12 text-sm ${mutedCl}`}>
                         Нет доступных офисов
                     </div>
                 ) : (
@@ -470,19 +509,19 @@ export function SmartHomeManagement() {
                             <button
                                 key={office.id}
                                 onClick={() => handleSelectOffice(office)}
-                                className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition-all text-left group"
+                                className={`flex items-center gap-4 p-4 border rounded-xl transition-all text-left group ${cardBg} ${cardBorder} ${cardHover}`}
                             >
-                                <div className="p-3 bg-gray-100 rounded-xl group-hover:bg-blue-100 transition-colors">
-                                    <Building2 className="w-6 h-6 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                                <div className={`p-3 rounded-xl transition-colors ${d ? "bg-white/10 group-hover:bg-[#E85D2B]/20" : "bg-gray-100 group-hover:bg-blue-100"}`}>
+                                    <Building2 className={`w-6 h-6 transition-colors ${d ? "text-white/80 group-hover:text-[#E85D2B]" : "text-gray-600 group-hover:text-blue-600"}`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900 truncate">{office.name}</p>
+                                    <p className={`font-medium truncate ${titleCl}`}>{office.name}</p>
                                     <div className="flex items-center gap-1 mt-1">
-                                        <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                        <p className="text-xs text-gray-500 truncate">{office.address}, {office.city}</p>
+                                        <MapPin className={`w-3 h-3 flex-shrink-0 ${mutedCl}`} />
+                                        <p className={`text-xs truncate ${mutedCl}`}>{office.address}, {office.city}</p>
                                     </div>
                                 </div>
-                                <ChevronDown className="w-4 h-4 text-gray-400 -rotate-90 group-hover:text-blue-500 transition-colors" />
+                                <ChevronDown className={`w-4 h-4 -rotate-90 transition-colors ${d ? "text-white/50 group-hover:text-[#E85D2B]" : "text-gray-400 group-hover:text-blue-500"}`} />
                             </button>
                         ))}
                     </div>
@@ -500,17 +539,17 @@ export function SmartHomeManagement() {
             <div className="flex items-center gap-3 mb-4">
                 <button
                     onClick={handleBackToOffices}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className={`p-2 rounded-lg transition-colors ${btnGhost}`}
                 >
-                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                    <ChevronLeft className={`w-5 h-5 ${d ? "text-white/80" : "text-gray-600"}`} />
                 </button>
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                        <Building2 className="w-5 h-5 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${iconBg}`}>
+                        <Building2 className={`w-5 h-5 ${iconCl}`} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900">{selectedOffice?.name}</h2>
-                        <p className="text-sm text-gray-500">Кабинеты и переговорные комнаты</p>
+                        <h2 className={`text-lg font-semibold ${titleCl}`}>{selectedOffice?.name}</h2>
+                        <p className={`text-sm ${mutedCl}`}>Кабинеты и переговорные комнаты</p>
                     </div>
                 </div>
             </div>
@@ -518,17 +557,17 @@ export function SmartHomeManagement() {
             <div className="flex flex-col lg:flex-row gap-4">
                 {/* Sidebar – Room List */}
                 <div className="lg:w-64 flex-shrink-0">
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                            <h3 className="text-sm font-semibold text-gray-700">Кабинеты</h3>
+                    <div className={`${sidebarBg} border ${cardBorder} rounded-xl overflow-hidden`}>
+                        <div className={`px-4 py-3 border-b ${sidebarHeadBg}`}>
+                            <h3 className={`text-sm font-semibold ${sidebarHeadText}`}>Кабинеты</h3>
                         </div>
 
                         {loadingRooms ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                <Loader2 className={`w-5 h-5 animate-spin ${loaderCl}`} />
                             </div>
                         ) : rooms.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-gray-500">
+                            <div className={`p-4 text-center text-sm ${mutedCl}`}>
                                 Нет кабинетов в этом офисе
                             </div>
                         ) : (
@@ -539,26 +578,24 @@ export function SmartHomeManagement() {
                                         <button
                                             key={room.id}
                                             onClick={() => handleSelectRoom(room)}
-                                            className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors ${
-                                                isSelected
-                                                    ? "bg-blue-50 border-l-[3px] border-l-blue-500"
-                                                    : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
-                                            }`}
+                                            className={`w-full text-left px-4 py-3 border-b last:border-b-0 flex items-center gap-3 transition-colors ${
+                                                d ? "border-white/5" : "border-gray-100"
+                                            } ${isSelected ? `${roomItemSelected} border-l-[3px]` : `${roomItemHover} border-l-[3px] border-l-transparent`}`}
                                         >
                                             <DoorOpen
                                                 className={`w-4 h-4 flex-shrink-0 ${
-                                                    isSelected ? "text-blue-600" : "text-gray-400"
+                                                    isSelected ? iconCl : loaderCl
                                                 }`}
                                             />
                                             <div className="min-w-0 flex-1">
                                                 <p
                                                     className={`text-sm font-medium truncate ${
-                                                        isSelected ? "text-blue-700" : "text-gray-700"
+                                                        isSelected ? roomItemTextSelected : roomItemText
                                                     }`}
                                                 >
                                                     {room.name}
                                                 </p>
-                                                <p className="text-[11px] text-gray-400">
+                                                <p className={`text-[11px] ${emptyCl}`}>
                                                     Этаж {room.floor}
                                                     {room.capacity ? ` • до ${room.capacity} чел.` : ""}
                                                 </p>
@@ -574,34 +611,34 @@ export function SmartHomeManagement() {
                 {/* Main Content – Room Detail */}
                 <div className="flex-1 min-w-0">
                     {!selectedRoom ? (
-                        <div className="bg-white border border-gray-200 rounded-xl flex items-center justify-center py-16">
+                        <div className={`${cardBg} border ${cardBorder} rounded-xl flex items-center justify-center py-16`}>
                             <div className="text-center">
-                                <Settings2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                <p className="text-gray-500 text-sm">Выберите кабинет для управления</p>
+                                <Settings2 className={`w-12 h-12 mx-auto mb-3 ${emptyCl}`} />
+                                <p className={`${mutedCl} text-sm`}>Выберите кабинет для управления</p>
                             </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {/* Room Header */}
-                            <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
-                                <h3 className="text-base font-bold text-gray-900">
+                            <div className={`${cardBg} border ${cardBorder} rounded-xl px-5 py-4`}>
+                                <h3 className={`text-base font-bold ${titleCl}`}>
                                     {selectedRoom.name}{" "}
-                                    <span className="font-normal text-gray-500">({selectedOffice?.name})</span>
+                                    <span className={`font-normal ${mutedCl}`}>({selectedOffice?.name})</span>
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-0.5">
+                                <p className={`text-sm ${mutedCl} mt-0.5`}>
                                     Офис: {selectedOffice?.name} &bull; Этаж: {selectedRoom.floor}-й
                                 </p>
                             </div>
 
                             {/* ===== Devices Section ===== */}
-                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className={`${cardBg} border ${cardBorder} rounded-xl overflow-hidden`}>
                                 <button
                                     onClick={() => setDevicesExpanded(!devicesExpanded)}
-                                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                    className={`w-full px-5 py-4 flex items-center justify-between transition-colors ${btnGhost}`}
                                 >
-                                    <h4 className="text-sm font-semibold text-gray-800">Устройства в кабинете</h4>
+                                    <h4 className={`text-sm font-semibold ${rowText}`}>Устройства в кабинете</h4>
                                     <ChevronDown
-                                        className={`w-5 h-5 text-gray-400 transition-transform ${
+                                        className={`w-5 h-5 transition-transform ${loaderCl} ${
                                             devicesExpanded ? "" : "-rotate-90"
                                         }`}
                                     />
@@ -611,11 +648,11 @@ export function SmartHomeManagement() {
                                     <div className="px-5 pb-4">
                                         {loadingDevices ? (
                                             <div className="flex items-center justify-center py-6">
-                                                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                                <span className="ml-2 text-sm text-gray-500">Загрузка устройств...</span>
+                                                <Loader2 className={`w-5 h-5 animate-spin ${loaderCl}`} />
+                                                <span className={`ml-2 text-sm ${mutedCl}`}>Загрузка устройств...</span>
                                             </div>
                                         ) : roomLinkedDevices.length === 0 && !showAddDevice ? (
-                                            <p className="text-sm text-gray-400 py-3">Нет устройств в этом кабинете</p>
+                                            <p className={`text-sm py-3 ${emptyCl}`}>Нет устройств в этом кабинете</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 {roomLinkedDevices.map((rd) => {
@@ -628,27 +665,26 @@ export function SmartHomeManagement() {
                                                     return (
                                                         <div
                                                             key={rd.id}
-                                                            className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg border border-gray-100"
+                                                            className={`flex items-center justify-between py-3 px-3 rounded-lg border ${rowBg}`}
                                                         >
                                                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                 <DeviceIcon
                                                                     className={`w-5 h-5 flex-shrink-0 ${
-                                                                        isOn ? "text-yellow-500" : "text-gray-400"
+                                                                        isOn ? "text-yellow-500" : loaderCl
                                                                     }`}
                                                                 />
-                                                                <span className="text-sm font-medium text-gray-800 truncate">
+                                                                <span className={`text-sm font-medium truncate ${rowText}`}>
                                                                     {rd.device_name}
                                                                 </span>
                                                             </div>
 
                                                             <div className="flex items-center gap-2">
-                                                                {/* Toggle */}
                                                                 {yDevice && isOn !== null && (
                                                                     <button
                                                                         onClick={() => handleToggleDevice(yDevice)}
                                                                         disabled={isControllingThis}
                                                                         className={`relative w-12 h-6 rounded-full transition-colors ${
-                                                                            isOn ? "bg-blue-500" : "bg-gray-300"
+                                                                            isOn ? (d ? "bg-[#E85D2B]" : "bg-blue-500") : (d ? "bg-white/20" : "bg-gray-300")
                                                                         } ${isControllingThis ? "opacity-50" : ""}`}
                                                                     >
                                                                         {isControllingThis ? (
@@ -665,16 +701,15 @@ export function SmartHomeManagement() {
                                                                     </button>
                                                                 )}
 
-                                                                {/* Delete device */}
                                                                 <button
                                                                     onClick={() => handleDeleteDevice(rd)}
                                                                     disabled={isDeletingThis}
-                                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    className={`p-1.5 rounded-lg transition-colors ${btnGhost}`}
                                                                 >
                                                                     {isDeletingThis ? (
-                                                                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                                                        <Loader2 className={`w-4 h-4 animate-spin ${loaderCl}`} />
                                                                     ) : (
-                                                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                                                        <Trash2 className={`w-4 h-4 ${d ? "text-white/50 hover:text-red-400" : "text-gray-400 hover:text-red-500"}`} />
                                                                     )}
                                                                 </button>
                                                             </div>
@@ -684,19 +719,18 @@ export function SmartHomeManagement() {
                                             </div>
                                         )}
 
-                                        {/* Add device form */}
                                         {showAddDevice ? (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
-                                                <p className="text-sm font-medium text-blue-800">Добавить устройство</p>
+                                            <div className={`mt-3 p-3 rounded-lg border space-y-3 ${addFormBg}`}>
+                                                <p className={`text-sm font-medium ${addFormText}`}>Добавить устройство</p>
                                                 <select
                                                     value={selectedNewDevice}
                                                     onChange={(e) => setSelectedNewDevice(e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:border-blue-400"
+                                                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none ${addFormInput}`}
                                                 >
                                                     <option value="">Выберите устройство</option>
-                                                    {getAvailableDevices().map((d) => (
-                                                        <option key={d.id} value={d.id}>
-                                                            {d.name} {d.type ? `(${d.type.replace("devices.types.", "")})` : ""}
+                                                    {getAvailableDevices().map((dev) => (
+                                                        <option key={dev.id} value={dev.id}>
+                                                            {dev.name} {dev.type ? `(${dev.type.replace("devices.types.", "")})` : ""}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -704,7 +738,7 @@ export function SmartHomeManagement() {
                                                     <button
                                                         onClick={handleAddDevice}
                                                         disabled={!selectedNewDevice || isAddingDevice}
-                                                        className="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        className={`flex-1 text-sm font-medium py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${btnPrimary}`}
                                                     >
                                                         {isAddingDevice ? (
                                                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -718,7 +752,7 @@ export function SmartHomeManagement() {
                                                             setShowAddDevice(false)
                                                             setSelectedNewDevice("")
                                                         }}
-                                                        className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                                        className={`px-4 py-2 text-sm rounded-lg ${btnCancel}`}
                                                     >
                                                         Отмена
                                                     </button>
@@ -727,7 +761,7 @@ export function SmartHomeManagement() {
                                         ) : (
                                             <button
                                                 onClick={() => setShowAddDevice(true)}
-                                                className="mt-3 w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                                className={`mt-3 w-full py-2.5 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${btnPrimary}`}
                                             >
                                                 <Plus className="w-4 h-4" />
                                                 Добавить устройство
@@ -738,14 +772,14 @@ export function SmartHomeManagement() {
                             </div>
 
                             {/* ===== Employee Access Section ===== */}
-                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className={`${cardBg} border ${cardBorder} rounded-xl overflow-hidden`}>
                                 <button
                                     onClick={() => setAccessExpanded(!accessExpanded)}
-                                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                    className={`w-full px-5 py-4 flex items-center justify-between transition-colors ${btnGhost}`}
                                 >
-                                    <h4 className="text-sm font-semibold text-gray-800">Доступы сотрудников</h4>
+                                    <h4 className={`text-sm font-semibold ${rowText}`}>Доступы сотрудников</h4>
                                     <ChevronDown
-                                        className={`w-5 h-5 text-gray-400 transition-transform ${
+                                        className={`w-5 h-5 transition-transform ${loaderCl} ${
                                             accessExpanded ? "" : "-rotate-90"
                                         }`}
                                     />
@@ -753,27 +787,26 @@ export function SmartHomeManagement() {
 
                                 {accessExpanded && (
                                     <div className="px-5 pb-4">
-                                        {/* Filter */}
                                         {roomSubscriptions.length > 0 && (
                                             <div className="relative mb-3">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${loaderCl}`} />
                                                 <input
                                                     type="text"
                                                     placeholder="Показать фильтру"
                                                     value={employeeFilter}
                                                     onChange={(e) => setEmployeeFilter(e.target.value)}
-                                                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-blue-400"
+                                                    className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none ${d ? "bg-[#1A1A1A] border-white/10 text-white placeholder:text-white/40 focus:border-[#E85D2B]" : "border-gray-200 bg-gray-50 focus:border-blue-400"}`}
                                                 />
                                             </div>
                                         )}
 
                                         {loadingSubscriptions ? (
                                             <div className="flex items-center justify-center py-6">
-                                                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                                <span className="ml-2 text-sm text-gray-500">Загрузка...</span>
+                                                <Loader2 className={`w-5 h-5 animate-spin ${loaderCl}`} />
+                                                <span className={`ml-2 text-sm ${mutedCl}`}>Загрузка...</span>
                                             </div>
                                         ) : roomSubscriptions.length === 0 && !showAddEmployee ? (
-                                            <p className="text-sm text-gray-400 py-3">Нет сотрудников с доступом</p>
+                                            <p className={`text-sm py-3 ${emptyCl}`}>Нет сотрудников с доступом</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 {roomSubscriptions
@@ -789,23 +822,23 @@ export function SmartHomeManagement() {
                                                         return (
                                                             <div
                                                                 key={sub.id}
-                                                                className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg border border-gray-100"
+                                                                className={`flex items-center justify-between py-3 px-3 rounded-lg border ${rowBg}`}
                                                             >
                                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                                                        <Users className="w-4 h-4 text-gray-500" />
+                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${userAvatarBg}`}>
+                                                                        <Users className={`w-4 h-4 ${userAvatarIcon}`} />
                                                                     </div>
                                                                     <div className="min-w-0">
-                                                                        <p className="text-sm font-medium text-gray-800 truncate">
+                                                                        <p className={`text-sm font-medium truncate ${rowText}`}>
                                                                             {name}
                                                                         </p>
-                                                                        <p className="text-[11px] text-green-600">Доступ активен</p>
+                                                                        <p className={`text-[11px] ${accessLabel}`}>Доступ активен</p>
                                                                     </div>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleDeleteSubscription(sub)}
                                                                     disabled={isDeletingThis}
-                                                                    className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                                                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 border ${btnRemove}`}
                                                                 >
                                                                     {isDeletingThis ? (
                                                                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -819,10 +852,9 @@ export function SmartHomeManagement() {
                                             </div>
                                         )}
 
-                                        {/* Add employee form */}
                                         {showAddEmployee ? (
-                                            <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
-                                                <p className="text-sm font-medium text-green-800">Добавить сотрудника</p>
+                                            <div className={`mt-3 p-3 rounded-lg border space-y-3 ${addFormGreenBg}`}>
+                                                <p className={`text-sm font-medium ${addFormGreenText}`}>Добавить сотрудника</p>
                                                 <select
                                                     value={selectedNewEmployee === "" ? "" : selectedNewEmployee.toString()}
                                                     onChange={(e) =>
@@ -830,7 +862,7 @@ export function SmartHomeManagement() {
                                                             e.target.value === "" ? "" : parseInt(e.target.value)
                                                         )
                                                     }
-                                                    className="w-full px-3 py-2 text-sm border border-green-200 rounded-lg bg-white focus:outline-none focus:border-green-400"
+                                                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none ${addFormGreenInput}`}
                                                 >
                                                     <option value="">Выберите сотрудника</option>
                                                     {getAvailableEmployees().map((u) => (
@@ -843,7 +875,7 @@ export function SmartHomeManagement() {
                                                     <button
                                                         onClick={handleAddEmployee}
                                                         disabled={!selectedNewEmployee || isAddingEmployee}
-                                                        className="flex-1 bg-green-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        className={`flex-1 text-white text-sm font-medium py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${btnGreen}`}
                                                     >
                                                         {isAddingEmployee ? (
                                                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -857,7 +889,7 @@ export function SmartHomeManagement() {
                                                             setShowAddEmployee(false)
                                                             setSelectedNewEmployee("")
                                                         }}
-                                                        className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                                        className={`px-4 py-2 text-sm rounded-lg ${btnCancel}`}
                                                     >
                                                         Отмена
                                                     </button>
@@ -866,16 +898,15 @@ export function SmartHomeManagement() {
                                         ) : (
                                             <button
                                                 onClick={() => setShowAddEmployee(true)}
-                                                className="mt-3 w-full py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                                className={`mt-3 w-full py-2.5 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${btnGreen}`}
                                             >
                                                 <Plus className="w-4 h-4" />
                                                 Добавить сотрудника
                                             </button>
                                         )}
 
-                                        {/* Count */}
                                         {roomSubscriptions.length > 0 && (
-                                            <p className="mt-3 text-xs text-gray-500">
+                                            <p className={`mt-3 text-xs ${mutedCl}`}>
                                                 Показаны {roomSubscriptions.length} из {roomSubscriptions.length} сотрудников
                                             </p>
                                         )}

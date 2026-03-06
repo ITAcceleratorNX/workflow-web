@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,17 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { BottomNav } from "@/components/BottomNav";
+import { RequestDetails } from "@/components/RequestDetails";
+import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
 
 type OfficeType = { id: number; name: string; city?: string; address?: string };
 
 export default function ManagerRequestsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token } = useAuthStore();
+  const requestIdFromUrl = searchParams?.get("requestId");
 
   const { requests, setRequests } = useRequestStore();
 
@@ -92,16 +96,11 @@ export default function ManagerRequestsPage() {
   }, []);
 
   useEffect(() => {
-    if (isDesktop) {
-      router.push("/manager");
-      return;
-    }
     fetchRequests(1);
     fetchOffices();
-  }, [isDesktop, router]);
+  }, []);
 
   useEffect(() => {
-    if (isDesktop) return;
     fetchRequests(1);
   }, [filterStatus, filterType]);
 
@@ -169,11 +168,144 @@ export default function ManagerRequestsPage() {
     );
   }, []);
 
+  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
+
+  const displayRequest = useMemo(() => {
+    if (selectedRequest) return selectedRequest;
+    if (requestIdFromUrl) return requests.find((r) => String(r.id) === requestIdFromUrl) ?? null;
+    return null;
+  }, [selectedRequest, requestIdFromUrl, requests]);
+
   const handleCardClick = (request: RequestGroup) => {
-    router.push(`/manager/requests/${request.id}`);
+    if (isDesktop) {
+      setSelectedRequest(request);
+      router.push(`/manager/requests?requestId=${request.id}`, { scroll: false });
+    } else {
+      router.push(`/manager/requests/${request.id}`);
+    }
   };
 
-  if (isDesktop) return null;
+  const handleClosePanel = () => {
+    setSelectedRequest(null);
+    router.push("/manager/requests", { scroll: false });
+  };
+
+  const handleRequestUpdated = () => {
+    fetchRequests(1);
+    setSelectedRequest(null);
+    router.push("/manager/requests", { scroll: false });
+  };
+
+  if (isDesktop) {
+    const listContent = (
+      <>
+        {loading ? (
+          <div className="text-center py-12 text-white/60">Загрузка...</div>
+        ) : (
+          filteredRequests.map((request) => (
+            <RequestCard
+              key={request.id}
+              request={request}
+              onCardClick={handleCardClick}
+              renderCardHeader={renderCardHeader}
+              userRole="manager"
+              variant="compact"
+            />
+          ))
+        )}
+        {!loading && filteredRequests.length === 0 && (
+          <div className="text-center py-12 text-white/60">Нет заявок</div>
+        )}
+        {!loading && hasMore && filteredRequests.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              className="bg-transparent border-white/20 text-white hover:bg-[#E04A0A]"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Загрузить ещё
+            </Button>
+          </div>
+        )}
+      </>
+    );
+
+    const filtersContent = (
+      <>
+        <Select value={office} onValueChange={setOffice}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Офис" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все офисы</SelectItem>
+            {offices.map((o) => (
+              <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "year")}>
+          <SelectTrigger className="w-[120px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Период" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="week">Неделя</SelectItem>
+            <SelectItem value="month">Месяц</SelectItem>
+            <SelectItem value="year">Год</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="in_progress">В обработке</SelectItem>
+            <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
+            <SelectItem value="execution">Исполнение</SelectItem>
+            <SelectItem value="completed">Завершено</SelectItem>
+            <SelectItem value="overdue">Просрочено</SelectItem>
+            <SelectItem value="long_term">Долгосрочные</SelectItem>
+            <SelectItem value="rejected">Отклонено</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
+            <SelectValue placeholder="Тип" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#2C2C2E] border-white/10">
+            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="normal">Обычная</SelectItem>
+            <SelectItem value="urgent">Экстренная</SelectItem>
+            <SelectItem value="planned">Плановая</SelectItem>
+          </SelectContent>
+        </Select>
+      </>
+    );
+
+    return (
+      <AdminManagerRequestsDesktopFrame
+        filtersSlot={filtersContent}
+        listSlot={listContent}
+        detailSlot={
+          displayRequest ? (
+            <RequestDetails
+              request={displayRequest}
+              onClose={handleClosePanel}
+              onRequestUpdated={handleRequestUpdated}
+              userRole="manager"
+              sourceTab="myTasks"
+              hideFullModeButton
+              embedInPanel
+            />
+          ) : null
+        }
+        displayRequestId={displayRequest?.id}
+        onCloseDetail={handleClosePanel}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1C1C1E] pb-[calc(120px+env(safe-area-inset-bottom,0px))]">

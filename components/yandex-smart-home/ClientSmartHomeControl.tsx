@@ -182,7 +182,7 @@ export function ClientSmartHomeControl() {
                             Управление умным домом
                         </span>
                     </CardTitle>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-white/90">
                         Выберите комнату и управляйте устройствами
                     </CardDescription>
                 </CardHeader>

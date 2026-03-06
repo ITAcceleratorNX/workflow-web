@@ -12,6 +12,10 @@
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 197 70% 25%;
     --primary-foreground: 210 40% 98%;
+    /* Desktop admin/manager theme tokens (Background #1A1A1A, Primary #E85D2B, Accent #2A9D8F) */
+    --desktop-bg: 0 0% 10%;
+    --desktop-primary: 14 80% 56%;
+    --desktop-accent: 168 58% 39%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222.2 84% 4.9%;
     --muted: 210 40% 96%;
@@ -390,6 +394,183 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   body.manager-mobile [data-radix-select-viewport] [data-highlighted] {
     background-color: #3A3A3C !important;
     color: #ffffff !important;
+  }
+}
+
+/* Client desktop: тёмная тема контента (как у admin/manager), только десктоп */
+@media (min-width: 768px) {
+  .client-desktop-content .rounded-lg.border,
+  .client-desktop-content .bg-white,
+  .client-desktop-content [class*="bg-card"],
+  .client-desktop-content .border {
+    background-color: #2C2C2E !important;
+    border-color: #3A3A3C !important;
+  }
+  .client-desktop-content .bg-muted,
+  .client-desktop-content [class*="bg-muted"] {
+    background-color: #1C1C1E !important;
+  }
+  .client-desktop-content .text-gray-900,
+  .client-desktop-content .text-gray-800,
+  .client-desktop-content .text-card-foreground {
+    color: #ffffff !important;
+  }
+  .client-desktop-content .text-gray-600,
+  .client-desktop-content .text-gray-500,
+  .client-desktop-content .text-muted-foreground {
+    color: #8E8E93 !important;
+  }
+  .client-desktop-content .bg-gray-50,
+  .client-desktop-content .bg-gray-100,
+  .client-desktop-content .bg-gray-200 {
+    background-color: #2C2C2E !important;
+  }
+  .client-desktop-content .border-gray-200,
+  .client-desktop-content .border-gray-100 {
+    border-color: #3A3A3C !important;
+  }
+  .client-desktop-content [class*="from-white"],
+  .client-desktop-content [class*="to-white"] {
+    background-color: #2C2C2E !important;
+    background-image: none !important;
+  }
+  .client-desktop-content button.bg-gray-200:hover,
+  .client-desktop-content [class*="hover:bg-gray-300"]:hover {
+    background-color: #3A3A3C !important;
+  }
+
+  /* Клиент десктоп — в одном стиле с админом/менеджером (тёмная оболочка + оранжевый акцент) */
+  .client-desktop-dark,
+  .client-desktop-content {
+    --client-accent: #E85D2B;
+    --client-bg-card: #2C2C2E;
+    --client-bg-muted: #1C1C1E;
+    --client-border: #3A3A3C;
+    --client-border-subtle: #212121;
+  }
+  .client-desktop-dark .rounded-lg.border,
+  .client-desktop-dark .bg-white,
+  .client-desktop-dark [class*="bg-card"],
+  .client-desktop-dark .border,
+  .client-desktop-dark .border-2 {
+    background-color: var(--client-bg-card) !important;
+    border-color: var(--client-border) !important;
+  }
+  .client-desktop-dark .bg-muted,
+  .client-desktop-dark .bg-gray-50,
+  .client-desktop-dark .bg-gray-100,
+  .client-desktop-dark .bg-gray-200 {
+    background-color: var(--client-bg-muted) !important;
+  }
+  .client-desktop-dark .text-gray-900,
+  .client-desktop-dark .text-gray-800,
+  .client-desktop-dark .text-gray-700 {
+    color: #ffffff !important;
+  }
+  .client-desktop-dark .text-gray-600,
+  .client-desktop-dark .text-gray-500 {
+    color: #8E8E93 !important;
+  }
+  .client-desktop-dark [class*="bg-gradient-to-r"] {
+    background: var(--client-accent) !important;
+    background-image: none !important;
+  }
+  /* Activity Tracker внутри клиента: синие/серые блоки в тёмную тему */
+  .client-desktop-dark .bg-blue-50,
+  .client-desktop-dark .bg-green-50,
+  .client-desktop-dark [class*="bg-blue-"],
+  .client-desktop-dark [class*="bg-green-"] {
+    background-color: var(--client-bg-card) !important;
+    border-color: var(--client-border) !important;
+  }
+  .client-desktop-dark .text-green-600,
+  .client-desktop-dark .text-green-900 {
+    color: #86efac !important;
+  }
+  .client-desktop-dark .text-blue-900,
+  .client-desktop-dark .text-blue-800,
+  .client-desktop-dark .text-blue-700,
+  .client-desktop-dark .text-blue-600 {
+    color: #ffffff !important;
+  }
+  .client-desktop-dark .border-blue-200 {
+    border-color: var(--client-border) !important;
+  }
+  .client-desktop-dark .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+  }
+  .client-desktop-dark .text-red-700 {
+    color: #fca5a5 !important;
+  }
+  /* Кнопка «Остановить» в Activity Tracker — оранжевая, не красная */
+  .client-desktop-dark button[class*="destructive"],
+  .client-desktop-dark .bg-destructive {
+    background-color: var(--client-accent) !important;
+    border-color: var(--client-accent) !important;
+    color: #fff !important;
+  }
+  .client-desktop-dark button[class*="destructive"]:hover {
+    background-color: #E04A0A !important;
+    border-color: #E04A0A !important;
+  }
+  /* Вкладки в Activity Tracker — активная оранжевая */
+  .client-desktop-dark [data-state="active"] {
+    background-color: var(--client-accent) !important;
+    color: #ffffff !important;
+  }
+  .client-desktop-dark [role="tablist"] {
+    background-color: var(--client-bg-card) !important;
+    border-color: var(--client-border);
+  }
+  .client-desktop-dark [role="tab"]:not([data-state="active"]) {
+    color: #8E8E93 !important;
+  }
+  /* Клиент десктоп: инпуты/селекты как на мобильном */
+  .client-desktop-content input,
+  .client-desktop-content select,
+  .client-desktop-content textarea {
+    border-color: var(--client-border-subtle, #212121) !important;
+    background-color: var(--client-bg-muted, #1C1C1E) !important;
+    color: #ffffff !important;
+  }
+  .client-desktop-content input::placeholder,
+  .client-desktop-content textarea::placeholder {
+    color: #8E8E93 !important;
+  }
+  .client-desktop-content label {
+    color: #ffffff !important;
+  }
+  .client-desktop-content button[class*="bg-"].bg-primary,
+  .client-desktop-content .bg-primary {
+    background-color: var(--client-accent) !important;
+  }
+  .client-desktop-content .text-primary {
+    color: var(--client-accent) !important;
+  }
+}
+
+/* Клиент мобильный: тёмная оранжевая тема для Умный дом / Activity трекер */
+@media (max-width: 767px) {
+  .client-mobile-dark .rounded-lg.border,
+  .client-mobile-dark .bg-white,
+  .client-mobile-dark [class*="bg-card"],
+  .client-mobile-dark .border {
+    background-color: #2C2C2E !important;
+    border-color: #3A3A3C !important;
+  }
+  .client-mobile-dark .text-gray-900,
+  .client-mobile-dark .text-gray-800,
+  .client-mobile-dark .text-gray-700 {
+    color: #ffffff !important;
+  }
+  .client-mobile-dark .text-gray-600,
+  .client-mobile-dark .text-gray-500 {
+    color: #8E8E93 !important;
+  }
+  .client-mobile-dark [class*="bg-gradient-to-r"] {
+    background: #E85D2B !important;
+    background-image: none !important;
   }
 }
 

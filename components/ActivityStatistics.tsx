@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/useAuthStore"
 import { useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { ActivityTracker } from "@/components/ActivityTracker"
+import { formatDateOnly } from "@/lib/dateTimeUtils"
 
 interface DailyStatistics {
   date: string
@@ -415,7 +416,7 @@ export function ActivityStatistics({ userId, isAdmin = false }: ActivityStatisti
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 flex-shrink-0" />
                         <span className="text-xs sm:text-sm font-medium break-words">
-                          {new Date(day.date).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+                          {formatDateOnly(day.date)}
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm">

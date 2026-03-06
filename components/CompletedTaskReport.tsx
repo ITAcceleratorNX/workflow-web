@@ -1,4 +1,5 @@
 import type React from "react"
+import { formatDateTime } from "@/lib/dateTimeUtils"
 
 interface CompletedTaskReportProps {
   subRequest: any
@@ -7,16 +8,6 @@ interface CompletedTaskReportProps {
 }
 
 export const CompletedTaskReport: React.FC<CompletedTaskReportProps> = ({ subRequest, isDesktop, onPhotoClick }) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
   const hasReport = subRequest.comment || (subRequest.photos && subRequest.photos.length > 0)
 
   if (!hasReport) return null
@@ -25,7 +16,7 @@ export const CompletedTaskReport: React.FC<CompletedTaskReportProps> = ({ subReq
       <div className="bg-white border border-gray-200 rounded-lg p-2 sm:p-4 mb-2 sm:mb-4">
         <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-3 mb-2 sm:mb-3">
           {subRequest.actual_completion_date && (
-              <div className="text-xs sm:text-sm text-gray-400">{formatDate(subRequest.actual_completion_date)}</div>
+              <div className="text-xs sm:text-sm text-gray-400">{formatDateTime(subRequest.actual_completion_date)}</div>
           )}
         </div>
 

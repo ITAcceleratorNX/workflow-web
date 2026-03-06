@@ -7,9 +7,11 @@ import { useAuthStore } from "@/stores/useAuthStore";
 interface BottomNavProps {
     activeTab?: 'home' | 'booking' | 'requests' | 'help' | 'profile' | 'history' | 'chat' | 'statistics';
     hidden?: boolean;
+    /** Тёмный фон под панелью (для страниц с тёмной темой, напр. заявки клиента) */
+    darkBackground?: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, hidden = false }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, hidden = false, darkBackground = false }) => {
     const { role } = useAuthStore()
     const pathname = usePathname()
 
@@ -28,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         : role === 'manager' ? '/manager/requests'
         : '/create-request'
     const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : '/chat-bot'
-    const profileHref = '/profile'
+    const profileHref = role === 'department-head' ? '/department-head/profile' : role === 'admin-worker' ? '/admin-worker/profile' : role === 'manager' ? '/manager/profile' : '/profile'
 
     // Цвета: активная вкладка — ярко белая, неактивные — приглушённые (хорошо видно на оранжевом)
     const activeColor = '#FFFFFF'
@@ -86,7 +88,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         if (path === bookingHref || path.startsWith('/meeting-rooms')) return 'booking'
         if (path === requestsHref || path === '/requests' || path === '/create-request' || path.startsWith('/admin-worker/requests') || path.startsWith('/department-head/requests') || path.startsWith('/executor/requests') || path.startsWith('/manager/requests')) return 'requests'
         if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/department-head/messages')) return 'help'
-        if (path === profileHref || path.startsWith('/profile')) return 'profile'
+        if (path === profileHref || path.startsWith('/profile') || path.startsWith('/department-head/profile') || path.startsWith('/admin-worker/profile') || path.startsWith('/manager/profile')) return 'profile'
         return undefined
     }
     const normalizeActiveTab = (tab: string | undefined): string | undefined => {
@@ -107,12 +109,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
 
     return (
         <>
-        {/* Фон под навбаром и safe area — прозрачный */}
+        {/* Фон под навбаром и safe area — тёмный на странице заявок, иначе прозрачный */}
         <div 
             className="md:hidden fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
             style={{
                 height: 'calc(73px + env(safe-area-inset-bottom, 0px))',
-                background: 'transparent',
+                background: darkBackground ? '#1C1C1E' : 'transparent',
             }}
         />
         <nav 

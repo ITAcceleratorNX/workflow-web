@@ -20,7 +20,7 @@ export default function AdminRequestDetailPage() {
 
   useEffect(() => {
     if (isDesktop) {
-      router.replace(`/admin-worker?tab=incoming&requestId=${id}`);
+      router.replace(`/admin-worker/requests?requestId=${id}`);
       return;
     }
   }, [isDesktop, router, id]);

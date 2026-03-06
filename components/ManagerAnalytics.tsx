@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Clock, Star, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
@@ -85,10 +85,13 @@ interface DetailedStats {
   }>;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#E85D2B', '#E85D2B', '#E85D2B', '#E85D2B', '#E85D2B'];
+const COLORS_DARK = ['#E85D2B', '#f07a4a', '#f4976d', '#f8b490', '#fcd1b3'];
 
-const CHART_MOBILE_TICK = { fill: "#8E8E93" };
-const CHART_MOBILE_GRID = "#3A3A3C";
+const CHART_TICK = { fill: "#8E8E93" };
+const CHART_GRID = "rgba(255,255,255,0.1)";
+const CHART_TOOLTIP = { background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 };
+const CHART_LABEL = { color: "#fff" };
 
 export default function ManagerAnalytics() {
   const [slaStats, setSlaStats] = useState<SLAStats | null>(null);
@@ -100,6 +103,12 @@ export default function ManagerAnalytics() {
   const [offices, setOffices] = useState<any[]>([]);
   const [executors, setExecutors] = useState<any[]>([]);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const cardCl = isDesktop ? "rounded-xl border border-white/10 bg-[#2C2C2E]" : "rounded-xl border-[#3A3A3C] bg-[#2C2C2E]";
+  const titleCl = isDesktop ? "text-white" : "text-white";
+  const descCl = isDesktop ? "text-white/60" : "text-[#8E8E93]";
+  const chartStroke = isDesktop ? "#E85D2B" : "#8884d8";
+  const chartFill = isDesktop ? "#E85D2B" : "#8884d8";
 
   useEffect(() => {
     fetchAnalytics();
@@ -165,21 +174,21 @@ export default function ManagerAnalytics() {
     positive?: boolean;
     bg: string;
   }) => (
-    <Card className={`min-w-0 ${!isDesktop ? "border-[#3A3A3C]" : ""}`}>
+    <Card className={`min-w-0 rounded-xl ${cardCl}`}>
       <CardContent className="p-4">
         <div className="flex items-center">
-          <div className={`p-2 rounded-lg flex-shrink-0 ${!isDesktop ? "bg-white/10" : bg}`}>{icon}</div>
+          <div className={`p-2 rounded-xl flex-shrink-0 ${isDesktop ? "bg-[#E85D2B]/20 [&_svg]:text-[#E85D2B]" : "bg-white/10"}`}>{icon}</div>
           <div className="ml-3 min-w-0 flex-1">
-            <p className={`text-sm truncate ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>{title}</p>
-            <p className={`text-xl font-bold truncate ${!isDesktop ? "text-white" : ""}`}>{value}</p>
+            <p className={`text-sm truncate ${descCl}`}>{title}</p>
+            <p className="text-xl font-bold truncate text-white">{value}</p>
             {delta && (
               <div className="flex items-center text-xs mt-1">
                 {positive ? (
-                  <TrendingUp className={`w-3 h-3 mr-1 ${!isDesktop ? "text-green-400" : "text-green-500"}`} />
+                  <TrendingUp className={`w-3 h-3 mr-1 ${isDesktop ? "text-[#E85D2B]" : "text-green-400"}`} />
                 ) : (
-                  <TrendingDown className={`w-3 h-3 mr-1 ${!isDesktop ? "text-red-400" : "text-red-500"}`} />
+                  <TrendingDown className="w-3 h-3 mr-1 text-red-400" />
                 )}
-                <span className={positive ? (!isDesktop ? "text-green-400" : "text-green-600") : (!isDesktop ? "text-red-400" : "text-red-600")}>{delta}</span>
+                <span className={positive ? (isDesktop ? "text-[#E85D2B]" : "text-green-400") : "text-red-400"}>{delta}</span>
               </div>
             )}
           </div>
@@ -209,7 +218,7 @@ export default function ManagerAnalytics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className={!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}>Загрузка аналитики...</div>
+        <div className={isDesktop ? "text-white/60" : "text-[#8E8E93]"}>Загрузка аналитики...</div>
       </div>
     );
   }
@@ -220,20 +229,20 @@ export default function ManagerAnalytics() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="w-full mb-3">
-          <div className="overflow-x-auto">
-            <TabsList className={`${isDesktop ? "grid grid-cols-3 w-full" : "flex w-max min-w-full gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1"}`}>
-              <TabsTrigger value="sla" className={`${isDesktop ? "" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
+        <div className="w-full mb-3 min-w-0">
+          <TabsListScrollArea>
+            <TabsList className={`flex flex-nowrap flex-shrink-0 gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/80 p-1 min-w-0 ${isDesktop ? "bg-[#2C2C2E] border-white/10 p-1.5 [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap" : ""}`}>
+              <TabsTrigger value="sla" className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 truncate ${isDesktop ? "data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
                 SLA
               </TabsTrigger>
-              <TabsTrigger value="ratings" className={`${isDesktop ? "" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
+              <TabsTrigger value="ratings" className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 truncate ${isDesktop ? "data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
                 Оценки
               </TabsTrigger>
-              <TabsTrigger value="detailed" className={`${isDesktop ? "" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
+              <TabsTrigger value="detailed" className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 truncate ${isDesktop ? "data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5" : "text-xs px-3 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]"}`}>
                 {isDesktop ? "Детальная статистика" : "Детальная"}
               </TabsTrigger>
             </TabsList>
-          </div>
+          </TabsListScrollArea>
         </div>
 
         <TabsContent value="sla" className="space-y-6">
@@ -253,30 +262,30 @@ export default function ManagerAnalytics() {
           </div>
 
           <div className={`grid gap-6 ${isDesktop ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 gap-4"}`}>
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Динамика SLA по времени</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Среднее время выполнения заявок по дням</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>Динамика SLA по времени</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Среднее время выполнения заявок по дням</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? "h-64" : "h-48"}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={slaStats?.byDate || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? CHART_MOBILE_GRID : undefined} />
-                      <XAxis dataKey="date" tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <YAxis tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <Tooltip contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
-                      <Line type="monotone" dataKey="avgHours" stroke="#8884d8" strokeWidth={2} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? CHART_GRID : "#3A3A3C"} />
+                      <XAxis dataKey="date" tick={CHART_TICK} />
+                      <YAxis tick={CHART_TICK} />
+                      <Tooltip contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
+                      <Line type="monotone" dataKey="avgHours" stroke={chartStroke} strokeWidth={2} dot={{ fill: chartFill }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>SLA по категориям</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Среднее время выполнения по категориям заявок</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>SLA по категориям</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Среднее время выполнения по категориям заявок</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? "h-64" : "h-48"}>
@@ -285,11 +294,11 @@ export default function ManagerAnalytics() {
                       ...item,
                       categoryName: getCategoryName(item.categoryId)
                     })) || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? CHART_MOBILE_GRID : undefined} />
-                      <XAxis dataKey="categoryName" tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <YAxis tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <Tooltip formatter={(value, name) => [value, name === "avgHours" ? "Средние часы" : name]} contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
-                      <Bar dataKey="avgHours" fill="#8884d8" name="Средние часы" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? CHART_GRID : "#3A3A3C"} />
+                      <XAxis dataKey="categoryName" tick={CHART_TICK} />
+                      <YAxis tick={CHART_TICK} />
+                      <Tooltip formatter={(value, name) => [value, name === "avgHours" ? "Средние часы" : name]} contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
+                      <Bar dataKey="avgHours" fill={chartFill} name="Средние часы" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -327,30 +336,30 @@ export default function ManagerAnalytics() {
           </div>
 
           <div className={`grid gap-6 ${isDesktop ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 gap-4"}`}>
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Динамика оценок</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Средние оценки по времени</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>Динамика оценок</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Средние оценки по времени</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? "h-64" : "h-48"}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={ratingStats?.byDate || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? CHART_MOBILE_GRID : undefined} />
-                      <XAxis dataKey="date" tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <YAxis tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <Tooltip contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
-                      <Line type="monotone" dataKey="avgRating" stroke="#8884d8" strokeWidth={2} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? CHART_GRID : "#3A3A3C"} />
+                      <XAxis dataKey="date" tick={CHART_TICK} />
+                      <YAxis tick={CHART_TICK} />
+                      <Tooltip contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
+                      <Line type="monotone" dataKey="avgRating" stroke={chartStroke} strokeWidth={2} dot={{ fill: chartFill }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Низкие оценки по офисам</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Количество оценок 1-2 по офисам</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>Низкие оценки по офисам</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Количество оценок 1-2 по офисам</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? "h-64" : "h-48"}>
@@ -359,11 +368,11 @@ export default function ManagerAnalytics() {
                       ...item,
                       officeName: isDataReady ? getOfficeName(item.officeId) : `Офис ${item.officeId}`
                     })) || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? CHART_MOBILE_GRID : undefined} />
-                      <XAxis dataKey="officeName" tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <YAxis tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <Tooltip formatter={(value, name) => [value, name === "lowRatings" ? "Низкие оценки" : name]} contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
-                      <Bar dataKey="lowRatings" fill="#ff6b6b" name="Низкие оценки" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? CHART_GRID : "#3A3A3C"} />
+                      <XAxis dataKey="officeName" tick={CHART_TICK} />
+                      <YAxis tick={CHART_TICK} />
+                      <Tooltip formatter={(value, name) => [value, name === "lowRatings" ? "Низкие оценки" : name]} contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
+                      <Bar dataKey="lowRatings" fill={isDesktop ? "#E85D2B" : "#ff6b6b"} name="Низкие оценки" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -371,29 +380,29 @@ export default function ManagerAnalytics() {
             </Card>
           </div>
 
-          <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+          <Card className={cardCl}>
             <CardHeader>
-              <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Оценки по категориям</CardTitle>
-              <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Средние оценки и количество низких оценок</CardDescription>
+              <CardTitle className={`text-lg ${titleCl}`}>Оценки по категориям</CardTitle>
+              <CardDescription className={`text-sm ${descCl}`}>Средние оценки и количество низких оценок</CardDescription>
             </CardHeader>
             <CardContent>
               <div className={`grid gap-4 ${isDesktop ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {!isDataReady && (
-                  <div className={`col-span-full text-center py-4 ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>
+                  <div className={`col-span-full text-center py-4 ${descCl}`}>
                     Загрузка данных...
                   </div>
                 )}
-                {ratingStats?.byCategory.map((item, index) => (
-                  <div key={item.categoryId} className={`p-4 border rounded-lg ${!isDesktop ? "border-[#3A3A3C]" : ""}`}>
+                {ratingStats?.byCategory.map((item) => (
+                  <div key={item.categoryId} className={`p-4 border rounded-xl ${isDesktop ? "border-white/10 bg-[#1A1A1A]/50" : "border-[#3A3A3C]"}`}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                      <span className={`font-medium truncate min-w-0 ${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-white" : ""}`}>
+                      <span className={`font-medium truncate min-w-0 text-sm ${titleCl}`}>
                         {isDataReady ? getCategoryName(item.categoryId) : `Категория ${item.categoryId}`}
                       </span>
-                      <Badge variant="outline" className={`flex-shrink-0 ${isDesktop ? "" : "text-xs border-[#3A3A3C] text-white"}`}>{item.avgRating}</Badge>
+                      <Badge variant="outline" className={`flex-shrink-0 ${isDesktop ? "border-[#E85D2B]/50 text-[#E85D2B]" : "text-xs border-[#3A3A3C] text-white"}`}>{item.avgRating}</Badge>
                     </div>
-                    <div className={`${isDesktop ? "text-sm text-gray-600" : "text-xs text-[#8E8E93]"}`}>
+                    <div className={`text-xs ${descCl}`}>
                       <div>Всего оценок: {item.totalRatings}</div>
-                      <div className={!isDesktop ? "text-red-400" : "text-red-600"}>Низких оценок: {item.lowRatings}</div>
+                      <div className="text-red-400">Низких оценок: {item.lowRatings}</div>
                     </div>
                   </div>
                 ))}
@@ -425,10 +434,10 @@ export default function ManagerAnalytics() {
           </div>
 
           <div className={`grid gap-6 ${isDesktop ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 gap-4"}`}>
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Статистика по категориям</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Распределение заявок по категориям</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>Статистика по категориям</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Распределение заявок по категориям</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? 'h-64' : 'h-48'}>
@@ -444,24 +453,24 @@ export default function ManagerAnalytics() {
                         labelLine={false}
                         label={({ categoryName, totalRequests }) => `${categoryName}: ${totalRequests}`}
                         outerRadius={isDesktop ? 80 : 60}
-                        fill="#8884d8"
+                        fill={chartFill}
                         dataKey="totalRequests"
                       >
                         {(detailedStats?.byCategory || []).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={isDesktop ? COLORS_DARK[index % COLORS_DARK.length] : COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
+                      <Tooltip contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+            <Card className={cardCl}>
               <CardHeader>
-                <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Статистика по исполнителям</CardTitle>
-                <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Количество назначенных и завершенных заявок</CardDescription>
+                <CardTitle className={`text-lg ${titleCl}`}>Статистика по исполнителям</CardTitle>
+                <CardDescription className={`text-sm ${descCl}`}>Количество назначенных и завершенных заявок</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className={isDesktop ? 'h-64' : 'h-48'}>
@@ -470,15 +479,15 @@ export default function ManagerAnalytics() {
                       ...item,
                       executorName: isDataReady ? getExecutorName(item.executorId) : `Исполнитель ${item.executorId}`
                     })) || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? CHART_MOBILE_GRID : undefined} />
-                      <XAxis dataKey="executorName" tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
-                      <YAxis tick={!isDesktop ? CHART_MOBILE_TICK : undefined} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? CHART_GRID : "#3A3A3C"} />
+                      <XAxis dataKey="executorName" tick={CHART_TICK} />
+                      <YAxis tick={CHART_TICK} />
                       <Tooltip formatter={(value, name) => [
                         value,
                         name === "totalAssigned" ? "Назначено" : name === "completedRequests" ? "Завершено" : name
-                      ]} contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
-                      <Bar dataKey="totalAssigned" fill="#8884d8" name="Назначено" />
-                      <Bar dataKey="completedRequests" fill="#82ca9d" name="Завершено" />
+                      ]} contentStyle={CHART_TOOLTIP} labelStyle={CHART_LABEL} />
+                      <Bar dataKey="totalAssigned" fill={chartFill} name="Назначено" />
+                      <Bar dataKey="completedRequests" fill={isDesktop ? "#f07a4a" : "#82ca9d"} name="Завершено" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -486,27 +495,27 @@ export default function ManagerAnalytics() {
             </Card>
           </div>
 
-          <Card className={!isDesktop ? "border-[#3A3A3C]" : ""}>
+          <Card className={cardCl}>
             <CardHeader>
-              <CardTitle className={`${isDesktop ? "" : "text-lg"} ${!isDesktop ? "text-white" : ""}`}>Детальная статистика по категориям</CardTitle>
-              <CardDescription className={`${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Полная информация по каждой категории</CardDescription>
+              <CardTitle className={`text-lg ${titleCl}`}>Детальная статистика по категориям</CardTitle>
+              <CardDescription className={`text-sm ${descCl}`}>Полная информация по каждой категории</CardDescription>
             </CardHeader>
             <CardContent>
               <div className={`grid gap-4 ${isDesktop ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {!isDataReady && (
-                  <div className={`col-span-full text-center py-4 ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>
+                  <div className={`col-span-full text-center py-4 ${descCl}`}>
                     Загрузка данных...
                   </div>
                 )}
                 {detailedStats?.byCategory.map((item) => (
-                  <div key={item.categoryId} className={`p-4 border rounded-lg ${!isDesktop ? "border-[#3A3A3C]" : ""}`}>
+                  <div key={item.categoryId} className={`p-4 border rounded-xl ${isDesktop ? "border-white/10 bg-[#1A1A1A]/50" : "border-[#3A3A3C]"}`}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                      <span className={`font-medium truncate min-w-0 ${isDesktop ? "" : "text-sm"} ${!isDesktop ? "text-white" : ""}`}>
+                      <span className={`font-medium truncate min-w-0 text-sm ${titleCl}`}>
                         {isDataReady ? getCategoryName(item.categoryId) : `Категория ${item.categoryId}`}
                       </span>
-                      <Badge variant="outline" className={`flex-shrink-0 ${isDesktop ? "" : "text-xs border-[#3A3A3C] text-white"}`}>{item.totalRequests}</Badge>
+                      <Badge variant="outline" className={`flex-shrink-0 ${isDesktop ? "border-[#E85D2B]/50 text-[#E85D2B]" : "text-xs border-[#3A3A3C] text-white"}`}>{item.totalRequests}</Badge>
                     </div>
-                    <div className={`space-y-1 ${isDesktop ? "text-sm text-gray-600" : "text-xs text-[#8E8E93]"}`}>
+                    <div className={`space-y-1 text-xs ${descCl}`}>
                       <div>Завершено: {item.completedRequests}</div>
                       <div>Новые: {item.newRequests}</div>
                       <div>В работе: {item.inWorkRequests}</div>
@@ -518,10 +527,14 @@ export default function ManagerAnalytics() {
           </Card>
         </TabsContent>
       </Tabs>
-      
-      <div className="mt-8">
-        <MeetingRoomStatistics variant={!isDesktop ? "dark" : "default"} />
-      </div>
+
+      {
+        !isDesktop && (
+              <div className="mt-8">
+                <MeetingRoomStatistics variant={"dark"} />
+              </div>
+          )
+      }
     </div>
   );
 }

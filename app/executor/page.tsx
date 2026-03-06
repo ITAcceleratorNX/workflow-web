@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useState, useMemo} from "react"
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Badge} from "@/components/ui/badge"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 
@@ -51,6 +51,7 @@ import {IconInfoModal} from "@/components/IconInfoModal";
 import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
+import { formatDateOnly, formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {RejectRequestModal} from "@/components/RejectRequestModal";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
@@ -69,6 +70,7 @@ import PhotoModal from "@/components/photo/PhotoModal";
 import { ExecutorRoomsRequestsView } from "@/components/meeting-rooms/ExecutorRoomsRequestsView";
 import {DeleteConfirmationModal} from "@/components/DeleteConfirmationModal";
 import { QRScanner } from "@/components/QRScanner";
+import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell";
 
 const API_BASE_URL = 'https://workflow-back-zpk4.onrender.com/api';
 
@@ -1023,7 +1025,7 @@ export default function ExecutorDashboard() {
   // Переключение вкладки из URL (для навигации с блоков)
   useEffect(() => {
     const tab = searchParams.get("tab")
-    const validTabs = ["meeting-rooms", "tasks", "myTasks", "completed", "scan-qr", "statistics"]
+    const validTabs = ["meeting-rooms", "tasks", "myTasks", "completed", "scan-qr", "statistics", "booking"]
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab)
     }
@@ -1639,13 +1641,7 @@ export default function ExecutorDashboard() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  const formatDate = (dateString: string) => formatDateOnly(dateString);
 
   const renderCardHeader = useCallback((requestGroup: RequestGroup) => {
     const isLongTerm = requestGroup.requests.some(req => req.is_long_term);
@@ -1750,8 +1746,115 @@ export default function ExecutorDashboard() {
     }
   };
 
+  const desktopTab = searchParams?.get("tab");
+  const isDesktopBooking = isDesktop && desktopTab === "booking";
+
   return (
       <>
+        {isDesktop ? (
+          <ExecutorDesktopShell
+            rightSlot={
+              <NotificationsSidebar
+                variant="dark"
+                onNotificationClick={handleNotificationClick}
+              />
+            }
+          >
+            <div className="client-desktop-content p-6 lg:p-8 max-w-6xl mx-auto">
+              {isDesktopBooking ? (
+                <div className="client-desktop-dark">
+                  <h1 className="text-xl font-semibold text-white mb-4">Бронирование</h1>
+                  <ExecutorRoomsRequestsView
+                    offices={offices}
+                    myRequests={myRequests}
+                    assignedRequests={assignedRequests}
+                    completedRequests={completedRequests}
+                    onRequestClick={(request) => router.push(`/executor/requests?requestId=${request.id}`)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <AlertTriangle className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Просрочено</p>
+                          <p className="text-xl font-bold text-white">{stats?.overdue ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <Clock className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">В работе</p>
+                          <p className="text-xl font-bold text-white">{stats?.inWork ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <CheckCircle className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Завершено</p>
+                          <p className="text-xl font-bold text-white">{stats?.completed ?? 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl p-5 bg-[#2C2C2E] border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[#E85D2B]/20">
+                          <Star className="w-5 h-5 text-[#E85D2B]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/70">Рейтинг</p>
+                          <p className="text-xl font-bold text-white">{myRating ?? "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <section className="client-desktop-dark">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-white">Текущие задачи</h2>
+                      <Link href="/executor/requests">
+                        <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                          Все заявки
+                        </Button>
+                      </Link>
+                    </div>
+                    <div className="space-y-3">
+                      {assignedRequests
+                        ?.slice()
+                        ?.sort((a: any, b: any) => getTaskTypeOrder(a.request_type || a.type) - getTaskTypeOrder(b.request_type || b.type))
+                        ?.map((request: any, index: number) => (
+                          <RequestCard
+                            key={request.id ?? index}
+                            request={request}
+                            onCardClick={() => router.push(`/executor/requests?requestId=${request.id}`)}
+                            renderCardHeader={renderCardHeader}
+                            clientRating={clientRatings[request.id]}
+                            userRole="executor"
+                            variant="compact"
+                          />
+                        ))}
+                      {(!assignedRequests || assignedRequests.length === 0) && (
+                        <p className="text-white/60 text-sm py-4">Нет назначенных задач</p>
+                      )}
+                    </div>
+                  </section>
+                </>
+              )}
+            </div>
+          </ExecutorDesktopShell>
+        ) : (
+          <>
         <Header
             handleLogout={handleLogout}
             notificationCount={notifications.length}
@@ -1771,57 +1874,9 @@ export default function ExecutorDashboard() {
             className="rounded-t-[32px] px-4 pt-6 pb-8 lg:px-8"
             style={{ 
               background: 'linear-gradient(180deg, #E25B21 0%, #E25B21 60%, #4A2510 85%, #1C1C1E 100%)',
-              minHeight: isDesktop ? 'auto' : 'calc(100vh - 200px)',
+              minHeight: 'calc(100vh - 200px)',
             }}
           >
-          {isDesktop ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="rounded-2xl p-6" style={{ background: '#D94F15' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <AlertTriangle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Просрочено</p>
-                      <p className="text-2xl font-bold text-white">{stats?.overdue || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#1A9A8A' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">В работе</p>
-                      <p className="text-2xl font-bold text-white">{stats?.inWork || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#1A9A8A' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Завершено</p>
-                      <p className="text-2xl font-bold text-white">{stats?.completed || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl p-6" style={{ background: '#D94F15' }}>
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg bg-white/20">
-                      <Star className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-white/80">Рейтинг</p>
-                      <p className="text-2xl font-bold text-white">{myRating ?? '—'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-          ):null}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -1835,8 +1890,8 @@ export default function ExecutorDashboard() {
                 <div className="mb-3">
                   {/* на телефоне только табы */}
                   <div className="w-full mb-2 sm:hidden">
-                    <div className="overflow-x-auto">
-                      <TabsList className="flex w-max min-w-full bg-[#3A3A3C] p-1 rounded-xl gap-1">
+                    <TabsListScrollArea>
+                      <TabsList className="flex flex-nowrap flex-shrink-0 min-w-0 bg-[#3A3A3C] p-1 rounded-xl gap-1">
                         <TabsTrigger value="meeting-rooms" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5" />
@@ -1861,35 +1916,35 @@ export default function ExecutorDashboard() {
                           <span className="hidden sm:inline">Сканировать QR</span>
                         </TabsTrigger>
                       </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                   </div>
 
                   {/* на больших экранах */}
-                  <div className="hidden sm:flex justify-between items-center gap-3">
-                    <div className="flex-1 overflow-x-auto">
-                      <TabsList className="flex min-w-max gap-2 bg-[#3A3A3C] p-1 rounded-xl">
-                        <TabsTrigger value="meeting-rooms" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                  <div className="hidden sm:flex justify-between items-center gap-3 min-w-0">
+                    <TabsListScrollArea className="flex-1 min-w-0">
+                      <TabsList className="flex flex-nowrap flex-shrink-0 gap-2 min-w-0 bg-[#3A3A3C] p-1 rounded-xl">
+                        <TabsTrigger value="meeting-rooms" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <Building2 className="h-4 w-4" />
                           Переговорные
                         </TabsTrigger>
-                        <TabsTrigger value="tasks" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="tasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Мои задачи
                         </TabsTrigger>
-                        <TabsTrigger value="myTasks" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="myTasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Мои заявки
                         </TabsTrigger>
-                        <TabsTrigger value="completed" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="completed" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Завершенные
                         </TabsTrigger>
-                        <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="statistics" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Статистика
                         </TabsTrigger>
-                        <TabsTrigger value="scan-qr" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
+                        <TabsTrigger value="scan-qr" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <QrCode className="h-4 w-4" />
                           Сканировать QR
                         </TabsTrigger>
                       </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                     <Button
                         onClick={() => router.push('/create-request')}
                         className="bg-[#E25B21] hover:bg-[#D94F15] text-white"
@@ -2102,8 +2157,10 @@ export default function ExecutorDashboard() {
 
       </div>
       </PullToRefresh>
+          </>
+        )}
 
-        {/* Black background extension for safe area */}
+        {!isDesktop && (
         <div
           className="fixed bottom-0 left-0 right-0 z-0"
           style={{
@@ -2111,6 +2168,7 @@ export default function ExecutorDashboard() {
             background: '#1C1C1E',
           }}
         />
+        )}
 
         {/* Модалка */}
         {isModalOpen && selectedNotification && (
@@ -2156,7 +2214,7 @@ export default function ExecutorDashboard() {
                   })}
                 </p>
                 <p className="text-xs text-gray-500 mt-4">
-                  Получено: {new Date(selectedNotification.created_at).toLocaleString()}
+                  Получено: {formatNotificationDateTime(selectedNotification.created_at)}
                 </p>
               </div>
             </div>
@@ -2191,11 +2249,7 @@ export default function ExecutorDashboard() {
                   <div>
                           <Label className="text-sm font-medium text-blue-800">Запланировано на: </Label>
                           <span className="text-sm text-blue-700">
-                          {new Date(selectedRequest.planned_date).toLocaleDateString('ru-RU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateLong(selectedRequest.planned_date)}
                         </span>
                           </div>
                       </div>
@@ -2395,13 +2449,7 @@ export default function ExecutorDashboard() {
 
                   <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
                     <Clock className="w-4 h-4 mr-1" />
-                    {new Date(selectedRequest.created_date).toLocaleString("ru-RU", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
+                    {formatDateTime(selectedRequest.created_date)}
                   </div>
 
                   {/* Фотографии группы заявок (только before) */}
@@ -2484,7 +2532,7 @@ export default function ExecutorDashboard() {
                         </div>
                       )}
                       <div className="mt-2 text-xs text-[#114A65]">
-                        Оценка от {new Date(clientRatings[selectedRequest.id].created_at).toLocaleDateString('ru-RU')}
+                        Оценка от {formatDateOnly(clientRatings[selectedRequest.id].created_at)}
                       </div>
                     </div>
                   )}
@@ -2660,6 +2708,7 @@ export default function ExecutorDashboard() {
                   <Button
                     variant="outline"
                     onClick={handleCloseRedirectModal}
+                    className="bg-transparent"
                   >
                     Отмена
                   </Button>

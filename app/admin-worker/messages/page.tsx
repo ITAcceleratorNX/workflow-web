@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
+import { AdminManagerMessagesDesktop } from "@/components/layout/AdminManagerMessagesDesktop";
 import { AdminMessages } from "@/components/support-chat/AdminMessages";
 
 export default function AdminMessagesPage() {
@@ -19,18 +20,21 @@ export default function AdminMessagesPage() {
         }
     }, [user, role, router]);
 
+    if (isDesktop) {
+        return <AdminManagerMessagesDesktop canRespond={true} />;
+    }
+
     return (
-        <div className="min-h-screen flex flex-col pb-20" style={{ background: "#1A1A1A" }}>
+        <div className="min-h-screen flex flex-col pb-20 bg-[#1A1A1A]">
             <div
-                className="sticky top-0 z-10 shrink-0 px-4 py-3 border-b"
-                style={{ background: "#1A1A1A", borderColor: "rgba(255,255,255,0.08)" }}
+                className="sticky top-0 z-10 shrink-0 px-4 py-3 border-b border-white/10"
             >
                 <h1 className="font-semibold text-2xl text-white">Сообщения</h1>
             </div>
             <div className="flex-1 min-h-0 p-4 flex flex-col">
-                <AdminMessages />
+                <AdminMessages canRespond={true} />
             </div>
-            {!isDesktop && <BottomNav activeTab="help" />}
+            <BottomNav activeTab="help" />
         </div>
     );
 }

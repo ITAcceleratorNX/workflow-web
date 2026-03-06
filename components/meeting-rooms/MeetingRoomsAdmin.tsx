@@ -93,6 +93,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const isDark = variant === "dark";
+  const useDarkStyles = isDark || isMobile;
   const formRef = useRef<HTMLDivElement>(null);
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const loading = useMeetingRoomsStore((state) => state.loading);
@@ -394,16 +395,15 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       <div className="flex flex-col gap-4">
         <div className={`flex flex-wrap items-center gap-2 ${isMobile ? "flex-col items-stretch" : ""}`}>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
+            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${useDarkStyles ? "border-white/20 text-white bg-[#2C2C2E]" : ""}`}>
               Всего: {filteredRooms.length}
             </Badge>
-            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${isMobile ? "border-[#3A3A3C] text-white" : ""}`}>
+            <Badge variant="outline" className={`rounded-full px-4 py-1 text-sm ${useDarkStyles ? "border-white/20 text-white bg-[#2C2C2E]" : ""}`}>
               Активных: {filteredRooms.filter((room) => room.isActive).length}
             </Badge>
           </div>
           <Button
-            className={`gap-2 ${isMobile ? "w-full" : ""} ${isDark || isMobile ? "bg-[#E25B21] hover:bg-[#D94F15] text-white" : ""}`}
-            style={isDark || isMobile ? { color: "#ffffff" } : undefined}
+            className={`gap-2 ${isMobile ? "w-full" : ""} ${useDarkStyles ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : ""}`}
             onClick={handleAddRoomClick}
           >
             <Plus className="h-4 w-4" />
@@ -417,13 +417,13 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                 value={selectedOfficeId === "all" ? "all" : selectedOfficeId.toString()}
                 onValueChange={(value) => setSelectedOfficeId(value === "all" ? "all" : Number(value))}
               >
-                <SelectTrigger className={`w-full ${isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+                <SelectTrigger className={`w-full ${useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : ""}`}>
                 <SelectValue placeholder="Фильтр по офису" />
                 </SelectTrigger>
-                <SelectContent className={isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
-                  <SelectItem value="all">Все офисы</SelectItem>
+                <SelectContent className={useDarkStyles ? "bg-[#2C2C2E] border-white/10" : ""}>
+                  <SelectItem value="all" className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>Все офисы</SelectItem>
                   {offices.map((office) => (
-                    <SelectItem key={office.id} value={office.id.toString()}>
+                    <SelectItem key={office.id} value={office.id.toString()} className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>
                       {office.name}
                     </SelectItem>
                   ))}
@@ -438,13 +438,13 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                 setRoomTypeFilter(value as MeetingRoomType | "all")
               }
             >
-              <SelectTrigger className={`w-full ${isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+              <SelectTrigger className={`w-full ${useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white hover:bg-[#3A3A3C] [&>span]:text-white" : ""}`}>
                 <SelectValue placeholder="Тип комнаты" />
               </SelectTrigger>
-              <SelectContent className={isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
-                <SelectItem value="all">Все типы</SelectItem>
-                <SelectItem value="meeting">Переговорные</SelectItem>
-                <SelectItem value="cabinet">Кабинеты</SelectItem>
+              <SelectContent className={useDarkStyles ? "bg-[#2C2C2E] border-white/10" : ""}>
+                <SelectItem value="all" className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>Все типы</SelectItem>
+                <SelectItem value="meeting" className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>Переговорные</SelectItem>
+                <SelectItem value="cabinet" className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>Кабинеты</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -453,18 +453,18 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
       {/* Форма создания/редактирования комнаты */}
       {open && (
-        <Card ref={formRef}>
-          <CardHeader>
-            <CardTitle>
+        <Card ref={formRef} className={useDarkStyles ? "border-white/10 bg-[#1A1A1A]" : ""}>
+          <CardHeader className={useDarkStyles ? "border-b border-white/10" : ""}>
+            <CardTitle className={useDarkStyles ? "text-white" : ""}>
               {isEditing ? "Редактирование переговорной" : "Новая переговорная"}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className={useDarkStyles ? "text-white" : ""}>
             <div className="grid gap-6 sm:grid-cols-[2fr_1fr]">
               <ScrollArea className="h-[60vh] pr-4">
                 <div className="space-y-4 px-2">
                     <div className="space-y-2">
-                      <Label htmlFor="meeting-room-name">Название</Label>
+                      <Label htmlFor="meeting-room-name" className={useDarkStyles ? "text-gray-300" : ""}>Название</Label>
                       <Input
                         id="meeting-room-name"
                         placeholder="Переговорная Астана"
@@ -472,7 +472,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         onChange={(event) =>
                           setFormState((prev) => ({ ...prev, name: event.target.value }))
                         }
-                        className={isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}
+                        className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500" : ""}
                       />
                       {touched && errors.name ? (
                         <p className="text-xs text-red-500">{errors.name}</p>
@@ -481,7 +481,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="meeting-room-floor">Этаж</Label>
+                        <Label htmlFor="meeting-room-floor" className={useDarkStyles ? "text-gray-300" : ""}>Этаж</Label>
                         <Select
                           value={
                             formState.floor === "" ? undefined : String(formState.floor)
@@ -490,12 +490,12 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                             setFormState((prev) => ({ ...prev, floor: Number(value) }))
                           }
                         >
-                          <SelectTrigger id="meeting-room-floor" className={isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}>
+                          <SelectTrigger id="meeting-room-floor" className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white [&>span]:text-white" : ""}>
                             <SelectValue placeholder="Выберите этаж" />
                           </SelectTrigger>
-                          <SelectContent className={isMobile ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}>
+                          <SelectContent className={useDarkStyles ? "bg-[#2C2C2E] border-white/10" : ""}>
                             {floorsRange.map((floor) => (
-                              <SelectItem key={floor} value={String(floor)}>
+                              <SelectItem key={floor} value={String(floor)} className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>
                                 {floor}
                               </SelectItem>
                             ))}
@@ -506,7 +506,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         ) : null}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="meeting-room-capacity">Вместимость</Label>
+                        <Label htmlFor="meeting-room-capacity" className={useDarkStyles ? "text-gray-300" : ""}>Вместимость</Label>
                         <Input
                           id="meeting-room-capacity"
                           type="number"
@@ -518,7 +518,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                               capacity: event.target.value === "" ? "" : Number(event.target.value),
                             }))
                           }
-                          className={isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}
+                          className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500" : ""}
                         />
                         {touched && errors.capacity ? (
                           <p className="text-xs text-red-500">{errors.capacity}</p>
@@ -527,12 +527,12 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Тип комнаты</Label>
+                      <Label className={useDarkStyles ? "text-gray-300" : ""}>Тип комнаты</Label>
                       <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
                         <Button
                           type="button"
                           variant={formState.room_type === "meeting" ? "default" : "outline"}
-                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
+                          className={`bg-transparent ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.room_type === "meeting" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "meeting" }))
                           }
@@ -542,7 +542,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         <Button
                           type="button"
                           variant={formState.room_type === "cabinet" ? "default" : "outline"}
-                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
+                          className={`bg-transparent rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.room_type === "cabinet" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "cabinet" }))
                           }
@@ -553,12 +553,12 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Статус</Label>
+                      <Label className={useDarkStyles ? "text-gray-300" : ""}>Статус</Label>
                       <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
                         <Button
                           type="button"
                           variant={formState.status === "available" ? "default" : "outline"}
-                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
+                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.status === "available" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
                           onClick={() => setFormState((prev) => ({ ...prev, status: "available" }))}
                         >
                           Доступна
@@ -566,7 +566,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         <Button
                           type="button"
                           variant={formState.status === "booked" ? "default" : "outline"}
-                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`}
+                          className={`bg-transparent rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.status === "booked" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
                           onClick={() => setFormState((prev) => ({ ...prev, status: "booked" }))}
                         >
                           Забронирована
@@ -579,16 +579,16 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                 <div className="flex flex-col gap-4 px-2">
                     <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="meeting-room-photos">Фотографии (до 3 шт.)</Label>
+                      <Label htmlFor="meeting-room-photos" className={useDarkStyles ? "text-gray-300" : ""}>Фотографии (до 3 шт.)</Label>
                       <Input
                         id="meeting-room-photos"
                         type="file"
                         accept=".jpg,.jpeg,.png"
                         multiple
                         onChange={handlePhotoInputChange}
-                        className={isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}
+                        className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white file:text-white" : ""}
                       />
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`text-xs ${useDarkStyles ? "text-gray-400" : "text-muted-foreground"}`}>
                           Поддерживаются форматы JPG и PNG. Максимум {MAX_PHOTOS} фото, размер каждого ≤ 2MB.
                         </p>
                         {touched && errors.photos ? (
@@ -601,7 +601,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         formState.photos.map((photo, index) => (
                           <div
                             key={`${photo}-${index}`}
-                            className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
+                            className={`relative aspect-square overflow-hidden rounded-lg border ${useDarkStyles ? "border-white/10 bg-[#2C2C2E]" : "bg-muted"}`}
                           >
                             <Image
                               src={photo}
@@ -623,7 +623,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                           </div>
                         ))
                       ) : (
-                        <div className="col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 py-8 text-sm text-muted-foreground">
+                        <div className={`col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-sm ${useDarkStyles ? "border-white/20 bg-[#2C2C2E]/50 text-gray-400" : "bg-muted/40 text-muted-foreground"}`}>
                           <FileImage className="h-8 w-8" />
                           <span>Фотографии пока не выбраны</span>
                         </div>
@@ -631,8 +631,8 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="meeting-room-description">Описание</Label>
+                    <div className="space-y-2">
+                    <Label htmlFor="meeting-room-description" className={useDarkStyles ? "text-gray-300" : ""}>Описание</Label>
                     <Textarea
                       id="meeting-room-description"
                       placeholder="Дополнительная информация о комнате"
@@ -641,14 +641,14 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         setFormState((prev) => ({ ...prev, description: event.target.value }))
                       }
                       rows={5}
-                      className={isMobile ? "bg-[#1C1C1E] border-[#3A3A3C] text-white" : ""}
+                      className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500" : ""}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className={`flex items-center justify-between rounded-md border p-3 ${useDarkStyles ? "border-white/10" : ""}`}>
                     <div>
-                      <p className="text-sm font-medium">Комната активна</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`text-sm font-medium ${useDarkStyles ? "text-white" : ""}`}>Комната активна</p>
+                      <p className={`text-xs ${useDarkStyles ? "text-gray-400" : "text-muted-foreground"}`}>
                         Используется в каталоге для клиентов
                       </p>
                     </div>
@@ -661,7 +661,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                   </div>
                 </div>
               </div>
-              <div className={`flex flex-wrap items-center gap-2 pt-4 border-t ${isMobile ? "flex-col" : ""}`}>
+              <div className={`flex flex-wrap items-center gap-2 pt-4 border-t ${useDarkStyles ? "border-white/10" : ""} ${isMobile ? "flex-col" : ""}`}>
                 {isEditing ? (
                   <Button
                     type="button"
@@ -689,10 +689,10 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     Удалить
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" onClick={handleCancel} className={isMobile ? "w-full" : ""}>
+                <Button type="button" variant="outline" onClick={handleCancel} className={`${isMobile ? "w-full" : ""} ${useDarkStyles ? "bg-transparent border-white/20 text-white hover:bg-white/10" : ""}`}>
                   Отмена
                 </Button>
-                <Button type="button" onClick={handleSubmit} className={`gap-2 ${isMobile ? "w-full" : ""} ${isMobile ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : ""}`} disabled={loading}>
+                <Button type="button" onClick={handleSubmit} className={`gap-2 ${isMobile ? "w-full" : ""} ${useDarkStyles ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : ""}`} disabled={loading}>
                   <Save className="h-4 w-4" />
                   Сохранить
                 </Button>
@@ -703,9 +703,9 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
       <div className="space-y-4">
         {filteredRooms.length === 0 ? (
-          <div className={`rounded-lg border border-dashed p-10 text-center ${isMobile ? "border-[#3A3A3C]" : ""}`}>
-            <h3 className={`text-lg font-semibold ${isMobile ? "text-white" : ""}`}>Комнаты не найдены</h3>
-            <p className={`mt-2 text-sm text-muted-foreground ${isMobile ? "text-[#8E8E93]" : ""}`}>
+          <div className={`rounded-lg border border-dashed p-10 text-center ${useDarkStyles ? "border-white/20" : ""}`}>
+            <h3 className={`text-lg font-semibold ${useDarkStyles ? "text-white" : ""}`}>Комнаты не найдены</h3>
+            <p className={`mt-2 text-sm ${useDarkStyles ? "text-gray-400" : "text-muted-foreground"}`}>
               {selectedOfficeId === "all" 
                 ? "Добавьте новую переговорную комнату."
                 : "Для выбранного офиса комнаты не найдены."}
@@ -721,16 +721,16 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                 isExpanded={expandedRooms.has(room.id)}
                 onToggleExpand={() => toggleRoomExpand(room.id)}
                 showOffice={true}
-                darkTheme={isMobile}
+                darkTheme={useDarkStyles}
                 footer={
                   <div className={`flex gap-2 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
-                    <Button size="sm" variant="outline" className={isMobile ? "w-full justify-center border-[#3A3A3C] text-white hover:bg-[#3A3A3C]" : ""} onClick={() => handleEdit(room)}>
+                    <Button size="sm" variant="outline" className={useDarkStyles ? "bg-transparent w-full sm:w-auto justify-center border-white/20 text-white hover:bg-white/10" : ""} onClick={() => handleEdit(room)}>
                       Редактировать
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""}
+                      className={useDarkStyles ? "w-full sm:w-auto justify-center text-white hover:bg-white/10" : ""}
                       onClick={() =>
                         handleStatusChange(
                           room.id,
@@ -743,19 +743,19 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""}
+                      className={useDarkStyles ? "w-full sm:w-auto justify-center text-white hover:bg-white/10" : ""}
                       onClick={() => handleToggleActive(room.id)}
                     >
                       {room.isActive ? (isMobile ? "На ремонт" : "Отправить на ремонт") : "Сделать активной"}
                     </Button>
-                    <Button size="sm" variant="ghost" className={isMobile ? "w-full justify-center text-white hover:bg-white/10" : ""} onClick={() => handleDuplicate(room.id)}>
+                    <Button size="sm" variant="ghost" className={useDarkStyles ? "w-full sm:w-auto justify-center text-white hover:bg-white/10" : ""} onClick={() => handleDuplicate(room.id)}>
                       <Copy className="mr-1 h-4 w-4" />
                       Дублировать
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
-                      className={isMobile ? "w-full justify-center" : ""}
+                      className={isMobile ? "w-full justify-center" : useDarkStyles ? "border-red-500/50 text-red-400 hover:bg-red-500/20" : ""}
                       onClick={() => requestDeleteRoom(room)}
                     >
                       <Trash2 className="mr-1 h-4 w-4" />
@@ -770,17 +770,17 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
-        <AlertDialogContent>
+        <AlertDialogContent className={useDarkStyles ? "border-white/10 bg-[#1A1A1A] text-white" : ""}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удаление переговорной</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className={useDarkStyles ? "text-white" : ""}>Удаление переговорной</AlertDialogTitle>
+            <AlertDialogDescription className={useDarkStyles ? "text-gray-400" : ""}>
               Вы уверены, что хотите удалить переговорную{" "}
               {pendingDeleteRoom ? `«${pendingDeleteRoom.name}»` : "эту комнату"}? Это
               действие нельзя отменить.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel className={useDarkStyles ? "border-white/20 text-white hover:bg-white/10" : ""}>Отмена</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDeleteConfirm}

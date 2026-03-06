@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
+import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
 export default function DepartmentHeadLayout({
   children,
@@ -65,12 +66,24 @@ export default function DepartmentHeadLayout({
     return null;
   }
 
+  if (!hydrated || !user) {
+    return null;
+  }
+
+  if (isDesktop) {
+    return (
+      <RoleDesktopShell role="department-head">
+        {children}
+      </RoleDesktopShell>
+    );
+  }
+
   return (
     <div
-      className={`min-h-screen ${!isDesktop ? "pb-[calc(110px+env(safe-area-inset-bottom,0px))]" : "pb-0"} ${!isDesktop ? "bg-[#1C1C1E]" : ""}`}
+      className={`min-h-screen pb-[calc(110px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E]`}
     >
       {children}
-      {!isDesktop && <BottomNav />}
+      <BottomNav />
     </div>
   );
 }

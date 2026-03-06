@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,6 +14,7 @@ import { useActivityTrackerStore } from "@/stores/useActivityTrackerStore"
 import { useRouter } from "next/navigation"
 import api, { getOffices } from "@/lib/api"
 import { findNearestOffice } from "@/lib/utils"
+import { formatDateTime, formatTimeOnly } from "@/lib/dateTimeUtils"
 
 interface LocationData {
   latitude: number
@@ -53,7 +54,12 @@ interface Statistics {
   }>
 }
 
-export function ActivityTracker() {
+interface ActivityTrackerProps {
+  /** Скрыть кнопку «Назад» когда трекер встроен на страницу (например /client) */
+  hideBackButton?: boolean;
+}
+
+export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps = {}) {
   // Используем глобальный store вместо локального состояния
   const {
     isTracking,
@@ -823,14 +829,16 @@ export function ActivityTracker() {
   if (user && (user.role !== 'executor' && user.role !== 'client')) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <Button
-          onClick={() => router.back()}
-          variant="ghost"
-          className="text-sm sm:text-base -ml-2"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Назад
-        </Button>
+        {!hideBackButton && (
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            className="text-sm sm:text-base -ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Назад
+          </Button>
+        )}
         <Card>
           <CardContent className="p-4 sm:p-6">
             <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm text-center">
@@ -844,16 +852,16 @@ export function ActivityTracker() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Кнопка "Назад" */}
-      <Button
-        onClick={() => router.back()}
-        variant="ghost"
-        className="text-sm sm:text-base -ml-2"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Назад
-      </Button>
-      
+      {!hideBackButton && (
+        <Button
+          onClick={() => router.back()}
+          variant="ghost"
+          className="text-sm sm:text-base -ml-2"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Назад
+        </Button>
+      )}
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -944,11 +952,13 @@ export function ActivityTracker() {
       </Card>
 
       <Tabs defaultValue="stats" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="stats" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Статистика</TabsTrigger>
-          <TabsTrigger value="intervals" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Интервалы</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Настройки</TabsTrigger>
-        </TabsList>
+        <TabsListScrollArea>
+          <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col h-auto [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
+            <TabsTrigger value="stats" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Статистика</TabsTrigger>
+            <TabsTrigger value="intervals" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Интервалы</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2 sm:px-4">Настройки</TabsTrigger>
+          </TabsList>
+        </TabsListScrollArea>
 
         <TabsContent value="stats" className="space-y-4 mt-4">
           <Card>
@@ -988,7 +998,7 @@ export function ActivityTracker() {
                 </div>
                 {statistics.lastStandUpTime && (
                   <div className="text-xs text-[#114A65] mt-1">
-                    Последнее: {new Date(statistics.lastStandUpTime).toLocaleTimeString()}
+                    Последнее: {formatTimeOnly(statistics.lastStandUpTime)}
                   </div>
                 )}
               </div>
@@ -1036,7 +1046,7 @@ export function ActivityTracker() {
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1 break-words">
-                        {new Date(interval.start).toLocaleTimeString()} - {new Date(interval.end).toLocaleTimeString()}
+                        {formatTimeOnly(interval.start)} - {formatTimeOnly(interval.end)}
                       </div>
                     </div>
                   ))}
@@ -1107,7 +1117,7 @@ export function ActivityTracker() {
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs sm:text-sm text-blue-800">
                     <Clock className="h-3 w-3 inline mr-1" />
-                    Последнее напоминание: {new Date(healthReminders.lastReminderTime).toLocaleString('ru-RU')}
+                    Последнее напоминание: {formatDateTime(healthReminders.lastReminderTime)}
                   </p>
                 </div>
               )}

@@ -745,6 +745,36 @@ export function RoleBasedActionMenu({
   ) : null
 
   if (isDesktop) {
+    const triggerClass = isAdminDark
+      ? "h-8 w-8 p-0 bg-[#2C2C2E] hover:bg-[#3D3D3D] border border-white/10 rounded-full transition-all duration-200"
+      : "h-8 w-8 p-0 bg-white hover:bg-[#114A65]/10 border border-[#114A65]/20 rounded-full transition-all duration-200 shadow-sm hover:shadow-md";
+    const iconClass = isAdminDark ? "h-4 w-4 text-gray-300" : "h-4 w-4 text-[#114A65]";
+    const contentClass = isAdminDark
+      ? "w-48 shadow-xl border border-white/10 rounded-xl overflow-hidden bg-[#1C1C1E]"
+      : "w-48 shadow-xl border border-[#114A65]/20 rounded-xl overflow-hidden";
+    const itemClass = (action: ActionItem) => {
+      if (isAdminDark) {
+        if (action.variant === "destructive") return "text-red-400 hover:text-red-300 hover:bg-red-500/20 focus:bg-red-500/20";
+        if (action.longTerm) return "text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 focus:bg-blue-500/20";
+        if (action.primary) return "text-[#F35713] font-semibold hover:bg-[#F35713]/20 focus:bg-[#F35713]/20";
+        return "text-gray-200 hover:text-white hover:bg-white/10 focus:bg-white/10";
+      }
+      if (action.variant === "destructive") return "text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50";
+      if (action.longTerm) return "text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50";
+      if (action.primary) return "text-[#114A65] font-semibold hover:bg-[#114A65]/10 focus:bg-[#114A65]/20";
+      return "text-gray-700 hover:text-[#114A65] hover:bg-[#114A65]/10 focus:bg-[#114A65]/20";
+    };
+    const iconColorClass = (action: ActionItem) => {
+      if (isAdminDark) {
+        if (action.primary) return "text-[#F35713]";
+        if (action.longTerm) return "text-blue-400";
+        if (action.variant === "destructive") return "text-red-400";
+        return "text-gray-400";
+      }
+      if (action.primary) return "text-[#114A65]";
+      if (action.longTerm) return "text-blue-600";
+      return "";
+    };
     return (
       <>
         <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -752,19 +782,19 @@ export function RoleBasedActionMenu({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0 bg-white hover:bg-[#114A65]/10 border border-[#114A65]/20 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+              className={triggerClass}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
               }}
             >
-              <MoreHorizontal className="h-4 w-4 text-[#114A65]" />
+              <MoreHorizontal className={iconClass} />
               <span className="sr-only">Открыть меню действий</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             align="end" 
-            className="w-48 shadow-xl border border-[#114A65]/20 rounded-xl overflow-hidden"
+            className={contentClass}
             onClick={(e) => e.stopPropagation()}
           >
             {actions.map((action, index) => (
@@ -775,19 +805,9 @@ export function RoleBasedActionMenu({
                   e.stopPropagation()
                   action.onClick()
                 }}
-                className={`flex items-center gap-3 cursor-pointer px-4 py-3 transition-all duration-200 ${
-                  action.variant === "destructive"
-                    ? "text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50"
-                    : action.longTerm
-                      ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50"
-                      : action.primary
-                        ? "text-[#114A65] font-semibold hover:bg-[#114A65]/10 focus:bg-[#114A65]/20"
-                        : "text-gray-700 hover:text-[#114A65] hover:bg-[#114A65]/10 focus:bg-[#114A65]/20"
-                }`}
+                className={`flex items-center gap-3 cursor-pointer px-4 py-3 transition-all duration-200 ${itemClass(action)}`}
               >
-                <action.icon className={`h-4 w-4 flex-shrink-0 ${
-                  action.primary ? "text-[#114A65]" : action.longTerm ? "text-blue-600" : ""
-                }`} />
+                <action.icon className={`h-4 w-4 flex-shrink-0 ${iconColorClass(action)}`} />
                 <span className="font-medium">{action.label}</span>
               </DropdownMenuItem>
             ))}

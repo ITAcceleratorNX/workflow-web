@@ -1,6 +1,9 @@
 "use client"
 
 import React, {useState, useRef, useEffect, useCallback, useMemo} from "react"
+import dynamic from "next/dynamic"
+
+const ManagerDashboard = dynamic(() => import("@/app/manager/page"), { ssr: false })
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -9,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import RegistrationRequestsManager from "@/components/RegistrationRequestsManager";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import {
   Tooltip,
   TooltipContent,
@@ -65,6 +68,7 @@ import { MapModal } from "@/components/MapModal";
 import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
+import { formatDateOnly, formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import { CreateRequestModal } from "@/components/CreateRequestModal";
 import { CommentsModal } from "@/components/CommentsModal";
 import {CompletedTaskReport} from "@/components/CompletedTaskReport";
@@ -75,6 +79,7 @@ import { ImportExcelModal } from "@/components/ImportExcelModal";
 import { deleteRecurringTask } from "@/lib/api";
 import PhotoModal from "@/components/photo/PhotoModal";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
+import { DashboardKpiCards } from "@/components/dashboard/DashboardKpiCards";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeManagement";
@@ -265,6 +270,27 @@ export default function AdminWorkerDashboard() {
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Legacy tab redirect: ?tab=... → dedicated routes for desktop
+  useEffect(() => {
+    if (!isDesktop) return;
+    const tab = searchParams?.get("tab");
+    if (tab === "statistics") {
+      router.replace("/admin-worker/statistics");
+      return;
+    }
+    if (tab === "incoming" || tab === "my-requests") {
+      router.replace("/admin-worker/requests");
+      return;
+    }
+    if (tab === "change-head") {
+      router.replace("/admin-worker/management");
+      return;
+    }
+    if (tab === "registration-requests") {
+      setActiveTab("registration-requests");
+    }
+  }, [isDesktop, searchParams, router]);
 
   // На мобильной вкладка «Логи» доступна в профиле — сбрасываем её на главной при переходе на мобильный
   useEffect(() => {
@@ -2378,79 +2404,34 @@ export default function AdminWorkerDashboard() {
     }
   };
 
+  // На desktop показываем тот же интерфейс, что и у менеджера (Мой кабинет) — после всех хуков
+  if (isDesktop) {
+    return <ManagerDashboard />;
+  }
+
   return (
       <>
-        <Header
-            handleLogout={handleLogout}
-            notificationCount={3}
-            role="Администратор"
-        />
+        {!isDesktop && (
+          <Header
+              handleLogout={handleLogout}
+              notificationCount={3}
+              role="Администратор"
+          />
+        )}
         <PullToRefresh onRefresh={handleRefresh}>
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${isDesktop ? "bg-[#1A1A1A]" : "bg-gray-50"}`}>
         <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
           {/* Quick Stats */}
           {isDesktop ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-yellow-100 rounded-lg">
-                        <Clock className="w-6 h-6 text-yellow-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Новые заявки</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.new ? (stats.statusCounts.new): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Users className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">В работе</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.inWork ? (stats.statusCounts.inWork): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Завершено</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.completed ? (stats.statusCounts.completed): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-2 bg-red-100 rounded-lg">
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Просрочено</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats && stats.statusCounts && stats.statusCounts.overdue ? (stats.statusCounts.overdue): 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="mb-8">
+                <DashboardKpiCards
+                  stats={stats}
+                  createRequestHref="/create-request"
+                  createBookingHref="/meeting-rooms"
+                  statisticsHref="/admin-worker/statistics"
+                  requestsHref="/admin-worker/requests"
+                  variant="admin"
+                />
               </div>
           ): null}
 
@@ -2467,8 +2448,8 @@ export default function AdminWorkerDashboard() {
                 <div className="mb-3">
                   {/* на телефоне только табы */}
                   <div className="w-full mb-2 sm:hidden">
-                    <div className="overflow-x-auto">
-                      <TabsList className="flex w-max min-w-full">
+                    <TabsListScrollArea>
+                      <TabsList className="flex flex-nowrap flex-shrink-0 min-w-0">
                         <TabsTrigger value="meeting-rooms" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0">
                           <span className="sm:hidden flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5" />
@@ -2497,42 +2478,47 @@ export default function AdminWorkerDashboard() {
                           Регистрации
                         </TabsTrigger>
                       </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                   </div>
 
                   {/* на больших экранах */}
-                  <div className="hidden sm:flex justify-between items-center gap-3">
-                    <div className="flex-1 overflow-x-auto">
-                      <TabsList className="flex min-w-max gap-2">
-                        <TabsTrigger value="meeting-rooms" className="text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2">
+                  <div className="hidden sm:flex justify-between items-center gap-3 min-w-0">
+                    <TabsListScrollArea className="flex-1 min-w-0">
+                      <TabsList className="flex flex-nowrap flex-shrink-0 gap-2 min-w-0">
+                        <TabsTrigger value="meeting-rooms" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
                           Переговорные
                         </TabsTrigger>
-                      <TabsTrigger value="incoming" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="incoming" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                           Входящие заявки
                       </TabsTrigger>
-                      <TabsTrigger value="my-requests" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="my-requests" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                           Мои заявки
                       </TabsTrigger>
-                      <TabsTrigger value="recurring-tasks" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="recurring-tasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                           Повторяющиеся
                       </TabsTrigger>
-                      <TabsTrigger value="statistics" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="statistics" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                         Статистика
                       </TabsTrigger>
-                      <TabsTrigger value="change-head" className="text-sm px-3 py-2 whitespace-nowrap">
+                      {isDesktop && (
+                      <TabsTrigger value="workload" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
+                        Загрузка
+                      </TabsTrigger>
+                      )}
+                      <TabsTrigger value="change-head" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                         Управление
                       </TabsTrigger>
                       {isDesktop && (
-                      <TabsTrigger value="logs" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="logs" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                         Логи
                       </TabsTrigger>
                       )}
-                      <TabsTrigger value="registration-requests" className="text-sm px-3 py-2 whitespace-nowrap">
+                      <TabsTrigger value="registration-requests" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap">
                         Регистрации
                       </TabsTrigger>
                     </TabsList>
-                    </div>
+                    </TabsListScrollArea>
                     <Button
                         onClick={() => router.push('/create-request')}
                         className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D]"
@@ -2620,6 +2606,12 @@ export default function AdminWorkerDashboard() {
                 <TabsContent value="meeting-rooms">
                   <MeetingRoomsAdmin />
                 </TabsContent>
+
+                {isDesktop && (
+                <TabsContent value="workload" className="pt-2">
+                  <MeetingRoomStatistics variant="dark" defaultShowCalendar />
+                </TabsContent>
+                )}
 
                 <TabsContent value="incoming">
                   <div className="space-y-4">
@@ -3385,7 +3377,7 @@ export default function AdminWorkerDashboard() {
                   })}
                 </p>
                 <p className="text-xs text-gray-500 mt-4">
-                  Получено: {new Date(selectedNotification.created_at).toLocaleString()}
+                  Получено: {formatNotificationDateTime(selectedNotification.created_at)}
                 </p>
               </div>
             </div>
@@ -3474,11 +3466,7 @@ export default function AdminWorkerDashboard() {
                   <div>
                         <Label className="text-sm font-medium text-blue-800">Запланировано на: </Label>
                         <span className="text-sm text-blue-700">
-                          {new Date(selectedRequest.planned_date).toLocaleDateString('ru-RU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {formatDateLong(selectedRequest.planned_date)}
                         </span>
                   </div>
                       </div>
@@ -3882,13 +3870,7 @@ export default function AdminWorkerDashboard() {
 
                   <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
                     <Clock className="w-4 h-4 mr-1" />
-                    {new Date(selectedRequest.created_date).toLocaleString("ru-RU", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
+                    {formatDateTime(selectedRequest.created_date)}
                   </div>
 
                   {/* Фотографии группы заявок (только before) */}
@@ -3972,7 +3954,7 @@ export default function AdminWorkerDashboard() {
                         </div>
                       )}
                       <div className="mt-2 text-xs text-[#114A65]">
-                        Оценка от {new Date(clientRatings[selectedRequest.id].created_at).toLocaleDateString('ru-RU')}
+                        Оценка от {formatDateOnly(clientRatings[selectedRequest.id].created_at)}
                       </div>
                     </div>
                   )}

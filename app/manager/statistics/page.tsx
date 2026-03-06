@@ -3,6 +3,7 @@
 import "@/lib/android-bridge"
 import React, {useEffect, useState, useCallback, useMemo} from "react"
 import {Card, CardContent, CardHeader, CardTitle, CardDescription} from "@/components/ui/card"
+import {Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger} from "@/components/ui/tabs"
 import {Button} from "@/components/ui/button"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
@@ -22,6 +23,9 @@ import Link from "next/link";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useStatsStore} from "@/stores/statsStore";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
+import dynamic from "next/dynamic";
+
+const ManagerAnalytics = dynamic(() => import("@/components/ManagerAnalytics"), { ssr: false });
 
 interface ChartData {
     date: string;
@@ -79,7 +83,7 @@ export default function ManagerStatisticsPage() {
   useEffect(() => {
     if (!hydrated) return;
 
-    if (!user || user.role !== "manager") {
+    if (!user || (user.role !== "manager" && user.role !== "admin-worker")) {
       clearAuth();
       router.push("/login");
     }
@@ -96,19 +100,24 @@ export default function ManagerStatisticsPage() {
   }
 
   useEffect(() => {
-    if (token && user?.role === 'manager') {
-      fetchStats('manager')
-      fetchOffices()
+    if (token && (user?.role === 'manager' || user?.role === 'admin-worker')) {
+      fetchStats('manager');
+      if (user?.role === 'manager') fetchOffices();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
+  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+  const effectiveOffice = user?.role === "admin-worker" && user?.office_id
+    ? String(user.office_id)
+    : office;
+
   const chartData: ChartData[] = useMemo(() => {
     if (!managerStats || managerStats.length === 0) return [];
     
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -152,9 +161,9 @@ export default function ManagerStatisticsPage() {
   const distribution = useMemo(() => {
     if (!managerStats || managerStats.length === 0) return;
 
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -221,7 +230,7 @@ export default function ManagerStatisticsPage() {
       urgentPercent: pct(urgent),
       plannedPercent: pct(planned),
     }
-  }, [office, period, startDate, endDate, managerStats]);
+  }, [effectiveOffice, period, startDate, endDate, managerStats]);
 
   const summary = useMemo(() => {
     if (!managerStats || managerStats.length === 0) {
@@ -237,9 +246,9 @@ export default function ManagerStatisticsPage() {
       }
     }
     
-    const subset = office === "all" 
+    const subset = effectiveOffice === "all" 
       ? managerStats 
-      : managerStats.filter((s) => s.officeId === Number(office));
+      : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
     
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split('T')[0];
@@ -304,7 +313,7 @@ export default function ManagerStatisticsPage() {
     const overdueRate = total > 0 ? Math.round((overdue / total) * 100) : 0
     const avgPerDay = Math.round(total / days)
     return { total, completed, overdue, inWork, newRequests, completionRate, overdueRate, avgPerDay }
-  }, [managerStats, office, period, startDate, endDate]);
+  }, [managerStats, effectiveOffice, period, startDate, endDate]);
 
   const handleRefresh = async () => {
     try {
@@ -416,60 +425,61 @@ export default function ManagerStatisticsPage() {
 
   const Stat = ({ label, value, onClick }: { label: string; value: number | string; onClick?: () => void }) => (
     <div
-      className={`rounded-lg border p-3 ${isDesktop ? "bg-white" : "bg-[#2C2C2E] border-[#3A3A3C]"} ${onClick ? "cursor-pointer transition-colors " + (isDesktop ? "hover:bg-gray-50" : "hover:bg-[#353538] active:scale-[0.99]") : ""}`}
+      className={`rounded-xl border p-4 ${isDesktop ? "bg-[#2C2C2E] border-white/10" : "bg-[#2C2C2E] border-[#3A3A3C]"} ${onClick ? "cursor-pointer transition-colors " + (isDesktop ? "hover:bg-white/5" : "hover:bg-[#353538] active:scale-[0.99]") : ""}`}
       onClick={onClick}
     >
-      <div className={`text-xs ${isDesktop ? "text-neutral-500" : "text-[#8E8E93]"}`}>{label}</div>
-      <div className={`mt-1 text-2xl font-semibold tracking-tight ${isDesktop ? "" : "text-white"}`}>{value}</div>
+      <div className={`text-xs font-medium ${isDesktop ? "text-white/60" : "text-[#8E8E93]"}`}>{label}</div>
+      <div className={`mt-1.5 text-2xl font-semibold tracking-tight ${isDesktop ? "text-white" : "text-white"}`}>{value}</div>
     </div>
   )
 
   const handleTotalRequestsClick = () => {
-    router.push(`/manager`);
+    router.push(basePath);
   };
 
   const handleNewRequestsClick = () => {
-    router.push(`/manager?status=in_progress`);
+    router.push(`${basePath}?status=in_progress`);
   };
 
   const handleInWorkRequestsClick = () => {
-    router.push(`/manager?status=execution`);
+    router.push(`${basePath}?status=execution`);
   };
 
   const handleCompletedRequestsClick = () => {
-    router.push(`/manager?status=completed`);
+    router.push(`${basePath}?status=completed`);
   };
 
   const handleOverdueRequestsClick = () => {
-    router.push(`/manager?status=overdue`);
+    router.push(`${basePath}?status=overdue`);
   };
 
   const handleNormalRequestsClick = () => {
-    router.push(`/manager?priority=normal`);
+    router.push(`${basePath}?priority=normal`);
   };
 
   const handleUrgentRequestsClick = () => {
-    router.push(`/manager?priority=urgent`);
+    router.push(`${basePath}?priority=urgent`);
   };
 
   const handlePlannedRequestsClick = () => {
-    router.push(`/manager?priority=planned`);
+    router.push(`${basePath}?priority=planned`);
   };
 
   return (
     <>
-      <Header
-        handleLogout={handleLogout}
-        notificationCount={0}
-        role="Менеджер"
-        onRefresh={handleRefresh}
-      />
+      {!isDesktop && (
+        <Header
+          handleLogout={handleLogout}
+          notificationCount={0}
+          role="Менеджер"
+        />
+      )}
       <PullToRefresh onRefresh={handleRefresh}>
-        <main className={`min-h-screen pb-20 ${isDesktop ? "bg-[#F3F3F3]" : "bg-[#1C1C1E] pb-[calc(80px+env(safe-area-inset-bottom,0px))]"}`}>
+        <main className={`min-h-screen pb-20 ${isDesktop ? "bg-[#1A1A1A]" : "bg-[#1C1C1E] pb-[calc(80px+env(safe-area-inset-bottom,0px))]"}`}>
           {!isDesktop && (
             <div className="px-3 pt-2 pb-1">
               <Link
-                href="/manager/cabinet"
+                href={user?.role === "admin-worker" ? basePath : `${basePath}/cabinet`}
                 className="inline-flex items-center gap-1 text-[#F35713] font-medium mb-4"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -477,29 +487,41 @@ export default function ManagerStatisticsPage() {
               </Link>
             </div>
           )}
+
+          {(() => {
+            const statsContent = (
+              <>
           <section className="pt-3">
-            <div className="mx-auto max-w-screen-sm px-3">
-              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
-                <CardContent className="flex flex-col gap-3 p-3">
-                  <div className={`flex gap-3 ${!isDesktop ? "flex-col" : ""}`}>
-                    <div className="flex-1">
-                      <Select value={office} onValueChange={setOffice}>
-                        <SelectTrigger className={`h-10 w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
-                          <SelectValue placeholder="Офис" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Все офисы</SelectItem>
-                          {offices.map((o) => (
-                            <SelectItem key={o.id} value={String(o.id)}>
-                              {o.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <div className={`mx-auto px-3 ${isDesktop ? "max-w-6xl" : "max-w-screen-sm"}`}>
+              <Card className={isDesktop ? "border border-white/10 bg-[#2C2C2E]" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
+                <CardContent className="flex flex-col gap-3 p-4">
+                  <div className={`flex gap-3 ${!isDesktop ? "flex-col" : "flex-row"}`}>
+                    {user?.role === "manager" ? (
+                      <div className="flex-1">
+                        <Select value={office} onValueChange={setOffice}>
+                          <SelectTrigger className={`h-10 w-full ${isDesktop ? "bg-[#1A1A1A] border-white/10 text-white" : "bg-[#2C2C2E] border-[#3A3A3C] text-white"}`}>
+                            <SelectValue placeholder="Офис" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Все офисы</SelectItem>
+                            {offices.map((o) => (
+                              <SelectItem key={o.id} value={String(o.id)}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <div className={`h-10 w-full flex items-center px-3 py-2 rounded-md text-sm ${isDesktop ? "bg-[#1A1A1A] border border-white/10 text-white" : "bg-[#2C2C2E] border border-[#3A3A3C] text-white"}`}>
+                          {user?.office?.name || "Офис"}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex-1">
                       <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
-                        <SelectTrigger className={`h-10 w-full ${!isDesktop ? "bg-[#2C2C2E] border-[#3A3A3C] text-white" : ""}`}>
+                        <SelectTrigger className={`h-10 w-full ${isDesktop ? "bg-[#1A1A1A] border-white/10 text-white" : "bg-[#2C2C2E] border-[#3A3A3C] text-white"}`}>
                           <SelectValue placeholder="Период" />
                         </SelectTrigger>
                         <SelectContent>
@@ -516,8 +538,8 @@ export default function ManagerStatisticsPage() {
           </section>
 
           <section className="pt-3">
-            <div className="mx-auto max-w-screen-sm px-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className={`mx-auto px-3 ${isDesktop ? "max-w-6xl" : "max-w-screen-sm"}`}>
+              <div className={`grid gap-3 ${isDesktop ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" : "grid-cols-2"}`}>
                 <Stat
                   label="Всего"
                   value={summary.total}
@@ -549,35 +571,35 @@ export default function ManagerStatisticsPage() {
           </section>
 
           <section className="pt-3">
-            <div className="mx-auto max-w-screen-sm px-3">
-              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
-                <CardContent className="p-3">
-                  <div className="mb-3">
-                    <div className={`text-sm font-medium ${!isDesktop ? "text-white" : ""}`}>Динамика по дням</div>
-                    <div className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-neutral-500"}`}>Количество заявок по дням</div>
+            <div className={`mx-auto px-3 ${isDesktop ? "max-w-6xl" : "max-w-screen-sm"}`}>
+              <Card className={isDesktop ? "border border-white/10 bg-[#2C2C2E]" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="mb-4">
+                    <div className={`text-sm font-medium ${isDesktop ? "text-white" : "text-white"}`}>Динамика по дням</div>
+                    <div className={`text-xs mt-0.5 ${isDesktop ? "text-white/60" : "text-[#8E8E93]"}`}>Количество заявок по дням</div>
                   </div>
 
                   <div className="mb-4 space-y-3">
-                    <div className={`flex items-center gap-2 ${!isDesktop ? "flex-wrap" : ""}`}>
-                      <Label className={`text-sm font-medium ${!isDesktop ? "text-[#8E8E93]" : ""}`}>Фильтр по дате:</Label>
+                    <div className={`flex items-center gap-2 flex-wrap ${isDesktop ? "flex-row" : ""}`}>
+                      <Label className={`text-sm font-medium ${isDesktop ? "text-white/80" : "text-[#8E8E93]"}`}>Фильтр по дате:</Label>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={resetDateFilters}
-                        className={`text-xs ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                        className={isDesktop ? "bg-transparent text-white hover:bg-white/10" : "border-[#3A3A3C] text-white hover:bg-white/10"}
                       >
                         Сбросить
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={`grid gap-2 ${isDesktop ? "grid-cols-2 sm:grid-cols-2 max-w-xs" : "grid-cols-2"}`}>
                       <div>
-                        <Label className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>От:</Label>
+                        <Label className={`text-xs ${isDesktop ? "text-white/70" : "text-[#8E8E93]"}`}>От:</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className={`w-full justify-start text-left font-normal ${!isDesktop ? "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10" : ""}`}
+                              className={`w-full justify-start text-left font-normal ${isDesktop ? "border-white/10 bg-[#1A1A1A] text-white hover:bg-white/10" : "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10"}`}
                             >
                               <CalendarLucid className="mr-2 h-4 w-4" />
                               {startDate ? format(startDate, "dd.MM", { locale: ru }) : "От"}
@@ -595,12 +617,12 @@ export default function ManagerStatisticsPage() {
                       </div>
 
                       <div>
-                        <Label className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-gray-600"}`}>До:</Label>
+                        <Label className={`text-xs ${isDesktop ? "text-white/70" : "text-[#8E8E93]"}`}>До:</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className={`w-full justify-start text-left font-normal ${!isDesktop ? "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10" : ""}`}
+                              className={`w-full justify-start text-left font-normal ${isDesktop ? "border-white/10 bg-[#1A1A1A] text-white hover:bg-white/10" : "border-[#3A3A3C] bg-[#2C2C2E] text-white hover:bg-white/10"}`}
                             >
                               <CalendarLucid className="mr-2 h-4 w-4" />
                               {endDate ? format(endDate, "dd.MM", { locale: ru }) : "До"}
@@ -620,43 +642,43 @@ export default function ManagerStatisticsPage() {
                     </div>
                   </div>
 
-                  <div className="h-48">
+                  <div className={isDesktop ? "h-64" : "h-48"}>
                     {chartData.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
                           <defs>
-                            <linearGradient id="kcellGradientHome" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#114A65" stopOpacity={1} />
-                              <stop offset="100%" stopColor="#B8400E" stopOpacity={0.8} />
+                            <linearGradient id="kcellGradientStats" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#E85D2B" stopOpacity={1} />
+                              <stop offset="100%" stopColor="#E85D2B" stopOpacity={0.4} />
                             </linearGradient>
                           </defs>
 
-                          <CartesianGrid strokeDasharray="3 3" stroke={!isDesktop ? "#3A3A3C" : "#C4C4CE"} />
-                          <XAxis dataKey="date" stroke={!isDesktop ? "#8E8E93" : "#040404"} tick={!isDesktop ? { fill: "#8E8E93" } : undefined} />
-                          <YAxis allowDecimals={false} stroke={!isDesktop ? "#8E8E93" : "#040404"} tick={!isDesktop ? { fill: "#8E8E93" } : undefined} />
-                          <Tooltip contentStyle={!isDesktop ? { background: "#2C2C2E", border: "1px solid #3A3A3C", borderRadius: 8 } : undefined} labelStyle={!isDesktop ? { color: "#fff" } : undefined} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDesktop ? "rgba(255,255,255,0.1)" : "#3A3A3C"} />
+                          <XAxis dataKey="date" stroke={isDesktop ? "#8E8E93" : "#8E8E93"} tick={{ fill: isDesktop ? "#8E8E93" : "#8E8E93" }} />
+                          <YAxis allowDecimals={false} stroke="#8E8E93" tick={{ fill: "#8E8E93" }} />
+                          <Tooltip contentStyle={{ background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }} labelStyle={{ color: "#fff" }} />
                           <Line
                             type="monotone"
                             dataKey="count"
-                            stroke="url(#kcellGradientHome)"
+                            stroke="url(#kcellGradientStats)"
                             strokeWidth={2.5}
-                            dot={{ r: 4, stroke: '#114A65', strokeWidth: 1.5, fill: '#fff' }}
-                            activeDot={{ r: 6 }}
+                            dot={{ r: 4, stroke: "#E85D2B", strokeWidth: 1.5, fill: "#1A1A1A" }}
+                            activeDot={{ r: 6, fill: "#E85D2B" }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className={`text-center py-16 ${!isDesktop ? "text-[#8E8E93]" : "text-gray-500"}`}>Нет данных для отображения</div>
+                      <div className={`text-center py-16 ${isDesktop ? "text-white/50" : "text-[#8E8E93]"}`}>Нет данных для отображения</div>
                     )}
                   </div>
 
-                  <div className={`mt-4 pt-4 border-t ${!isDesktop ? "border-[#3A3A3C]" : "border-gray-200"}`}>
-                    <div className={`text-sm font-medium mb-3 ${!isDesktop ? "text-white" : ""}`}>Экспорт данных</div>
-                    <div className={`flex gap-2 ${!isDesktop ? "flex-col" : ""}`}>
+                  <div className={`mt-4 pt-4 border-t ${isDesktop ? "border-white/10" : "border-[#3A3A3C]"}`}>
+                    <div className={`text-sm font-medium mb-3 ${isDesktop ? "text-white" : "text-white"}`}>Экспорт данных</div>
+                    <div className={`flex gap-2 ${isDesktop ? "flex-row" : "flex-col"}`}>
                       <Button
                         variant="outline"
                         size="sm"
-                        className={`flex-1 w-full ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                        className={`flex-1 w-full ${isDesktop ? "bg-transparent border-white/10 text-white hover:bg-[#E85D2B] hover:border-[#E85D2B]" : "border-[#3A3A3C] text-white hover:bg-white/10"}`}
                         onClick={() => handleExport("xlsx")}
                       >
                         <Download className="w-4 h-4 mr-2" />
@@ -665,7 +687,7 @@ export default function ManagerStatisticsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className={`flex-1 w-full ${!isDesktop ? "border-[#3A3A3C] text-white hover:bg-white/10" : ""}`}
+                        className={`flex-1 w-full ${isDesktop ? "bg-transparent  border-white/10 text-white hover:bg-[#E85D2B] hover:border-[#E85D2B]" : "border-[#3A3A3C] text-white hover:bg-white/10"}`}
                         onClick={() => handleExport("pbix")}
                       >
                         <Download className="w-4 h-4 mr-2" />
@@ -679,35 +701,35 @@ export default function ManagerStatisticsPage() {
           </section>
 
           <section className="pt-3">
-            <div className="mx-auto max-w-screen-sm px-3">
-              <Card className={isDesktop ? "border bg-white" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
-                <CardContent className="p-3">
-                  <div className="mb-2">
-                    <div className={`text-sm font-medium ${!isDesktop ? "text-white" : ""}`}>Краткий обзор</div>
-                    <div className={`text-xs ${!isDesktop ? "text-[#8E8E93]" : "text-neutral-500"}`}>
+            <div className={`mx-auto px-3 ${isDesktop ? "max-w-6xl" : "max-w-screen-sm"}`}>
+              <Card className={isDesktop ? "border border-white/10 bg-[#2C2C2E]" : "border-[#3A3A3C] bg-[#2C2C2E]"}>
+                <CardContent className="p-4 md:p-6">
+                  <div className="mb-3">
+                    <div className="text-sm font-medium text-white">Краткий обзор</div>
+                    <div className={`text-xs mt-0.5 ${isDesktop ? "text-white/60" : "text-[#8E8E93]"}`}>
                       Всего заявок: {summary.total}, в работе: {summary.inWork}, выполнено: {summary.completed} ({summary.completionRate}%), просрочено: {summary.overdue} ({summary.overdueRate}%)
                     </div>
                   </div>
                   {distribution && (
-                    <div className="space-y-3">
+                    <div className={`space-y-3 ${isDesktop ? "grid sm:grid-cols-3 gap-4" : ""}`}>
                       {[
                         {
                           key: "normal",
                           label: "Обычные",
                           pctKey: "normalPercent",
-                          icon: <BarChart3 className="h-4 w-4 text-[#114A65]" />,
+                          icon: <BarChart3 className={`h-4 w-4 ${isDesktop ? "text-[#E85D2B]" : "text-[#114A65]"}`} />,
                         },
                         {
                           key: "urgent",
                           label: "Экстренные",
                           pctKey: "urgentPercent",
-                          icon: <AlertTriangle className="h-4 w-4 text-[#B8400E]" />,
+                          icon: <AlertTriangle className={`h-4 w-4 ${isDesktop ? "text-[#E85D2B]" : "text-[#B8400E]"}`} />,
                         },
                         {
                           key: "planned",
                           label: "Плановые",
                           pctKey: "plannedPercent",
-                          icon: <CalendarLucid className="h-4 w-4 text-[#114A65]" />,
+                          icon: <CalendarLucid className={`h-4 w-4 ${isDesktop ? "text-[#E85D2B]" : "text-[#114A65]"}`} />,
                         },
                       ].map((row) => {
                         const totalKey = row.key as "normal" | "urgent" | "planned"
@@ -715,7 +737,7 @@ export default function ManagerStatisticsPage() {
                         return (
                           <div key={row.key} className="space-y-2">
                             <div
-                              className={`flex items-center justify-between text-sm cursor-pointer rounded p-1 transition-colors ${isDesktop ? "hover:bg-[#F3F3F3]" : "hover:bg-white/10 active:scale-[0.99]"}`}
+                              className={`flex items-center justify-between text-sm cursor-pointer rounded-lg p-2 transition-colors ${isDesktop ? "hover:bg-white/5" : "hover:bg-white/10 active:scale-[0.99]"}`}
                               onClick={() => {
                                 if (row.key === "normal") {
                                   handleNormalRequestsClick();
@@ -726,17 +748,17 @@ export default function ManagerStatisticsPage() {
                                 }
                               }}
                             >
-                              <div className={`flex items-center gap-2 ${!isDesktop ? "text-white" : ""}`}>
+                              <div className="flex items-center gap-2 text-white">
                                 {row.icon}
                                 <span>{row.label}</span>
                               </div>
-                              <span className={`font-medium ${!isDesktop ? "text-white" : ""}`}>
+                              <span className="font-medium text-white">
                                 {distribution[totalKey]} ({distribution[pctKey]}%)
                               </span>
                             </div>
-                            <div className={`h-2 w-full overflow-hidden rounded ${!isDesktop ? "bg-[#3A3A3C]" : "bg-[#C4C4CE]/30"}`}>
+                            <div className={`h-2 w-full overflow-hidden rounded ${isDesktop ? "bg-white/10" : "bg-[#3A3A3C]"}`}>
                               <div
-                                className="h-full bg-gradient-to-r from-[#114A65] to-[#B8400E] transition-all"
+                                className={`h-full transition-all ${isDesktop ? "bg-[#E85D2B]" : "bg-gradient-to-r from-[#114A65] to-[#B8400E]"}`}
                                 style={{ width: `${distribution[pctKey]}%` }}
                               />
                             </div>
@@ -750,14 +772,29 @@ export default function ManagerStatisticsPage() {
             </div>
           </section>
 
-          {/* Статистика по переговорным, пиковые часы и календарь — только на десктопе */}
-          {isDesktop && (
-          <section className="pt-3">
-            <div className="mx-auto max-w-screen-sm px-3">
-              <MeetingRoomStatistics />
-            </div>
-          </section>
-          )}
+              </>
+            );
+            return isDesktop ? (
+              <Tabs defaultValue="stats" className="w-full px-4 pt-4">
+                <TabsListScrollArea className="mb-4">
+                  <TabsList className="flex flex-nowrap flex-shrink-0 justify-start gap-1 rounded-xl bg-[#2C2C2E]/80 border border-white/10 p-1.5 h-auto min-h-0 min-w-0">
+                    <TabsTrigger value="stats" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Статистика</TabsTrigger>
+                    <TabsTrigger value="analytics" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Аналитика</TabsTrigger>
+                    <TabsTrigger value="workload" className="flex-shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90">Загрузка</TabsTrigger>
+                  </TabsList>
+                </TabsListScrollArea>
+                <TabsContent value="stats" className="mt-0">
+                  <div className="w-full">{statsContent}</div>
+                </TabsContent>
+                <TabsContent value="analytics" className="mt-0">
+                  <ManagerAnalytics />
+                </TabsContent>
+                <TabsContent value="workload" className="mt-0">
+                  <MeetingRoomStatistics variant="dark" defaultShowCalendar />
+                </TabsContent>
+              </Tabs>
+            ) : statsContent;
+          })()}
         </main>
       </PullToRefresh>
       {!isDesktop && <BottomNav

@@ -1,16 +1,16 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, FormEvent, KeyboardEvent } from "react";
-import { Send, Trash2, Copy, Building2, Wrench, Ruler, Bell, Home, BarChart3, AlertTriangle, User, Menu, Bot, BellRing, Check, Clock, ChevronRight, X, CheckCircle, AlertCircle, Loader2, Headphones, ArrowLeft } from "lucide-react";
+import { Send, Trash2, Copy, Building2, Wrench, Ruler, Bell, Home, BarChart3, AlertTriangle, User, Menu, Bot, Clock, ChevronRight, X, Loader2, Headphones, ArrowLeft } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import axios, { AxiosError } from "axios";
 import api, { createSupportTicket, getSupportTicketMessages, sendSupportMessage, getMySupportTickets, type SupportTicket, type SupportMessage } from "@/lib/api";
 import ReactMarkdown from 'react-markdown';
-import {useAuthStore} from "@/stores/useAuthStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
-import { useNotificationStore } from "@/stores/notificationStore";
-import { createClickableRequestIds } from '@/lib/notificationUtils';
-
+import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
+import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
+import { formatTimeOnly } from "@/lib/dateTimeUtils";
 type Message = {
     from: "user" | "bot";
     text: string;
@@ -139,9 +139,8 @@ const topics: Topic[] = [
 ];
 
 export default function ChatPage() {
-    const { token, isGuest } = useAuthStore()
-    const isDesktop = useMediaQuery("(min-width: 768px)")
-    const [activeMessageTab, setActiveMessageTab] = useState<"chat" | "notifications">("chat")
+    const { token, isGuest, user } = useAuthStore();
+    const isDesktop = useMediaQuery("(min-width: 768px)");
     /** Внутри чата: первая — чат-бот, вторая — техподдержка */
     const [innerChatTab, setInnerChatTab] = useState<"bot" | "support">("bot")
     const [messages, setMessages] = useState<Message[]>([
@@ -154,8 +153,6 @@ export default function ChatPage() {
     const [showClearModal, setShowClearModal] = useState(false);
     const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
     const [showTopics, setShowTopics] = useState(true);
-    const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
-
     // Support chat state
     const [showSupportForm, setShowSupportForm] = useState(false);
     const [supportFormValue, setSupportFormValue] = useState("");
@@ -171,116 +168,10 @@ export default function ChatPage() {
     const [myTickets, setMyTickets] = useState<SupportTicket[]>([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
 
-    // Notifications state (local, like old page)
-    const [allNotifications, setAllNotifications] = useState<any[]>([]);
-    const [notifPage, setNotifPage] = useState(1);
-    const [notifHasMore, setNotifHasMore] = useState(true);
-    const [notifLoading, setNotifLoading] = useState(false);
-    const notifContainerRef = useRef<HTMLDivElement | null>(null);
-    const notifThrottleRef = useRef<NodeJS.Timeout | null>(null);
-    
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Fetch notifications with pagination (like old notifications page)
-    const loadNotifications = useCallback(async (pageNum: number, reset: boolean = false) => {
-        if (notifLoading || !token) return;
-        
-        setNotifLoading(true);
-        try {
-            const res = await api.get(`/notifications/me?page=${pageNum}&pageSize=10`);
-            const newNotifs = res.data.notifications || [];
-            
-            setAllNotifications(prev =>
-                reset
-                    ? newNotifs
-                    : [...prev, ...newNotifs.filter(
-                        (newN: any) => !prev.some((p: any) => p.id === newN.id)
-                    )]
-            );
-            
-            setNotifHasMore(pageNum < (res.data.totalPages || Math.ceil((res.data.total || 0) / 10)));
-            if (reset) setNotifPage(1);
-            else setNotifPage(pageNum);
-        } catch (error) {
-            console.error('Ошибка при загрузке уведомлений:', error);
-        } finally {
-            setNotifLoading(false);
-        }
-    }, [token, notifLoading]);
-
-    // Load notifications on mount
-    useEffect(() => {
-        if (token) {
-            loadNotifications(1, true);
-        }
-    }, [token]);
-
-    // Scroll-based pagination for notifications
-    const handleNotifScroll = useCallback(() => {
-        const el = notifContainerRef.current;
-        if (!el || notifLoading || !notifHasMore) return;
-
-        const { scrollTop, scrollHeight, clientHeight } = el;
-        if (scrollHeight - (scrollTop + clientHeight) < 100) {
-            const nextPage = notifPage + 1;
-            setNotifPage(nextPage);
-            loadNotifications(nextPage);
-        }
-    }, [notifLoading, notifHasMore, notifPage, loadNotifications]);
-
-    const throttledNotifScroll = useCallback(() => {
-        if (notifThrottleRef.current) return;
-        notifThrottleRef.current = setTimeout(() => {
-            handleNotifScroll();
-            notifThrottleRef.current = null;
-        }, 100);
-    }, [handleNotifScroll]);
-
-    useEffect(() => {
-        const el = notifContainerRef.current;
-        if (!el || activeMessageTab !== "notifications") return;
-
-        el.addEventListener('scroll', throttledNotifScroll, { passive: true });
-        return () => el.removeEventListener('scroll', throttledNotifScroll);
-    }, [throttledNotifScroll, activeMessageTab]);
-
-    // Mark as read
-    const handleNotificationClick = async (notification: any) => {
-        setSelectedNotification(notification);
-        if (!notification.is_read) {
-            // Optimistic update
-            setAllNotifications(prev =>
-                prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-            );
-            try {
-                await api.patch(`/notifications/${notification.id}/read`);
-            } catch (error) {
-                // Revert on error
-                setAllNotifications(prev =>
-                    prev.map(n => n.id === notification.id ? { ...n, is_read: false } : n)
-                );
-                console.error("Ошибка при пометке уведомления как прочитано", error);
-            }
-        }
-    };
-
-    // Notification helpers
-    const getNotificationIcon = (title: string) => {
-        if (title?.toLowerCase().includes('принята') || title?.toLowerCase().includes('одобрена')) {
-            return <CheckCircle className="w-4 h-4 text-green-400" />;
-        }
-        if (title?.toLowerCase().includes('завершена') || title?.toLowerCase().includes('выполнена')) {
-            return <CheckCircle className="w-4 h-4 text-blue-400" />;
-        }
-        if (title?.toLowerCase().includes('просрочена') || title?.toLowerCase().includes('отклонена')) {
-            return <AlertCircle className="w-4 h-4 text-red-400" />;
-        }
-        return <Clock className="w-4 h-4 text-gray-400" />;
-    };
-
-    const unreadCount = allNotifications.filter(n => !n.is_read).length;
     const getChatStorageKey = useCallback(() => {
         return token ? `chat-messages-${token}` : 'chat-messages';
     }, [token]);
@@ -653,36 +544,19 @@ export default function ChatPage() {
         };
     }, []);
 
-    // Форматирование времени уведомления
-    const formatNotificationTime = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 1) return 'только что';
-        if (diffMins < 60) return `${diffMins} мин назад`;
-        if (diffHours < 24) return `${diffHours} ч назад`;
-        if (diffDays < 7) return `${diffDays} дн назад`;
-        return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-    };
-
-    return (
-        <div className="flex flex-col h-screen bg-black safe-area-padding">
-            {/* Header с вкладками */}
-            <header className="sticky top-0 z-10 bg-black pt-12 pb-4 px-4 safe-area-top">
+    const chatContent = (
+        <div className={`flex flex-col h-screen safe-area-padding ${isDesktop ? "bg-[#1C1C1E]" : "bg-black"}`}>
+            {/* Header с вкладками — на десктопе стиль как мобильный клиент (тёмный + оранжевый) */}
+            <header className={`sticky top-0 z-10 pt-12 pb-4 px-4 safe-area-top ${isDesktop ? "bg-[#1C1C1E] border-b border-[#212121]" : "bg-black"}`}>
                 <h1 className="text-2xl font-bold text-white mb-4">Сообщение</h1>
 
-                {/* Внутри чата: две вкладки — Чат-бот и Техподдержка */}
-                {(isDesktop ? activeMessageTab === "chat" : true) && (
-                <div className="flex rounded-xl overflow-hidden bg-[#3D3D3D] mb-2">
+                {/* Внутри чата: две вкладки — Чат-бот и Техподдержка (уведомления убраны с десктопа) */}
+                <div className={`flex rounded-xl overflow-hidden mb-2 ${isDesktop ? "bg-[#2C2C2E]" : "bg-[#3D3D3D]"}`}>
                     <button
                         onClick={() => setInnerChatTab("bot")}
                         className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                             innerChatTab === "bot"
-                                ? "bg-[#5A5A5A] text-white"
+                                ? isDesktop ? "bg-[#F35713] text-white" : "bg-[#5A5A5A] text-white"
                                 : "bg-transparent text-gray-400"
                         }`}
                     >
@@ -693,7 +567,7 @@ export default function ChatPage() {
                         onClick={() => setInnerChatTab("support")}
                         className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                             innerChatTab === "support"
-                                ? "bg-[#5A5A5A] text-white"
+                                ? isDesktop ? "bg-[#F35713] text-white" : "bg-[#5A5A5A] text-white"
                                 : "bg-transparent text-gray-400"
                         }`}
                     >
@@ -701,43 +575,10 @@ export default function ChatPage() {
                         Техподдержка
                     </button>
                 </div>
-                )}
-
-                {/* На десктопе: третья вкладка — Уведомления */}
-                {isDesktop && (
-                <div className="flex rounded-xl overflow-hidden bg-[#3D3D3D]">
-                    <button
-                        onClick={() => setActiveMessageTab("chat")}
-                        className={`flex-1 py-2.5 px-3 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            activeMessageTab === "chat"
-                                ? "bg-[#5A5A5A] text-white"
-                                : "bg-transparent text-gray-400"
-                        }`}
-                    >
-                        Чат
-                    </button>
-                    <button
-                        onClick={() => setActiveMessageTab("notifications")}
-                        className={`flex-1 py-2.5 px-3 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            activeMessageTab === "notifications"
-                                ? "bg-[#5A5A5A] text-white"
-                                : "bg-transparent text-gray-400"
-                        }`}
-                    >
-                        <BellRing className="w-4 h-4" />
-                        Уведомления
-                        {unreadCount > 0 && (
-                            <span className="bg-[#F35713] text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                                {unreadCount}
-                            </span>
-                        )}
-                    </button>
-                </div>
-                )}
             </header>
 
-            {/* Контент: на мобилке только чат, на десктопе — по вкладке */}
-            {(isDesktop ? activeMessageTab === "chat" : true) ? (
+            {/* Контент: только чат (чат-бот + техподдержка), уведомления убраны */}
+            {(
                 <>
                     {/* Вкладка «Техподдержка»: чат с поддержкой или список тикетов */}
                     {innerChatTab === "support" && (
@@ -766,7 +607,7 @@ export default function ChatPage() {
                                         <div className={`px-4 py-3 rounded-2xl max-w-[85%] ${msg.sender === "admin" ? "bg-[#2C2C2E] text-white rounded-tl-none" : "bg-[#F35713] text-white rounded-tr-none"}`}>
                                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                                             <p className={`text-xs mt-1 ${msg.sender === "admin" ? "text-gray-500" : "text-white/70"}`}>
-                                                {new Date(msg.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                                                {formatTimeOnly(msg.created_at)}
                                             </p>
                                         </div>
                                         {msg.sender === "user" && (
@@ -783,7 +624,7 @@ export default function ChatPage() {
                                 )}
                                 <div ref={supportMessagesEndRef} aria-hidden />
                             </main>
-                            <form onSubmit={(e) => handleSendSupportMessage(e)} className="fixed left-0 right-0 bg-black border-t border-gray-800 p-4 max-w-2xl mx-auto w-full md:bottom-20 bottom-[calc(90px+env(safe-area-inset-bottom,0px))]" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+                            <form onSubmit={(e) => handleSendSupportMessage(e)} className={`fixed left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full z-10 ${isDesktop ? "bottom-0 bg-[#1C1C1E] border-[#212121]" : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-black border-gray-800"}`} style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                                 <div className="flex items-end gap-2">
                                     <textarea
                                         ref={supportInputRef}
@@ -1016,10 +857,12 @@ export default function ChatPage() {
                         <div ref={messagesEndRef} aria-hidden />
                     </main>
 
-                    {/* Chat Input */}
+                    {/* Chat Input — всегда внизу: на десктопе bottom-0, на мобилке — над BottomNav */}
                     <form
                         onSubmit={handleSubmit}
-                        className="fixed bottom-20 left-0 right-0 bg-black border-t border-gray-800 p-4 max-w-2xl mx-auto w-full safe-area-bottom"
+                        className={`fixed left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full safe-area-bottom z-10 ${
+                            isDesktop ? "bottom-0 bg-[#1C1C1E] border-[#212121]" : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-black border-gray-800"
+                        }`}
                     >
                         {error && (
                             <div className="text-[#F35713] text-xs mb-2 px-2">{error}</div>
@@ -1057,128 +900,10 @@ export default function ChatPage() {
                     </>
                     )}
                 </>
-            ) : (
-                <>
-                    {/* Notifications List (на мобилке эта ветка не показывается — уведомления в Профиле) */}
-                    <main 
-                        ref={notifContainerRef}
-                        className="flex-1 overflow-y-auto p-4 space-y-3 pb-24"
-                    >
-                        {allNotifications.length === 0 && !notifLoading ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                                <BellRing className="w-16 h-16 mb-4 opacity-50" />
-                                <p className="text-lg font-medium">Нет уведомлений</p>
-                                <p className="text-sm">Здесь будут ваши уведомления</p>
-                            </div>
-                        ) : (
-                            <>
-                                {allNotifications.map((notification: any, index: number) => (
-                                    <button
-                                        key={notification.id || index}
-                                        onClick={() => handleNotificationClick(notification)}
-                                        className={`w-full rounded-xl p-4 border transition-all text-left flex items-start gap-3 ${
-                                            notification.is_read 
-                                                ? 'bg-[#1C1C1E]/60 border-gray-800 opacity-70' 
-                                                : 'bg-[#1C1C1E] border-gray-700 hover:border-[#F35713]'
-                                        }`}
-                                    >
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#F35713]/20 flex items-center justify-center">
-                                            {getNotificationIcon(notification.title)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <h3 className="font-semibold text-white text-sm mb-1 line-clamp-2">
-                                                    {notification.title || 'Уведомление'}
-                                                </h3>
-                                                {!notification.is_read && (
-                                                    <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-medium text-[#F35713] bg-[#F35713]/20 rounded-full whitespace-nowrap">
-                                                        Новое
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-400 line-clamp-2 mt-1">
-                                                {notification.content || notification.message || notification.body || 'Новое уведомление'}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <Clock className="w-3 h-3 text-gray-500" />
-                                                <span className="text-xs text-gray-500">
-                                                    {formatNotificationTime(notification.created_at || notification.timestamp || new Date().toISOString())}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                                    </button>
-                                ))}
-                                {notifLoading && (
-                                    <div className="flex justify-center py-4">
-                                        <div className="flex items-center gap-2 text-gray-400">
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            <span className="text-sm">Загрузка...</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {!notifHasMore && allNotifications.length > 0 && !notifLoading && (
-                                    <div className="text-center py-4">
-                                        <p className="text-xs text-gray-500">Все уведомления загружены</p>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </main>
-
-                    {/* Notification Detail Modal */}
-                    {selectedNotification && (
-                        <div 
-                            className="fixed inset-0 bg-black/80 z-[60] flex items-end justify-center"
-                            onClick={() => setSelectedNotification(null)}
-                        >
-                            <div 
-                                className="bg-[#1C1C1E] w-full max-w-lg rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
-                                style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#F35713]/20 flex items-center justify-center">
-                                            {getNotificationIcon(selectedNotification.title)}
-                                        </div>
-                                        <h2 className="text-lg font-bold text-white">
-                                            {selectedNotification.title || 'Уведомление'}
-                                        </h2>
-                                    </div>
-                                    <button
-                                        onClick={() => setSelectedNotification(null)}
-                                        className="p-2 rounded-full bg-[#2C2C2E] text-gray-400 hover:text-white"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm">
-                                    <Clock className="w-4 h-4" />
-                                    <span>
-                                        {new Date(selectedNotification.created_at || selectedNotification.timestamp || new Date()).toLocaleString('ru-RU')}
-                                    </span>
-                                    {selectedNotification.is_read && (
-                                        <span className="text-xs text-gray-500 ml-2">• Прочитано</span>
-                                    )}
-                                </div>
-                                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                                    {selectedNotification.content || selectedNotification.message || selectedNotification.body || 'Нет содержимого'}
-                                </p>
-                                {selectedNotification.request_id && (
-                                    <div className="mt-4 p-3 bg-[#2C2C2E] rounded-xl">
-                                        <p className="text-xs text-gray-400 mb-1">Связанная заявка</p>
-                                        <p className="text-white font-medium">#{selectedNotification.request_id}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </>
             )}
 
-            {/* Navigation */}
-            {!isDesktop && !selectedNotification && <BottomNav activeTab="help" />}
+            {/* Navigation — только на мобильном */}
+            {!isDesktop && <BottomNav activeTab="help" />}
 
             {/* Modal для очистки чата */}
             <DeleteConfirmationModal
@@ -1192,4 +917,12 @@ export default function ChatPage() {
             />
         </div>
     );
+
+    if (isDesktop && user?.role === "client") {
+        return <ClientDesktopShell>{chatContent}</ClientDesktopShell>;
+    }
+    if (isDesktop && user?.role === "department-head") {
+        return <RoleDesktopShell role="department-head">{chatContent}</RoleDesktopShell>;
+    }
+    return chatContent;
 }

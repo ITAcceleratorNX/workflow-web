@@ -10,15 +10,17 @@ import { MeetingRoomCalendar } from "./MeetingRoomCalendar";
 
 interface MeetingRoomStatisticsProps {
   variant?: "default" | "dark";
+  /** Показывать календарь загрузки по умолчанию (для таба «Загрузка» в кабинете) */
+  defaultShowCalendar?: boolean;
 }
 
-export function MeetingRoomStatistics({ variant = "default" }: MeetingRoomStatisticsProps) {
+export function MeetingRoomStatistics({ variant = "default", defaultShowCalendar = false }: MeetingRoomStatisticsProps) {
   const isDark = variant === "dark";
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<MeetingRoomStats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(defaultShowCalendar);
 
   useEffect(() => {
     fetchStats();

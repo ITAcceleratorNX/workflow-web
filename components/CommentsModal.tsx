@@ -105,16 +105,16 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
 
   if (!isOpen || !requestId) return null;
 
-  // Админ мобилка: full-screen тёмный дизайн, навбар скрыт под модалкой (z-[60])
-  if (variant === "admin" && !isDesktop) {
+  // Админ/менеджер: тёмный дизайн (мобилка full-screen, десктоп — панель)
+  if (variant === "admin") {
     return (
-      <div className="fixed inset-0 z-[110] flex flex-col bg-black">
+      <div className={`flex flex-col bg-[#1A1A1A] ${isDesktop ? "fixed top-0 right-0 h-full w-[400px] max-w-[100vw] shadow-2xl border-l border-white/10 z-[110]" : "fixed inset-0 z-[110]"}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800 flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
           <h3 className="font-semibold text-lg text-white">Комментарии</h3>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-800 text-white"
+            className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
             aria-label="Закрыть"
           >
             <X className="h-5 w-5" />
@@ -122,7 +122,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
         </div>
 
         {/* Список комментариев */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {loading[requestId || 0] ? (
             <div className="text-center py-8">
               <p className="text-gray-400 text-sm">Загрузка комментариев...</p>
@@ -143,30 +143,31 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
         </div>
 
         {/* Поле ввода — с отступом под safe-area, навбар не виден */}
-        <div className="p-4 pt-3 border-t border-gray-800 bg-[#1C1C1E] pb-[env(safe-area-inset-bottom,0px)]">
-          <div className="flex items-end gap-2">
-            <div className="flex-1 min-w-0">
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                onKeyPress={handleKeyPress}
-                onInput={handleInput}
-                placeholder="Написать комментарий..."
-                className="w-full min-h-[44px] max-h-[120px] p-3 rounded-lg text-sm bg-[#262626] border border-gray-600 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F35713] focus:border-transparent resize-none"
-                style={{
-                  height: "auto",
-                  minHeight: "44px",
-                  maxHeight: "120px",
-                }}
-              />
+        <div className="p-4 pt-3 border-t border-white/10 bg-[#1A1A1A] pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="flex flex-col gap-3">
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              onKeyPress={handleKeyPress}
+              onInput={handleInput}
+              placeholder="Написать комментарий..."
+              className="w-full min-h-[44px] max-h-[120px] p-3 rounded-xl text-sm bg-[#2C2C2E] border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#E85D2B] focus:border-transparent resize-none"
+              style={{
+                height: "auto",
+                minHeight: "44px",
+                maxHeight: "120px",
+              }}
+            />
+            <div className="flex justify-center">
+              <button
+                onClick={() => handleSend(requestId)}
+                disabled={!comment.trim()}
+                className="px-6 py-3 rounded-xl bg-[#E85D2B] hover:bg-[#E04A0A] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Send className="w-5 h-5" />
+                Отправить
+              </button>
             </div>
-            <button
-              onClick={() => handleSend(requestId)}
-              disabled={!comment.trim()}
-              className="flex-shrink-0 p-3 rounded-lg bg-[#F35713] hover:bg-[#E04A0A] disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-            >
-              <Send className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </div>
@@ -177,7 +178,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     <>
       {/* Мобильная версия (default) */}
       {!isDesktop && (
-        <div className="fixed inset-0 z-50 flex items-end safe-area-bottom">
+        <div className="fixed inset-0 z-[110] flex items-end safe-area-bottom">
           {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -242,7 +243,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                   className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] p-3 rounded-lg flex-shrink-0 text-white"
                   disabled={!comment.trim()}
                 >
-                  <Send className="w-4 w-4" />
+                  <Send className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -309,7 +310,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                 className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] p-3 rounded-lg flex-shrink-0 text-white"
                 disabled={!comment.trim()}
               >
-                <Send className="w-4 w-4" />
+                <Send className="w-4 h-4" />
               </Button>
             </div>
           </div>

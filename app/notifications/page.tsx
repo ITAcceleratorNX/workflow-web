@@ -11,6 +11,7 @@ import { useRequestFromNotification } from '@/hooks/useRequestFromNotification';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { formatDateOnly } from "@/lib/dateTimeUtils";
 
 interface Notification {
     id: string;
@@ -141,11 +142,7 @@ export default function NotificationsPage() {
         if (diffInHours < 24) return `${diffInHours} ч назад`;
         if (diffInDays < 7) return `${diffInDays} дн назад`;
         
-        return date.toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        return formatDateOnly(date);
     };
 
     // Обработчик клика по ID заявки

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,14 @@ import { RequestGroup, useRequestStore } from "@/stores/useRequestStore";
 import { SubRequest } from "@/stores/useRequestStore";
 import { RequestDetails } from "@/components/RequestDetails";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientRequestDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params?.id as string;
+  const fromRequests = searchParams.get("from") === "requests";
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [request, setRequest] = useState<RequestGroup | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +25,7 @@ export default function ClientRequestDetailPage() {
   const requests = useRequestStore((s) => s.requests);
   const isGuest = useAuthStore((s) => s.isGuest);
   const removeRequest = useRequestStore((s) => s.removeRequest);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isDesktop) {
@@ -56,27 +60,40 @@ export default function ClientRequestDetailPage() {
     fetchRequest();
   }, [id, isDesktop, requests]);
 
+  const getBackUrl = () => {
+    if (isGuest || fromRequests) return "/requests";
+    return "/client?tab=requests";
+  };
+
   const handleClose = () => {
-    router.push(isGuest ? "/requests" : "/client?tab=requests");
+    router.push(getBackUrl());
   };
 
   const handleRequestUpdated = () => {
-    router.push(isGuest ? "/requests" : "/client?tab=requests");
+    router.push(getBackUrl());
   };
 
-  const handleDelete = useCallback(async (subRequest: SubRequest) => {
-    if (isGuest && request) {
-      removeRequest(request.id);
-      router.push("/requests");
-      return;
-    }
-    try {
-      await api.delete(`/requests/${subRequest.id}`);
-      router.push("/client?tab=requests");
-    } catch {
-      // ошибка обрабатывается в RequestDetails / toast
-    }
-  }, [router, isGuest, request, removeRequest]);
+  const handleDelete = useCallback(
+    async (subRequest: SubRequest) => {
+      if (isGuest && request) {
+        removeRequest(request.id);
+        router.push("/requests");
+        return;
+      }
+      try {
+        await api.delete(`/requests/${subRequest.id}`);
+        toast({ title: "Подзаявка удалена" });
+        router.push(getBackUrl());
+      } catch {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось удалить подзаявку",
+          variant: "destructive",
+        });
+      }
+    },
+    [router, isGuest, request, removeRequest, toast, fromRequests]
+  );
 
   if (isDesktop) return null;
 
@@ -94,7 +111,7 @@ export default function ClientRequestDetailPage() {
         <Button
           variant="ghost"
           className="text-white mb-4"
-          onClick={() => router.push(isGuest ? "/requests" : "/client?tab=requests")}
+          onClick={() => router.push(getBackUrl())}
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Назад

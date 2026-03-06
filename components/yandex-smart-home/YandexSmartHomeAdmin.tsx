@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle, Loader2, Trash2, Home } from "lucide-react"
 import api, { getYandexTokens, deleteYandexTokens, refreshYandexTokens } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { formatDateTime } from "@/lib/dateTimeUtils"
 
 interface YandexToken {
   id: number
@@ -17,7 +18,12 @@ interface YandexToken {
   has_tokens: boolean
 }
 
-export function YandexSmartHomeAdmin() {
+interface YandexSmartHomeAdminProps {
+  /** Тёмная тема (для раздела Управление на десктопе у админа) */
+  dark?: boolean
+}
+
+export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -92,58 +98,73 @@ export function YandexSmartHomeAdmin() {
     }
   }
 
+  const cardCl = dark ? "border-white/10 bg-[#2C2C2E]" : ""
+  const titleCl = dark ? "text-white" : ""
+  const descCl = dark ? "text-white/70" : ""
+  const errorBoxCl = dark ? "bg-red-500/20 border-red-500/50" : "bg-red-50 border-red-200"
+  const errorTextCl = dark ? "text-red-300" : "text-red-800"
+  const loadingBoxCl = dark ? "bg-blue-500/20 border-blue-500/50" : "bg-blue-50 border-blue-200"
+  const loadingTextCl = dark ? "text-blue-200" : "text-blue-800"
+  const successBoxCl = dark ? "bg-blue-500/20 border-blue-500/50" : "bg-blue-50 border-blue-200"
+  const successTextCl = dark ? "text-blue-200" : "text-blue-800"
+  const warnBoxCl = dark ? "bg-yellow-500/20 border-yellow-500/50" : "bg-yellow-50 border-yellow-200"
+  const warnTextCl = dark ? "text-yellow-200" : "text-yellow-800"
+  const infoBoxCl = dark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+  const infoTextCl = dark ? "text-white/70" : "text-gray-700"
+  const buttonOutlineCl = dark ? "border-white/20 text-white hover:bg-white/10" : ""
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <Card className="w-full">
+      <Card className={`w-full ${cardCl}`}>
         <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <CardTitle className={`text-base sm:text-lg flex items-center gap-2 ${titleCl}`}>
             <Home className="h-5 w-5" />
             Управление Яндекс умным домом
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={descCl}>
             Управление токенами авторизации для интеграции с Яндекс умным домом. Токены получаются через OAuth авторизацию и хранятся только на сервере.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className={`border rounded-lg p-3 ${errorBoxCl}`}>
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-red-800">{error}</div>
+                <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${dark ? "text-red-400" : "text-red-600"}`} />
+                <div className={`text-sm ${errorTextCl}`}>{error}</div>
               </div>
             </div>
           )}
 
           {isLoading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className={`border rounded-lg p-3 ${loadingBoxCl}`}>
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                <div className="text-sm text-blue-800">Загрузка...</div>
+                <Loader2 className={`w-4 h-4 animate-spin ${dark ? "text-blue-300" : "text-blue-600"}`} />
+                <div className={`text-sm ${loadingTextCl}`}>Загрузка...</div>
               </div>
             </div>
           )}
 
           {existingToken && !isLoading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className={`border rounded-lg p-3 ${successBoxCl}`}>
               <div className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800">
+                <CheckCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${dark ? "text-blue-300" : "text-blue-600"}`} />
+                <div className={`text-sm ${successTextCl}`}>
                   <p className="font-medium mb-1">Токены настроены</p>
-                  <p>Создано: {new Date(existingToken.created_at).toLocaleString("ru-RU")}</p>
+                  <p>Создано: {formatDateTime(existingToken.created_at)}</p>
                   {existingToken.expires_at && (
-                    <p>Истекает: {new Date(existingToken.expires_at).toLocaleString("ru-RU")}</p>
+                    <p>Истекает: {formatDateTime(existingToken.expires_at)}</p>
                   )}
-                  <p className="text-xs text-blue-600 mt-2">Токены хранятся только на сервере и не отправляются на фронтенд</p>
+                  <p className={`text-xs mt-2 ${dark ? "text-blue-300/90" : "text-blue-600"}`}>Токены хранятся только на сервере и не отправляются на фронтенд</p>
                 </div>
               </div>
             </div>
           )}
 
           {!existingToken && !isLoading && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className={`border rounded-lg p-3 ${warnBoxCl}`}>
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800">
+                <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${dark ? "text-yellow-400" : "text-yellow-600"}`} />
+                <div className={`text-sm ${warnTextCl}`}>
                   <p className="font-medium mb-1">Токены не настроены</p>
                   <p>Токены должны быть получены через OAuth авторизацию Яндекс и сохраняются автоматически на сервере.</p>
                 </div>
@@ -157,7 +178,7 @@ export function YandexSmartHomeAdmin() {
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 variant="outline"
-                className="flex-1"
+                className={`bg-transparent flex-1 ${buttonOutlineCl}`}
               >
                 {isRefreshing ? (
                   <div className="flex items-center gap-2">
@@ -192,10 +213,10 @@ export function YandexSmartHomeAdmin() {
             </div>
           )}
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-4">
-            <div className="text-xs text-gray-700">
+          <div className={`border rounded-lg p-3 mt-4 ${infoBoxCl}`}>
+            <div className={`text-xs ${infoTextCl}`}>
               <p className="font-medium mb-1">Информация:</p>
-              <p>• Endpoint для Яндекс умного дома: <code className="bg-gray-100 px-1 rounded">GET /api/yandex-smart-home/v1.0/user/devices</code></p>
+              <p>• Endpoint для Яндекс умного дома: <code className={dark ? "bg-white/10 px-1 rounded text-white/90" : "bg-gray-100 px-1 rounded"}>GET /api/yandex-smart-home/v1.0/user/devices</code></p>
               <p>• Яндекс будет отправлять запросы с токеном в заголовке Authorization</p>
               <p>• Токены получаются через OAuth авторизацию и сохраняются автоматически на сервере</p>
               <p>• Токены хранятся только на сервере и никогда не отправляются на фронтенд</p>

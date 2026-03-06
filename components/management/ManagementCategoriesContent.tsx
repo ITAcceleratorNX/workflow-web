@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -149,10 +149,12 @@ export function ManagementCategoriesContent() {
 
   return (
     <Tabs defaultValue="categories" className="w-full">
-      <TabsList className={tabsListClass}>
-        <TabsTrigger value="categories" className={tabsTriggerClass}>Категории</TabsTrigger>
-        <TabsTrigger value="subcategories" className={tabsTriggerClass}>Подкатегории</TabsTrigger>
-      </TabsList>
+      <TabsListScrollArea>
+        <TabsList className={`${tabsListClass} w-max min-w-full [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap`}>
+          <TabsTrigger value="categories" className={tabsTriggerClass}>Категории</TabsTrigger>
+          <TabsTrigger value="subcategories" className={tabsTriggerClass}>Подкатегории</TabsTrigger>
+        </TabsList>
+      </TabsListScrollArea>
 
       <TabsContent value="categories">
         <Card className={cardClass}>

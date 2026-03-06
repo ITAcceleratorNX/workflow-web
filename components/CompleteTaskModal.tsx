@@ -83,7 +83,7 @@ export const CompleteTaskModal: React.FC<CompleteTaskModalProps> = ({
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[110]">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-lg max-h-[95vh] flex flex-col">
         <Card className="w-full h-full flex flex-col bg-white border border-gray-200 shadow-xl rounded-xl sm:rounded-2xl">
           {/* Header - фиксированный */}

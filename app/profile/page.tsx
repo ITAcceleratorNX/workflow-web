@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Save, Loader2, Mail, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,10 +18,13 @@ import {useStatsStore} from "@/stores/statsStore"
 import {useAuthStore} from "@/stores/useAuthStore"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ProfileModal } from "@/components/ProfileModal"
+import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell"
+import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationsSidebar } from "@/components/notification/NotificationsSidebar"
 import { createClickableRequestIds } from "@/lib/notificationUtils"
 import { LogsViewer } from "@/components/logs-viewer"
+import { formatNotificationDateTime } from "@/lib/dateTimeUtils"
 const roleTranslations: Record<string, string> = {
     client: "Клиент",
     "admin-worker": "Администратор офиса",
@@ -282,6 +285,23 @@ export default function ProfilePage() {
         }
     }, [user, router])
 
+    // На десктопе admin/manager/department-head перенаправляем в свой раздел профиля (страница с сайдбаром, не модалка)
+    useEffect(() => {
+        if (!user || !isDesktop) return
+        if (role === "admin-worker") {
+            router.replace("/admin-worker/profile")
+            return
+        }
+        if (role === "manager") {
+            router.replace("/manager/profile")
+            return
+        }
+        if (role === "department-head") {
+            router.replace("/department-head/profile")
+            return
+        }
+    }, [user, isDesktop, role, router])
+
     const handleClose = () => {
         setIsOpen(false)
         router.back()
@@ -291,24 +311,21 @@ export default function ProfilePage() {
         return null
     }
 
-    // На десктопе показываем как модальное окно
-    if (isDesktop) {
-        return (
-            <div className="min-h-screen bg-[#F3F3F3]">
-                <ProfileModal isOpen={isOpen} onClose={handleClose} isFullScreen={false} />
-            </div>
-        )
+    // На десктопе admin/manager/department-head — редирект в свой профиль, показываем null
+    if (isDesktop && (role === "admin-worker" || role === "manager" || role === "department-head")) {
+        return null
     }
 
     // На мобильных показываем как обычную страницу (стиль как login — без лого, надписи и уведомлений сверху)
     const inputClass = "h-12 rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white placeholder:text-[#6E6E6E] focus-visible:ring-2 focus-visible:ring-[#212121] focus-visible:ring-offset-0 focus-visible:ring-offset-[#040404]"
     const labelClass = "text-[15px] font-medium text-white"
 
-    const gridCols = ["admin-worker", "department-head", "manager"].includes(role || "") ? "grid-cols-4" : "grid-cols-3"
+    // У department-head только 3 вкладки (без логов), как у клиента
+    const gridCols = ["admin-worker", "manager"].includes(role || "") ? "grid-cols-4" : "grid-cols-3"
     const tabListClass = "grid w-full rounded-xl border border-[#212121] bg-transparent p-1"
     const tabTriggerClass = "rounded-lg text-sm font-medium text-[#7F7F7F] transition-colors data-[state=active]:bg-[#212121] data-[state=active]:text-white"
 
-    return (
+    const profileContent = (
         <div
             className="min-h-screen bg-[#040404]"
             style={{
@@ -327,8 +344,9 @@ export default function ProfilePage() {
                 </div>
 
                 <Tabs defaultValue="profile" className="space-y-6">
-                    <TabsList className={`${tabListClass} ${gridCols}`}>
-                        <TabsTrigger value="profile" className={tabTriggerClass}>
+                    <TabsListScrollArea>
+                        <TabsList className={`${tabListClass} ${gridCols} w-max min-w-full [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap`}>
+                            <TabsTrigger value="profile" className={tabTriggerClass}>
                             Профиль
                         </TabsTrigger>
                         <TabsTrigger value="password" className={tabTriggerClass}>
@@ -337,12 +355,13 @@ export default function ProfilePage() {
                         <TabsTrigger value="notifications" className={tabTriggerClass}>
                             Уведомления
                         </TabsTrigger>
-                        {["admin-worker", "department-head", "manager"].includes(role || "") && (
+                        {["admin-worker", "manager"].includes(role || "") && (
                             <TabsTrigger value="logs" className={tabTriggerClass}>
                                 Логи
                             </TabsTrigger>
                         )}
-                    </TabsList>
+                        </TabsList>
+                    </TabsListScrollArea>
 
                     {/* Вкладка: Профиль */}
                     <TabsContent value="profile" className="space-y-6 mt-0">
@@ -608,8 +627,8 @@ export default function ProfilePage() {
                         </div>
                     </TabsContent>
 
-                    {/* Вкладка: Логи действий (только для admin-worker, department-head, manager) */}
-                    {["admin-worker", "department-head", "manager"].includes(role || "") && (
+                    {/* Вкладка: Логи действий (только для admin-worker, manager; department-head не нужен) */}
+                    {["admin-worker", "manager"].includes(role || "") && (
                         <TabsContent value="logs" className="mt-0 space-y-6">
                             <div
                                 className="flex flex-col rounded-xl border border-[#212121] bg-transparent p-5"
@@ -649,7 +668,7 @@ export default function ProfilePage() {
                             })}
                         </div>
                         <p className="text-xs mt-4 text-[#7F7F7F]">
-                            {new Date(selectedNotification.created_at).toLocaleString()}
+                            {formatNotificationDateTime(selectedNotification.created_at)}
                         </p>
                     </div>
                 </div>
@@ -658,4 +677,37 @@ export default function ProfilePage() {
             {!isDesktop && <BottomNav activeTab="profile" />}
         </div>
     )
+
+    // На десктопе для клиента — ProfileModal asSection + сайдбар (ClientDesktopShell)
+    if (isDesktop && role === "client") {
+        return (
+            <ClientDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
+                <div className="min-h-full bg-[#1A1A1A]">
+                    <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
+                </div>
+            </ClientDesktopShell>
+        )
+    }
+
+    // На десктопе для исполнителя — тот же стиль: ExecutorDesktopShell + ProfileModal asSection
+    if (isDesktop && role === "executor") {
+        return (
+            <ExecutorDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
+                <div className="min-h-full bg-[#1A1A1A]">
+                    <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
+                </div>
+            </ExecutorDesktopShell>
+        )
+    }
+
+    // На десктопе для остальных ролей (department-head и т.д.) — модальное окно
+    if (isDesktop) {
+        return (
+            <div className="min-h-screen bg-[#1A1A1A]">
+                <ProfileModal isOpen={isOpen} onClose={handleClose} isFullScreen={false} />
+            </div>
+        )
+    }
+
+    return profileContent
 }

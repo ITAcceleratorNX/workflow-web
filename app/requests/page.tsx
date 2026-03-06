@@ -38,6 +38,7 @@ import { useAuthStore } from "@/stores/useAuthStore"
 import { RoleBasedActionMenu } from "@/components/action-menu/RoleBasedActionMenu"
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
 import { RatingModal } from "@/components/RatingModal"
+import { formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
 import { RequestCard } from "@/components/RequestCard"
 import { getPreviewUrl } from '@/lib/imageOptimization'
 import { CommentsModal } from "@/components/CommentsModal"
@@ -416,7 +417,7 @@ export default function RequestsPage() {
 
   const handleCardClick = useCallback((request: RequestGroup) => {
     if (role === "client" && !isDesktop && !isGuest) {
-      router.push(`/client/requests/${request.id}`)
+      router.push(`/client/requests/${request.id}?from=requests`)
       return
     }
     setSelectedRequest(request)
@@ -502,11 +503,7 @@ export default function RequestsPage() {
                 <div>
                   <p className="text-gray-400 text-sm">Запланировано на</p>
                   <p className="text-white">
-                    {new Date(selectedRequest.planned_date).toLocaleDateString('ru-RU', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatDateOnly(selectedRequest.planned_date)}
                   </p>
                 </div>
               </div>
@@ -618,13 +615,7 @@ export default function RequestsPage() {
             <div className="bg-[#1C1C1E] rounded-xl p-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-gray-400" />
               <p className="text-white">
-                {new Date(selectedRequest.created_date).toLocaleString('ru-RU', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+                {formatDateTime(selectedRequest.created_date)}
               </p>
             </div>
 
@@ -907,7 +898,7 @@ export default function RequestsPage() {
       />
 
       {/* Bottom Navigation */}
-      {!isDesktop && <BottomNav activeTab="requests" />}
+      {!isDesktop && <BottomNav activeTab="requests" darkBackground />}
 
       {/* Request Detail Modal */}
       {selectedRequest && renderRequestDetail()}

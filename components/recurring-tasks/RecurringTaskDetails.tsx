@@ -19,6 +19,7 @@ import { CommentsModal } from '@/components/CommentsModal';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getSubRequestDisplayId } from '@/lib/subRequestUtils';
+import { formatDateTime } from '@/lib/dateTimeUtils';
 
 
 interface RecurringTaskDetailsProps {
@@ -355,13 +356,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           {/* Дата создания */}
           <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
             <Clock className="w-4 h-4 mr-1" />
-            {task.created_date && new Date(task.created_date).toLocaleString("ru-RU", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
+            {task.created_date && formatDateTime(task.created_date)}
           </div>
 
           {/* Фотографии группы заявок (только before) */}
@@ -432,13 +427,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                     <div className="flex items-center gap-2">
                       <CalendarLucid className="w-4 h-4" />
                       <span>
-                        {new Date(selectedPhoto.created_at).toLocaleString("ru-RU", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
+                        {formatDateTime(selectedPhoto.created_at)}
                       </span>
                     </div>
                   </div>

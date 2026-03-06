@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Save, X, Loader2, Mail, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,7 @@ import {useRequestStore} from "@/stores/useRequestStore";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
 import Image from "next/image";
+import { LogsViewer } from "@/components/logs-viewer";
 
 const roleTranslations: Record<string, string> = {
     client: "Клиент",
@@ -35,9 +36,11 @@ interface ProfileModalProps {
     isOpen: boolean
     onClose: () => void
     isFullScreen?: boolean
+    /** Render as inline section (no modal) for admin/manager desktop */
+    asSection?: boolean
 }
 
-export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileModalProps) {
+export function ProfileModal({ isOpen, onClose, isFullScreen = false, asSection = false }: ProfileModalProps) {
     const {clearAuth, user, updateUser} = useAuthStore()
     const [oldPassword, setOldPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
@@ -183,7 +186,246 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
         }
     }
 
-    if (!isOpen) return null
+    if (!isOpen && !asSection) return null
+
+    const showLogsTab = !asSection && ["admin-worker", "manager"].includes(user?.role || "")
+    const tabCols = showLogsTab ? "grid-cols-4" : "grid-cols-3"
+
+    // Режим секции для admin/manager desktop — на всю ширину, в стиле раздела Бронь/Заявки
+    const sectionCl = "text-sm text-white/80"
+    const fieldCl = "text-sm bg-[#2C2C2E] border border-white/10 text-white placeholder:text-white/40 focus-visible:ring-2 focus-visible:ring-[#E85D2B]/50 focus-visible:border-[#E85D2B] rounded-lg px-3 py-2.5"
+    if (asSection) {
+        return (
+            <div className="w-full min-h-full px-4 py-6 md:px-6 md:py-8">
+                <div className="w-full max-w-7xl mx-auto">
+                    <h1 className="text-2xl font-bold text-white mb-6">Профиль</h1>
+                    <Tabs defaultValue="profile" className="space-y-6">
+                        <TabsList className="bg-transparent">
+                            <TabsTrigger value="profile" className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2">
+                                Профиль
+                            </TabsTrigger>
+                            <TabsTrigger value="password" className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2">
+                                Пароль
+                            </TabsTrigger>
+                            <TabsTrigger value="notifications" className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2">
+                                Уведомления
+                            </TabsTrigger>
+                            {showLogsTab && (
+                                <TabsTrigger value="logs" className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2">
+                                    Логи
+                                </TabsTrigger>
+                            )}
+                        </TabsList>
+
+                        <TabsContent value="profile" className="mt-0 space-y-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="space-y-5">
+                                    <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2">Личные данные</h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className={sectionCl}>ФИО</Label>
+                                            <Input
+                                                value={user?.full_name || ""}
+                                                onChange={(e) => updateUser((prev) => prev ? { ...prev, full_name: e.target.value } : null)}
+                                                className={fieldCl}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className={sectionCl}>Телефон</Label>
+                                            <Input type="tel" value={user?.phone || ""} onChange={handlePhoneChange} className={fieldCl} placeholder="+7 (999) 123-45-67" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <Label className={sectionCl}>Email</Label>
+                                                {user?.email_verified && (
+                                                    <Badge variant="secondary" className="text-xs bg-[#E85D2B]/20 text-[#E85D2B] border-0">
+                                                        <CheckCircle2 className="h-3 w-3 mr-0.5" /> Верифицирован
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="email"
+                                                    value={email || user?.email || ""}
+                                                    onChange={(e) => { setEmail(e.target.value); setEmailError(""); setEmailSuccess(""); }}
+                                                    className={`flex-1 ${fieldCl}`}
+                                                    placeholder="example@mail.com"
+                                                    disabled={isSendingCode || isVerifying}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={async () => {
+                                                        const emailToSend = email || user?.email
+                                                        if (!emailToSend) { setEmailError("Введите email"); return }
+                                                        if (user?.email_verified && emailToSend === user?.email) { setEmailError("Email уже верифицирован"); return }
+                                                        setIsSendingCode(true); setEmailError(""); setEmailSuccess("")
+                                                        try {
+                                                            await sendEmailVerificationCode(emailToSend)
+                                                            setEmailSuccess("Код отправлен"); setEmail(emailToSend)
+                                                        } catch (err: any) { setEmailError(err.response?.data?.error || "Ошибка") }
+                                                        finally { setIsSendingCode(false) }
+                                                    }}
+                                                    disabled={isSendingCode || isVerifying || (!email && !user?.email) || (user?.email_verified && (email || user?.email) === user?.email)}
+                                                    className="shrink-0 border-[#E85D2B]/50 text-[#E85D2B] hover:bg-[#E85D2B]/10"
+                                                >
+                                                    {isSendingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "Код"}
+                                                </Button>
+                                            </div>
+                                            {((email || user?.email) && (!user?.email_verified || emailSuccess?.includes("Код"))) && (
+                                                <div className="flex gap-2 mt-2">
+                                                    <Input
+                                                        type="text"
+                                                        value={verificationCode}
+                                                        onChange={(e) => { setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setEmailError(""); }}
+                                                        className={`flex-1 ${fieldCl}`}
+                                                        placeholder="Код из письма"
+                                                        maxLength={6}
+                                                        disabled={isVerifying}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            if (!verificationCode || verificationCode.length !== 6) { setEmailError("Введите 6 цифр"); return }
+                                                            setIsVerifying(true); setEmailError("")
+                                                            try {
+                                                                await verifyEmail(verificationCode)
+                                                                setEmailSuccess("Верифицирован"); setVerificationCode("")
+                                                                const emailToUpdate = email || user?.email
+                                                                updateUser((prev) => prev ? { ...prev, email: emailToUpdate || "", email_verified: true } : null)
+                                                            } catch (err: any) { setEmailError(err.response?.data?.error || "Неверный код") }
+                                                            finally { setIsVerifying(false) }
+                                                        }}
+                                                        disabled={isVerifying || verificationCode.length !== 6}
+                                                        className="shrink-0 border-[#E85D2B]/50 text-[#E85D2B] hover:bg-[#E85D2B]/10"
+                                                    >
+                                                        {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "OK"}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {(emailError || emailSuccess) && <p className={`text-xs mt-1 ${emailError ? "text-[#E85D2B]" : "text-[#E85D2B]"}`}>{emailError || emailSuccess}</p>}
+                                        </div>
+                                    </div>
+                                    <Button onClick={handleSaveProfile} disabled={isSavingProfile} className="bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white">
+                                        {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                        {isSavingProfile ? "Сохранение..." : "Сохранить"}
+                                    </Button>
+                                    {(profileError || profileSuccess) && <p className={`text-sm ${profileError ? "text-[#E85D2B]" : "text-[#E85D2B]"}`}>{profileError || profileSuccess}</p>}
+                                </div>
+                                <div className="lg:pl-4 border-t border-white/10 lg:border-t-0 lg:border-l pt-6 lg:pt-0">
+                                    <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2 mb-4">Информация</h2>
+                                    <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-[#2C2C2E]/50 border border-white/10">
+                                        <div>
+                                            <Label className={sectionCl}>Роль</Label>
+                                            <p className="text-white font-medium mt-1">{user ? roleTranslations[user.role] || user.role : "—"}</p>
+                                        </div>
+                                        <div>
+                                            <Label className={sectionCl}>Офис</Label>
+                                            <p className="text-white font-medium mt-1">{user?.office.name || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <Label className={sectionCl}>ID</Label>
+                                            <p className="text-white/70 font-mono text-sm mt-1">#{user?.id}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="password" className="mt-0 space-y-6">
+                            <div className="max-w-md p-6 rounded-xl bg-[#2C2C2E]/50 border border-white/10 space-y-5">
+                                <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2">Смена пароля</h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className={sectionCl}>Старый пароль</Label>
+                                        <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className={fieldCl} />
+                                    </div>
+                                    <div>
+                                        <Label className={sectionCl}>Новый пароль</Label>
+                                        <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={fieldCl} />
+                                    </div>
+                                    <div>
+                                        <Label className={sectionCl}>Подтверждение</Label>
+                                        <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={fieldCl} />
+                                    </div>
+                                </div>
+                                <Button onClick={handleChangePassword} disabled={isChanging} className="bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white">
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    {isChanging ? "Смена..." : "Сменить пароль"}
+                                </Button>
+                                {(profileError || profileSuccess) && <p className={`text-sm ${profileError ? "text-[#E85D2B]" : "text-[#E85D2B]"}`}>{profileError || profileSuccess}</p>}
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="notifications" className="mt-0 space-y-6">
+                            <div className="max-w-xl p-6 rounded-xl bg-[#2C2C2E]/50 border border-white/10 space-y-4">
+                                <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2">Уведомления</h2>
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-[#1A1A1A]/50 border border-white/5">
+                                        <Label className={sectionCl}>Email уведомления</Label>
+                                        <Switch
+                                            checked={user?.email_notifications ?? false}
+                                            onCheckedChange={(checked) => updateUser((prev) => prev ? { ...prev, email_notifications: checked } : null)}
+                                            className="data-[state=unchecked]:bg-[#1A1A1A] data-[state=checked]:bg-[#E85D2B]"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-[#1A1A1A]/50 border border-white/5">
+                                        <Label className={sectionCl}>Безопасность</Label>
+                                        <Switch
+                                            checked={user?.security_notifications ?? false}
+                                            onCheckedChange={(checked) => updateUser((prev) => prev ? { ...prev, security_notifications: checked } : null)}
+                                            className="data-[state=unchecked]:bg-[#1A1A1A] data-[state=checked]:bg-[#E85D2B]"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-[#1A1A1A]/50 border border-white/5">
+                                        <Label className={sectionCl}>Маркетинг</Label>
+                                        <Switch
+                                            checked={user?.marketing_notifications ?? false}
+                                            onCheckedChange={(checked) => updateUser((prev) => prev ? { ...prev, marketing_notifications: checked } : null)}
+                                            className="data-[state=unchecked]:bg-[#1A1A1A] data-[state=checked]:bg-[#E85D2B]"
+                                        />
+                                    </div>
+                                </div>
+                                <Button onClick={handleSaveNotifications} disabled={isSavingNotifications} className="bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white mt-2">
+                                    {isSavingNotifications ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                    {isSavingNotifications ? "Сохранение..." : "Сохранить"}
+                                </Button>
+                                {(notificationError || notificationSuccess) && <p className={`text-sm ${notificationError ? "text-[#E85D2B]" : "text-[#E85D2B]"}`}>{notificationError || notificationSuccess}</p>}
+                            </div>
+                        </TabsContent>
+
+                        {showLogsTab && (
+                            <TabsContent value="logs" className="mt-0">
+                                <div className="p-6 rounded-xl bg-[#2C2C2E]/50 border border-white/10">
+                                    <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2 mb-4">История операций</h2>
+                                    <LogsViewer userRole={user?.role || "admin-worker"} isDesktop={true} dark={true} />
+                                </div>
+                            </TabsContent>
+                        )}
+                    </Tabs>
+                    <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                clearAuth()
+                                useNotificationStore.getState().clearNotifications()
+                                useRequestStore.getState().clearRequests()
+                                useStatsStore.getState().resetStats()
+                                window.location.href = "/login"
+                            }}
+                            className="text-sm text-white/70 hover:text-[#E85D2B] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#E85D2B]/10"
+                        >
+                            {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin inline mr-1" /> : null}
+                            {isLoggingOut ? "Выходим..." : "Выйти из аккаунта"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     // Полноэкранный режим для мобильных
     if (isFullScreen) {
@@ -223,8 +465,8 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                 <div className="overflow-y-auto pb-4" style={{ height: 'calc(100vh - 64px)' }}>
                     <div className="p-4">
                     <Tabs defaultValue="profile" className="px-6">
-                        {/* Вкладки с stopPropagation */}
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsListScrollArea className="mb-6">
+                            <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
                             <TabsTrigger
                                 value="profile"
                                 className="text-sm"
@@ -247,6 +489,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                 Уведомления
                             </TabsTrigger>
                         </TabsList>
+                        </TabsListScrollArea>
 
                         {/* Вкладка: Профиль */}
                         <TabsContent value="profile" className="space-y-4">
@@ -385,7 +628,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                                         disabled={isVerifying || verificationCode.length !== 6}
                                                         variant="default"
                                                         size="sm"
-                                                        className="whitespace-nowrap bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                                        className="whitespace-nowrap bg-[#B8400E] text-white"
                                                     >
                                                         {isVerifying ? (
                                                             <>
@@ -402,7 +645,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     </div>
                                     <div className="space-y-1">
                                         <Label className="text-sm">Роль</Label>
-                                        <Badge className="text-sm bg-gradient-to-r from-[#114A65] to-[#B8400E] text-white border-transparent">
+                                        <Badge className="text-sm bg-[#B8400E] text-white border-transparent">
                                             {user ? roleTranslations[user.role] || user.role : "—"}
                                         </Badge>
                                     </div>
@@ -421,7 +664,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleSaveProfile}
                                         disabled={isSavingProfile}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         <Save className="mr-2 h-4 w-4" />
                                         {isSavingProfile ? "Сохранение..." : "Сохранить"}
@@ -469,7 +712,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleChangePassword}
                                         disabled={isChanging}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         <Lock className="mr-2 h-4 w-4" />
                                         {isChanging ? "Смена..." : "Сменить пароль"}
@@ -517,7 +760,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleSaveNotifications}
                                         disabled={isSavingNotifications}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         {isSavingNotifications ? (
                                             <>
@@ -613,30 +856,31 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                 {/* Контент с прокруткой */}
                 <div className="max-h-[70vh] overflow-y-auto p-1">
                     <Tabs defaultValue="profile" className="px-6">
-                        {/* Вкладки с stopPropagation */}
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
-                            <TabsTrigger
-                                value="profile"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Профиль
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="password"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Пароль
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="notifications"
-                                className="text-sm"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                Уведомления
-                            </TabsTrigger>
-                        </TabsList>
+                        <TabsListScrollArea className="mb-6">
+                            <TabsList className="grid w-max min-w-full grid-cols-3 grid-flow-col [&>button]:flex-shrink-0 [&>button]:whitespace-nowrap">
+                                <TabsTrigger
+                                    value="profile"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Профиль
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="password"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Пароль
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="notifications"
+                                    className="text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Уведомления
+                                </TabsTrigger>
+                            </TabsList>
+                        </TabsListScrollArea>
 
                         {/* Вкладка: Профиль */}
                         <TabsContent value="profile" className="space-y-4">
@@ -775,7 +1019,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                                         disabled={isVerifying || verificationCode.length !== 6}
                                                         variant="default"
                                                         size="sm"
-                                                        className="whitespace-nowrap bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                                        className="whitespace-nowrap bg-[#B8400E] text-white"
                                                     >
                                                         {isVerifying ? (
                                                             <>
@@ -792,7 +1036,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     </div>
                                     <div className="space-y-1">
                                         <Label className="text-sm">Роль</Label>
-                                        <Badge className="text-sm bg-gradient-to-r from-[#114A65] to-[#B8400E] text-white border-transparent">
+                                        <Badge className="text-sm bg-[#B8400E] text-white border-transparent">
                                             {user ? roleTranslations[user.role] || user.role : "—"}
                                         </Badge>
                                     </div>
@@ -811,7 +1055,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleSaveProfile}
                                         disabled={isSavingProfile}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         <Save className="mr-2 h-4 w-4" />
                                         {isSavingProfile ? "Сохранение..." : "Сохранить"}
@@ -859,7 +1103,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleChangePassword}
                                         disabled={isChanging}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         <Lock className="mr-2 h-4 w-4" />
                                         {isChanging ? "Смена..." : "Сменить пароль"}
@@ -907,7 +1151,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false }: ProfileM
                                     <Button
                                         onClick={handleSaveNotifications}
                                         disabled={isSavingNotifications}
-                                        className="mt-4 w-full sm:w-auto bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
+                                        className="mt-4 w-full sm:w-auto bg-[#B8400E] text-white"
                                     >
                                         {isSavingNotifications ? (
                                             <>
