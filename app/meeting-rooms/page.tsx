@@ -5,9 +5,9 @@ import { MapPin, X, Building2, Users, Clock, ChevronLeft, ChevronRight, ImageIco
 import { BottomNav } from "@/components/BottomNav";
 import Image from "next/image";
 import api from "@/lib/api";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
-import { ru } from "date-fns/locale";
+import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
 import { getRoomDailyAvailability, getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking } from "@/lib/api";
+import { formatDateLong, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useRouter } from "next/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -784,18 +784,12 @@ export default function MeetingRoomsPage() {
                             <div className={`space-y-2 text-xs ${isCancelledBooking || isCompletedBooking ? "text-white/50" : "text-white/70"}`}>
                               <div className="flex items-center gap-2">
                                 <Calendar className={`w-3.5 h-3.5 ${isCancelledBooking || isCompletedBooking ? "" : "text-[#F35713]"}`} />
-                                <span>
-                                  {typeof booking.start_time === 'string' 
-                                    ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                                    : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
-                                </span>
+                                <span>{formatDateLong(booking.start_time)}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Clock className={`w-3.5 h-3.5 ${isCancelledBooking || isCompletedBooking ? "" : "text-[#F35713]"}`} />
                                 <span>
-                                  {typeof booking.start_time === 'string'
-                                    ? `${booking.start_time.substring(11, 16)} - ${booking.end_time.toString().substring(11, 16)}`
-                                    : `${format(new Date(booking.start_time), "HH:mm")} - ${format(new Date(booking.end_time), "HH:mm")}`}
+                                  {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                                 </span>
                               </div>
                               {(booking.meetingRoom?.office || booking.office) && (

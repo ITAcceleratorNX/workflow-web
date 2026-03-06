@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, Building2, X, ExternalLink, CheckCircle2, AlertCircle, MapPin, Users } from "lucide-react"
-import { format } from "date-fns"
-import { ru } from "date-fns/locale"
 import { getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking } from "@/lib/api"
+import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useToast } from "@/hooks/use-toast"
 import { useRejectRequestModal } from "@/hooks/use-reject-modal"
 import { RejectRequestModal } from "@/components/RejectRequestModal"
@@ -274,7 +273,7 @@ export function MyBookings() {
         title="Отменить бронирование?"
         description={
           bookingToCancel
-            ? `Вы уверены, что хотите отменить бронирование комнаты "${bookingToCancel.meetingRoom?.name || bookingToCancel.meeting_room?.name || `Комната #${bookingToCancel.meeting_room_id}`}" на ${format(new Date(bookingToCancel.start_time), "dd MMMM yyyy", { locale: ru })} с ${format(new Date(bookingToCancel.start_time), "HH:mm", { locale: ru })} до ${format(new Date(bookingToCancel.end_time), "HH:mm", { locale: ru })}?`
+            ? `Вы уверены, что хотите отменить бронирование комнаты "${bookingToCancel.meetingRoom?.name || bookingToCancel.meeting_room?.name || `Комната #${bookingToCancel.meeting_room_id}`}" на ${formatDateOnly(bookingToCancel.start_time)} с ${formatTimeOnly(bookingToCancel.start_time)} до ${formatTimeOnly(bookingToCancel.end_time)}?`
             : "Вы уверены, что хотите отменить бронирование?"
         }
         confirmText="Отменить бронирование"
@@ -318,21 +317,13 @@ export function MyBookings() {
                       <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
                         <Calendar className="w-4 h-4 text-[#114A65]" />
                         <span className="font-medium">
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
+                          {formatDateOnly(booking.start_time)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
+                      <div className="flex.items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
                         <Clock className="w-4 h-4 text-[#114A65]" />
                         <span className="font-medium">
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
@@ -407,21 +398,13 @@ export function MyBookings() {
                       <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
                         <Calendar className="w-4 h-4 text-[#114A65]" />
                         <span className="font-medium">
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
+                          {formatDateOnly(booking.start_time)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-700 bg-white/60 p-2 rounded-lg">
                         <Clock className="w-4 h-4 text-[#114A65]" />
                         <span className="font-medium">
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
@@ -495,22 +478,12 @@ export function MyBookings() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-gray-500 bg-white/40 p-2 rounded-lg">
                         <Calendar className="w-4 h-4 text-red-400" />
-                        <span>
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
-                        </span>
+                        <span>{formatDateOnly(booking.start_time)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-500 bg-white/40 p-2 rounded-lg">
                         <Clock className="w-4 h-4 text-red-400" />
                         <span>
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
@@ -563,22 +536,12 @@ export function MyBookings() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-gray-600 bg-white/60 p-2 rounded-lg">
                         <Calendar className="w-4 h-4 text-gray-500" />
-                        <span>
-                          {booking.start_time && typeof booking.start_time === 'string' 
-                            ? format(new Date(booking.start_time.substring(0, 10) + 'T00:00:00'), "dd MMMM yyyy", { locale: ru })
-                            : format(new Date(booking.start_time), "dd MMMM yyyy", { locale: ru })}
-                        </span>
+                        <span>{formatDateOnly(booking.start_time)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600 bg-white/60 p-2 rounded-lg">
                         <Clock className="w-4 h-4 text-gray-500" />
                         <span>
-                          {(() => {
-                            const startStr = timeToString(booking.start_time)
-                            const endStr = timeToString(booking.end_time)
-                            return typeof booking.start_time === 'string'
-                              ? `${startStr.substring(11, 16)} - ${endStr.substring(11, 16)}`
-                              : `${format(new Date(booking.start_time), "HH:mm", { locale: ru })} - ${format(new Date(booking.end_time), "HH:mm", { locale: ru })}`
-                          })()}
+                          {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
                         </span>
                       </div>
                       {(booking.meetingRoom?.office || booking.office) && (
