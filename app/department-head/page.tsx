@@ -1,6 +1,8 @@
 "use client"
 
 import React, {useCallback, useEffect, useState, useRef, useMemo} from "react"
+
+import { DepartmentHeadDesktopDashboard } from "./DepartmentHeadDesktopDashboard"
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Label} from "@/components/ui/label"
@@ -172,6 +174,13 @@ export default function DepartmentHeadDashboard() {
   const [upcomingTasksRefreshTrigger, setUpcomingTasksRefreshTrigger] = useState(0);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [showDeleteRequestModal, setShowDeleteRequestModal] = useState(false)
+
+  // На desktop скрываем вкладку «Аналитика» — переключаем на другую, если она выбрана
+  useEffect(() => {
+    if (isDesktop && activeTab === "statistics") {
+      setActiveTab("meeting-rooms");
+    }
+  }, [isDesktop, activeTab]);
 
   const [modalStack, setModalStack] = useState<string[]>([]);
   const [userRatings, setUserRatings] = useState<Record<number, any>>({});
@@ -1650,6 +1659,11 @@ export default function DepartmentHeadDashboard() {
     closeModalWithHistory();
   };
 
+  // На desktop для department-head: без табов, с секцией «Текущие заявки» (awaiting_assignment)
+  if (isDesktop) {
+    return <DepartmentHeadDesktopDashboard />;
+  }
+
   return (
       <>
         <Header
@@ -1756,10 +1770,12 @@ export default function DepartmentHeadDashboard() {
                         <TabsTrigger value="recurring-tasks" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden">Повторяющиеся</span>
                         </TabsTrigger>
+                        {!isDesktop && (
                         <TabsTrigger value="statistics" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden">Аналитика</span>
                           <span className="hidden sm:inline">Аналитика</span>
                         </TabsTrigger>
+                        )}
                         <TabsTrigger value="management" className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap flex-shrink-0 gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <span className="sm:hidden flex items-center gap-1">
                             <LayoutGrid className="h-3.5 w-3.5" />
@@ -1788,9 +1804,11 @@ export default function DepartmentHeadDashboard() {
                       <TabsTrigger value="recurring-tasks" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           Повторяющиеся
                       </TabsTrigger>
+                      {!isDesktop && (
                       <TabsTrigger value="statistics" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                         Аналитика
                       </TabsTrigger>
+                      )}
                         <TabsTrigger value="management" className="flex-shrink-0 text-sm px-3 py-2 whitespace-nowrap flex items-center gap-2 data-[state=active]:bg-[#E25B21] data-[state=active]:text-white text-white/80 rounded-lg">
                           <LayoutGrid className="h-4 w-4" />
                           Управление
@@ -1846,10 +1864,12 @@ export default function DepartmentHeadDashboard() {
                         </div>
                       </div>
                     </div>
+                    {!isDesktop && (
                     <div className="rounded-2xl p-4 sm:p-6" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}>
                       <h3 className="text-base sm:text-lg font-bold text-white mb-4">Аналитика</h3>
                       <DepartmentHeadAnalytics />
                     </div>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -2561,6 +2581,7 @@ export default function DepartmentHeadDashboard() {
                   <Button
                     variant="outline"
                     onClick={handleCloseRedirectModal}
+                    className="bg-transparent"
                   >
                     Отмена
                   </Button>
@@ -2630,6 +2651,7 @@ export default function DepartmentHeadDashboard() {
             executors={executors}
             userServiceCategoryId={user?.service_category_id}
             onSuccess={handleAssignExecutorsSuccess}
+            variant="dark"
         />
 
         {/* Модальное окно изменения исполнителей */}
@@ -2640,6 +2662,7 @@ export default function DepartmentHeadDashboard() {
             executors={executors}
             userServiceCategoryId={user?.service_category_id}
             onSuccess={handleChangeExecutorsSuccess}
+            variant="dark"
         />
 
         {/* Модал импорта Excel */}

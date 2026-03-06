@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from "@/stores/useAuthStore";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
+import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 import { formatTimeOnly } from "@/lib/dateTimeUtils";
 type Message = {
     from: "user" | "bot";
@@ -623,7 +624,7 @@ export default function ChatPage() {
                                 )}
                                 <div ref={supportMessagesEndRef} aria-hidden />
                             </main>
-                            <form onSubmit={(e) => handleSendSupportMessage(e)} className={`fixed left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full md:bottom-20 bottom-[calc(90px+env(safe-area-inset-bottom,0px))] ${isDesktop ? "bg-[#1C1C1E] border-[#212121]" : "bg-black border-gray-800"}`} style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+                            <form onSubmit={(e) => handleSendSupportMessage(e)} className={`fixed left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full z-10 ${isDesktop ? "bottom-0 bg-[#1C1C1E] border-[#212121]" : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-black border-gray-800"}`} style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                                 <div className="flex items-end gap-2">
                                     <textarea
                                         ref={supportInputRef}
@@ -856,10 +857,12 @@ export default function ChatPage() {
                         <div ref={messagesEndRef} aria-hidden />
                     </main>
 
-                    {/* Chat Input */}
+                    {/* Chat Input — всегда внизу: на десктопе bottom-0, на мобилке — над BottomNav */}
                     <form
                         onSubmit={handleSubmit}
-                        className={`fixed bottom-20 left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full safe-area-bottom ${isDesktop ? "bg-[#1C1C1E] border-[#212121]" : "bg-black border-gray-800"}`}
+                        className={`fixed left-0 right-0 border-t p-4 max-w-2xl mx-auto w-full safe-area-bottom z-10 ${
+                            isDesktop ? "bottom-0 bg-[#1C1C1E] border-[#212121]" : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-black border-gray-800"
+                        }`}
                     >
                         {error && (
                             <div className="text-[#F35713] text-xs mb-2 px-2">{error}</div>
@@ -917,6 +920,9 @@ export default function ChatPage() {
 
     if (isDesktop && user?.role === "client") {
         return <ClientDesktopShell>{chatContent}</ClientDesktopShell>;
+    }
+    if (isDesktop && user?.role === "department-head") {
+        return <RoleDesktopShell role="department-head">{chatContent}</RoleDesktopShell>;
     }
     return chatContent;
 }

@@ -13,6 +13,7 @@ import { BookingModal } from "@/components/meeting-rooms/BookingModal";
 import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalculator";
 import { Ruler } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,8 @@ interface MeetingRoomsCatalogProps {
   onTabChange?: (tab: "book" | "my-bookings") => void;
   showCalculator?: boolean;
   onCalculatorToggle?: (show: boolean) => void;
+  /** Dark theme for department-head desktop */
+  variant?: "default" | "dark";
 }
 
 export function MeetingRoomsCatalog({ 
@@ -35,8 +38,10 @@ export function MeetingRoomsCatalog({
   initialTab = "book",
   onTabChange,
   showCalculator = false,
-  onCalculatorToggle
+  onCalculatorToggle,
+  variant = "default",
 }: MeetingRoomsCatalogProps) {
+  const isDark = variant === "dark";
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const fetchRooms = useMeetingRoomsStore((state) => state.fetchRooms);
   const [selectedOffice, setSelectedOffice] = useState<Office | null>(initialOffice);
@@ -145,10 +150,13 @@ export function MeetingRoomsCatalog({
   const BookingContent = () => {
     if (!selectedOffice) {
       return (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <h3 className="text-lg font-semibold">Выберите офис</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Выберите офис из главной страницы для просмотра переговорных комнат
+        <div className={cn(
+          "rounded-xl border border-dashed p-10 text-center",
+          isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/50" : ""
+        )}>
+          <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>Выберите офис</h3>
+          <p className={cn("mt-2 text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
+            Выберите офис выше для просмотра переговорных комнат
           </p>
         </div>
       );
@@ -159,17 +167,18 @@ export function MeetingRoomsCatalog({
       <div ref={officeInfoRef} className="flex items-center gap-4">
         <Button
           variant="ghost"
-          onClick={() => {
-            handleOfficeChange(null);
-          }}
-          className="gap-2"
+          onClick={() => handleOfficeChange(null)}
+          className={cn(
+            "gap-2",
+            isDark && "text-white/80 hover:text-white hover:bg-white/10"
+          )}
         >
           <ArrowLeft className="h-4 w-4" />
           Назад к выбору офисов
         </Button>
         <div>
-          <h2 className="text-xl font-semibold">{selectedOffice.name}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className={cn("text-xl font-semibold", isDark && "text-white")}>{selectedOffice.name}</h2>
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
             {selectedOffice.city}, {selectedOffice.address}
           </p>
         </div>
@@ -177,13 +186,19 @@ export function MeetingRoomsCatalog({
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           variant="outline"
-          className="flex items-center justify-center rounded-full px-4 py-1 text-sm"
+          className={cn(
+            "flex items-center justify-center rounded-full px-4 py-1 text-sm",
+            isDark && "border-[#3A3A3C] bg-[#2C2C2E] text-white"
+          )}
         >
           Доступно: {totalAvailable}
         </Badge>
         <Badge
           variant="outline"
-          className="flex items-center justify-center rounded-full px-4 py-1 text-sm"
+          className={cn(
+            "flex items-center justify-center rounded-full px-4 py-1 text-sm",
+            isDark && "border-[#3A3A3C] bg-[#2C2C2E] text-white"
+          )}
         >
           Забронировано: {totalBooked}
         </Badge>
@@ -191,11 +206,14 @@ export function MeetingRoomsCatalog({
 
       <div className="space-y-4">
         {visibleRooms.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-10 text-center">
-            <h3 className="text-lg font-semibold">
+          <div className={cn(
+            "rounded-xl border border-dashed p-10 text-center",
+            isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/50" : ""
+          )}>
+            <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>
               Нет переговорных по заданным параметрам
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className={cn("mt-2 text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
               Попробуйте изменить фильтры или сбросить их.
             </p>
           </div>
@@ -207,7 +225,7 @@ export function MeetingRoomsCatalog({
                 onClick={() => handleRoomClick(room)}
                 className="cursor-pointer"
               >
-                <MeetingRoomCard room={room} />
+                <MeetingRoomCard room={room} darkTheme={isDark} />
               </div>
             ))}
           </div>
@@ -223,6 +241,7 @@ export function MeetingRoomsCatalog({
           room={selectedRoom}
           onBookingSuccess={handleBookingSuccess}
           onSuccess={handleBookingModalSuccess}
+          variant={isDark ? "dark" : "default"}
         />
       </div>
     );
@@ -236,7 +255,7 @@ export function MeetingRoomsCatalog({
         </TabsContent>
         
         <TabsContent value="my-bookings">
-          <MyBookings />
+          <MyBookings variant={isDark ? "dark" : "default"} />
         </TabsContent>
       </Tabs>
 

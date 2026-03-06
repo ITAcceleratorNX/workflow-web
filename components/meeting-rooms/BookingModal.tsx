@@ -31,6 +31,7 @@ interface BookingModalProps {
   onBookingSuccess?: () => void
   onSuccess?: (message: { title: string; message: string }) => void
   isPageMode?: boolean // Режим страницы для мобильных устройств
+  variant?: "default" | "dark"
 }
 
 // Генерация временных слотов с 9:00 до 00:00 (24:00)
@@ -57,7 +58,9 @@ export function BookingModal({
   onBookingSuccess,
   onSuccess,
   isPageMode = false,
+  variant = "default",
 }: BookingModalProps) {
+  const isDark = variant === "dark";
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState("")
@@ -318,31 +321,35 @@ export function BookingModal({
         className={cn(
           isPageMode 
             ? "w-full min-h-screen rounded-none border-0 shadow-none" 
-            : "w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            : "w-full max-w-4xl max-h-[90vh] overflow-y-auto",
+          isDark && !isPageMode && "bg-[#1A1A1A] border-[#3A3A3C]"
         )}
         onClick={(e) => !isPageMode && e.stopPropagation()}
       >
-      <CardHeader className={cn(isPageMode && "pb-4")}>
+      <CardHeader className={cn(isPageMode && "pb-4", isDark && "border-b border-[#3A3A3C]")}>
         <div className="flex items-center gap-4">
           {isPageMode && (
             <Button
               variant="ghost"
               onClick={onClose}
-              className="-ml-2"
+              className={cn("-ml-2", isDark && "text-white/80 hover:text-white hover:bg-white/10")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Назад
             </Button>
           )}
-          <CardTitle className={isPageMode ? "" : "flex-1"}>Бронирование</CardTitle>
+          <CardTitle className={cn(isPageMode ? "" : "flex-1", isDark && "text-white")}>Бронирование</CardTitle>
         </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn("space-y-6", isDark && "text-white")}>
           {/* Информация о комнате */}
           {room && roomDetails && (
             <div className="space-y-4">
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <div className="relative aspect-video bg-muted">
+              <div className={cn(
+                "rounded-xl border overflow-hidden",
+                isDark ? "border-[#3A3A3C] bg-[#2C2C2E]" : "bg-card"
+              )}>
+                <div className={cn("relative aspect-video", isDark ? "bg-[#1C1C1E]" : "bg-muted")}>
                   {roomDetails.photos && roomDetails.photos.length > 0 ? (
                     <Image
                       src={roomDetails.photos[0]}
@@ -352,7 +359,10 @@ export function BookingModal({
                       sizes="(max-width: 768px) 100vw, 100%"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <div className={cn(
+                      "absolute inset-0 flex flex-col items-center justify-center gap-2",
+                      isDark ? "text-white/50" : "text-muted-foreground"
+                    )}>
                       <ImageIcon className="h-12 w-12" />
                       <span className="text-sm">Фото не загружено</span>
                     </div>
@@ -370,37 +380,42 @@ export function BookingModal({
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
-                    <h3 className="text-lg font-semibold">{roomDetails.name}</h3>
+                    <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>{roomDetails.name}</h3>
                     {roomDetails.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{roomDetails.description}</p>
+                      <p className={cn("text-sm mt-1", isDark ? "text-white/60" : "text-muted-foreground")}>{roomDetails.description}</p>
                     )}
                   </div>
-                  <Separator />
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Building2 className="h-4 w-4 text-primary" />
+                  <Separator className={isDark ? "bg-[#3A3A3C]" : ""} />
+                  <div className={cn("flex flex-wrap items-center gap-4 text-sm", isDark ? "text-white/70" : "text-muted-foreground")}>
+                    <div className="flex items-center gap-2">
+                      <Building2 className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
                       <span>{roomDetails.floor} этаж</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-4 w-4 text-primary" />
+                    <div className="flex items-center gap-2">
+                      <Users className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
                       <span>до {roomDetails.capacity} человек</span>
                     </div>
                     {roomDetails.office && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building2 className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2">
+                        <Building2 className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
                         <span>{roomDetails.office.name}, {roomDetails.office.city}</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <Separator />
+              <Separator className={isDark ? "bg-[#3A3A3C]" : ""} />
             </div>
           )}
           {selectedDate && selectedTimeSlot && (
-            <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 border border-[#114A65]/20 rounded-lg">
-              <CalendarIcon className="w-4 h-4 text-[#114A65]" />
-              <span className="text-sm text-[#040404]">
+            <div className={cn(
+              "flex items-center gap-2 p-3 rounded-xl border",
+              isDark 
+                ? "bg-[#2C2C2E] border-[#3A3A3C]" 
+                : "bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 border-[#114A65]/20"
+            )}>
+              <CalendarIcon className={cn("w-4 h-4", isDark ? "text-[#E85D2B]" : "text-[#114A65]")} />
+              <span className={cn("text-sm", isDark ? "text-white" : "text-[#040404]")}>
                 {format(selectedDate, "dd MMMM yyyy", { locale: ru })} {selectedTimeSlot}
               </span>
             </div>
@@ -408,14 +423,15 @@ export function BookingModal({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div className="space-y-2">
-              <Label>Дата</Label>
+              <Label className={isDark ? "text-white/80" : ""}>Дата</Label>
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
+                      !selectedDate && "text-muted-foreground",
+                      isDark && "bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3A3A3C] hover:text-white [&>span]:text-white"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -426,7 +442,7 @@ export function BookingModal({
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className={cn("w-auto p-0", isDark && "bg-[#2C2C2E] border-[#3A3A3C]")} align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -450,11 +466,11 @@ export function BookingModal({
 
             {selectedDate && (
               <div className="space-y-2">
-                <Label>Время</Label>
+                <Label className={isDark ? "text-white/80" : ""}>Время</Label>
                 {loadingAvailability ? (
                   <div className="flex items-center justify-center p-8">
-                    <div className="w-4 h-4 border-2 border-[#114A65] border-t-transparent rounded-full animate-spin" />
-                    <span className="ml-2 text-sm text-muted-foreground">Загрузка доступности...</span>
+                    <div className={cn("w-4 h-4 border-2 border-t-transparent rounded-full animate-spin", isDark ? "border-[#E85D2B]" : "border-[#114A65]")} />
+                    <span className={cn("ml-2 text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>Загрузка доступности...</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
@@ -478,9 +494,10 @@ export function BookingModal({
                           className={cn(
                             "w-full justify-start text-sm",
                             selectedTimeSlot === slot.label &&
-                              "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white",
+                              "bg-[#E85D2B] hover:bg-[#D94F15] text-white",
                             isDisabled && "opacity-50 cursor-not-allowed",
-                            isBooked && !selectedTimeSlot && "bg-red-50 border-red-200 text-red-600"
+                            isBooked && !selectedTimeSlot && (isDark ? "bg-red-500/20 border-red-500/50 text-red-400" : "bg-red-50 border-red-200 text-red-600"),
+                            selectedTimeSlot !== slot.label && !isBooked && isDark && "bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3A3A3C]"
                           )}
                           onClick={() => {
                             if (!isDisabled) {
@@ -501,7 +518,10 @@ export function BookingModal({
                               <span className="truncate">{slot.label}</span>
                             </div>
                           {isBooked && (
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 flex-shrink-0">
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded flex-shrink-0",
+                                isDark ? "bg-red-500/30 text-red-400" : "bg-red-100 text-red-700"
+                              )}>
                                 Занято
                               </span>
                           )}
@@ -516,25 +536,32 @@ export function BookingModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company-name">Название компании (необязательно)</Label>
+            <Label htmlFor="company-name" className={isDark ? "text-white/80" : ""}>Название компании (необязательно)</Label>
             <Input
               id="company-name"
               placeholder="Название компании"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
+              className={cn(
+                isDark && "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-white/40"
+              )}
             />
           </div>
 
           <div className="flex gap-3 justify-end">
             {!isPageMode && (
-            <Button variant="outline" onClick={onClose}>
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+              className={cn(isDark && "border-[#3A3A3C] text-white hover:bg-[#3A3A3C]")}
+            >
               Отмена
             </Button>
             )}
             <Button
               onClick={handleBooking}
               disabled={!selectedDate || !selectedTimeSlot || isSubmitting}
-              className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D]"
+              className="bg-[#E85D2B] hover:bg-[#D94F15] text-white"
             >
               {isSubmitting ? "Бронирование..." : "Забронировать"}
             </Button>
@@ -571,6 +598,7 @@ export function BookingModal({
           confirmText={isSubmitting ? "Бронирование..." : "Забронировать"}
           cancelText="Отмена"
           isLoading={isSubmitting}
+          variant={isDark ? "dark" : "default"}
         />
       </div>
     )
@@ -579,7 +607,7 @@ export function BookingModal({
   // В режиме модалки возвращаем с overlay
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       {content}
@@ -590,6 +618,7 @@ export function BookingModal({
         title={rejectModal.title}
         message={rejectModal.message}
         duration={rejectModal.duration}
+        variant={isDark ? "dark" : "default"}
       />
 
       <DeleteConfirmationModal
@@ -605,6 +634,7 @@ export function BookingModal({
         confirmText={isSubmitting ? "Бронирование..." : "Забронировать"}
         cancelText="Отмена"
         isLoading={isSubmitting}
+        variant={isDark ? "dark" : "default"}
       />
     </div>
   )

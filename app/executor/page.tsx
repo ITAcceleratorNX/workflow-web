@@ -2708,6 +2708,7 @@ export default function ExecutorDashboard() {
                   <Button
                     variant="outline"
                     onClick={handleCloseRedirectModal}
+                    className="bg-transparent">
                   >
                     Отмена
                   </Button>

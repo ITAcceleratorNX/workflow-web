@@ -188,7 +188,7 @@ export function ProfileModal({ isOpen, onClose, isFullScreen = false, asSection 
 
     if (!isOpen && !asSection) return null
 
-    const showLogsTab = !asSection && ["admin-worker", "department-head", "manager"].includes(user?.role || "")
+    const showLogsTab = !asSection && ["admin-worker", "manager"].includes(user?.role || "")
     const tabCols = showLogsTab ? "grid-cols-4" : "grid-cols-3"
 
     // Режим секции для admin/manager desktop — на всю ширину, в стиле раздела Бронь/Заявки
