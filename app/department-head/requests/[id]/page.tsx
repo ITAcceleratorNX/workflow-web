@@ -222,6 +222,7 @@ export default function DepartmentHeadRequestDetailPage() {
         executors={executors}
         userServiceCategoryId={user?.service_category_id}
         onSuccess={handleAssignSuccess}
+        variant="dark"
       />
 
       <ChangeExecutorsModal
@@ -231,6 +232,7 @@ export default function DepartmentHeadRequestDetailPage() {
         executors={executors}
         userServiceCategoryId={user?.service_category_id}
         onSuccess={handleChangeSuccess}
+        variant="dark"
       />
 
       {showRedirectModal && requestForRedirect && (
@@ -273,7 +275,7 @@ export default function DepartmentHeadRequestDetailPage() {
               </div>
               {redirectError && <p className="text-sm text-red-400">{redirectError}</p>}
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleCloseRedirectModal} className="border-gray-500 text-white">
+                <Button variant="outline" onClick={handleCloseRedirectModal} className="bg-transparent border-gray-500 text-white">
                   Отмена
                 </Button>
                 <Button

@@ -30,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         : role === 'manager' ? '/manager/requests'
         : '/create-request'
     const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : '/chat-bot'
-    const profileHref = '/profile'
+    const profileHref = role === 'department-head' ? '/department-head/profile' : role === 'admin-worker' ? '/admin-worker/profile' : role === 'manager' ? '/manager/profile' : '/profile'
 
     // Цвета: активная вкладка — ярко белая, неактивные — приглушённые (хорошо видно на оранжевом)
     const activeColor = '#FFFFFF'
@@ -88,7 +88,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         if (path === bookingHref || path.startsWith('/meeting-rooms')) return 'booking'
         if (path === requestsHref || path === '/requests' || path === '/create-request' || path.startsWith('/admin-worker/requests') || path.startsWith('/department-head/requests') || path.startsWith('/executor/requests') || path.startsWith('/manager/requests')) return 'requests'
         if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/department-head/messages')) return 'help'
-        if (path === profileHref || path.startsWith('/profile')) return 'profile'
+        if (path === profileHref || path.startsWith('/profile') || path.startsWith('/department-head/profile') || path.startsWith('/admin-worker/profile') || path.startsWith('/manager/profile')) return 'profile'
         return undefined
     }
     const normalizeActiveTab = (tab: string | undefined): string | undefined => {

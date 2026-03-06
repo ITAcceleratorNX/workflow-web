@@ -57,6 +57,8 @@ interface AssignExecutorsModalProps {
   executors: Executor[]
   userServiceCategoryId?: number
   onSuccess: () => void
+  /** Тёмная тема для department-head / admin */
+  variant?: "default" | "dark"
 }
 
 export function AssignExecutorsModal({
@@ -65,8 +67,10 @@ export function AssignExecutorsModal({
   subRequest,
   executors,
   userServiceCategoryId,
-  onSuccess
+  onSuccess,
+  variant = "default",
 }: AssignExecutorsModalProps) {
+  const isDark = variant === "dark";
   const [selectedExecutors, setSelectedExecutors] = useState<SubRequestExecutor[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -199,21 +203,21 @@ export function AssignExecutorsModal({
   if (!isOpen || !subRequest) return null
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4 z-[100]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4 z-[100]">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl h-[95vh] flex flex-col">
-        <Card className="w-full h-full flex flex-col bg-white border border-gray-200 shadow-xl rounded-xl sm:rounded-2xl">
+        <Card className={`w-full h-full flex flex-col shadow-xl rounded-xl sm:rounded-2xl ${isDark ? "bg-[#1C1C1E] border-white/10" : "bg-white border border-gray-200"}`}>
           {/* Header - фиксированный */}
-          <CardHeader className="flex-shrink-0 pb-3 sm:pb-4 px-3 sm:px-4 md:px-6 border-b border-gray-100">
+          <CardHeader className={`flex-shrink-0 pb-3 sm:pb-4 px-3 sm:px-4 md:px-6 border-b ${isDark ? "border-white/10" : "border-gray-100"}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-[#114A65] to-[#B8400E] rounded-lg flex items-center justify-center">
-                  <Users className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center ${isDark ? "bg-[#F35713]/20" : "bg-gradient-to-br from-[#114A65] to-[#B8400E]"}`}>
+                  <Users className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${isDark ? "text-[#F35713]" : "text-white"}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
+                  <CardTitle className={`text-sm sm:text-base md:text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
                     Назначить исполнителей
                   </CardTitle>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  <p className={`text-xs sm:text-sm mt-0.5 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     Выберите команду для задачи
                   </p>
                 </div>
@@ -222,9 +226,9 @@ export function AssignExecutorsModal({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 p-0 rounded-lg hover:bg-gray-100"
+                className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 p-0 rounded-lg ${isDark ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"}`}
               >
-                <X className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-500" />
+                <X className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
               </Button>
             </div>
           </CardHeader>
@@ -233,21 +237,21 @@ export function AssignExecutorsModal({
           <div className="flex-1 overflow-y-auto">
             <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
               {/* Информация о подзаявке */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-900 text-xs sm:text-sm md:text-base mb-1 sm:mb-2">
+              <div className={`p-3 sm:p-4 rounded-lg border ${isDark ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`font-semibold text-xs sm:text-sm md:text-base mb-1 sm:mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                   {subRequest.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 line-clamp-3">
+                <p className={`text-xs sm:text-sm line-clamp-3 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                   {subRequest.description}
                 </p>
               </div>
 
               {/* Проверка прав доступа */}
               {!canAssignExecutors ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                <div className={`rounded-lg p-3 sm:p-4 ${isDark ? "bg-[#F35713]/10 border border-[#F35713]/30" : "bg-amber-50 border border-amber-200"}`}>
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs sm:text-sm text-amber-800">
+                    <AlertTriangle className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5 ${isDark ? "text-[#F35713]" : "text-amber-600"}`} />
+                    <div className={`text-xs sm:text-sm ${isDark ? "text-gray-300" : "text-amber-800"}`}>
                       {executors.length === 0 
                         ? "У вас нет доступных исполнителей для назначения"
                         : "Вы можете назначать исполнителей только для подзаявок в статусе 'Ожидает назначения' или 'Назначена'"
@@ -259,16 +263,16 @@ export function AssignExecutorsModal({
                 <>
                   {/* Добавление исполнителей */}
                   <div className="space-y-2 sm:space-y-3">
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                    <Label className={`text-xs sm:text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                       Добавить исполнителя
                     </Label>
                     <Select onValueChange={handleAddExecutor} value="">
-                      <SelectTrigger className="h-9 sm:h-10 md:h-12 bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                      <SelectTrigger className={`h-9 sm:h-10 md:h-12 rounded-lg transition-colors ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "bg-white border border-gray-300 hover:border-gray-400"}`}>
                         <SelectValue placeholder="Выберите исполнителя" />
                       </SelectTrigger>
-                      <SelectContent className="z-[110] rounded-lg border border-gray-200 shadow-lg">
+                      <SelectContent className={`z-[110] rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
                         {availableExecutors.length === 0 ? (
-                          <SelectItem value="no-executors" disabled className="text-gray-500">
+                          <SelectItem value="no-executors" disabled className={isDark ? "text-gray-500" : ""}>
                             Нет доступных исполнителей
                           </SelectItem>
                         ) : (
@@ -276,15 +280,15 @@ export function AssignExecutorsModal({
                             <SelectItem 
                               key={executor.id} 
                               value={executor.id.toString()}
-                              className="rounded-md hover:bg-gray-50"
+                              className={isDark ? "rounded-md hover:bg-white/10 focus:bg-[#F35713]/20" : "rounded-md hover:bg-gray-50"}
                             >
                               <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-[#114A65] to-[#B8400E] rounded-full flex items-center justify-center">
-                                  <User className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${isDark ? "bg-[#F35713]/20" : "bg-gradient-to-br from-[#114A65] to-[#B8400E]"}`}>
+                                  <User className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${isDark ? "text-[#F35713]" : "text-white"}`} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="font-medium text-gray-900 text-sm truncate">{executor.user.full_name}</div>
-                                  <div className="text-xs text-gray-500 truncate">{executor.specialty}</div>
+                                  <div className={`font-medium text-sm truncate ${isDark ? "text-white" : "text-gray-900"}`}>{executor.user.full_name}</div>
+                                  <div className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>{executor.specialty}</div>
                                 </div>
                               </div>
                             </SelectItem>
@@ -297,7 +301,7 @@ export function AssignExecutorsModal({
                   {/* Выбранные исполнители */}
                   {selectedExecutors.length > 0 && (
                     <div className="space-y-2 sm:space-y-3 md:space-y-4">
-                      <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      <Label className={`text-xs sm:text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                         Выбранные исполнители ({selectedExecutors.length})
                       </Label>
                       <div className="space-y-2 sm:space-y-3">
@@ -308,23 +312,23 @@ export function AssignExecutorsModal({
                           return (
                             <div 
                               key={executorData.id}
-                              className="bg-white border border-gray-200 p-2 sm:p-3 md:p-4 rounded-lg hover:border-gray-300 transition-colors"
+                              className={`p-2 sm:p-3 md:p-4 rounded-lg transition-colors ${isDark ? "bg-[#2C2C2E] border border-white/10 hover:border-[#F35713]/30" : "bg-white border border-gray-200 hover:border-gray-300"}`}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                  <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-[#114A65] to-[#B8400E] rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <User className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
+                                  <div className={`w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? "bg-[#F35713]/20" : "bg-gradient-to-br from-[#114A65] to-[#B8400E]"}`}>
+                                    <User className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${isDark ? "text-[#F35713]" : "text-white"}`} />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                                      <span className="font-medium text-gray-900 text-xs sm:text-sm md:text-base truncate">
+                                      <span className={`font-medium text-xs sm:text-sm md:text-base truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                                         {executor.user.full_name}
                                       </span>
                                       {executorData.role === 'leader' && (
                                         <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />
                                       )}
                                     </div>
-                                    <div className="text-xs sm:text-sm text-gray-600">
+                                    <div className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                                       <p className="truncate">{executor.specialty}</p>
                                       {executor.user.phone && (
                                         <p className="text-gray-500 truncate">{executor.user.phone}</p>
@@ -341,14 +345,14 @@ export function AssignExecutorsModal({
                                       handleRoleChange(executorData.id, role)
                                     }
                                   >
-                                    <SelectTrigger className="w-16 sm:w-20 md:w-24 h-7 sm:h-8 md:h-9 bg-white border border-gray-300 rounded-md hover:border-gray-400 transition-colors">
+                                    <SelectTrigger className={`w-16 sm:w-20 md:w-24 h-7 sm:h-8 md:h-9 rounded-md transition-colors ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "bg-white border border-gray-300 hover:border-gray-400"}`}>
                                       <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="z-[110] rounded-lg border border-gray-200 shadow-lg">
-                                      <SelectItem value="executor" className="rounded-md hover:bg-gray-50">
+                                    <SelectContent className={`z-[110] rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
+                                      <SelectItem value="executor" className={isDark ? "rounded-md hover:bg-white/10" : "rounded-md hover:bg-gray-50"}>
                                         Исполнитель
                                       </SelectItem>
-                                      <SelectItem value="leader" className="rounded-md hover:bg-gray-50">
+                                      <SelectItem value="leader" className={isDark ? "rounded-md hover:bg-white/10" : "rounded-md hover:bg-gray-50"}>
                                         Лидер
                                       </SelectItem>
                                     </SelectContent>
@@ -359,7 +363,7 @@ export function AssignExecutorsModal({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleRemoveExecutor(executorData.id)}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 p-0 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                    className={`w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 p-0 rounded-md transition-colors ${isDark ? "text-red-400 hover:text-red-300 hover:bg-red-500/20" : "text-red-500 hover:text-red-700 hover:bg-red-50"}`}
                                   >
                                     <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4" />
                                   </Button>
@@ -373,12 +377,12 @@ export function AssignExecutorsModal({
                       {/* Индикатор лидера */}
                       <div className="mt-2 sm:mt-3 md:mt-4">
                         {selectedExecutors.some(e => e.role === 'leader') ? (
-                          <div className="flex items-center gap-2 text-green-600 bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
+                          <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isDark ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30" : "text-green-600 bg-green-50 border border-green-200"}`}>
                             <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                             <span className="text-xs sm:text-sm font-medium">Лидер назначен</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-2 sm:p-3 rounded-lg border border-amber-200">
+                          <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isDark ? "text-[#F35713] bg-[#F35713]/10 border border-[#F35713]/30" : "text-amber-600 bg-amber-50 border border-amber-200"}`}>
                             <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                             <span className="text-xs sm:text-sm font-medium">Необходимо назначить лидера</span>
                           </div>
@@ -389,10 +393,10 @@ export function AssignExecutorsModal({
 
                   {/* Ошибка */}
                   {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 sm:p-3 md:p-4">
+                    <div className={`rounded-lg p-2 sm:p-3 md:p-4 ${isDark ? "bg-red-500/10 border border-red-500/30" : "bg-red-50 border border-red-200"}`}>
                       <div className="flex items-start gap-2 sm:gap-3">
-                        <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs sm:text-sm text-red-800">{error}</p>
+                        <AlertTriangle className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5 ${isDark ? "text-red-400" : "text-red-600"}`} />
+                        <p className={`text-xs sm:text-sm ${isDark ? "text-red-300" : "text-red-800"}`}>{error}</p>
                       </div>
                     </div>
                   )}
@@ -403,20 +407,20 @@ export function AssignExecutorsModal({
 
           {/* Footer - фиксированный с кнопками */}
           {canAssignExecutors && (
-            <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 pt-3 sm:pt-4 border-t border-gray-100">
+            <div className={`flex-shrink-0 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 pt-3 sm:pt-4 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
               <div className="flex gap-2 sm:gap-3">
                 <Button
                   variant="outline"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="flex-1 h-9 sm:h-10 md:h-12 bg-white border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg font-medium transition-colors text-xs sm:text-sm"
+                  className={`bg-transparent h-9 sm:h-10 md:h-12 rounded-lg font-medium transition-colors text-xs sm:text-sm ${isDark ? "border-white/20 text-white hover:bg-white/10" : "bg-white border-gray-300 hover:border-gray-400 hover:bg-gray-50"}`}
                 >
                   Отмена
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || !selectedExecutors.some(e => e.role === 'leader')}
-                  className="flex-1 h-9 sm:h-10 md:h-12 bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
+                  className={`flex-1 h-9 sm:h-10 md:h-12 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm ${isDark ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"}`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-1 sm:gap-2">

@@ -68,8 +68,20 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
           handleLogout={handleLogout}
           role={roleTranslations[user?.role || ""] || user?.role || "Пользователь"}
           variant="dark"
-          profileHref={role === "admin-worker" ? "/admin-worker/profile" : "/manager/profile"}
-          requestsPathForNotification={role === "manager" ? "/manager/requests" : "/admin-worker/requests"}
+          profileHref={
+            role === "admin-worker"
+              ? "/admin-worker/profile"
+              : role === "manager"
+                ? "/manager/profile"
+                : "/department-head/profile"
+          }
+          requestsPathForNotification={
+            role === "manager"
+              ? "/manager/requests"
+              : role === "department-head"
+                ? "/department-head/requests"
+                : "/admin-worker/requests"
+          }
         />
         <div className="flex-1 flex min-h-0">
           <main className="flex-1 overflow-auto min-h-0 bg-[#1A1A1A]">

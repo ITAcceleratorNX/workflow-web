@@ -285,10 +285,20 @@ export default function ProfilePage() {
         }
     }, [user, router])
 
-    // На десктопе admin/manager перенаправляем в раздел профиля (не модалка)
+    // На десктопе admin/manager/department-head перенаправляем в свой раздел профиля (страница с сайдбаром, не модалка)
     useEffect(() => {
-        if (user && isDesktop && (role === "admin-worker" || role === "manager")) {
-            router.replace(role === "admin-worker" ? "/admin-worker/profile" : "/manager/profile")
+        if (!user || !isDesktop) return
+        if (role === "admin-worker") {
+            router.replace("/admin-worker/profile")
+            return
+        }
+        if (role === "manager") {
+            router.replace("/manager/profile")
+            return
+        }
+        if (role === "department-head") {
+            router.replace("/department-head/profile")
+            return
         }
     }, [user, isDesktop, role, router])
 
@@ -301,8 +311,8 @@ export default function ProfilePage() {
         return null
     }
 
-    // На десктопе admin/manager — редирект в useEffect, показываем null
-    if (isDesktop && (role === "admin-worker" || role === "manager")) {
+    // На десктопе admin/manager/department-head — редирект в свой профиль, показываем null
+    if (isDesktop && (role === "admin-worker" || role === "manager" || role === "department-head")) {
         return null
     }
 
@@ -310,7 +320,8 @@ export default function ProfilePage() {
     const inputClass = "h-12 rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white placeholder:text-[#6E6E6E] focus-visible:ring-2 focus-visible:ring-[#212121] focus-visible:ring-offset-0 focus-visible:ring-offset-[#040404]"
     const labelClass = "text-[15px] font-medium text-white"
 
-    const gridCols = ["admin-worker", "department-head", "manager"].includes(role || "") ? "grid-cols-4" : "grid-cols-3"
+    // У department-head только 3 вкладки (без логов), как у клиента
+    const gridCols = ["admin-worker", "manager"].includes(role || "") ? "grid-cols-4" : "grid-cols-3"
     const tabListClass = "grid w-full rounded-xl border border-[#212121] bg-transparent p-1"
     const tabTriggerClass = "rounded-lg text-sm font-medium text-[#7F7F7F] transition-colors data-[state=active]:bg-[#212121] data-[state=active]:text-white"
 
@@ -344,7 +355,7 @@ export default function ProfilePage() {
                         <TabsTrigger value="notifications" className={tabTriggerClass}>
                             Уведомления
                         </TabsTrigger>
-                        {["admin-worker", "department-head", "manager"].includes(role || "") && (
+                        {["admin-worker", "manager"].includes(role || "") && (
                             <TabsTrigger value="logs" className={tabTriggerClass}>
                                 Логи
                             </TabsTrigger>
@@ -616,8 +627,8 @@ export default function ProfilePage() {
                         </div>
                     </TabsContent>
 
-                    {/* Вкладка: Логи действий (только для admin-worker, department-head, manager) */}
-                    {["admin-worker", "department-head", "manager"].includes(role || "") && (
+                    {/* Вкладка: Логи действий (только для admin-worker, manager; department-head не нужен) */}
+                    {["admin-worker", "manager"].includes(role || "") && (
                         <TabsContent value="logs" className="mt-0 space-y-6">
                             <div
                                 className="flex flex-col rounded-xl border border-[#212121] bg-transparent p-5"

@@ -528,7 +528,13 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   }, []);
 
   // Синхронизация вкладки с URL (при переходе из «Мой кабинет» /manager/cabinet по карточке). Таб «Управление» вынесен на отдельную страницу. На десктопе таб «Переговорные» скрыт.
-  const validTabs = isDesktop ? ["requests", "overview", "analytics", "workload", "logs"] : ["meeting-rooms", "overview", "analytics", "registration-requests"];
+  // Для department-head на desktop скрываем аналитику/графики — только KPI, обзор и заявки
+  const isDepartmentHead = user?.role === "department-head";
+  const validTabs = isDesktop
+    ? isDepartmentHead
+      ? ["requests", "overview"]
+      : ["requests", "overview", "analytics", "workload", "logs"]
+    : ["meeting-rooms", "overview", "analytics", "registration-requests"];
   useEffect(() => {
     if (standaloneManagement) return;
     const tabFromUrl = searchParams.get("tab");
@@ -543,6 +549,13 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setTab("overview");
     }
   }, [isDesktop, tab]);
+
+  // Для department-head: при выборе скрытых табов (analytics, workload, logs) переключаем на «Обзор»
+  useEffect(() => {
+    if (isDesktop && isDepartmentHead && ["analytics", "workload", "logs"].includes(tab)) {
+      setTab("overview");
+    }
+  }, [isDesktop, isDepartmentHead, tab]);
 
   useEffect(() => {
     const create = searchParams.get("createRequest")
@@ -1041,7 +1054,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   useEffect(() => {
     if (!hydrated) return; // ждём восстановления данных
 
-    if (!user || (user.role !== "manager" && user.role !== "admin-worker")) {
+    if (!user || (user.role !== "manager" && user.role !== "admin-worker" && user.role !== "department-head")) {
       Promise.all([
         clearNotifications,
         clearAuth,
@@ -2432,7 +2445,12 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   };
 
-  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+  const basePath =
+    user?.role === "admin-worker"
+      ? "/admin-worker"
+      : user?.role === "department-head"
+        ? "/department-head"
+        : "/manager";
 
   return (
     <>
@@ -2572,10 +2590,12 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                   <TabsTrigger value="overview" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
                     Обзор
                   </TabsTrigger>
+                  {!isDepartmentHead && (
                   <TabsTrigger value="analytics" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
                     Аналитика
                   </TabsTrigger>
-                  {isDesktop && (
+                  )}
+                  {isDesktop && !isDepartmentHead && (
                   <TabsTrigger value="workload" className="text-xs px-2 py-2 whitespace-nowrap flex-shrink-0 data-[state=active]:bg-[#F35713] data-[state=active]:text-white data-[state=inactive]:text-[#8E8E93]">
                     Загрузка
                   </TabsTrigger>
@@ -2604,15 +2624,17 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                   <TabsTrigger value="overview" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Обзор
                   </TabsTrigger>
+                  {!isDepartmentHead && (
                   <TabsTrigger value="analytics" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Аналитика
                   </TabsTrigger>
-                  {isDesktop && (
+                  )}
+                  {isDesktop && !isDepartmentHead && (
                   <TabsTrigger value="workload" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Загрузка
                   </TabsTrigger>
                   )}
-                  {isDesktop && (
+                  {isDesktop && !isDepartmentHead && (
                   <TabsTrigger value="logs" className="flex-shrink-0 whitespace-nowrap data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70">
                     Логи
                   </TabsTrigger>

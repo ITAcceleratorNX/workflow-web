@@ -59,6 +59,7 @@ interface ChangeExecutorsModalProps {
   executors: Executor[]
   userServiceCategoryId?: number
   onSuccess: () => void
+  variant?: "default" | "dark"
 }
 
 export function ChangeExecutorsModal({
@@ -67,8 +68,10 @@ export function ChangeExecutorsModal({
   subRequest,
   executors,
   userServiceCategoryId,
-  onSuccess
+  onSuccess,
+  variant = "default",
 }: ChangeExecutorsModalProps) {
+  const isDark = variant === "dark";
   const [selectedExecutors, setSelectedExecutors] = useState<SubRequestExecutor[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -183,43 +186,41 @@ export function ChangeExecutorsModal({
   if (!isOpen || !subRequest) return null
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4 z-[100]
-                    min-h-screen">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white shadow-xl border-0
-                      min-w-[280px] sm:min-w-[320px]">
-        <CardHeader className="pb-4 border-b border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 md:p-4 z-[100] min-h-screen">
+      <Card className={`w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl border-0 min-w-[280px] sm:min-w-[320px] ${isDark ? "bg-[#1C1C1E] border border-white/10" : "bg-white"}`}>
+        <CardHeader className={`pb-4 border-b ${isDark ? "border-white/10" : "border-gray-100"}`}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Users className="h-5 w-5 text-[#114A65]" />
+            <CardTitle className={`text-lg font-semibold flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+              <Users className={`h-5 w-5 ${isDark ? "text-[#F35713]" : "text-[#114A65]"}`} />
               Изменить исполнителей
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+              className={`h-8 w-8 p-0 rounded-full ${isDark ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100"}`}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
             Заявка: {subRequest.title}
           </p>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 space-y-6">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className={`flex items-center gap-2 p-3 rounded-lg ${isDark ? "bg-red-500/10 border border-red-500/30" : "bg-red-50 border border-red-200"}`}>
+              <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isDark ? "text-red-400" : "text-red-600"}`} />
+              <p className={`text-sm ${isDark ? "text-red-300" : "text-red-700"}`}>{error}</p>
             </div>
           )}
 
           {!canChangeExecutors ? (
             <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Невозможно изменить исполнителей</p>
-              <p className="text-sm text-gray-500">
+              <AlertTriangle className={`h-12 w-12 mx-auto mb-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+              <p className={`mb-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}>Невозможно изменить исполнителей</p>
+              <p className={`text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
                 {!executors.length 
                   ? "Нет доступных исполнителей для этой категории"
                   : "В этом заявке назначены исполнители другого департамента"
@@ -230,14 +231,14 @@ export function ChangeExecutorsModal({
             <>
               {/* Добавление исполнителей */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium text-gray-700">
+                <Label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                   Добавить исполнителя
                 </Label>
                 <Select onValueChange={handleAddExecutor} value="">
-                  <SelectTrigger className="w-full h-11 border-gray-200 focus:border-[#114A65] focus:ring-[#114A65]">
+                  <SelectTrigger className={`w-full h-11 ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "border-gray-200 focus:border-[#114A65] focus:ring-[#114A65]"}`}>
                     <SelectValue placeholder="Выберите исполнителя" />
                   </SelectTrigger>
-                  <SelectContent className="z-[110]">
+                  <SelectContent className={`z-[110] ${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
                     {availableExecutors.length === 0 ? (
                       <SelectItem value="no-executors" disabled>
                         Все исполнители уже назначены
@@ -262,7 +263,7 @@ export function ChangeExecutorsModal({
               {/* Список выбранных исполнителей */}
               {selectedExecutors.length > 0 && (
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
                     Назначенные исполнители ({selectedExecutors.length})
                   </Label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -270,22 +271,22 @@ export function ChangeExecutorsModal({
                       return (
                         <div
                           key={executor.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-gray-200"}`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="flex-shrink-0">
                               {executor.role === 'leader' ? (
-                                <Crown className="h-4 w-4 text-yellow-600" />
+                                <Crown className={`h-4 w-4 ${isDark ? "text-[#F35713]" : "text-yellow-600"}`} />
                               ) : (
-                                <User className="h-4 w-4 text-gray-500" />
+                                <User className={`h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
+                              <p className={`font-medium truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                                 {executor?.user.full_name || 'Неизвестный исполнитель'}
                               </p>
                               {executor?.specialty && (
-                                <p className="text-xs text-gray-500 truncate">
+                                <p className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                                   {executor.specialty}
                                 </p>
                               )}
@@ -300,10 +301,10 @@ export function ChangeExecutorsModal({
                                 handleRoleChange(executor.id, role)
                               }
                             >
-                              <SelectTrigger className="w-24 h-8 text-xs border-gray-200">
+                              <SelectTrigger className={`w-24 h-8 text-xs ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "border-gray-200"}`}>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="z-[110]">
+                              <SelectContent className={`z-[110] ${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
                                 <SelectItem value="executor">Исполнитель</SelectItem>
                                 <SelectItem value="leader">Лидер</SelectItem>
                               </SelectContent>
@@ -314,7 +315,7 @@ export function ChangeExecutorsModal({
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveExecutor(executor.id)}
-                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 text-gray-400"
+                              className={`h-8 w-8 p-0 text-gray-400 ${isDark ? "hover:bg-red-500/20 hover:text-red-400" : "hover:bg-red-100 hover:text-red-600"}`}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -327,12 +328,12 @@ export function ChangeExecutorsModal({
                   {/* Индикатор лидера */}
                   <div className="mt-2 sm:mt-3 md:mt-4">
                     {selectedExecutors.some(e => e.role === 'leader') ? (
-                        <div className="flex items-center gap-2 text-green-600 bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
+                        <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isDark ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/30" : "text-green-600 bg-green-50 border border-green-200"}`}>
                           <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                           <span className="text-xs sm:text-sm font-medium">Лидер назначен</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-2 sm:p-3 rounded-lg border border-amber-200">
+                        <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isDark ? "text-[#F35713] bg-[#F35713]/10 border border-[#F35713]/30" : "text-amber-600 bg-amber-50 border border-amber-200"}`}>
                           <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                           <span className="text-xs sm:text-sm font-medium">Необходимо назначить лидера</span>
                         </div>
@@ -342,11 +343,11 @@ export function ChangeExecutorsModal({
               )}
 
               {/* Кнопки действий */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+              <div className={`flex flex-col sm:flex-row gap-3 pt-4 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 h-11 border-gray-200 hover:bg-gray-50"
+                  className={`flex-1 h-11 ${isDark ? "border-white/20 text-white hover:bg-white/10" : "border-gray-200 hover:bg-gray-50"}`}
                   disabled={isSubmitting}
                 >
                   Отмена
@@ -354,8 +355,7 @@ export function ChangeExecutorsModal({
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || !selectedExecutors.some(e => e.role === 'leader')}
-                  className="flex-1 h-11 bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex-1 h-11 text-white disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? "bg-[#F35713] hover:bg-[#E04A0A]" : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D]"}`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">

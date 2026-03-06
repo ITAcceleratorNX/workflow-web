@@ -20,6 +20,7 @@ interface DeleteConfirmationModalProps {
   confirmText?: string
   cancelText?: string
   isLoading?: boolean
+  variant?: "default" | "dark"
 }
 
 export function DeleteConfirmationModal({
@@ -31,22 +32,36 @@ export function DeleteConfirmationModal({
                                           confirmText = "Удалить",
                                           cancelText = "Отмена",
                                           isLoading = false,
+                                          variant = "default",
                                         }: DeleteConfirmationModalProps) {
+  const isDark = variant === "dark";
   return (
       <AlertDialog open={isOpen} onOpenChange={onClose}>
-          <AlertDialogContent className="w-[calc(100vw-2rem)] max-w-[400px] mx-auto rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl bg-white dark:bg-neutral-900 p-0 overflow-hidden">
+          <AlertDialogContent className={cn(
+            "w-[calc(100vw-2rem)] max-w-[400px] mx-auto rounded-xl shadow-2xl p-0 overflow-hidden",
+            isDark ? "border-[#3A3A3C] bg-[#1A1A1A]" : "border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+          )}>
               <AlertDialogHeader className="px-6 pt-6 pb-4 space-y-4">
-            <AlertDialogTitle className="text-xl sm:text-2xl font-semibold text-neutral-900 dark:text-neutral-100 leading-tight text-center">
+            <AlertDialogTitle className={cn(
+              "text-xl sm:text-2xl font-semibold leading-tight text-center",
+              isDark ? "text-white" : "text-neutral-900 dark:text-neutral-100"
+            )}>
               {title}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed text-center max-w-sm mx-auto">
+            <AlertDialogDescription className={cn(
+              "text-sm sm:text-base leading-relaxed text-center max-w-sm mx-auto",
+              isDark ? "text-white/70" : "text-neutral-600 dark:text-neutral-400"
+            )}>
               {description}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter className="px-6 pb-6 pt-2 flex flex-col gap-3 sm:flex-row sm:gap-3 sm:justify-end">
             <AlertDialogCancel
-                className="w-full sm:w-auto sm:min-w-[100px] h-12 sm:h-10 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 rounded-lg font-medium transition-all duration-200 text-base sm:text-sm order-2 sm:order-1"
+                className={cn(
+                  "w-full sm:w-auto sm:min-w-[100px] h-12 sm:h-10 rounded-lg font-medium transition-all duration-200 text-base sm:text-sm order-2 sm:order-1",
+                  isDark ? "bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white border-[#3A3A3C]" : "bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700"
+                )}
             >
               {cancelText}
             </AlertDialogCancel>
@@ -54,8 +69,10 @@ export function DeleteConfirmationModal({
                 className={cn(
                   "w-full sm:w-auto sm:min-w-[100px] h-12 sm:h-10 rounded-lg font-medium transition-all duration-200 focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 text-base sm:text-sm order-1 sm:order-2 shadow-sm",
                   confirmText.includes("Забронировать") || confirmText.includes("бронирова")
-                    ? "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"
-                    : "bg-red-700 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 text-white dark:text-neutral-900"
+                    ? "bg-[#E85D2B] hover:bg-[#D94F15] text-white"
+                    : isDark
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-red-700 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 text-white dark:text-neutral-900"
                 )}
                 onClick={onConfirm}
                 disabled={isLoading}
