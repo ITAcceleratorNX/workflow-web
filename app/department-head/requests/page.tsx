@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { sortRequests, useRequestStore } from "@/stores/useRequestStore";
 import { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
@@ -54,6 +54,7 @@ export default function DepartmentHeadRequestsPage() {
   const [filterIncomingType, setFilterIncomingType] = useState("all");
   const [activeTab, setActiveTab] = useState<"incoming" | "my-requests" | "recurring">("incoming");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +74,12 @@ export default function DepartmentHeadRequestsPage() {
   const fetchRequests = useCallback(
     async (currentPage = 1) => {
       if (!token) return;
-      setLoading(true);
+      const isFirstPage = currentPage === 1;
+      if (isFirstPage) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       try {
         const params = new URLSearchParams({
           page: currentPage.toString(),
@@ -91,21 +97,31 @@ export default function DepartmentHeadRequestsPage() {
         const sortedMy = sortRequests(response.data.myRequests || []);
 
         setIncomingRequests((prev) =>
-          currentPage === 1 ? sortedIncoming : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))]
+          isFirstPage ? sortedIncoming : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))]
         );
         setMyRequests((prev) =>
-          currentPage === 1 ? sortedMy : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))]
+          isFirstPage ? sortedMy : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))]
         );
-        setHasMore((response.data.otherRequests?.length || 0) + (response.data.myRequests?.length || 0) >= 10);
+        const otherLen = response.data.otherRequests?.length ?? 0;
+        const myLen = response.data.myRequests?.length ?? 0;
+        setHasMore(otherLen >= 10 || myLen >= 10);
         setPage(currentPage);
       } catch (error) {
         console.error("Ошибка при загрузке заявок:", error);
       } finally {
-        setLoading(false);
+        if (isFirstPage) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
       }
     },
     [token, filterIncomingStatus, filterIncomingType, setIncomingRequests, setMyRequests]
   );
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) fetchRequests(page + 1);
+  };
 
   const fetchExecutors = useCallback(async () => {
     try {
@@ -418,6 +434,25 @@ export default function DepartmentHeadRequestsPage() {
         {!loading && activeTab !== "recurring" && desktopRequests.length === 0 && (
           <div className="text-center py-12 text-white/60">Нет заявок</div>
         )}
+        {!loading && activeTab !== "recurring" && hasMore && desktopRequests.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Загрузка...
+                </>
+              ) : (
+                "Загрузить ещё"
+              )}
+            </Button>
+          </div>
+        )}
       </>
     );
 
@@ -623,6 +658,25 @@ export default function DepartmentHeadRequestsPage() {
                     <p>Нет входящих заявок</p>
                   </div>
                 )}
+                {!loading && hasMore && filteredIncomingRequests.length > 0 && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="w-full border-[#3A3A3C] text-white hover:bg-white/10"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        "Загрузить ещё"
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -677,6 +731,25 @@ export default function DepartmentHeadRequestsPage() {
                 {!loading && filteredMyRequests.length === 0 && (
                   <div className="text-center py-8 text-gray-400">
                     <p>У вас пока нет заявок</p>
+                  </div>
+                )}
+                {!loading && hasMore && filteredMyRequests.length > 0 && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="w-full border-[#3A3A3C] text-white hover:bg-white/10"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        "Загрузить ещё"
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
