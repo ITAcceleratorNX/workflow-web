@@ -16,3 +16,20 @@ export function useMediaQuery(query: string): boolean {
 
     return matches;
 }
+
+/** Возвращает { matches, resolved }. resolved=true только после первой проверки на клиенте. */
+export function useMediaQueryResolved(query: string): { matches: boolean; resolved: boolean } {
+    const [state, setState] = useState({ matches: false, resolved: false });
+
+    useEffect(() => {
+        const media = window.matchMedia(query);
+        const updateMatches = () => setState({ matches: media.matches, resolved: true });
+
+        updateMatches();
+        media.addEventListener('change', updateMatches);
+
+        return () => media.removeEventListener('change', updateMatches);
+    }, [query]);
+
+    return state;
+}

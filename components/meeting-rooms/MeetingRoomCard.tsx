@@ -1,9 +1,18 @@
+"use client";
+
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import {
   Building2,
   Users,
@@ -44,8 +53,6 @@ export function MeetingRoomCard({
   showOffice = false,
   darkTheme = false,
 }: MeetingRoomCardProps) {
-  const coverPhoto = room.photos?.[0];
-  const extraPhotos = room.photos?.length ? room.photos.length - 1 : 0;
   const hasExpandableContent = (room.description || footer) && onToggleExpand;
 
   return (
@@ -60,15 +67,37 @@ export function MeetingRoomCard({
       )}
     >
       <div className={cn("relative aspect-[4/3]", darkTheme ? "bg-[#1C1C1E]" : "bg-muted")}>
-        {coverPhoto ? (
-          <Image
-            src={coverPhoto}
-            alt={room.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority={false}
-          />
+        {room.photos && room.photos.length > 0 ? (
+          <Carousel
+            opts={{ loop: true, align: "start" }}
+            className="absolute inset-0 w-full h-full"
+          >
+            <CarouselContent className="-ml-0 h-full">
+              {room.photos.map((photo, index) => (
+                <CarouselItem key={index} className="pl-0 basis-full">
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={photo}
+                      alt={`${room.name} — фото ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      priority={index === 0}
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {room.photos.length > 1 && (
+              <>
+                <CarouselPrevious className="left-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
+                <CarouselNext className="right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
+                <div className="absolute bottom-3 right-3 rounded-full bg-black/75 px-3 py-1 text-xs font-medium text-white">
+                  {room.photos.length} фото
+                </div>
+              </>
+            )}
+          </Carousel>
         ) : (
           <div className={cn(
             "absolute inset-0 flex flex-col items-center justify-center gap-2",
@@ -81,7 +110,7 @@ export function MeetingRoomCard({
 
         <Badge
           className={cn(
-            "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold",
+            "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold z-10",
             statusVariant[room.status],
           )}
         >
@@ -89,14 +118,8 @@ export function MeetingRoomCard({
         </Badge>
 
         {!room.isActive && (
-          <div className="absolute bottom-3 left-3 rounded-full bg-[#040404]/80 px-3 py-1 text-xs font-medium text-white">
+          <div className="absolute bottom-3 left-3 rounded-full bg-[#040404]/80 px-3 py-1 text-xs font-medium text-white z-10">
             На ремонте
-          </div>
-        )}
-
-        {extraPhotos > 0 && (
-          <div className="absolute bottom-3 right-3 rounded-full bg-[#040404]/75 px-3 py-1 text-xs font-medium text-white">
-            +{extraPhotos} фото
           </div>
         )}
       </div>

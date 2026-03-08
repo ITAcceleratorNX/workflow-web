@@ -61,6 +61,22 @@ export default function AdminWorkerLayout({
         return null;
     }
 
+    // На мобильных /admin-worker без параметров редиректится в management — не показываем dashboard, чтобы избежать мигания
+    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const hasRequestParams =
+        searchParams?.get("tab") || searchParams?.get("requestId") ||
+        urlParams?.get("tab") || urlParams?.get("requestId");
+    const shouldRedirectToManagement =
+        !isDesktop && pathname === "/admin-worker" && !hasRequestParams;
+
+    if (shouldRedirectToManagement) {
+        return (
+            <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#F35713]/50 border-t-[#F35713] rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     if (isDesktop) {
         return (
             <RoleDesktopShell role="admin-worker">

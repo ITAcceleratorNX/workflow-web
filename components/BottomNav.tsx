@@ -19,8 +19,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         return null;
     }
 
-    // URLs для навигации
-    const homeHref = role === 'client' ? '/cabinet' : role === 'manager' ? '/manager/cabinet' : (role === 'admin-worker' || role === 'department-head' || role === 'executor') ? `/${role}?createRequest=false` : '/home'
+    // URLs для навигации (BottomNav только на мобильных)
+    const homeHref = role === 'client' ? '/cabinet'
+        : role === 'manager' ? '/manager/cabinet'
+        : role === 'admin-worker' ? '/admin-worker/management'
+        : role === 'department-head' ? '/department-head/management'
+        : role === 'executor' ? '/executor?createRequest=false' : '/home'
     const bookingHref = '/meeting-rooms'
     const requestsHref =
         role === 'client' ? '/requests'

@@ -23,6 +23,13 @@ import { ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
 interface BookingModalProps {
   isOpen: boolean
@@ -351,13 +358,36 @@ export function BookingModal({
               )}>
                 <div className={cn("relative aspect-video", isDark ? "bg-[#1C1C1E]" : "bg-muted")}>
                   {roomDetails.photos && roomDetails.photos.length > 0 ? (
-                    <Image
-                      src={roomDetails.photos[0]}
-                      alt={roomDetails.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 100%"
-                    />
+                    <Carousel
+                      opts={{ loop: true, align: "start" }}
+                      className="absolute inset-0 w-full h-full"
+                    >
+                      <CarouselContent className="-ml-0 h-full">
+                        {roomDetails.photos.map((photo, index) => (
+                          <CarouselItem key={index} className="pl-0 basis-full">
+                            <div className="relative w-full h-full">
+                              <Image
+                                src={photo}
+                                alt={`${roomDetails.name} — фото ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 100%"
+                                priority={index === 0}
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      {roomDetails.photos.length > 1 && (
+                        <>
+                          <CarouselPrevious className="left-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
+                          <CarouselNext className="right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
+                          <div className="absolute bottom-3 right-3 rounded-full bg-black/75 px-3 py-1 text-xs font-medium text-white z-10">
+                            {roomDetails.photos.length} фото
+                          </div>
+                        </>
+                      )}
+                    </Carousel>
                   ) : (
                     <div className={cn(
                       "absolute inset-0 flex flex-col items-center justify-center gap-2",
@@ -369,7 +399,7 @@ export function BookingModal({
                   )}
                   <Badge
                     className={cn(
-                      "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold shadow-lg",
+                      "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold shadow-lg z-10",
                       roomDetails.status === "available"
                         ? "bg-gradient-to-r from-[#114A65] to-[#114A65]/90 text-white backdrop-blur-md border border-[#114A65]/50"
                         : "bg-gradient-to-r from-[#B8400E] to-[#B8400E]/90 text-white backdrop-blur-md border border-[#B8400E]/50"

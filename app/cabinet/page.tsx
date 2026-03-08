@@ -7,12 +7,14 @@ import { useActivityTrackerStore } from "@/stores/useActivityTrackerStore"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { BottomNav } from "@/components/BottomNav"
 import PullToRefresh from "@/components/pull-to-refresh"
-import { Home, Heart, Settings, Lightbulb, Clock, TrendingUp, BarChart2, Activity, Play, Pause, Power, Loader2, ChevronDown } from "lucide-react"
+import { Home, Heart, Settings, Lightbulb, Clock, TrendingUp, BarChart2, Activity, Play, Pause, Power, Loader2, ChevronDown, Footprints } from "lucide-react"
 import api, { getClientRoomSubscriptions, getRoomDevicesForClient, controlDevice, type YandexDevice, type ControlDeviceRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { requestMotionAndOrientationPermission } from "@/lib/utils"
+import { usePedometerStore, stepsToKm } from "@/stores/usePedometerStore"
 
-type TabType = "home" | "health" | "settings"
+type TabType = "home" | "health" | "settings" | "steps"
+type StepsSubTab = "today" | "week" | "settings"
 
 export default function CabinetPage() {
   const router = useRouter()
@@ -30,8 +32,20 @@ export default function CabinetPage() {
     setHealthReminders,
     setAutoStartInWorkingHours,
   } = useActivityTrackerStore()
+
+  const {
+    hasAccess,
+    stepsToday,
+    history,
+    settings: pedometerSettings,
+    setHasAccess,
+    setSettings: setPedometerSettings,
+    recalculateGoal,
+    setMockSteps,
+  } = usePedometerStore()
   
   const [activeSection, setActiveSection] = useState<TabType>("home")
+  const [stepsSubTab, setStepsSubTab] = useState<StepsSubTab>("today")
   const [loading, setLoading] = useState(false)
   
   // Smart Home State
@@ -221,6 +235,8 @@ export default function CabinetPage() {
         return "Health-напоминание"
       case "settings":
         return "Настройки трекера"
+      case "steps":
+        return "Шаги"
       default:
         return ""
     }
@@ -234,10 +250,35 @@ export default function CabinetPage() {
         return ""
       case "settings":
         return "Настройте параметры отслеживания"
+      case "steps":
+        return "Шагомер — шаги и цель за день"
       default:
         return ""
     }
   }
+
+  // Запрос доступа к шагам (тестовый режим: симулируем выдачу доступа + демо-данные)
+  const handleRequestStepsAccess = async () => {
+    const granted = await requestMotionAndOrientationPermission()
+    if (granted) {
+      setHasAccess(true)
+      setMockSteps(3200)
+      toast({ title: "Доступ выдан", description: "Шагомер подключён. Показаны тестовые данные.", duration: 2000 })
+    } else {
+      toast({
+        title: "Доступ не выдан",
+        description: "Разрешите доступ к Motion & Fitness для подсчёта шагов.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Для демо: загрузить тестовые данные при первом открытии шагов
+  useEffect(() => {
+    if (activeSection === "steps" && hasAccess && history.length === 0) {
+      setMockSteps(stepsToday || 0)
+    }
+  }, [activeSection, hasAccess])
 
   return (
     <>
@@ -304,6 +345,20 @@ export default function CabinetPage() {
                 }}
               >
                 <Settings 
+                  className="w-7 h-7" 
+                  style={{ color: '#FFFFFF' }}
+                />
+              </button>
+
+              {/* Steps (Pedometer) Tab — рядом с настройками, 4-я кнопка */}
+              <button
+                onClick={() => setActiveSection("steps")}
+                className="flex items-center justify-center w-16 h-16 rounded-2xl transition-all"
+                style={{
+                  background: activeSection === "steps" ? '#E25B21' : '#3A3A3C',
+                }}
+              >
+                <Footprints 
                   className="w-7 h-7" 
                   style={{ color: '#FFFFFF' }}
                 />
@@ -598,6 +653,175 @@ export default function CabinetPage() {
                     </div>
                   </div>
                 </button>
+              </div>
+            )}
+
+            {/* Steps (Pedometer) Section Content */}
+            {activeSection === "steps" && (
+              <div className="space-y-4">
+                {!hasAccess ? (
+                  <div 
+                    className="rounded-2xl p-6 flex flex-col items-center justify-center text-center"
+                    style={{ background: '#D94F15' }}
+                  >
+                    <Footprints className="w-16 h-16 text-white/60 mb-4" />
+                    <p className="text-white font-medium text-lg">Нет доступа к шагам</p>
+                    <p className="text-white/80 text-sm mt-2">
+                      Разрешите доступ к Motion & Fitness, чтобы приложение могло считать ваши шаги.
+                    </p>
+                    <button
+                      onClick={handleRequestStepsAccess}
+                      className="mt-6 px-6 py-3 rounded-xl font-medium text-white bg-white/25 hover:bg-white/35 active:scale-95 transition-all"
+                    >
+                      Дать доступ
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Sub-tabs: Сегодня | 7 дней | Настройки */}
+                    <div className="flex gap-2">
+                      {[
+                        { key: "today" as const, label: "Сегодня" },
+                        { key: "week" as const, label: "7 дней" },
+                        { key: "settings" as const, label: "Настройки" },
+                      ].map(({ key, label }) => (
+                        <button
+                          key={key}
+                          onClick={() => setStepsSubTab(key)}
+                          className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                            stepsSubTab === key
+                              ? "bg-white text-[#D94F15]"
+                              : "bg-white/20 text-white"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {stepsSubTab === "today" && (
+                      <div className="space-y-4">
+                        <div 
+                          className="rounded-2xl p-6 text-center"
+                          style={{ background: '#D94F15' }}
+                        >
+                          <p className="text-white/80 text-sm">Шаги сегодня</p>
+                          <p className="text-white text-5xl font-bold mt-2">{stepsToday.toLocaleString("ru-RU")}</p>
+                          <p className="text-white/80 text-sm mt-2">Цель: {pedometerSettings.goalSteps.toLocaleString("ru-RU")}</p>
+                          <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
+                            <div 
+                              className="h-full rounded-full bg-white transition-all"
+                              style={{ width: `${Math.min(100, (stepsToday / pedometerSettings.goalSteps) * 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-white/80 text-xs mt-2">
+                            Километры — приблизительно: {stepsToKm(stepsToday, pedometerSettings.heightCm || 170).toFixed(2)} км
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {stepsSubTab === "week" && (
+                      <div className="space-y-2">
+                        <p className="text-white/80 text-sm">История за 7 дней</p>
+                        {history.length === 0 ? (
+                          <div className="rounded-2xl p-6 text-center" style={{ background: '#D94F15' }}>
+                            <p className="text-white/80">Пока нет данных</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {history.map((day) => {
+                              const d = new Date(day.date)
+                              const isToday = day.date === new Date().toISOString().slice(0, 10)
+                              const label = isToday ? "Сегодня" : d.toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "short" })
+                              return (
+                                <div
+                                  key={day.date}
+                                  className="rounded-2xl p-4 flex justify-between items-center"
+                                  style={{ background: '#D94F15' }}
+                                >
+                                  <span className="text-white font-medium">{label}</span>
+                                  <div className="text-right">
+                                    <span className="text-white font-bold">{day.steps.toLocaleString("ru-RU")} шагов</span>
+                                    <span className="text-white/80 text-sm block">{day.km.toFixed(2)} км</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {stepsSubTab === "settings" && (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl p-4" style={{ background: '#D94F15' }}>
+                          <p className="text-white font-medium mb-3">Рост и вес</p>
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                              <label className="text-white/80 text-xs">Рост (см)</label>
+                              <input
+                                type="number"
+                                value={pedometerSettings.heightCm || ""}
+                                onChange={(e) => setPedometerSettings({ heightCm: Number(e.target.value) || 0 })}
+                                placeholder="170"
+                                className="w-full mt-1 px-3 py-2 rounded-xl bg-white/20 text-white placeholder-white/50"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-white/80 text-xs">Вес (кг)</label>
+                              <input
+                                type="number"
+                                value={pedometerSettings.weightKg || ""}
+                                onChange={(e) => setPedometerSettings({ weightKg: Number(e.target.value) || 0 })}
+                                placeholder="70"
+                                className="w-full mt-1 px-3 py-2 rounded-xl bg-white/20 text-white placeholder-white/50"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              recalculateGoal()
+                              toast({ title: "Цель пересчитана", duration: 2000 })
+                            }}
+                            className="mt-3 w-full py-2.5 rounded-xl font-medium bg-white text-[#D94F15] active:scale-[0.98]"
+                          >
+                            Пересчитать
+                          </button>
+                        </div>
+
+                        <div className="rounded-2xl p-4" style={{ background: '#D94F15' }}>
+                          <p className="text-white font-medium">Рекомендованная цель</p>
+                          <p className="text-white text-2xl font-bold mt-1">{pedometerSettings.goalSteps.toLocaleString("ru-RU")} шагов/день</p>
+                        </div>
+
+                        <button 
+                          onClick={() => setPedometerSettings({ notificationsEnabled: !pedometerSettings.notificationsEnabled })}
+                          className="rounded-2xl p-4 w-full text-left active:scale-[0.98] transition-transform"
+                          style={{ background: '#D94F15' }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-white font-medium">Уведомления шагомера</p>
+                              <p className="text-white/60 text-sm mt-1">50%, почти цель, нет активности. Работают в рабочее время (как Health)</p>
+                            </div>
+                            <div 
+                              className={`w-12 h-7 rounded-full flex items-center px-1 transition-colors ${
+                                pedometerSettings.notificationsEnabled ? 'bg-white/30' : 'bg-white/10'
+                              }`}
+                            >
+                              <div 
+                                className={`w-5 h-5 rounded-full transition-all ${
+                                  pedometerSettings.notificationsEnabled ? 'bg-white ml-auto' : 'bg-white/40'
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>

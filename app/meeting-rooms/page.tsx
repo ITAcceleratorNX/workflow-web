@@ -5,7 +5,8 @@ import { MapPin, X, Building2, Users, Clock, ChevronLeft, ChevronRight, ImageIco
 import { BottomNav } from "@/components/BottomNav";
 import Image from "next/image";
 import api from "@/lib/api";
-import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
+import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay, format } from "date-fns";
+import { ru } from "date-fns/locale";
 import { getRoomDailyAvailability, getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking } from "@/lib/api";
 import { formatDateLong, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useRouter } from "next/navigation";
@@ -91,6 +92,7 @@ export default function MeetingRoomsPage() {
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
   
   // My Bookings state
   const [bookings, setBookings] = useState<MeetingRoomBooking[]>([]);
@@ -348,7 +350,12 @@ export default function MeetingRoomsPage() {
     setSelectedRoom(null);
     setSelectedDate(null);
     setSelectedTimeSlot(null);
+    setPhotoIndex(0);
   };
+
+  useEffect(() => {
+    setPhotoIndex(0);
+  }, [selectedRoom?.id]);
   
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {
@@ -931,22 +938,49 @@ export default function MeetingRoomsPage() {
             {/* Room Image */}
             <div className="w-full h-[185px] bg-white/20 rounded-[10px] overflow-hidden relative mb-4">
               {selectedRoom.photos && selectedRoom.photos.length > 0 ? (
-                <Image 
-                  src={selectedRoom.photos[0]} 
-                  alt={selectedRoom.name} 
-                  fill 
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 100%"
-                />
+                <>
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={selectedRoom.photos[photoIndex]}
+                      alt={`${selectedRoom.name} — фото ${photoIndex + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 100%"
+                      priority
+                    />
+                  </div>
+                  {selectedRoom.photos.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhotoIndex((i) => (i === 0 ? selectedRoom.photos.length - 1 : i - 1));
+                        }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0 flex items-center justify-center z-10"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhotoIndex((i) => (i === selectedRoom.photos.length - 1 ? 0 : i + 1));
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0 flex items-center justify-center z-10"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <div className="absolute bottom-3 right-3 rounded-full bg-black/75 px-3 py-1 text-xs font-medium text-white z-10">
+                        {photoIndex + 1} / {selectedRoom.photos.length}
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex flex-col items-center justify-center gap-2">
                   <ImageIcon className="w-12 h-12 text-white/40" />
                   <span className="text-sm text-white/40">Фото не загружено</span>
-                </div>
-              )}
-              {selectedRoom.photos && selectedRoom.photos.length > 1 && (
-                <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
-                  +{selectedRoom.photos.length - 1} фото
                 </div>
               )}
             </div>
