@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Play, Pause, Square, TrendingUp, Clock, Activity, ArrowLeft, Settings, Bell, Timer } from "lucide-react"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { useActivityTrackerStore } from "@/stores/useActivityTrackerStore"
+import { usePedometerStore } from "@/stores/usePedometerStore"
 import { useRouter } from "next/navigation"
 import api, { getOffices } from "@/lib/api"
 import { findNearestOffice } from "@/lib/utils"
@@ -109,7 +110,9 @@ export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps
   const officeInfoRef = useRef<{ working_hours_start?: string, working_hours_end?: string, auto_track_enabled?: boolean } | null>(null)
   const [officeInfo, setOfficeInfo] = useState<{ working_hours_start?: string, working_hours_end?: string, auto_track_enabled?: boolean } | null>(null)
   const { user } = useAuthStore()
+  const { settings: pedometerSettings } = usePedometerStore()
   const router = useRouter()
+  const stepsSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isStartingRef = useRef<boolean>(false) // Защита от множественных запусков
   const isStoppingRef = useRef<boolean>(false) // Защита от множественных остановок
   const isTrackingRef = useRef<boolean>(false) // Ref для отслеживания состояния
@@ -186,6 +189,28 @@ export function ActivityTracker({ hideBackButton = false }: ActivityTrackerProps
       window.removeEventListener("message", handleMessage)
     }
   }, [])
+
+  // Синхронизация шагов с бэкендом (для пуш-уведомлений: 50% цели, почти цель, нет активности)
+  useEffect(() => {
+    if (!user || stepCount === null) return
+    if (stepsSyncTimeoutRef.current) clearTimeout(stepsSyncTimeoutRef.current)
+    stepsSyncTimeoutRef.current = setTimeout(async () => {
+      stepsSyncTimeoutRef.current = null
+      try {
+        await api.post("/steps/sync", {
+          stepsToday: stepCount,
+          goalSteps: pedometerSettings.goalSteps || 5500,
+          noActivityIntervalHours: 2,
+          stepsNotificationsEnabled: pedometerSettings.notificationsEnabled !== false,
+        })
+      } catch (e) {
+        console.warn("Ошибка синхронизации шагов с сервером:", e)
+      }
+    }, 2000)
+    return () => {
+      if (stepsSyncTimeoutRef.current) clearTimeout(stepsSyncTimeoutRef.current)
+    }
+  }, [user, stepCount, pedometerSettings.goalSteps, pedometerSettings.notificationsEnabled])
   
   // Проверка, используем ли мы Android WebView
   const isAndroidWebView = useRef<boolean>(false)
