@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { getTodayAppDateISO } from '@/lib/dateTimeUtils'
 
 export interface DaySteps {
   date: string // YYYY-MM-DD
@@ -98,7 +99,7 @@ export const usePedometerStore = create<PedometerState>()(
       setStepsToday: (steps) => set((state) => {
         const height = state.settings.heightCm || 170
         const newHistory = [...state.history]
-        const todayStr = new Date().toISOString().slice(0, 10)
+        const todayStr = getTodayAppDateISO()
         const idx = newHistory.findIndex((h) => h.date === todayStr)
         const dayData: DaySteps = {
           date: todayStr,
@@ -135,7 +136,7 @@ export const usePedometerStore = create<PedometerState>()(
         const { settings } = get()
         const height = settings.heightCm || 170
         let h = history ?? generateMockHistory(height)
-        const todayStr = new Date().toISOString().slice(0, 10)
+        const todayStr = getTodayAppDateISO()
         const todayIdx = h.findIndex((d) => d.date === todayStr)
         if (todayIdx >= 0) {
           h = [...h]
