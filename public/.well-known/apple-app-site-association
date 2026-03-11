@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "J86Y2UDXZ3.com.workflow.kz",
+        "paths": ["/", "/*"]
+      }
+    ]
+  }
+}
