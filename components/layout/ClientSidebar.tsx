@@ -14,15 +14,15 @@ export function ClientSidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col w-56 lg:w-64 shrink-0 bg-[#1A1A1A] border-r border-white/10",
+        "hidden md:flex flex-col w-56 lg:w-64 shrink-0 fixed left-0 top-0 h-screen z-20 bg-[#1A1A1A] border-r border-white/10",
         className
       )}
     >
-      <div className="p-3 md:p-4 border-b border-white/10">
+      <div className="p-3 md:p-4 border-b border-white/10 shrink-0">
         <span className="font-bold text-base lg:text-lg text-white">WorkFlow</span>
         <p className="text-xs text-white/60 mt-0.5">Система управления</p>
       </div>
-      <nav className="flex-1 overflow-y-auto py-3 md:py-4 px-2 md:px-3 custom-scrollbar-dark">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 md:py-4 px-2 md:px-3 custom-scrollbar-dark min-h-0">
         <ul className="space-y-1">
           {clientNavItems.map((item) => {
             const Icon = item.icon;

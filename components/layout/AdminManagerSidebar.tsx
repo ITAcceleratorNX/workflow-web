@@ -29,7 +29,7 @@ export function AdminManagerSidebar({
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col shrink-0 bg-[#1A1A1A] border-r border-white/10 transition-[width] duration-200 ease-in-out overflow-hidden",
+        "hidden md:flex flex-col shrink-0 fixed left-0 top-0 h-screen z-20 bg-[#1A1A1A] border-r border-white/10 transition-[width] duration-200 ease-in-out overflow-hidden",
         collapsed ? "w-[4.25rem]" : "w-56 lg:w-64",
         className
       )}
@@ -49,7 +49,7 @@ export function AdminManagerSidebar({
           </>
         )}
       </div>
-      <nav className="flex-1 overflow-hidden overflow-x-hidden py-3 md:py-4 min-h-0">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 md:py-4 min-h-0 custom-scrollbar-dark">
         <ul className={cn("space-y-1", collapsed ? "px-2 flex flex-col items-center" : "px-2 md:px-3")}>
           {navItems.map((item) => {
             const Icon = item.icon;

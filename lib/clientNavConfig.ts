@@ -10,9 +10,8 @@ export interface ClientNavItem {
 
 export const clientNavItems: ClientNavItem[] = [
   { key: "cabinet", label: "Мой кабинет", href: "/client", icon: House },
-  // Для десктопа раздел "Бронь" открывается на отдельном URL,
-  // где используется тот же мобильный UI бронирования переговорок
-  { key: "booking", label: "Бронь", href: "/meeting-rooms", icon: LayoutGrid },
+  // На десктопе «Бронь» открывается как вкладка на /client (как в dd3be4ef) — единый UI с сайдбаром
+  { key: "booking", label: "Бронь", href: "/client?tab=meeting-rooms", icon: LayoutGrid },
   { key: "requests", label: "Заявки", href: "/client/requests", icon: Wrench },
   { key: "statistics", label: "Статистика", href: "/client/statistics", icon: BarChart3 },
   { key: "messages", label: "Сообщения", href: "/chat-bot", icon: MessageCircle },
@@ -27,9 +26,7 @@ export function isClientNavItemActive(item: ClientNavItem, pathname: string, sea
     case "cabinet":
       return path === "/client" && (!tab || tab === "cabinet");
     case "booking":
-      // Активен как при старом варианте (/client?tab=meeting-rooms),
-      // так и при новом отдельном URL /meeting-rooms
-      return (path === "/client" && tab === "meeting-rooms") || path.startsWith("/meeting-rooms");
+      return path === "/client" && tab === "meeting-rooms";
     case "requests":
       return path.startsWith("/client/requests");
     case "statistics":

@@ -29,7 +29,7 @@ export function ExecutorDesktopShell({ children, rightSlot }: ExecutorDesktopShe
   return (
     <div className="min-h-screen flex bg-[#1A1A1A] client-desktop-shell">
       <ExecutorSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-56 lg:ml-64">
         <Header
           handleLogout={handleLogout}
           role="Исполнитель"

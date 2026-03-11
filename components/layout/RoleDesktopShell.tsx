@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { AdminManagerSidebar } from "./AdminManagerSidebar";
 import Header from "@/app/header/Header";
+import { cn } from "@/lib/utils";
 import type { AdminManagerRole } from "@/lib/roleNavConfig";
 
 const SIDEBAR_COLLAPSED_KEY = "workflow-sidebar-collapsed";
@@ -63,7 +64,12 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleSidebarToggle}
       />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-w-0 transition-[margin] duration-200 ease-in-out",
+          sidebarCollapsed ? "md:ml-[4.25rem]" : "md:ml-56 lg:ml-64"
+        )}
+      >
         <Header
           handleLogout={handleLogout}
           role={roleTranslations[user?.role || ""] || user?.role || "Пользователь"}
