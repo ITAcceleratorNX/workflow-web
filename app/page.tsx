@@ -3,30 +3,40 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from "@/stores/useAuthStore"
-import { getQueryStringForRedirect, savePendingRequestQuery } from "@/lib/shareRequest"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import {
+  parseRequestDeepLinkUrl,
+  savePendingRequestId,
+  getRequestRedirectUrl,
+} from "@/lib/shareRequest"
 
 export default function Home() {
     const router = useRouter()
     const { role } = useAuthStore()
+    const isDesktop = useMediaQuery("(min-width: 768px)")
     const [hasRedirected, setHasRedirected] = useState(false)
 
     useEffect(() => {
         if (hasRedirected) return
-        const queryString = getQueryStringForRedirect()
-        if (queryString) savePendingRequestQuery(queryString)
+        const parsed = typeof window !== "undefined"
+            ? parseRequestDeepLinkUrl(window.location.href)
+            : null
+        const requestId = parsed?.requestId
+        if (requestId) savePendingRequestId(requestId)
 
         if (role) {
-            const base = role.toLowerCase().replace(/\s+/g, '-')
-            const url = role.toLowerCase() === 'client'
-                ? (queryString ? `/cabinet?${queryString}` : '/cabinet')
-                : (queryString ? `/${base}?${queryString}` : `/${base}`)
+            const url = requestId
+                ? getRequestRedirectUrl(role, requestId, isDesktop)
+                : role.toLowerCase() === "client"
+                    ? "/cabinet"
+                    : `/${role.toLowerCase().replace(/\s+/g, "-")}`
             setHasRedirected(true)
             router.replace(url)
         } else {
             setHasRedirected(true)
-            router.replace(queryString ? `/login?${queryString}` : '/login')
+            router.replace("/login")
         }
-    }, [router, role, hasRedirected])
+    }, [router, role, isDesktop, hasRedirected])
 
     return null
 }

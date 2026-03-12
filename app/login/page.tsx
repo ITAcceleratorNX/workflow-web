@@ -4,7 +4,12 @@ import {useEffect, useState} from "react"
 import { UserPlus, Eye, EyeOff, User } from "lucide-react"
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getQueryStringForRedirect, savePendingRequestQuery } from "@/lib/shareRequest";
+import {
+  getPendingRequestId,
+  clearPendingRequestId,
+  getRequestRedirectUrl,
+} from "@/lib/shareRequest";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useCategoryStore} from "@/stores/useCategoryStore";
@@ -19,19 +24,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { role, token, setGuestAuth } = useAuthStore()
+  const isDesktop = useMediaQuery("(min-width: 768px)")
 
   useEffect(() => {
     if (token && role) {
-      const query = getQueryStringForRedirect()
-      if (query) savePendingRequestQuery(query)
-      const suffix = query ? `?${query}` : ""
-      if (role.toLowerCase() === "client") {
-        router.replace(`/cabinet${suffix}`)
-      } else {
-        router.replace(`/${role?.toLowerCase().replace(" ", "-") || ""}${suffix}`)
-      }
+      const requestId = getPendingRequestId()
+      const url = requestId
+        ? getRequestRedirectUrl(role, requestId, isDesktop)
+        : role.toLowerCase() === "client"
+          ? "/cabinet"
+          : `/${role?.toLowerCase().replace(" ", "-") || ""}`
+      if (requestId) clearPendingRequestId()
+      router.replace(url)
     }
-  }, [token, role, router])
+  }, [token, role, router, isDesktop])
 
   // Автоматическое форматирование телефона
   const formatPhone = (value: string) => {

@@ -37,9 +37,6 @@ export function getRequestShareUrl(params: ShareRequestParams): string {
   const base = getWebAppBaseUrl().replace(/\/$/, "");
   const search = new URLSearchParams();
   search.set("requestId", String(params.requestId));
-  if (params.subRequestId != null) {
-    search.set("subRequestId", String(params.subRequestId));
-  }
   return `${base}?${search.toString()}`;
 }
 
@@ -109,33 +106,42 @@ export function parseRequestDeepLinkUrl(url: string): { requestId: number } | nu
   }
 }
 
-const PENDING_REQUEST_KEY = "workflow_pending_request_query";
+const PENDING_REQUEST_KEY = "workflow_pending_request_id";
 
-/** Сохранить query из ссылки (requestId, subRequestId), чтобы не потерять при редиректах. */
-export function savePendingRequestQuery(queryString: string): void {
-  if (typeof window === "undefined" || !queryString) return;
-  const params = new URLSearchParams(queryString);
-  if (params.get("requestId")) {
-    sessionStorage.setItem(PENDING_REQUEST_KEY, queryString);
-  }
+/** Сохранить только ID заявки (как при клике по уведомлению). */
+export function savePendingRequestId(requestId: number): void {
+  if (typeof window === "undefined" || !requestId) return;
+  sessionStorage.setItem(PENDING_REQUEST_KEY, String(requestId));
 }
 
-/** Получить сохранённый query (после редиректа). */
-export function getPendingRequestQuery(): string | null {
+/** Получить сохранённый ID заявки. */
+export function getPendingRequestId(): number | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(PENDING_REQUEST_KEY);
+  const v = sessionStorage.getItem(PENDING_REQUEST_KEY);
+  if (!v) return null;
+  const id = parseInt(v, 10);
+  return Number.isFinite(id) && id > 0 ? id : null;
 }
 
 /** Очистить после использования. */
-export function clearPendingRequestQuery(): void {
+export function clearPendingRequestId(): void {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(PENDING_REQUEST_KEY);
 }
 
-/** Текущий query из адресной строки или из sessionStorage (надёжно для редиректов). */
-export function getQueryStringForRedirect(): string {
-  if (typeof window === "undefined") return "";
-  const fromUrl = window.location.search.slice(1);
-  if (fromUrl && new URLSearchParams(fromUrl).get("requestId")) return fromUrl;
-  return getPendingRequestQuery() || "";
+/**
+ * URL для редиректа на заявку — та же логика, что при клике по ID в уведомлениях.
+ */
+export function getRequestRedirectUrl(
+  role: string,
+  requestId: number,
+  isDesktop: boolean
+): string {
+  const r = (role || "client").toLowerCase();
+  if (r === "admin-worker") return `/admin-worker/requests?requestId=${requestId}`;
+  if (r === "department-head") return `/department-head/requests?requestId=${requestId}`;
+  if (r === "client") return `/client/requests?requestId=${requestId}`;
+  if (r === "executor") return `/executor/requests?requestId=${requestId}`;
+  if (r === "manager") return `/manager/requests?requestId=${requestId}`;
+  return `/client/requests?requestId=${requestId}`;
 }

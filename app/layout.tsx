@@ -7,6 +7,7 @@ import BridgeInit from "@/components/BridgeInit"
 import { ActivityTrackerService } from "@/components/ActivityTrackerService"
 import { NotificationPermissionRequest } from "@/components/NotificationPermissionRequest"
 import { RestorePendingRequestUrl } from "@/components/RestorePendingRequestUrl"
+import { MobileDeepLinkToApp } from "@/components/MobileDeepLinkToApp"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
@@ -31,6 +32,9 @@ export default function RootLayout({
         <BridgeInit />
         <Suspense fallback={null}>
           <RestorePendingRequestUrl />
+        </Suspense>
+        <Suspense fallback={null}>
+          <MobileDeepLinkToApp />
         </Suspense>
         {children}
         <ActivityTrackerService />
