@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
 import { getSubRequestDisplayId } from "@/lib/subRequestUtils"
+import { getWhatsAppShareUrl } from "@/lib/shareRequest"
 import {useAuthStore} from "@/stores/useAuthStore";
 
 interface ActionItem {
@@ -106,54 +107,18 @@ export function RoleBasedActionMenu({
     return statusMap[status] || status;
   };
 
-  // Функция для генерации сообщения WhatsApp
-  const generateWhatsAppMessage = () => {
-    const requestId = isSubRequest ? getSubRequestDisplayId(request, requestGroup?.id) : request.id;
-    const requestTitle = request.title || 'Заявка';
-    const requestStatus = request.status || 'Неизвестно';
-    const requestDescription = request.description || '';
-    
-    // Ограничиваем описание до 200 символов
-    const shortDescription = requestDescription.length > 200 
-      ? requestDescription.substring(0, 200) + '...' 
-      : requestDescription;
-    
-    // Генерируем универсальную ссылку на заявку (независимо от текущей страницы)
-    let taskUrl = '';
-    if (typeof window !== 'undefined') {
-      const origin = window.location.origin;
-      
-      // Формируем URL с параметрами
-      if (isSubRequest && requestGroup) {
-        taskUrl = `${origin}?requestId=${requestGroup.id}&subRequestId=${request.id}`;
-      } else {
-        taskUrl = `${origin}?requestId=${request.id}`;
-      }
-    }
-    
-    const message = `Заявка #${requestId}\n\n` +
-      `Название: ${requestTitle}\n` +
-      `Статус: ${translateStatus(requestStatus)}\n` +
-      `Описание: ${shortDescription}\n\n` +
-      (taskUrl ? `Ссылка: ${taskUrl}` : '');
-    
-    return message;
-  };
-
-  // Функция для обработки нажатия на кнопку "Поделиться в WhatsApp"
+  // Поделиться заявкой в WhatsApp (URL и текст из lib/shareRequest — как в workflow-mobile)
   const handleShareWhatsApp = () => {
-    const message = generateWhatsAppMessage();
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-    
-    // Открываем WhatsApp в новом окне/вкладке
-    window.open(whatsappUrl, '_blank');
-    
-    // Вызываем callback, если он передан
-    if (onShareRequest) {
-      onShareRequest(request);
-    }
-    
+    const params = {
+      requestId: isSubRequest && requestGroup ? requestGroup.id : request.id,
+      ...(isSubRequest && requestGroup && { subRequestId: request.id }),
+      title: request.title,
+      status: request.status,
+      description: request.description,
+    };
+    const whatsappUrl = getWhatsAppShareUrl(params);
+    window.open(whatsappUrl, "_blank");
+    if (onShareRequest) onShareRequest(request);
     setOpen(false);
   };
 
