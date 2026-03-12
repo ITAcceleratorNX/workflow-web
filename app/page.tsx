@@ -20,7 +20,8 @@ export default function Home() {
             router.replace(url)
         } else if (!role && !hasRedirected) {
             setHasRedirected(true)
-            router.replace('/login')
+            const queryString = searchParams.toString()
+            router.replace(queryString ? `/login?${queryString}` : '/login')
         }
     }, [router, searchParams, role, hasRedirected])
 

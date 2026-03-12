@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react"
 import { UserPlus, Eye, EyeOff, User } from "lucide-react"
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import Link from "next/link";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
@@ -18,17 +18,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { role, token, setGuestAuth } = useAuthStore()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     if (token && role) {
-      // Клиенты всегда переходят в личный кабинет
+      const query = searchParams.toString()
+      const suffix = query ? `?${query}` : ""
+      // Клиенты всегда переходят в личный кабинет; сохраняем requestId и др. из ссылки
       if (role.toLowerCase() === "client") {
-        router.replace('/cabinet')
+        router.replace(`/cabinet${suffix}`)
       } else {
-        router.replace(`/${role?.toLowerCase().replace(" ", "-") || ""}`)
+        router.replace(`/${role?.toLowerCase().replace(" ", "-") || ""}${suffix}`)
       }
     }
-  }, [token, role, router])
+  }, [token, role, router, searchParams])
 
   // Автоматическое форматирование телефона
   const formatPhone = (value: string) => {

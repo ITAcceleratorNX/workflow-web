@@ -163,7 +163,7 @@ export default function ClientDashboard() {
   const [pageSize] = useState(10);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   
-  // Обработка query параметра tab: на десктопе «Заявки» открываются по URL /client/requests (как у админа)
+  // Обработка query параметра tab и requestId из ссылки (шаринг заявки)
   useEffect(() => {
     const tab = searchParams.get("tab")
     const requestId = searchParams.get("requestId")
@@ -173,6 +173,8 @@ export default function ClientDashboard() {
     }
     if (tab === "requests" || tab === "statistics" || tab === "meeting-rooms") {
       setActiveTab(tab)
+    } else if (requestId) {
+      setActiveTab("requests")
     } else if (!tab || tab === "cabinet") {
       setActiveTab("cabinet")
     }

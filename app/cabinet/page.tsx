@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuthStore } from "@/stores/useAuthStore"
 import { useActivityTrackerStore } from "@/stores/useActivityTrackerStore"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -18,6 +18,7 @@ type StepsSubTab = "today" | "week" | "settings"
 
 export default function CabinetPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, role, token, isGuest } = useAuthStore()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   
@@ -57,12 +58,20 @@ export default function CabinetPage() {
   const [showRoomSelector, setShowRoomSelector] = useState(false)
   const { toast } = useToast()
 
-  // Redirect to desktop version if on desktop
+  // На десктопе — в кабинет роли с сохранением requestId из ссылки
   useEffect(() => {
     if (isDesktop) {
-      router.push(`/${role}`)
+      const query = searchParams.toString()
+      router.push(query ? `/${role}?${query}` : `/${role}`)
     }
-  }, [isDesktop, role, router])
+  }, [isDesktop, role, router, searchParams])
+
+  // Если в ссылке есть requestId (мобилка) — сразу в раздел заявок клиента, чтобы открыть заявку
+  useEffect(() => {
+    if (!isDesktop && searchParams.get("requestId")) {
+      router.replace(`/client?${searchParams.toString()}`)
+    }
+  }, [isDesktop, searchParams, router])
 
   // Redirect if not client (guest counts as client for demo)
   useEffect(() => {
