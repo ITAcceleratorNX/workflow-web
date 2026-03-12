@@ -810,6 +810,7 @@ export default function RequestsPage() {
                       <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
                       <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
                       <SelectItem value="completed" className="text-white">Завершено</SelectItem>
+                      <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={filterType} onValueChange={setFilterType}>

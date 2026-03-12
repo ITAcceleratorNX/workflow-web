@@ -258,6 +258,7 @@ export default function ClientRequestsPage() {
                   <SelectItem value="execution">Исполнение</SelectItem>
                   <SelectItem value="completed">Завершено</SelectItem>
                   <SelectItem value="long_term">Долгосрочные</SelectItem>
+                  <SelectItem value="rejected">Отклонено</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -380,6 +381,7 @@ export default function ClientRequestsPage() {
               <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
               <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
               <SelectItem value="completed" className="text-white">Завершено</SelectItem>
+              <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterType} onValueChange={setFilterType}>
