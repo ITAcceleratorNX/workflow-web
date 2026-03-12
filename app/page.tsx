@@ -1,29 +1,32 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import {useAuthStore} from "@/stores/useAuthStore";
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from "@/stores/useAuthStore"
+import { getQueryStringForRedirect, savePendingRequestQuery } from "@/lib/shareRequest"
 
 export default function Home() {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const {role} = useAuthStore()
+    const { role } = useAuthStore()
     const [hasRedirected, setHasRedirected] = useState(false)
 
     useEffect(() => {
-        if (role && !hasRedirected) {
-            const queryString = searchParams.toString()
+        if (hasRedirected) return
+        const queryString = getQueryStringForRedirect()
+        if (queryString) savePendingRequestQuery(queryString)
+
+        if (role) {
+            const base = role.toLowerCase().replace(/\s+/g, '-')
             const url = role.toLowerCase() === 'client'
                 ? (queryString ? `/cabinet?${queryString}` : '/cabinet')
-                : (queryString ? `/${role.toLowerCase().replace(/\s+/g, '-')}?${queryString}` : `/${role.toLowerCase().replace(/\s+/g, '-')}`)
+                : (queryString ? `/${base}?${queryString}` : `/${base}`)
             setHasRedirected(true)
             router.replace(url)
-        } else if (!role && !hasRedirected) {
+        } else {
             setHasRedirected(true)
-            const queryString = searchParams.toString()
             router.replace(queryString ? `/login?${queryString}` : '/login')
         }
-    }, [router, searchParams, role, hasRedirected])
+    }, [router, role, hasRedirected])
 
     return null
 }

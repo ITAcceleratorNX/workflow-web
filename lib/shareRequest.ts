@@ -108,3 +108,34 @@ export function parseRequestDeepLinkUrl(url: string): { requestId: number } | nu
     return null;
   }
 }
+
+const PENDING_REQUEST_KEY = "workflow_pending_request_query";
+
+/** Сохранить query из ссылки (requestId, subRequestId), чтобы не потерять при редиректах. */
+export function savePendingRequestQuery(queryString: string): void {
+  if (typeof window === "undefined" || !queryString) return;
+  const params = new URLSearchParams(queryString);
+  if (params.get("requestId")) {
+    sessionStorage.setItem(PENDING_REQUEST_KEY, queryString);
+  }
+}
+
+/** Получить сохранённый query (после редиректа). */
+export function getPendingRequestQuery(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(PENDING_REQUEST_KEY);
+}
+
+/** Очистить после использования. */
+export function clearPendingRequestQuery(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(PENDING_REQUEST_KEY);
+}
+
+/** Текущий query из адресной строки или из sessionStorage (надёжно для редиректов). */
+export function getQueryStringForRedirect(): string {
+  if (typeof window === "undefined") return "";
+  const fromUrl = window.location.search.slice(1);
+  if (fromUrl && new URLSearchParams(fromUrl).get("requestId")) return fromUrl;
+  return getPendingRequestQuery() || "";
+}

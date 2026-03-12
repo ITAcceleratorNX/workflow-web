@@ -5,6 +5,7 @@ import "../lib/fcm"
 import BridgeInit from "@/components/BridgeInit"
 import { ActivityTrackerService } from "@/components/ActivityTrackerService"
 import { NotificationPermissionRequest } from "@/components/NotificationPermissionRequest"
+import { RestorePendingRequestUrl } from "@/components/RestorePendingRequestUrl"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
       </head>
       <body className="font-sf-pro">
         <BridgeInit />
+        <RestorePendingRequestUrl />
         {children}
         <ActivityTrackerService />
         <NotificationPermissionRequest />
