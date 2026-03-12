@@ -137,11 +137,12 @@ export function getRequestRedirectUrl(
   requestId: number,
   isDesktop: boolean
 ): string {
+  const requestUrl = isDesktop ? `?requestId=${requestId}` : `/${requestId}`;
   const r = (role || "client").toLowerCase();
-  if (r === "admin-worker") return `/admin-worker/requests?requestId=${requestId}`;
-  if (r === "department-head") return `/department-head/requests?requestId=${requestId}`;
-  if (r === "client") return `/client/requests?requestId=${requestId}`;
-  if (r === "executor") return `/executor/requests?requestId=${requestId}`;
-  if (r === "manager") return `/manager/requests?requestId=${requestId}`;
-  return `/client/requests?requestId=${requestId}`;
+  if (r === "admin-worker") return `/admin-worker/requests${requestUrl}`;
+  if (r === "department-head") return `/department-head/requests${requestUrl}`;
+  if (r === "client") return `/client/requests${requestUrl}`;
+  if (r === "executor") return `/executor/requests${requestUrl}`;
+  if (r === "manager") return `/manager/requests${requestUrl}`;
+  return `/client/requests${requestUrl}`;
 }
