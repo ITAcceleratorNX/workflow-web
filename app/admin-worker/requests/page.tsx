@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { sortRequests, useRequestStore } from "@/stores/useRequestStore";
 import { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
@@ -41,12 +41,15 @@ export default function AdminRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
-  const lastElementRef = useRef<HTMLDivElement | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const lastElementRef = useRef<HTMLDivElement>(null);
 
   const fetchRequests = useCallback(
     async (currentPage = 1) => {
       if (!token) return;
-      setLoading(true);
+      const isFirstPage = currentPage === 1;
+      if (isFirstPage) setLoading(true);
+      else setLoadingMore(true);
       try {
         const params = new URLSearchParams({
           page: currentPage.toString(),
@@ -74,7 +77,8 @@ export default function AdminRequestsPage() {
       } catch (error) {
         console.error("Ошибка при загрузке заявок:", error);
       } finally {
-        setLoading(false);
+        if (isFirstPage) setLoading(false);
+        else setLoadingMore(false);
       }
     },
     [token, filterIncomingStatus, filterIncomingType, setIncomingRequests, setMyRequests]
@@ -120,6 +124,12 @@ export default function AdminRequestsPage() {
 
   const handleRefresh = async () => {
     await fetchRequests(1);
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRequests(page + 1);
+    }
   };
 
   const renderCardHeader = useCallback(
@@ -283,6 +293,25 @@ export default function AdminRequestsPage() {
         {!loading && activeTab !== "recurring" && desktopRequests.length === 0 && (
           <div className="text-center py-12 text-white/60">Нет заявок</div>
         )}
+        {!loading && activeTab !== "recurring" && hasMore && desktopRequests.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Загрузка...
+                </>
+              ) : (
+                "Загрузить ещё"
+              )}
+            </Button>
+          </div>
+        )}
       </>
     );
 
@@ -399,7 +428,7 @@ export default function AdminRequestsPage() {
                       onCardClick={handleCardClick}
                       renderCardHeader={renderCardHeader}
                       isLast={index === filteredIncomingRequests.length - 1}
-                      lastElementRef={lastElementRef}
+                      lastElementRef={lastElementRef as React.RefObject<HTMLDivElement>}
                       userRole="admin-worker"
                       variant="compact"
                     />
@@ -408,6 +437,25 @@ export default function AdminRequestsPage() {
                 {!loading && filteredIncomingRequests.length === 0 && (
                   <div className="text-center py-8 text-gray-400">
                     <p>Нет входящих заявок</p>
+                  </div>
+                )}
+                {!loading && hasMore && filteredIncomingRequests.length > 0 && (
+                  <div className="flex justify-center pt-4 pb-2">
+                    <Button
+                      variant="outline"
+                      className="bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        "Загрузить ещё"
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
@@ -454,7 +502,7 @@ export default function AdminRequestsPage() {
                       onCardClick={handleMyCardClick}
                       renderCardHeader={renderCardHeader}
                       isLast={index === filteredMyRequests.length - 1}
-                      lastElementRef={lastElementRef}
+                      lastElementRef={lastElementRef as React.RefObject<HTMLDivElement>}
                       userRole="admin-worker"
                       variant="compact"
                     />
@@ -463,6 +511,25 @@ export default function AdminRequestsPage() {
                 {!loading && filteredMyRequests.length === 0 && (
                   <div className="text-center py-8 text-gray-400">
                     <p>У вас пока нет заявок</p>
+                  </div>
+                )}
+                {!loading && hasMore && filteredMyRequests.length > 0 && (
+                  <div className="flex justify-center pt-4 pb-2">
+                    <Button
+                      variant="outline"
+                      className="bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        "Загрузить ещё"
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>

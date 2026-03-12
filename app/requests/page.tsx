@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Calendar as CalendarLucid,
   Star,
+  Loader2,
 } from "lucide-react"
 import api from "@/lib/api"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -74,6 +75,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null)
   const [showRatingModal, setShowRatingModal] = useState(false)
@@ -96,7 +98,7 @@ export default function RequestsPage() {
   const [showComments, setShowComments] = useState<number | null>(null)
   
   const observer = useRef<IntersectionObserver | null>(null)
-  const lastRequestRef = useRef<HTMLDivElement>(null)
+  const lastRequestRef = useRef<HTMLDivElement | null>(null)
 
   const filteredRequests = useMemo(() => requests
     .filter((request) => {
@@ -166,11 +168,18 @@ export default function RequestsPage() {
       return
     }
     if (!token) return
+    const isFirstPage = pageNum === 1
     try {
-      setLoading(true)
+      if (isFirstPage) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
       const response = await api.get(`/request-groups?page=${pageNum}&pageSize=20`)
-      if (pageNum === 1) clearRequests()
       const newRequests = response.data.requests || []
+      if (isFirstPage) {
+        clearRequests()
+      }
       addRequests(newRequests)
       processClientRatings(newRequests)
       newRequests.forEach((requestGroup: RequestGroup) => {
@@ -183,7 +192,11 @@ export default function RequestsPage() {
     } catch (error) {
       console.error('Error fetching requests:', error)
     } finally {
-      setLoading(false)
+      if (isFirstPage) {
+        setLoading(false)
+      } else {
+        setLoadingMore(false)
+      }
     }
   }, [token, isGuest, addRequests, clearRequests, processClientRatings, checkUserRating])
 
@@ -195,30 +208,11 @@ export default function RequestsPage() {
     fetchRequests(1)
   }, [user, isGuest, router, fetchRequests])
 
-  // Infinite scroll observer
-  useEffect(() => {
-    if (loading) return
-
-    if (observer.current) {
-      observer.current.disconnect()
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRequests(page + 1)
     }
-
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        fetchRequests(page + 1)
-      }
-    })
-
-    if (lastRequestRef.current) {
-      observer.current.observe(lastRequestRef.current)
-    }
-
-    return () => {
-      if (observer.current) {
-        observer.current.disconnect()
-      }
-    }
-  }, [loading, hasMore, page, fetchRequests])
+  }
 
   const handleRefresh = async () => {
     await fetchRequests(1)
@@ -879,10 +873,23 @@ export default function RequestsPage() {
                     })
                   )}
                   
-                  {/* Loading more indicator */}
-                  {loading && filteredRequests.length > 0 && (
+                  {!loading && hasMore && filteredRequests.length > 0 && (
                     <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F35713]"></div>
+                      <Button
+                        variant="outline"
+                        className="bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                      >
+                        {loadingMore ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Загрузка...
+                          </>
+                        ) : (
+                          "Загрузить ещё"
+                        )}
+                      </Button>
                     </div>
                   )}
                 </div>

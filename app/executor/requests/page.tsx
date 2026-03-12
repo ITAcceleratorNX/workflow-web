@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { RequestGroup } from "@/stores/useRequestStore";
@@ -59,6 +59,9 @@ export default function ExecutorRequestsPage() {
   const [filterMyType, setFilterMyType] = useState("all");
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
 
@@ -78,16 +81,19 @@ export default function ExecutorRequestsPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectError, setRedirectError] = useState<string | null>(null);
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (pageToLoad = 1) => {
     try {
-      const response = await api.get("request-groups");
+      const isFirstPage = pageToLoad === 1;
+      if (isFirstPage) setLoading(true);
+      else setLoadingMore(true);
+      const response = await api.get(`request-groups?page=${pageToLoad}&pageSize=10`);
       const responseRating = await api.get("ratings/executor");
       const ratingsMap = new Map<number, any>();
       for (const r of responseRating.data) {
         ratingsMap.set(r.request_id, { rating: parseFloat(r.rating), comments: r.comments || [] });
       }
-      const completed =
-        response.data.completedRequests?.map((reqGroup: any) => ({
+      const mapCompleted = (list: any[]) =>
+        list?.map((reqGroup: any) => ({
           ...reqGroup,
           requests: reqGroup.requests?.map((req: any) => {
             const ratingData = ratingsMap.get(req.id);
@@ -98,31 +104,59 @@ export default function ExecutorRequestsPage() {
             };
           }),
         })) || [];
-      setCompletedRequests(completed);
-      setAssignedRequests(response.data.assignedRequests || []);
-      setMyRequests(response.data.myRequests || []);
+
+      const newCompleted = mapCompleted(response.data.completedRequests || []);
+      const newAssigned = response.data.assignedRequests || [];
+      const newMy = response.data.myRequests || [];
+
+      if (isFirstPage) {
+        setCompletedRequests(newCompleted);
+        setAssignedRequests(newAssigned);
+        setMyRequests(newMy);
+      } else {
+        setCompletedRequests((prev) => {
+          const ids = new Set(prev.map((r: any) => r.id));
+          return [...prev, ...newCompleted.filter((r: any) => !ids.has(r.id))];
+        });
+        setAssignedRequests((prev) => {
+          const ids = new Set(prev.map((r: any) => r.id));
+          return [...prev, ...newAssigned.filter((r: any) => !ids.has(r.id))];
+        });
+        setMyRequests((prev) => {
+          const ids = new Set(prev.map((r: any) => r.id));
+          return [...prev, ...newMy.filter((r: any) => !ids.has(r.id))];
+        });
+      }
       const newRatings: Record<number, any> = {};
-      [
+      const allGroups: any[] = [
         ...(response.data.completedRequests || []),
         ...(response.data.assignedRequests || []),
         ...(response.data.myRequests || []),
-      ].forEach((rg: any) => {
+      ];
+      allGroups.forEach((rg: any) => {
         if (rg.clientRatings?.length > 0) {
           const r = rg.clientRatings[0];
           newRatings[rg.id] = { id: r.id, rating: r.rating, comment: r.comment };
         }
       });
       setClientRatings(newRatings);
+      const loadedCount =
+        (response.data.completedRequests?.length || 0) +
+        (response.data.assignedRequests?.length || 0) +
+        (response.data.myRequests?.length || 0);
+      setHasMore(loadedCount >= 10);
+      setPage(pageToLoad);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [setAssignedRequests, setCompletedRequests, setMyRequests]);
 
   useEffect(() => {
     if (!isDesktop) clearRequests();
-    fetchRequests();
+    fetchRequests(1);
   }, [isDesktop, fetchRequests, clearRequests]);
 
   useEffect(() => {
@@ -141,7 +175,13 @@ export default function ExecutorRequestsPage() {
 
   const handleRefresh = async () => {
     setLoading(true);
-    await fetchRequests();
+    await fetchRequests(1);
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRequests(page + 1);
+    }
   };
 
   const filteredTasks = useMemo(

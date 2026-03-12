@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useRequestStore } from "@/stores/useRequestStore";
 import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
@@ -59,6 +59,9 @@ export default function ClientRequestsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
   const [userRatings, setUserRatings] = useState<Record<number, { rating: number; comment?: string }>>({});
@@ -68,27 +71,40 @@ export default function ClientRequestsPage() {
   const [ratingComment, setRatingComment] = useState("");
   const [showRatingModal, setShowRatingModal] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (pageToLoad = 1) => {
     if (!token) return;
-    setLoading(true);
+    const isFirstPage = pageToLoad === 1;
+    if (isFirstPage) setLoading(true);
+    else setLoadingMore(true);
     try {
-      const response = await api.get("/request-groups?page=1&pageSize=100");
-      const list = response.data?.requests ?? [];
-      setRequests(list);
+      const response = await api.get(`/request-groups?page=${pageToLoad}&pageSize=10`);
+      const list: RequestGroup[] = response.data?.requests ?? [];
+      if (isFirstPage) {
+        setRequests(list);
+      } else {
+        setRequests((prev) => {
+          const existingIds = new Set(prev.map((r) => r.id));
+          const toAdd = list.filter((r) => !existingIds.has(r.id));
+          return [...prev, ...toAdd];
+        });
+      }
       (list as any[]).forEach((g: any) => {
         if (g.clientRatings?.length) {
           setClientRatings((prev) => ({ ...prev, [g.id]: g.clientRatings }));
         }
       });
+      setHasMore(list.length === 10);
+      setPage(pageToLoad);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (isFirstPage) setLoading(false);
+      else setLoadingMore(false);
     }
   }, [token, setRequests]);
 
   useEffect(() => {
-    fetchRequests();
+    fetchRequests(1);
   }, [fetchRequests]);
 
   const filteredRequests = useMemo(
@@ -128,10 +144,16 @@ export default function ClientRequestsPage() {
   };
 
   const handleRequestUpdated = () => {
-    fetchRequests();
+    fetchRequests(1);
     setSelectedRequest(null);
     setSelectedRequestData(null);
     router.push("/client/requests", { scroll: false });
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRequests(page + 1);
+    }
   };
 
   const handleDeleteSubRequest = async (subRequest: SubRequest) => {
@@ -271,6 +293,25 @@ export default function ClientRequestsPage() {
               {!loading && filteredRequests.length === 0 && (
                 <div className="text-center py-12 text-white/60">У вас пока нет заявок</div>
               )}
+              {!loading && hasMore && filteredRequests.length > 0 && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Загрузка...
+                      </>
+                    ) : (
+                      "Загрузить ещё"
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           }
           detailSlot={
@@ -371,6 +412,25 @@ export default function ClientRequestsPage() {
           )}
           {!loading && filteredRequests.length === 0 && (
             <div className="text-center py-8 text-gray-400">У вас пока нет заявок</div>
+          )}
+          {!loading && hasMore && filteredRequests.length > 0 && (
+            <div className="flex justify-center pt-4 pb-2">
+              <Button
+                variant="outline"
+                className="bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Загрузка...
+                  </>
+                ) : (
+                  "Загрузить ещё"
+                )}
+              </Button>
+            </div>
           )}
         </div>
         <RatingModal
