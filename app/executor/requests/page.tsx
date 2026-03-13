@@ -475,10 +475,11 @@ export default function ExecutorRequestsPage() {
               <SelectItem value="in_progress">В обработке</SelectItem>
               <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
               <SelectItem value="execution">Исполнение</SelectItem>
-              <SelectItem value="completed">Завершено</SelectItem>
+<SelectItem value="completed">Завершено</SelectItem>
               <SelectItem value="overdue">Просрочено</SelectItem>
               <SelectItem value="long_term">Долгосрочные</SelectItem>
-            </SelectContent>
+              <SelectItem value="rejected">Отклонено</SelectItem>
+          </SelectContent>
           </Select>
           <Select value={filterMyType} onValueChange={setFilterMyType}>
             <SelectTrigger className="w-[140px] bg-[#2C2C2E] border-white/10 text-white">
@@ -750,10 +751,11 @@ export default function ExecutorRequestsPage() {
                     <SelectItem value="in_progress" className="text-white">В обработке</SelectItem>
                     <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
                     <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
-                    <SelectItem value="completed" className="text-white">Завершено</SelectItem>
+<SelectItem value="completed" className="text-white">Завершено</SelectItem>
                     <SelectItem value="overdue" className="text-white">Просрочено</SelectItem>
                     <SelectItem value="long_term" className="text-white">Долгосрочные</SelectItem>
-                  </SelectContent>
+                    <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
+                </SelectContent>
                 </Select>
                 <Select value={filterMyType} onValueChange={setFilterMyType}>
                   <SelectTrigger className="flex-1 bg-[#2C2C2E] border-[#3A3A3C] text-white">
