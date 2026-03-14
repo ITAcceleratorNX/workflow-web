@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, X, Building2, Users, Clock, ChevronLeft, ChevronRight, ImageIcon, Calendar, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { MapPin, X, Building2, Users, Clock, ChevronLeft, ChevronRight, ImageIcon, Calendar } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import Image from "next/image";
 import api from "@/lib/api";
 import { addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay, format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { getRoomDailyAvailability, getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking } from "@/lib/api";
+import { getRoomDailyAvailability, MeetingRoomBooking } from "@/lib/api";
 import { formatDateLong, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useRouter } from "next/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useGuestDemoStore } from "@/stores/useGuestDemoStore";
 import { useToast } from "@/hooks/use-toast";
+import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 
 type Office = {
   id: number;
@@ -93,112 +94,10 @@ export default function MeetingRoomsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
-  
-  // My Bookings state
-  const [bookings, setBookings] = useState<MeetingRoomBooking[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
-  const [cancellingId, setCancellingId] = useState<number | null>(null);
-  const [bookingFilter, setBookingFilter] = useState<"upcoming" | "active" | "completed" | "cancelled">("upcoming");
 
   useEffect(() => {
     fetchOffices();
   }, []);
-  
-  // Fetch bookings when my-bookings tab is active
-  useEffect(() => {
-    if (activeTab === "my-bookings") {
-      fetchBookings();
-    }
-  }, [activeTab, isGuest, guestBookings]);
-  
-  const fetchBookings = async () => {
-    try {
-      setLoadingBookings(true);
-      if (isGuest) {
-        const sorted = [...guestBookings].sort(
-          (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-        );
-        setBookings(sorted as MeetingRoomBooking[]);
-        return;
-      }
-      const response = await getMyBookings();
-      const bookingsData = Array.isArray(response.data) ? response.data : response.data || [];
-      const sortedBookings = bookingsData.sort((a: MeetingRoomBooking, b: MeetingRoomBooking) => {
-        const dateA = new Date(a.start_time);
-        const dateB = new Date(b.start_time);
-        return dateA.getTime() - dateB.getTime();
-      });
-      setBookings(sortedBookings);
-    } catch (error) {
-      console.error("Ошибка при загрузке бронирований:", error);
-      setBookings([]);
-    } finally {
-      setLoadingBookings(false);
-    }
-  };
-  
-  const handleCancelBooking = async (bookingId: number) => {
-    try {
-      setCancellingId(bookingId);
-      if (isGuest) {
-        removeGuestBooking(bookingId);
-        await fetchBookings();
-        toast({ title: "Демо", description: "Бронирование отменено" });
-        setCancellingId(null);
-        return;
-      }
-      await cancelMeetingRoomBooking(bookingId);
-      await fetchBookings();
-    } catch (error) {
-      console.error("Ошибка при отмене бронирования:", error);
-    } finally {
-      setCancellingId(null);
-    }
-  };
-  
-  // Booking helpers
-  const isUpcoming = (booking: MeetingRoomBooking) => {
-    if (booking.status === 'cancelled' || booking.status === 'auto_cancelled' || 
-        booking.status === 'completed' || booking.status === 'in_progress') {
-      return false;
-    }
-    const bookingDateTime = new Date(booking.start_time);
-    return bookingDateTime > new Date();
-  };
-  
-  const isActive = (booking: MeetingRoomBooking) => {
-    // Активные = только статус in_progress (бэкенд автоматически меняет статус через cron)
-    return booking.status === 'in_progress';
-  };
-  
-  const isPastBooking = (booking: MeetingRoomBooking) => {
-    if (booking.status === 'completed') return true;
-    const now = new Date();
-    const end = new Date(booking.end_time);
-    return end < now;
-  };
-  
-  const isCancelled = (booking: MeetingRoomBooking) => {
-    return booking.status === 'cancelled' || booking.status === 'auto_cancelled';
-  };
-  
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'in_progress':
-        return { text: 'В процессе', color: 'bg-blue-500', icon: AlertCircle };
-      case 'confirmed':
-        return { text: 'Подтверждено', color: 'bg-green-500', icon: CheckCircle2 };
-      case 'scheduled':
-        return { text: 'Запланировано', color: 'bg-amber-500', icon: Clock };
-      case 'completed':
-        return { text: 'Завершено', color: 'bg-gray-500', icon: CheckCircle2 };
-      case 'cancelled':
-      case 'auto_cancelled':
-        return { text: 'Отменено', color: 'bg-red-500', icon: X };
-      default:
-        return { text: 'Активно', color: 'bg-green-500', icon: CheckCircle2 };
-    }
-  };
 
   const fetchOffices = async () => {
     try {
@@ -682,165 +581,9 @@ export default function MeetingRoomsPage() {
             )}
           </>
         ) : (
-          // My Bookings Tab Content
           <div className="space-y-4">
-            {/* Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {[
-                { key: "upcoming" as const, label: "Предстоящие", count: bookings.filter(isUpcoming).length },
-                { key: "active" as const, label: "Активные", count: bookings.filter(isActive).length },
-                { key: "completed" as const, label: "Завершенные", count: bookings.filter(b => isPastBooking(b) && !isCancelled(b)).length },
-                { key: "cancelled" as const, label: "Отмененные", count: bookings.filter(isCancelled).length },
-              ].map((filter) => (
-                <button
-                  key={filter.key}
-                  onClick={() => setBookingFilter(filter.key)}
-                  className={`px-4 py-2 rounded-[10px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
-                    bookingFilter === filter.key
-                      ? "bg-[#F35713] text-white"
-                      : "bg-[#262626] text-[#7C7C7C]"
-                  }`}
-                >
-                  {filter.label}
-                  {filter.count > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                      bookingFilter === filter.key ? "bg-white/20" : "bg-white/10"
-                    }`}>
-                      {filter.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {loadingBookings ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <div className="w-8 h-8 border-2 border-[#F35713] border-t-transparent rounded-full animate-spin" />
-                <p className="text-white/60 text-sm">Загрузка бронирований...</p>
-              </div>
-            ) : (
-              <>
-                {/* Filtered Bookings */}
-                {(() => {
-                  let filteredBookings: MeetingRoomBooking[] = [];
-                  if (bookingFilter === "upcoming") {
-                    filteredBookings = bookings.filter(isUpcoming);
-                  } else if (bookingFilter === "active") {
-                    filteredBookings = bookings.filter(isActive);
-                  } else if (bookingFilter === "completed") {
-                    filteredBookings = bookings.filter(b => isPastBooking(b) && !isCancelled(b));
-                  } else if (bookingFilter === "cancelled") {
-                    filteredBookings = bookings.filter(isCancelled);
-                  }
-                  
-                  if (filteredBookings.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center py-12 gap-4">
-                        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-                          <Calendar className="w-8 h-8 text-white/40" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-white font-medium mb-1">Нет бронирований</h3>
-                          <p className="text-white/50 text-sm">
-                            {bookingFilter === "upcoming" && "Нет предстоящих бронирований"}
-                            {bookingFilter === "active" && "Нет активных бронирований"}
-                            {bookingFilter === "completed" && "Нет завершенных бронирований"}
-                            {bookingFilter === "cancelled" && "Нет отмененных бронирований"}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  
-                  return (
-                    <div className="space-y-3">
-                      {filteredBookings.map((booking) => {
-                        const statusInfo = getStatusInfo(booking.status || 'scheduled');
-                        const StatusIcon = statusInfo.icon;
-                        const isCancelledBooking = isCancelled(booking);
-                        const isCompletedBooking = isPastBooking(booking) && !isCancelledBooking;
-                        
-                        return (
-                          <div
-                            key={booking.id}
-                            className={`rounded-[10px] p-4 ${
-                              isCancelledBooking 
-                                ? "bg-[#1C1C1E]/50 opacity-70" 
-                                : isCompletedBooking 
-                                  ? "bg-[#1C1C1E]/70" 
-                                  : isActive(booking)
-                                    ? "bg-[#1C1C1E] border border-blue-500/30"
-                                    : "bg-[#1C1C1E]"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <h4 className={`font-medium text-sm ${isCancelledBooking ? "text-white/70 line-through" : "text-white"}`}>
-                                  {booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`}
-                                </h4>
-                                {booking.company_name && (
-                                  <p className="text-white/50 text-xs mt-1">{booking.company_name}</p>
-                                )}
-                              </div>
-                              <span className={`${statusInfo.color} text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1`}>
-                                <StatusIcon className="w-3 h-3" />
-                                {statusInfo.text}
-                              </span>
-                            </div>
-                            
-                            <div className={`space-y-2 text-xs ${isCancelledBooking || isCompletedBooking ? "text-white/50" : "text-white/70"}`}>
-                              <div className="flex items-center gap-2">
-                                <Calendar className={`w-3.5 h-3.5 ${isCancelledBooking || isCompletedBooking ? "" : "text-[#F35713]"}`} />
-                                <span>{formatDateLong(booking.start_time)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className={`w-3.5 h-3.5 ${isCancelledBooking || isCompletedBooking ? "" : "text-[#F35713]"}`} />
-                                <span>
-                                  {`${formatTimeOnly(booking.start_time)} - ${formatTimeOnly(booking.end_time)}`}
-                                </span>
-                              </div>
-                              {(booking.meetingRoom?.office || booking.office) && (
-                                <div className="flex items-center gap-2">
-                                  <MapPin className={`w-3.5 h-3.5 ${isCancelledBooking || isCompletedBooking ? "" : "text-[#F35713]"}`} />
-                                  <span>{(booking.meetingRoom?.office || booking.office)?.name}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Actions */}
-                            {!isCancelledBooking && (
-                              <div className="flex gap-2 mt-3">
-                                <button
-                                  onClick={() => router.push(`/booking/${booking.id}`)}
-                                  className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${
-                                    isCompletedBooking 
-                                      ? "bg-white/10 text-white/70" 
-                                      : "bg-[#F35713] text-white"
-                                  }`}
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                  {isCompletedBooking ? "Просмотреть" : "Открыть"}
-                                </button>
-                                {!isCompletedBooking && (
-                                  <button
-                                    onClick={() => handleCancelBooking(booking.id)}
-                                    disabled={cancellingId === booking.id}
-                                    className="flex-1 bg-red-500/20 text-red-400 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                    {cancellingId === booking.id ? "Отмена..." : "Отменить"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </>
-            )}
+            {/* Мобильная версия списка «Мои бронирования» с оранжевыми табами */}
+            <MyBookings variant="mobile" />
           </div>
         )}
       </div>

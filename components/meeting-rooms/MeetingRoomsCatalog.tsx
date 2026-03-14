@@ -8,7 +8,7 @@ import {
 } from "@/stores/meetingRoomsStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Building2 } from "lucide-react";
 import { BookingModal } from "@/components/meeting-rooms/BookingModal";
 import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,8 +18,8 @@ import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalcu
 import { Ruler } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-import { Office } from "@/lib/api";
+import { getOffices, Office } from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface MeetingRoomsCatalogProps {
   initialOffice?: Office | null;
@@ -28,8 +28,6 @@ interface MeetingRoomsCatalogProps {
   onTabChange?: (tab: "book" | "my-bookings") => void;
   showCalculator?: boolean;
   onCalculatorToggle?: (show: boolean) => void;
-  /** Dark theme for department-head desktop */
-  variant?: "default" | "dark";
 }
 
 export function MeetingRoomsCatalog({ 
@@ -39,9 +37,7 @@ export function MeetingRoomsCatalog({
   onTabChange,
   showCalculator = false,
   onCalculatorToggle,
-  variant = "default",
 }: MeetingRoomsCatalogProps) {
-  const isDark = variant === "dark";
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const fetchRooms = useMeetingRoomsStore((state) => state.fetchRooms);
   const [selectedOffice, setSelectedOffice] = useState<Office | null>(initialOffice);
@@ -81,25 +77,36 @@ export function MeetingRoomsCatalog({
   const router = useRouter();
   const isMobile = useIsMobile();
   const officeInfoRef = useRef<HTMLDivElement>(null);
+  const [offices, setOffices] = useState<Office[]>([]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      getOffices()
+        .then((res) => {
+          const raw = res.data;
+          const list = Array.isArray(raw) ? raw : Array.isArray((raw as { data?: Office[] })?.data) ? (raw as { data: Office[] }).data : [];
+          setOffices(list);
+        })
+        .catch(() => setOffices([]));
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (selectedOffice) {
       fetchRooms(selectedOffice.id);
-      // Скроллим к информации об офисе после выбора
-      // Используем requestAnimationFrame для надежной прокрутки после обновления DOM
-      if (typeof window !== 'undefined') {
+      if (isMobile && typeof window !== "undefined") {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (officeInfoRef.current) {
-              officeInfoRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              officeInfoRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
             } else {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: "smooth" });
             }
           });
         });
       }
     }
-  }, [selectedOffice, fetchRooms]);
+  }, [selectedOffice, fetchRooms, isMobile]);
 
   const visibleRooms = useMemo(
     () =>
@@ -148,14 +155,142 @@ export function MeetingRoomsCatalog({
   };
 
   const BookingContent = () => {
+    const roomListBlock = (
+      <>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className="rounded-full px-4 py-1 text-sm"
+          >
+            Доступно: {totalAvailable}
+          </Badge>
+          <Badge
+            variant="outline"
+            className="rounded-full px-4 py-1 text-sm"
+          >
+            Забронировано: {totalBooked}
+          </Badge>
+        </div>
+        <div className="space-y-4">
+          {visibleRooms.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-10 text-center">
+              <h3 className="text-lg font-semibold">
+                Нет переговорных по заданным параметрам
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Попробуйте изменить фильтры или сбросить их.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {visibleRooms.map((room) => (
+                <div
+                  key={room.id}
+                  onClick={() => handleRoomClick(room)}
+                  className="cursor-pointer"
+                >
+                  <MeetingRoomCard room={room} showOffice />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </>
+    );
+
+    if (!isMobile) {
+      return (
+        <div className="flex gap-6 min-h-0">
+          <div className="w-72 shrink-0 flex flex-col gap-2 overflow-y-auto">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Офисы
+            </h3>
+            {offices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Загрузка...
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {offices.map((office) => (
+                  <Card
+                    key={office.id}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      selectedOffice?.id === office.id
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "hover:bg-muted/50"
+                    )}
+                    onClick={() => handleOfficeChange(office)}
+                  >
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center bg-muted">
+                        <Building2 className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{office.name}</p>
+                        <p className="text-xs truncate text-muted-foreground">
+                          {office.city}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+            {!selectedOffice ? (
+              <div className="rounded-xl border border-dashed p-10 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <h3 className="text-lg font-semibold">Выберите офис</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Выберите офис слева для просмотра переговорных комнат
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOfficeChange(null)}
+                    className="shrink-0"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Сбросить
+                  </Button>
+                  <div>
+                    <h2 className="text-lg font-semibold">{selectedOffice.name}</h2>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedOffice.city}, {selectedOffice.address}
+                    </p>
+                  </div>
+                </div>
+                {roomListBlock}
+              </>
+            )}
+          </div>
+          <BookingModal
+            isOpen={isBookingModalOpen}
+            onClose={() => {
+              setIsBookingModalOpen(false);
+              setSelectedRoom(null);
+            }}
+            room={selectedRoom}
+            onBookingSuccess={handleBookingSuccess}
+            onSuccess={handleBookingModalSuccess}
+            variant="default"
+          />
+        </div>
+      );
+    }
+
     if (!selectedOffice) {
       return (
-        <div className={cn(
-          "rounded-xl border border-dashed p-10 text-center",
-          isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/50" : ""
-        )}>
-          <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>Выберите офис</h3>
-          <p className={cn("mt-2 text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
+        <div className="rounded-xl border border-dashed p-10 text-center">
+          <h3 className="text-lg font-semibold">Выберите офис</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             Выберите офис выше для просмотра переговорных комнат
           </p>
         </div>
@@ -164,74 +299,23 @@ export function MeetingRoomsCatalog({
 
     return (
       <div className="flex flex-col gap-6">
-      <div ref={officeInfoRef} className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => handleOfficeChange(null)}
-          className={cn(
-            "gap-2",
-            isDark && "text-white/80 hover:text-white hover:bg-white/10"
-          )}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Назад к выбору офисов
-        </Button>
-        <div>
-          <h2 className={cn("text-xl font-semibold", isDark && "text-white")}>{selectedOffice.name}</h2>
-          <p className={cn("text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
-            {selectedOffice.city}, {selectedOffice.address}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge
-          variant="outline"
-          className={cn(
-            "flex items-center justify-center rounded-full px-4 py-1 text-sm",
-            isDark && "border-[#3A3A3C] bg-[#2C2C2E] text-white"
-          )}
-        >
-          Доступно: {totalAvailable}
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn(
-            "flex items-center justify-center rounded-full px-4 py-1 text-sm",
-            isDark && "border-[#3A3A3C] bg-[#2C2C2E] text-white"
-          )}
-        >
-          Забронировано: {totalBooked}
-        </Badge>
-      </div>
-
-      <div className="space-y-4">
-        {visibleRooms.length === 0 ? (
-          <div className={cn(
-            "rounded-xl border border-dashed p-10 text-center",
-            isDark ? "border-[#3A3A3C] bg-[#2C2C2E]/50" : ""
-          )}>
-            <h3 className={cn("text-lg font-semibold", isDark && "text-white")}>
-              Нет переговорных по заданным параметрам
-            </h3>
-            <p className={cn("mt-2 text-sm", isDark ? "text-white/60" : "text-muted-foreground")}>
-              Попробуйте изменить фильтры или сбросить их.
+        <div ref={officeInfoRef} className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => handleOfficeChange(null)}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Назад к выбору офисов
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">{selectedOffice.name}</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedOffice.city}, {selectedOffice.address}
             </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {visibleRooms.map((room) => (
-              <div
-                key={room.id}
-                onClick={() => handleRoomClick(room)}
-                className="cursor-pointer"
-              >
-                <MeetingRoomCard room={room} darkTheme={isDark} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+        </div>
+        {roomListBlock}
         <BookingModal
           isOpen={isBookingModalOpen}
           onClose={() => {
@@ -241,7 +325,7 @@ export function MeetingRoomsCatalog({
           room={selectedRoom}
           onBookingSuccess={handleBookingSuccess}
           onSuccess={handleBookingModalSuccess}
-          variant={isDark ? "dark" : "default"}
+          variant="default"
         />
       </div>
     );
@@ -255,7 +339,7 @@ export function MeetingRoomsCatalog({
         </TabsContent>
         
         <TabsContent value="my-bookings">
-          <MyBookings variant={isDark ? "dark" : "default"} />
+          <MyBookings variant="default" />
         </TabsContent>
       </Tabs>
 

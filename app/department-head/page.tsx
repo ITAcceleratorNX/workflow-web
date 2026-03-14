@@ -1983,72 +1983,12 @@ export default function DepartmentHeadDashboard() {
                     </Button>
                   </div>
 
-                  {meetingRoomsTab === "my-bookings" ? (
-                    // Показываем мои бронирования без выбора офиса
-                    <MeetingRoomsCatalog 
-                      initialOffice={null}
-                      onOfficeChange={(office) => setSelectedOffice(office)}
-                      initialTab="my-bookings"
-                      onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
-                    />
-                  ) : (
-                    // Для бронирования нужен выбор офиса
-                    <>
-                      {!selectedOffice ? (
-                        <>
-                          {/* Секция выбора офиса */}
-                          <div className="space-y-3">
-                            <div>
-                              <h2 className="text-lg font-semibold text-white">Выбрать офис</h2>
-                              <p className="text-sm text-white/80">Выберите офис для бронирования переговорной комнаты</p>
-                            </div>
-                            <div className="overflow-x-auto -mx-2 px-2">
-                              <div className="flex gap-3 pb-2" style={{ scrollbarWidth: 'thin' }}>
-                                {offices.map((office: any) => (
-                                  <div
-                                    key={office.id}
-                                    className="min-w-[280px] cursor-pointer transition-all hover:shadow-md active:scale-95 flex-shrink-0 rounded-2xl overflow-hidden"
-                                    style={{ background: '#D94F15' }}
-                                    onClick={() => {
-                                      setSelectedOffice(office);
-                                    }}
-                                  >
-                                    <div className="relative aspect-[4/3] bg-white/10 overflow-hidden">
-                                      {office.photo ? (
-                                        <Image
-                                          src={office.photo}
-                                          alt={office.name}
-                                          fill
-                                          sizes="280px"
-                                          className="object-cover"
-                                        />
-                                      ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          <Building2 className="w-16 h-16 text-white" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="p-4">
-                                      <h3 className="font-semibold text-white">{office.name}</h3>
-                                      <p className="text-sm text-white/80 mt-1">{office.city}</p>
-                                      <p className="text-sm text-white/60">{office.address}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <MeetingRoomsCatalog 
-                          initialOffice={selectedOffice}
-                          onOfficeChange={(office) => setSelectedOffice(office)}
-                          initialTab="book"
-                          onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
-                        />
-                      )}
-                    </>
-                  )}
+                  <MeetingRoomsCatalog
+                    initialOffice={selectedOffice}
+                    onOfficeChange={(office) => setSelectedOffice(office)}
+                    initialTab={meetingRoomsTab === "book" ? "book" : "my-bookings"}
+                    onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
+                  />
                 </TabsContent>
 
 

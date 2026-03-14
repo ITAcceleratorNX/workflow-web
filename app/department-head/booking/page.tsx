@@ -18,15 +18,6 @@ export default function DepartmentHeadBookingPage() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [meetingRoomsTab, setMeetingRoomsTab] = useState<"book" | "my-bookings">("book");
   const [selectedOffice, setSelectedOffice] = useState<any | null>(null);
-  const [offices, setOffices] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (isDesktop) {
-      getOffices()
-        .then((res) => setOffices(res.data || []))
-        .catch(() => setOffices([]));
-    }
-  }, [isDesktop]);
 
   if (isDesktop) {
     return (
@@ -60,54 +51,12 @@ export default function DepartmentHeadBookingPage() {
             </Button>
           </div>
 
-          {meetingRoomsTab === "book" && (
-            <div className="mb-8">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-white">Выбрать офис</h2>
-                <p className="text-sm text-white/60 mt-0.5">Выберите офис для бронирования переговорной комнаты</p>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {offices.map((office: any) => (
-                  <Card
-                    key={office.id}
-                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-[#3A3A3C] bg-[#2C2C2E] hover:border-[#E85D2B]/50 rounded-xl overflow-hidden"
-                    onClick={() => setSelectedOffice(office)}
-                  >
-                    <CardContent className="p-0">
-                      <div className="relative aspect-[4/3] bg-[#1C1C1E] overflow-hidden">
-                        {office.photo ? (
-                          <Image
-                            src={office.photo}
-                            alt={office.name}
-                            fill
-                            sizes="(max-width: 1200px) 50vw, 33vw"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Building2 className="w-16 h-16 text-[#E85D2B]/50" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-white">{office.name}</h3>
-                        <p className="text-sm text-[#E85D2B] mt-1">{office.city}</p>
-                        <p className="text-sm text-white/60">{office.address}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className={meetingRoomsTab === "book" ? "rounded-xl border border-[#3A3A3C] bg-[#2C2C2E]/30 p-6" : ""}>
-            <MeetingRoomsCatalog
+          <MeetingRoomsCatalog
             initialOffice={selectedOffice}
             onOfficeChange={setSelectedOffice}
             initialTab={meetingRoomsTab === "book" ? "book" : "my-bookings"}
             onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
-            variant="dark"
           />
           </div>
         </div>

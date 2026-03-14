@@ -1226,10 +1226,9 @@ export default function ClientDashboard() {
                       </Button>
                     </div>
 
-                    {/* Кнопка калькулятора и выбор офиса - показываются только для вкладки book */}
+                    {/* Кнопка калькулятора - только для вкладки book; выбор офиса на десктопе внутри каталога (офисы слева, комнаты справа) */}
                     {meetingRoomsTab === "book" && (
                       <>
-                        {/* Кнопка калькулятора */}
                         <Button
                           onClick={() => setShowDeskCalculator(!showDeskCalculator)}
                           variant="outline"
@@ -1238,55 +1237,10 @@ export default function ClientDashboard() {
                           <Ruler className="h-5 w-5" />
                           <span className="font-medium">Калькулятор высоты стола</span>
                         </Button>
-
-                        {/* Калькулятор высоты стола */}
                         <DeskHeightCalculator
                           isOpen={showDeskCalculator}
                           onToggle={() => setShowDeskCalculator(!showDeskCalculator)}
                         />
-
-                        {/* Секция выбора офиса */}
-                        <div className="space-y-3">
-                          <div>
-                            <h2 className="text-lg font-semibold text-white">Выбрать офис</h2>
-                            <p className="text-sm text-white/60">Выберите офис для бронирования переговорной комнаты</p>
-                          </div>
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                            {offices.map((office: any) => (
-                              <Card
-                                key={office.id}
-                                className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-                                onClick={() => {
-                                  setSelectedOffice(office);
-                                  setActiveTab("meeting-rooms");
-                                }}
-                              >
-                                <CardContent className="p-0">
-                                  <div className="relative aspect-[4/3] bg-gradient-to-br from-[#114A65]/10 to-[#114A65]/5 overflow-hidden rounded-t-lg">
-                                    {office.photo ? (
-                                      <Image
-                                        src={office.photo}
-                                        alt={office.name}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        className="object-cover"
-                                      />
-                                    ) : (
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <Building2 className="w-16 h-16 text-[#114A65]" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-4">
-                                    <h3 className="font-semibold text-white">{office.name}</h3>
-                                    <p className="text-sm text-[#E85D2B] mt-1">{office.city}</p>
-                                    <p className="text-sm text-[#C4C4CE]">{office.address}</p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </div>
                       </>
                     )}
                   </div>

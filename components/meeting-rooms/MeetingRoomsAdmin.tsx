@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, ChangeEvent } from "react";
+import { useState, useEffect, useMemo, ChangeEvent } from "react";
 import {
   MeetingRoom,
   MeetingRoomStatus,
@@ -9,16 +9,8 @@ import { MeetingRoomCard } from "@/components/meeting-rooms/MeetingRoomCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,7 +86,6 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
   const isMobile = useIsMobile();
   const isDark = variant === "dark";
   const useDarkStyles = isDark || isMobile;
-  const formRef = useRef<HTMLDivElement>(null);
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const loading = useMeetingRoomsStore((state) => state.loading);
   const fetchRooms = useMeetingRoomsStore((state) => state.fetchRooms);
@@ -238,17 +229,6 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     setIsEditing(true);
     setFormState(toFormState(room));
     setOpen(true);
-    
-    // На мобильных устройствах прокручиваем к форме редактирования
-    if (isMobile && typeof window !== 'undefined') {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (formRef.current) {
-            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
-    }
   };
 
   const handleDuplicate = async (id: number) => {
@@ -451,20 +431,27 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
         </div>
       </div>
 
-      {/* Форма создания/редактирования комнаты */}
-      {open && (
-        <Card ref={formRef} className={useDarkStyles ? "border-white/10 bg-[#1A1A1A]" : ""}>
-          <CardHeader className={useDarkStyles ? "border-b border-white/10" : ""}>
-            <CardTitle className={useDarkStyles ? "text-white" : ""}>
-              {isEditing ? "Редактирование переговорной" : "Новая переговорная"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className={useDarkStyles ? "text-white" : ""}>
-            <div className="grid gap-6 sm:grid-cols-[2fr_1fr]">
-              <ScrollArea className="h-[60vh] pr-4">
-                <div className="space-y-4 px-2">
+      {/* Форма создания/редактирования комнаты в модальном окне */}
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className={`w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none ${
+            useDarkStyles ? "bg-[#1A1A1A] text-white" : ""
+          }`}
+        >
+          <Card className={useDarkStyles ? "border-white/10 bg-transparent" : ""}>
+            <CardHeader className={useDarkStyles ? "border-b border-white/10" : ""}>
+              <CardTitle className={useDarkStyles ? "text-white" : ""}>
+                {isEditing ? "Редактирование переговорной" : "Новая переговорная"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className={useDarkStyles ? "text-white" : ""}>
+              <div className="grid gap-6 sm:grid-cols-[2fr_1fr]">
+                <ScrollArea className="h-[60vh] pr-4">
+                  <div className="space-y-4 px-2">
                     <div className="space-y-2">
-                      <Label htmlFor="meeting-room-name" className={useDarkStyles ? "text-gray-300" : ""}>Название</Label>
+                      <Label htmlFor="meeting-room-name" className={useDarkStyles ? "text-gray-300" : ""}>
+                        Название
+                      </Label>
                       <Input
                         id="meeting-room-name"
                         placeholder="Переговорная Астана"
@@ -479,23 +466,40 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                       ) : null}
                     </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="meeting-room-floor" className={useDarkStyles ? "text-gray-300" : ""}>Этаж</Label>
+                        <Label htmlFor="meeting-room-floor" className={useDarkStyles ? "text-gray-300" : ""}>
+                          Этаж
+                        </Label>
                         <Select
-                          value={
-                            formState.floor === "" ? undefined : String(formState.floor)
-                          }
+                          value={formState.floor === "" ? undefined : String(formState.floor)}
                           onValueChange={(value) =>
                             setFormState((prev) => ({ ...prev, floor: Number(value) }))
                           }
                         >
-                          <SelectTrigger id="meeting-room-floor" className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white [&>span]:text-white" : ""}>
+                          <SelectTrigger
+                            id="meeting-room-floor"
+                            className={
+                              useDarkStyles
+                                ? "bg-[#2C2C2E] border-white/10 text-white [&>span]:text-white"
+                                : ""
+                            }
+                          >
                             <SelectValue placeholder="Выберите этаж" />
                           </SelectTrigger>
-                          <SelectContent className={useDarkStyles ? "bg-[#2C2C2E] border-white/10" : ""}>
+                          <SelectContent
+                            className={useDarkStyles ? "bg-[#2C2C2E] border-white/10" : ""}
+                          >
                             {floorsRange.map((floor) => (
-                              <SelectItem key={floor} value={String(floor)} className={useDarkStyles ? "text-white focus:bg-white/10 focus:text-white" : ""}>
+                              <SelectItem
+                                key={floor}
+                                value={String(floor)}
+                                className={
+                                  useDarkStyles
+                                    ? "text-white focus:bg.white/10 focus:text-white"
+                                    : ""
+                                }
+                              >
                                 {floor}
                               </SelectItem>
                             ))}
@@ -506,7 +510,12 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         ) : null}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="meeting-room-capacity" className={useDarkStyles ? "text-gray-300" : ""}>Вместимость</Label>
+                        <Label
+                          htmlFor="meeting-room-capacity"
+                          className={useDarkStyles ? "text-gray-300" : ""}
+                        >
+                          Вместимость
+                        </Label>
                         <Input
                           id="meeting-room-capacity"
                           type="number"
@@ -515,10 +524,15 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                           onChange={(event) =>
                             setFormState((prev) => ({
                               ...prev,
-                              capacity: event.target.value === "" ? "" : Number(event.target.value),
+                              capacity:
+                                event.target.value === "" ? "" : Number(event.target.value),
                             }))
                           }
-                          className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500" : ""}
+                          className={
+                            useDarkStyles
+                              ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500"
+                              : ""
+                          }
                         />
                         {touched && errors.capacity ? (
                           <p className="text-xs text-red-500">{errors.capacity}</p>
@@ -528,11 +542,23 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
                     <div className="space-y-2">
                       <Label className={useDarkStyles ? "text-gray-300" : ""}>Тип комнаты</Label>
-                      <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
+                      <div
+                        className={`flex gap-3 ${
+                          isMobile ? "flex-col" : "flex-wrap items-center"
+                        }`}
+                      >
                         <Button
                           type="button"
                           variant={formState.room_type === "meeting" ? "default" : "outline"}
-                          className={`bg-transparent ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.room_type === "meeting" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
+                          className={`bg-transparent ${
+                            isMobile ? "w-full justify-center" : ""
+                          } ${
+                            useDarkStyles
+                              ? formState.room_type === "meeting"
+                                ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white"
+                                : "border-white/20 text-white hover:bg-white/10"
+                              : ""
+                          }`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "meeting" }))
                           }
@@ -542,7 +568,15 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         <Button
                           type="button"
                           variant={formState.room_type === "cabinet" ? "default" : "outline"}
-                          className={`bg-transparent rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.room_type === "cabinet" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
+                          className={`bg-transparent rounded-full ${
+                            isMobile ? "w-full justify-center" : ""
+                          } ${
+                            useDarkStyles
+                              ? formState.room_type === "cabinet"
+                                ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white"
+                                : "border-white/20 text-white hover:bg-white/10"
+                              : ""
+                          }`}
                           onClick={() =>
                             setFormState((prev) => ({ ...prev, room_type: "cabinet" }))
                           }
@@ -554,46 +588,83 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
                     <div className="space-y-2">
                       <Label className={useDarkStyles ? "text-gray-300" : ""}>Статус</Label>
-                      <div className={`flex gap-3 ${isMobile ? "flex-col" : "flex-wrap items-center"}`}>
+                      <div
+                        className={`flex gap-3 ${
+                          isMobile ? "flex-col" : "flex-wrap items-center"
+                        }`}
+                      >
                         <Button
                           type="button"
                           variant={formState.status === "available" ? "default" : "outline"}
-                          className={`rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.status === "available" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
-                          onClick={() => setFormState((prev) => ({ ...prev, status: "available" }))}
+                          className={`rounded-full ${
+                            isMobile ? "w-full justify-center" : ""
+                          } ${
+                            useDarkStyles
+                              ? formState.status === "available"
+                                ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white"
+                                : "border-white/20 text-white hover:bg-white/10"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setFormState((prev) => ({ ...prev, status: "available" }))
+                          }
                         >
                           Доступна
                         </Button>
                         <Button
                           type="button"
                           variant={formState.status === "booked" ? "default" : "outline"}
-                          className={`bg-transparent rounded-full ${isMobile ? "w-full justify-center" : ""} ${useDarkStyles ? (formState.status === "booked" ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : "border-white/20 text-white hover:bg-white/10") : ""}`}
-                          onClick={() => setFormState((prev) => ({ ...prev, status: "booked" }))}
+                          className={`bg-transparent rounded-full ${
+                            isMobile ? "w-full justify-center" : ""
+                          } ${
+                            useDarkStyles
+                              ? formState.status === "booked"
+                                ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white"
+                                : "border-white/20 text-white hover:bg-white/10"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setFormState((prev) => ({ ...prev, status: "booked" }))
+                          }
                         >
                           Забронирована
                         </Button>
                       </div>
                     </div>
-
                   </div>
                 </ScrollArea>
                 <div className="flex flex-col gap-4 px-2">
-                    <div className="space-y-3">
+                  <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="meeting-room-photos" className={useDarkStyles ? "text-gray-300" : ""}>Фотографии (до 3 шт.)</Label>
+                      <Label
+                        htmlFor="meeting-room-photos"
+                        className={useDarkStyles ? "text-gray-300" : ""}
+                      >
+                        Фотографии (до 3 шт.)
+                      </Label>
                       <Input
                         id="meeting-room-photos"
                         type="file"
                         accept=".jpg,.jpeg,.png"
                         multiple
                         onChange={handlePhotoInputChange}
-                        className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white file:text-white" : ""}
+                        className={
+                          useDarkStyles
+                            ? "bg-[#2C2C2E] border-white/10 text-white file:text-white"
+                            : ""
+                        }
                       />
-                        <p className={`text-xs ${useDarkStyles ? "text-gray-400" : "text-muted-foreground"}`}>
-                          Поддерживаются форматы JPG и PNG. Максимум {MAX_PHOTOS} фото, размер каждого ≤ 2MB.
-                        </p>
-                        {touched && errors.photos ? (
-                          <p className="text-xs text-red-500">{errors.photos}</p>
-                        ) : null}
+                      <p
+                        className={`text-xs ${
+                          useDarkStyles ? "text-gray-400" : "text-muted-foreground"
+                        }`}
+                      >
+                        Поддерживаются форматы JPG и PNG. Максимум {MAX_PHOTOS} фото, размер
+                        каждого ≤ 2MB.
+                      </p>
+                      {touched && errors.photos ? (
+                        <p className="text-xs text-red-500">{errors.photos}</p>
+                      ) : null}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -601,7 +672,9 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         formState.photos.map((photo, index) => (
                           <div
                             key={`${photo}-${index}`}
-                            className={`relative aspect-square overflow-hidden rounded-lg border ${useDarkStyles ? "border-white/10 bg-[#2C2C2E]" : "bg-muted"}`}
+                            className={`relative aspect-square overflow-hidden rounded-lg border ${
+                              useDarkStyles ? "border-white/10 bg-[#2C2C2E]" : "bg-muted"
+                            }`}
                           >
                             <Image
                               src={photo}
@@ -623,7 +696,13 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                           </div>
                         ))
                       ) : (
-                        <div className={`col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-sm ${useDarkStyles ? "border-white/20 bg-[#2C2C2E]/50 text-gray-400" : "bg-muted/40 text-muted-foreground"}`}>
+                        <div
+                          className={`col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-sm ${
+                            useDarkStyles
+                              ? "border-white/20 bg-[#2C2C2E]/50 text-gray-400"
+                              : "bg-muted/40 text-muted-foreground"
+                          }`}
+                        >
                           <FileImage className="h-8 w-8" />
                           <span>Фотографии пока не выбраны</span>
                         </div>
@@ -631,8 +710,13 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     </div>
                   </div>
 
-                    <div className="space-y-2">
-                    <Label htmlFor="meeting-room-description" className={useDarkStyles ? "text-gray-300" : ""}>Описание</Label>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="meeting-room-description"
+                      className={useDarkStyles ? "text-gray-300" : ""}
+                    >
+                      Описание
+                    </Label>
                     <Textarea
                       id="meeting-room-description"
                       placeholder="Дополнительная информация о комнате"
@@ -641,14 +725,32 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                         setFormState((prev) => ({ ...prev, description: event.target.value }))
                       }
                       rows={5}
-                      className={useDarkStyles ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500" : ""}
+                      className={
+                        useDarkStyles
+                          ? "bg-[#2C2C2E] border-white/10 text-white placeholder:text-gray-500"
+                          : ""
+                      }
                     />
                   </div>
 
-                  <div className={`flex items-center justify-between rounded-md border p-3 ${useDarkStyles ? "border-white/10" : ""}`}>
+                  <div
+                    className={`flex items-center justify-between rounded-md border p-3 ${
+                      useDarkStyles ? "border-white/10" : ""
+                    }`}
+                  >
                     <div>
-                      <p className={`text-sm font-medium ${useDarkStyles ? "text-white" : ""}`}>Комната активна</p>
-                      <p className={`text-xs ${useDarkStyles ? "text-gray-400" : "text-muted-foreground"}`}>
+                      <p
+                        className={`text-sm font-medium ${
+                          useDarkStyles ? "text-white" : ""
+                        }`}
+                      >
+                        Комната активна
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          useDarkStyles ? "text-gray-400" : "text-muted-foreground"
+                        }`}
+                      >
                         Используется в каталоге для клиентов
                       </p>
                     </div>
@@ -661,7 +763,11 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                   </div>
                 </div>
               </div>
-              <div className={`flex flex-wrap items-center gap-2 pt-4 border-t ${useDarkStyles ? "border-white/10" : ""} ${isMobile ? "flex-col" : ""}`}>
+              <div
+                className={`flex flex-wrap items-center gap-2 pt-4 border-t ${
+                  useDarkStyles ? "border-white/10" : ""
+                } ${isMobile ? "flex-col" : ""}`}
+              >
                 {isEditing ? (
                   <Button
                     type="button"
@@ -689,17 +795,34 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                     Удалить
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" onClick={handleCancel} className={`${isMobile ? "w-full" : ""} ${useDarkStyles ? "bg-transparent border-white/20 text-white hover:bg-white/10" : ""}`}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  className={`${isMobile ? "w-full" : ""} ${
+                    useDarkStyles
+                      ? "bg-transparent border-white/20 text-white hover:bg-white/10"
+                      : ""
+                  }`}
+                >
                   Отмена
                 </Button>
-                <Button type="button" onClick={handleSubmit} className={`gap-2 ${isMobile ? "w-full" : ""} ${useDarkStyles ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : ""}`} disabled={loading}>
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  className={`gap-2 ${isMobile ? "w-full" : ""} ${
+                    useDarkStyles ? "bg-[#E85D2B] hover:bg-[#E04A0A] text-white" : ""
+                  }`}
+                  disabled={loading}
+                >
                   <Save className="h-4 w-4" />
                   Сохранить
                 </Button>
               </div>
             </CardContent>
           </Card>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {filteredRooms.length === 0 ? (
@@ -712,7 +835,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             {filteredRooms.map((room) => (
               <MeetingRoomCard
                 key={room.id}

@@ -454,9 +454,34 @@ export const getMeetingRoomBookings = (meetingRoomId?: number) => {
     return api.get<MeetingRoomBooking[]>(`/meeting-room-bookings${params}`);
 };
 
-// Получить мои бронирования
-export const getMyBookings = () => 
-    api.get<MeetingRoomBooking[]>('/meeting-room-bookings/my');
+// Фильтр статуса для «мои бронирования» (как в бэкенде и мобилке)
+export type MyBookingsStatusFilter = 'active' | 'completed' | 'cancelled';
+
+export interface GetMyBookingsParams {
+    status?: MyBookingsStatusFilter;
+    page?: number;
+    pageSize?: number;
+}
+
+export interface GetMyBookingsResponse {
+    data: MeetingRoomBooking[];
+    total: number;
+    page: number;
+    pageSize: number;
+    hasMore: boolean;
+}
+
+// Получить мои бронирования (с фильтром по статусу и пагинацией)
+export const getMyBookings = (params?: GetMyBookingsParams) => {
+    const search = new URLSearchParams();
+    if (params?.status) search.set('status', params.status);
+    if (params?.page != null) search.set('page', String(params.page));
+    if (params?.pageSize != null) search.set('pageSize', String(params.pageSize));
+    const qs = search.toString();
+    return api.get<GetMyBookingsResponse>(
+        qs ? `/meeting-room-bookings/my?${qs}` : '/meeting-room-bookings/my'
+    );
+};
 
 // Отменить бронирование
 export const cancelMeetingRoomBooking = (id: number) =>

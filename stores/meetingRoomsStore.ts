@@ -41,13 +41,19 @@ interface MeetingRoomsState {
   duplicateRoom: (id: number) => Promise<void>;
 }
 
+function getPhotosFromRoom(apiRoom: ApiMeetingRoom): string[] {
+  if (Array.isArray(apiRoom.photos)) return apiRoom.photos;
+  const one = (apiRoom as { photo?: string }).photo;
+  return typeof one === "string" && one.trim() ? [one] : [];
+}
+
 const convertApiRoomToStoreRoom = (apiRoom: ApiMeetingRoom): MeetingRoom => ({
   id: apiRoom.id,
   name: apiRoom.name,
   floor: apiRoom.floor,
   capacity: apiRoom.capacity,
   room_type: (apiRoom.room_type as MeetingRoomType) || "meeting",
-  photos: apiRoom.photos || [],
+  photos: getPhotosFromRoom(apiRoom),
   status: apiRoom.status as MeetingRoomStatus,
   isActive: apiRoom.isActive,
   description: apiRoom.description || undefined,
