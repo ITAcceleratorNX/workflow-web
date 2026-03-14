@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ClientSidebar } from "./ClientSidebar";
 import Header from "@/app/header/Header";
+import { DesktopSidebar, type DesktopSidebarItem } from "@/components/layout/DesktopSidebar";
+import { clientNavItems, isClientNavItemActive } from "@/lib/clientNavConfig";
+import { cn } from "@/lib/utils";
 
 interface ClientDesktopShellProps {
   children: React.ReactNode;
@@ -13,15 +15,45 @@ interface ClientDesktopShellProps {
   rightSlot?: React.ReactNode;
 }
 
+const CLIENT_SIDEBAR_COLLAPSED_KEY = "workflow-sidebar-collapsed-client";
+
 export function ClientDesktopShell({ children, rightSlot }: ClientDesktopShellProps) {
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem(CLIENT_SIDEBAR_COLLAPSED_KEY);
+    if (stored !== null) setSidebarCollapsed(stored === "true");
+  }, []);
 
   const handleLogout = () => {
     clearAuth();
     router.push("/login");
   };
+
+  const handleSidebarToggle = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(CLIENT_SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch (_) {}
+      return next;
+    });
+  };
+
+  const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
+  const sidebarItems: DesktopSidebarItem[] = clientNavItems.map((item) => ({
+    key: item.key,
+    label: item.label,
+    href: item.href,
+    icon: item.icon,
+    isActive: isClientNavItemActive(item, pathname || "", search),
+  }));
 
   if (!isDesktop) {
     return <>{children}</>;
@@ -29,8 +61,19 @@ export function ClientDesktopShell({ children, rightSlot }: ClientDesktopShellPr
 
   return (
     <div className="min-h-screen flex bg-[#1A1A1A] client-desktop-shell">
-      <ClientSidebar />
-      <div className="flex-1 flex flex-col min-w-0 md:ml-56 lg:ml-64">
+      <DesktopSidebar
+        title="WorkFlow"
+        subtitle="Система управления"
+        items={sidebarItems}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleSidebarToggle}
+      />
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-w-0 transition-[margin] duration-200 ease-in-out",
+          sidebarCollapsed ? "md:ml-[4.25rem]" : "md:ml-56 lg:ml-64"
+        )}
+      >
         <Header
           handleLogout={handleLogout}
           role="Клиент"

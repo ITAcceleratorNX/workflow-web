@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { AdminManagerSidebar } from "./AdminManagerSidebar";
 import Header from "@/app/header/Header";
 import { cn } from "@/lib/utils";
 import type { AdminManagerRole } from "@/lib/roleNavConfig";
+import { getRoleNavConfig, isNavItemActive } from "@/lib/roleNavConfig";
+import { DesktopSidebar, type DesktopSidebarItem } from "@/components/layout/DesktopSidebar";
+import { usePathname } from "next/navigation";
 
 const SIDEBAR_COLLAPSED_KEY = "workflow-sidebar-collapsed";
 
@@ -31,6 +33,7 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -53,14 +56,25 @@ export function RoleDesktopShell({ role, children, rightSlot }: RoleDesktopShell
     router.push("/login");
   };
 
+  const navItems = getRoleNavConfig(role);
+  const sidebarItems: DesktopSidebarItem[] = navItems.map((item) => ({
+    key: item.key,
+    label: item.label,
+    href: item.href,
+    icon: item.icon,
+    isActive: isNavItemActive(item, pathname || "", role),
+  }));
+
   if (!isDesktop) {
     return <>{children}</>;
   }
 
   return (
     <div className="min-h-screen flex bg-[#1A1A1A]">
-      <AdminManagerSidebar
-        role={role}
+      <DesktopSidebar
+        title="WorkFlow"
+        subtitle="Система управления"
+        items={sidebarItems}
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleSidebarToggle}
       />

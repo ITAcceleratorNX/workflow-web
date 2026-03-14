@@ -2,14 +2,23 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { PanelLeftClose, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getRoleNavConfig, isNavItemActive, type AdminManagerRole } from "@/lib/roleNavConfig";
 import { Button } from "@/components/ui/button";
+import { PanelLeft, PanelLeftClose } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-interface AdminManagerSidebarProps {
-  role: AdminManagerRole;
+export interface DesktopSidebarItem {
+  key: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  isActive: boolean;
+}
+
+interface DesktopSidebarProps {
+  title: string;
+  subtitle?: string;
+  items: DesktopSidebarItem[];
   className?: string;
   /** Свёрнут ли сайдбар (только иконки) */
   collapsed?: boolean;
@@ -17,15 +26,14 @@ interface AdminManagerSidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export function AdminManagerSidebar({
-  role,
+export function DesktopSidebar({
+  title,
+  subtitle,
+  items,
   className,
   collapsed = false,
   onToggleCollapse,
-}: AdminManagerSidebarProps) {
-  const pathname = usePathname();
-  const navItems = getRoleNavConfig(role);
-
+}: DesktopSidebarProps) {
   return (
     <aside
       className={cn(
@@ -41,19 +49,26 @@ export function AdminManagerSidebar({
         )}
       >
         {collapsed ? (
-          <span className="font-bold text-sm text-white">WF</span>
+          <span className="font-bold text-sm text-white">
+            {title?.[0] ?? "W"}
+            {title?.[1] ?? "F"}
+          </span>
         ) : (
           <>
-            <span className="font-bold text-base lg:text-lg text-white">WorkFlow</span>
-            <p className="text-xs text-white/60 mt-0.5">Система управления</p>
+            <span className="font-bold text-base lg:text-lg text-white">{title}</span>
+            {subtitle && <p className="text-xs text-white/60 mt-0.5">{subtitle}</p>}
           </>
         )}
       </div>
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 md:py-4 min-h-0 custom-scrollbar-dark">
-        <ul className={cn("space-y-1", collapsed ? "px-2 flex flex-col items-center" : "px-2 md:px-3")}>
-          {navItems.map((item) => {
+        <ul
+          className={cn(
+            "space-y-1",
+            collapsed ? "px-2 flex flex-col items-center" : "px-2 md:px-3"
+          )}
+        >
+          {items.map((item) => {
             const Icon = item.icon;
-            const isActive = isNavItemActive(item, pathname || "", role);
             return (
               <li key={item.key} className={cn("w-full", collapsed && "flex justify-center")}>
                 <Link
@@ -64,7 +79,7 @@ export function AdminManagerSidebar({
                     collapsed
                       ? "justify-center w-10 h-10 mx-auto"
                       : "gap-2 lg:gap-3 px-2 md:px-3 py-2 md:py-2.5 text-xs lg:text-sm",
-                    isActive
+                    item.isActive
                       ? "bg-[#E85D2B] text-white"
                       : "text-white/80 hover:bg-white/10 hover:text-white"
                   )}
@@ -101,3 +116,4 @@ export function AdminManagerSidebar({
     </aside>
   );
 }
+
