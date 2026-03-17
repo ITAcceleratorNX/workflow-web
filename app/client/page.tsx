@@ -81,7 +81,6 @@ import { MeetingRoomsCatalog } from "@/components/meeting-rooms/MeetingRoomsCata
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalculator";
 import { ClientSmartHomeControl } from "@/components/yandex-smart-home/ClientSmartHomeControl";
-import { ActivityTracker } from "@/components/ActivityTracker";
 
 interface Rating {
   id: number;
@@ -1197,7 +1196,6 @@ export default function ClientDashboard() {
             {isDesktop && activeTab === "cabinet" && (
               <div className="max-w-4xl mx-auto py-8 client-desktop-dark space-y-8">
                 <ClientSmartHomeControl />
-                <ActivityTracker hideBackButton />
               </div>
             )}
             {isDesktop && activeTab === "meeting-rooms" && (
@@ -1602,7 +1600,6 @@ export default function ClientDashboard() {
                     {!isDesktop && (
                       <div className="client-mobile-dark space-y-6">
                         <ClientSmartHomeControl />
-                        <ActivityTracker hideBackButton />
                       </div>
                     )}
                   </TabsContent>

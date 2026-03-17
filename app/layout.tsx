@@ -4,7 +4,6 @@ import type { Metadata } from "next"
 import "./globals.css"
 import "../lib/fcm"
 import BridgeInit from "@/components/BridgeInit"
-import { ActivityTrackerService } from "@/components/ActivityTrackerService"
 import { NotificationPermissionRequest } from "@/components/NotificationPermissionRequest"
 import { RestorePendingRequestUrl } from "@/components/RestorePendingRequestUrl"
 import { MobileDeepLinkToApp } from "@/components/MobileDeepLinkToApp"
@@ -37,7 +36,6 @@ export default function RootLayout({
           <MobileDeepLinkToApp />
         </Suspense>
         {children}
-        <ActivityTrackerService />
         <NotificationPermissionRequest />
         <Toaster />
       </body>

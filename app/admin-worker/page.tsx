@@ -35,7 +35,6 @@ import {
   Hourglass,
   FileSpreadsheet,
   Building2,
-  Activity,
 } from "lucide-react"
 import Header from "@/app/header/Header";
 import api, { getOffices, getExecutorsByCategory, changeCategoryHead, createServiceCategory, deleteServiceCategory, assignExecutorToCategory, getAllExecutorsForAdmin } from "@/lib/api";
@@ -3311,21 +3310,6 @@ export default function AdminWorkerDashboard() {
                       return false; // Заявка не найдена
                     }}
                   />
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardContent className="p-4">
-                  <Link href="/admin-activity-stats" className="block">
-                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#114A65]/10 transition-colors cursor-pointer">
-                      <div className="p-2 bg-[#114A65]/10 rounded-lg">
-                        <Activity className="w-5 h-5 text-[#114A65]" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">Статистика активности</p>
-                        <p className="text-xs text-gray-500">Просмотр активности сотрудников</p>
-                      </div>
-                    </div>
-                  </Link>
                 </CardContent>
               </Card>
             </div>
