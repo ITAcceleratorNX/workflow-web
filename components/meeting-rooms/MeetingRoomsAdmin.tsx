@@ -34,7 +34,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getOffices, Office } from "@/lib/api";
+import {
+  getOffices,
+  Office,
+  uploadMeetingRoomPhotos,
+  deleteMeetingRoomPhoto,
+} from "@/lib/api";
+
+type FormPhotoItem =
+  | { type: "existing"; id: number; url: string }
+  | { type: "new"; file: File; preview: string };
 
 interface RoomFormState {
   id?: number;
@@ -44,7 +53,7 @@ interface RoomFormState {
   room_type: MeetingRoomType;
   status: MeetingRoomStatus;
   isActive: boolean;
-  photos: string[];
+  photos: FormPhotoItem[];
   description: string;
 }
 
@@ -59,17 +68,29 @@ const EMPTY_FORM: RoomFormState = {
   description: "",
 };
 
-const toFormState = (room: MeetingRoom): RoomFormState => ({
-  id: room.id,
-  name: room.name,
-  floor: room.floor,
-  capacity: room.capacity,
-  room_type: room.room_type,
-  status: room.status,
-  isActive: room.isActive,
-  photos: [...(room.photos ?? [])],
-  description: room.description ?? "",
-});
+const toFormState = (room: MeetingRoom): RoomFormState => {
+  const photos: FormPhotoItem[] = [];
+  if (room.roomPhotos?.length) {
+    room.roomPhotos.forEach((p) => {
+      photos.push({ type: "existing", id: p.id, url: p.photo_url });
+    });
+  } else if (room.photos?.length) {
+    room.photos.forEach((url) => {
+      photos.push({ type: "existing", id: -1, url });
+    });
+  }
+  return {
+    id: room.id,
+    name: room.name,
+    floor: room.floor,
+    capacity: room.capacity,
+    room_type: room.room_type,
+    status: room.status,
+    isActive: room.isActive,
+    photos,
+    description: room.description ?? "",
+  };
+};
 
 const floorsRange = Array.from({ length: 10 }, (_, index) => index + 1);
 const capacities = [2, 4, 6, 8, 10, 12];
@@ -107,6 +128,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedOfficeId, setSelectedOfficeId] = useState<number | "all">("all");
   const [roomTypeFilter, setRoomTypeFilter] = useState<MeetingRoomType | "all">("all");
+  const [originalExistingPhotoIds, setOriginalExistingPhotoIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchRooms();
@@ -126,21 +148,17 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
 
   const resetForm = () => {
+    formState.photos.forEach((p) => {
+      if (p.type === "new") URL.revokeObjectURL(p.preview);
+    });
     setFormState(EMPTY_FORM);
     setIsEditing(false);
+    setOriginalExistingPhotoIds(new Set());
     setErrors({});
     setTouched(false);
   };
 
-  const readFileAsDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-
-  const handlePhotoFiles = async (files: FileList | null) => {
+  const handlePhotoFiles = (files: FileList | null) => {
     if (!files) {
       return;
     }
@@ -175,45 +193,45 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       return;
     }
 
-    try {
-      const dataUrls = await Promise.all(
-        allowedFiles.map((file) => readFileAsDataUrl(file)),
-      );
-      setFormState((prev) => ({
-        ...prev,
-        photos: [...prev.photos, ...dataUrls],
-      }));
-      setErrors((e) => ({ ...e, photos: undefined }));
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось прочитать выбранные файлы.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePhotoInputChange = async (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
-    await handlePhotoFiles(event.target.files);
-    event.target.value = "";
-  };
-
-  const handleRemovePhoto = (index: number) => {
+    const newItems: FormPhotoItem[] = allowedFiles.map((file) => ({
+      type: "new",
+      file,
+      preview: URL.createObjectURL(file),
+    }));
     setFormState((prev) => ({
       ...prev,
-      photos: prev.photos.filter((_, photoIndex) => photoIndex !== index),
+      photos: [...prev.photos, ...newItems],
     }));
     setErrors((e) => ({ ...e, photos: undefined }));
   };
 
+  const handlePhotoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    handlePhotoFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setFormState((prev) => {
+      const photo = prev.photos[index];
+      if (photo?.type === "new") {
+        URL.revokeObjectURL(photo.preview);
+      }
+      return {
+        ...prev,
+        photos: prev.photos.filter((_, i) => i !== index),
+      };
+    });
+    setErrors((e) => ({ ...e, photos: undefined }));
+  };
+
   const handleOpenChange = (next: boolean) => {
-    setOpen(next);
     if (!next) {
+      formState.photos.forEach((p) => {
+        if (p.type === "new") URL.revokeObjectURL(p.preview);
+      });
       resetForm();
     }
+    setOpen(next);
   };
 
   const handleAddRoomClick = () => {
@@ -227,7 +245,16 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
 
   const handleEdit = (room: MeetingRoom) => {
     setIsEditing(true);
-    setFormState(toFormState(room));
+    const state = toFormState(room);
+    setFormState(state);
+    const ids = new Set(
+      state.photos
+        .filter((p): p is { type: "existing"; id: number; url: string } =>
+          p.type === "existing" && p.id >= 0
+        )
+        .map((p) => p.id)
+    );
+    setOriginalExistingPhotoIds(ids);
     setOpen(true);
   };
 
@@ -341,32 +368,54 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       return;
     }
 
-    const payload = {
+    const roomData = {
       name: formState.name.trim(),
       floor: Number(formState.floor),
       capacity: Number(formState.capacity),
       room_type: formState.room_type,
       status: formState.status,
       isActive: formState.isActive,
-      photos: formState.photos,
+      photos: [] as string[],
       description: formState.description.trim(),
-    } satisfies Omit<MeetingRoom, "id">;
+    };
+
+    const newFiles = formState.photos.filter((p): p is { type: "new"; file: File; preview: string } => p.type === "new");
 
     try {
       if (isEditing && formState.id) {
-        await updateRoom(formState.id, payload);
+        await updateRoom(formState.id, roomData);
+        const keptExistingIds = new Set(
+          formState.photos
+            .filter((p): p is { type: "existing"; id: number; url: string } => p.type === "existing" && p.id >= 0)
+            .map((p) => p.id)
+        );
+        const toDelete = [...originalExistingPhotoIds].filter((id) => !keptExistingIds.has(id));
+        for (const photoId of toDelete) {
+          await deleteMeetingRoomPhoto(formState.id, photoId);
+        }
+        if (newFiles.length) {
+          const fd = new FormData();
+          newFiles.forEach((item) => fd.append("photos", item.file));
+          await uploadMeetingRoomPhotos(formState.id, fd);
+        }
+        await fetchRooms();
         toast({ title: "Переговорная обновлена" });
       } else {
-        await addRoom(payload);
+        const newRoom = await addRoom(roomData);
+        if (newRoom && newFiles.length) {
+          const fd = new FormData();
+          newFiles.forEach((item) => fd.append("photos", item.file));
+          await uploadMeetingRoomPhotos(newRoom.id, fd);
+        }
+        await fetchRooms();
         toast({ title: "Переговорная добавлена" });
       }
       handleOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: isEditing ? "Не удалось обновить переговорную" : "Не удалось добавить переговорную",
-        variant: "destructive",
-      });
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (isEditing ? "Не удалось обновить переговорную" : "Не удалось добавить переговорную");
+      toast({ title: "Ошибка", description: msg, variant: "destructive" });
     }
   };
 
@@ -671,13 +720,13 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                       {formState.photos.length ? (
                         formState.photos.map((photo, index) => (
                           <div
-                            key={`${photo}-${index}`}
+                            key={photo.type === "existing" ? `existing-${photo.id}` : `new-${index}`}
                             className={`relative aspect-square overflow-hidden rounded-lg border ${
                               useDarkStyles ? "border-white/10 bg-[#2C2C2E]" : "bg-muted"
                             }`}
                           >
                             <Image
-                              src={photo}
+                              src={photo.type === "existing" ? photo.url : photo.preview}
                               alt={`${formState.name || "Фото переговорной"} ${index + 1}`}
                               fill
                               className="object-cover"
@@ -782,7 +831,9 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
                             name: formState.name,
                             floor: Number(formState.floor) || 0,
                             capacity: Number(formState.capacity) || 0,
-                            photos: formState.photos,
+                            photos: formState.photos.map((p) =>
+                              p.type === "existing" ? p.url : p.preview
+                            ),
                             status: formState.status,
                             isActive: formState.isActive,
                             description: formState.description,

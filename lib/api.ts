@@ -337,6 +337,12 @@ export const importRecurringTasksFromExcel = (formData: FormData) =>
 // ==================== Meeting Rooms ====================
 
 // Типы для переговорных комнат
+// Элемент roomPhotos от API (для удаления по id при редактировании)
+export interface MeetingRoomPhotoItem {
+    id: number;
+    photo_url: string;
+}
+
 export interface MeetingRoom {
     id: number;
     name: string;
@@ -344,6 +350,7 @@ export interface MeetingRoom {
     capacity: number;
     room_type?: 'meeting' | 'cabinet'; // optional for backward compatibility
     photos: string[];
+    roomPhotos?: MeetingRoomPhotoItem[]; // id + url для редактирования
     status: 'available' | 'booked';
     isActive: boolean;
     description?: string | null;
@@ -390,6 +397,14 @@ export const updateMeetingRoomStatus = (id: number, status: 'available' | 'booke
 // Дублировать переговорную комнату
 export const duplicateMeetingRoom = (id: number) =>
     api.post<MeetingRoom>(`/meeting-rooms/${id}/duplicate`);
+
+// Загрузить фото комнаты (FormData с полем photos — File[])
+export const uploadMeetingRoomPhotos = (roomId: number, formData: FormData) =>
+    api.post<{ photos: { id: number; photo_url: string }[] }>(`/meeting-rooms/${roomId}/photos`, formData);
+
+// Удалить фото комнаты
+export const deleteMeetingRoomPhoto = (roomId: number, photoId: number) =>
+    api.delete(`/meeting-rooms/${roomId}/photos/${photoId}`);
 
 // ==================== Meeting Room Bookings ====================
 

@@ -15,6 +15,11 @@ export type MeetingRoomStatus = "available" | "booked";
 
 export type MeetingRoomType = "meeting" | "cabinet";
 
+export interface MeetingRoomPhotoItem {
+  id: number;
+  photo_url: string;
+}
+
 export interface MeetingRoom {
   id: number;
   name: string;
@@ -22,6 +27,7 @@ export interface MeetingRoom {
   capacity: number;
   room_type: MeetingRoomType;
   photos: string[];
+  roomPhotos?: MeetingRoomPhotoItem[];
   status: MeetingRoomStatus;
   isActive: boolean;
   description?: string;
@@ -33,7 +39,7 @@ interface MeetingRoomsState {
   loading: boolean;
   error: string | null;
   fetchRooms: (officeId?: number) => Promise<void>;
-  addRoom: (room: Omit<MeetingRoom, "id">) => Promise<void>;
+  addRoom: (room: Omit<MeetingRoom, "id">) => Promise<MeetingRoom | void>;
   updateRoom: (id: number, room: Partial<Omit<MeetingRoom, "id">>) => Promise<void>;
   removeRoom: (id: number) => Promise<void>;
   toggleRoomActive: (id: number) => Promise<void>;
@@ -54,6 +60,7 @@ const convertApiRoomToStoreRoom = (apiRoom: ApiMeetingRoom): MeetingRoom => ({
   capacity: apiRoom.capacity,
   room_type: (apiRoom.room_type as MeetingRoomType) || "meeting",
   photos: getPhotosFromRoom(apiRoom),
+  roomPhotos: (apiRoom as { roomPhotos?: { id: number; photo_url: string }[] }).roomPhotos,
   status: apiRoom.status as MeetingRoomStatus,
   isActive: apiRoom.isActive,
   description: apiRoom.description || undefined,
@@ -83,8 +90,10 @@ export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const user = useAuthStore.getState().user;
+      const { photos: _photos, ...roomWithoutPhotos } = room;
       const response = await createMeetingRoom({
-        ...room,
+        ...roomWithoutPhotos,
+        photos: [],
         office_id: user?.office_id || null,
       });
       const newRoom = convertApiRoomToStoreRoom(response.data);
@@ -92,6 +101,7 @@ export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
         rooms: [...state.rooms, newRoom],
         loading: false,
       }));
+      return newRoom;
     } catch (error: any) {
       set({
         error: error.response?.data?.message || "Ошибка при создании переговорной комнаты",
@@ -104,7 +114,8 @@ export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
   updateRoom: async (id, room) => {
     set({ loading: true, error: null });
     try {
-      const response = await updateMeetingRoom(id, room);
+      const { photos: _photos, roomPhotos: _rp, ...roomWithoutPhotos } = room;
+      const response = await updateMeetingRoom(id, roomWithoutPhotos);
       const updatedRoom = convertApiRoomToStoreRoom(response.data);
       set((state) => ({
         rooms: state.rooms.map((existing) =>
