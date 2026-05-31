@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { RequestDetails } from "@/components/RequestDetails";
 import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
 import { AssignExecutorsModal } from "@/components/AssignExecutorsModal";
 import { ChangeExecutorsModal } from "@/components/ChangeExecutorsModal";
+import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 
 interface Executor {
   id: number;
@@ -34,12 +35,10 @@ interface Executor {
 
 export default function DepartmentHeadRequestsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token, user } = useAuthStore();
   const { toast } = useToast();
   const { categories, fetchCategories } = useCategoryStore();
-  const requestIdFromUrl = searchParams?.get("requestId");
 
   const {
     incomingRequests,
@@ -207,49 +206,25 @@ export default function DepartmentHeadRequestsPage() {
     []
   );
 
-  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
-  const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
+  const {
+    displayRequest,
+    selectRequest,
+    closeDetail: handleClosePanel,
+    clearAfterUpdate,
+  } = useRequestSelectionFromUrl({
+    requestsBasePath: "/department-head/requests",
+    requestLists: [incomingRequests, myRequests],
+    fallbackLists: [filteredIncomingRequests, filteredMyRequests],
+    isDesktop,
+    isDataReady: !loading,
+  });
 
-  useEffect(() => {
-    if (requestIdFromUrl && (incomingRequests.length > 0 || myRequests.length > 0)) {
-      const all = [...incomingRequests, ...myRequests];
-      const found = all.find((r) => String(r.id) === requestIdFromUrl);
-      if (found) setSelectedRequestData(found);
-      else setSelectedRequestData(null);
-    } else {
-      setSelectedRequestData(selectedRequest);
-    }
-  }, [requestIdFromUrl, incomingRequests, myRequests, selectedRequest]);
-
-  const handleCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/department-head/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/department-head/requests/${request.id}`);
-    }
-  };
-
-  const handleMyCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/department-head/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/department-head/requests/${request.id}`);
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/department-head/requests", { scroll: false });
-  };
+  const handleCardClick = selectRequest;
+  const handleMyCardClick = selectRequest;
 
   const handleRequestUpdated = () => {
     fetchRequests(1);
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/department-head/requests", { scroll: false });
+    clearAfterUpdate();
   };
 
   const handleAssignExecutors = (subRequest: any) => {
@@ -342,12 +317,6 @@ export default function DepartmentHeadRequestsPage() {
         : activeTab === "my-requests"
           ? filteredMyRequests
           : [];
-    const displayRequest =
-      selectedRequestData ??
-      (requestIdFromUrl
-        ? [...filteredIncomingRequests, ...filteredMyRequests].find((r) => String(r.id) === requestIdFromUrl)
-        : null);
-
     const filtersContent = (
       <>
         <Select value={filterIncomingStatus} onValueChange={setFilterIncomingStatus}>

@@ -89,7 +89,7 @@ export default function ExecutorCompletedPage() {
               <RequestCard
                 key={request.id || index}
                 request={request}
-                onCardClick={() => router.push(`/executor?tab=completed&requestId=${request.id}`)}
+                onCardClick={() => router.push(`/executor/requests?requestId=${request.id}`)}
                 renderCardHeader={(rg) => <ExecutorMobileCardHeader requestGroup={rg} />}
                 clientRating={clientRatings[request.id]}
                 userRole="executor"

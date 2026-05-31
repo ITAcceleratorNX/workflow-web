@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,13 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 import { RequestDetails } from "@/components/RequestDetails";
 import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
+import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 
 export default function AdminRequestsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token } = useAuthStore();
   const { toast } = useToast();
-  const requestIdFromUrl = searchParams?.get("requestId");
 
   const {
     incomingRequests,
@@ -158,54 +157,29 @@ export default function AdminRequestsPage() {
     []
   );
 
-  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
-  const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
+  const {
+    displayRequest,
+    selectRequest,
+    closeDetail: handleClosePanel,
+    clearAfterUpdate,
+  } = useRequestSelectionFromUrl({
+    requestsBasePath: "/admin-worker/requests",
+    requestLists: [incomingRequests, myRequests],
+    fallbackLists: [filteredIncomingRequests, filteredMyRequests],
+    isDesktop,
+    isDataReady: !loading,
+  });
 
-  useEffect(() => {
-    if (requestIdFromUrl && (incomingRequests.length > 0 || myRequests.length > 0)) {
-      const all = [...incomingRequests, ...myRequests];
-      const found = all.find((r) => String(r.id) === requestIdFromUrl);
-      if (found) setSelectedRequestData(found);
-      else setSelectedRequestData(null);
-    } else {
-      setSelectedRequestData(selectedRequest);
-    }
-  }, [requestIdFromUrl, incomingRequests, myRequests, selectedRequest]);
-
-  const handleCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/admin-worker/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/admin-worker/requests/${request.id}`);
-    }
-  };
-
-  const handleMyCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/admin-worker/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/admin-worker/requests/${request.id}`);
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/admin-worker/requests", { scroll: false });
-  };
+  const handleCardClick = selectRequest;
+  const handleMyCardClick = selectRequest;
 
   const handleRequestUpdated = () => {
     fetchRequests(1);
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/admin-worker/requests", { scroll: false });
+    clearAfterUpdate();
   };
 
   if (isDesktop) {
     const desktopRequests = activeTab === "incoming" ? filteredIncomingRequests : activeTab === "my-requests" ? filteredMyRequests : [];
-    const displayRequest = selectedRequestData ?? (requestIdFromUrl ? [...filteredIncomingRequests, ...filteredMyRequests].find((r) => String(r.id) === requestIdFromUrl) : null);
 
     const filtersContent = (
       <>

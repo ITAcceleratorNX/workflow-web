@@ -116,7 +116,7 @@ export default function ExecutorMyTasksPage() {
               <RequestCard
                 key={request.id || index}
                 request={request}
-                onCardClick={() => router.push(`/executor?tab=myTasks&requestId=${request.id}`)}
+                onCardClick={() => router.push(`/executor/requests?requestId=${request.id}`)}
                 renderCardHeader={(rg) => <ExecutorMobileCardHeader requestGroup={rg} />}
                 clientRating={clientRatings[request.id]}
                 userRole="executor"

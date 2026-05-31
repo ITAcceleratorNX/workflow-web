@@ -29,7 +29,7 @@ export default function ClientRequestDetailPage() {
 
   useEffect(() => {
     if (isDesktop) {
-      router.replace(`/client?tab=requests&requestId=${id}`);
+      router.replace(`/client/requests?requestId=${id}`);
       return;
     }
   }, [isDesktop, router, id]);

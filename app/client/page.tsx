@@ -71,6 +71,7 @@ import {CommentsModal} from "@/components/CommentsModal";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
 import {RejectRequestModal} from "@/components/RejectRequestModal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
+import { getRequestNavigationUrl } from "@/lib/requestNavigation";
 import {CompletedTaskReport} from "@/components/CompletedTaskReport";
 import SubRequestInfo from "@/components/SubRequestInfo";
 import Executors from "@/components/Executors";
@@ -166,8 +167,15 @@ export default function ClientDashboard() {
   useEffect(() => {
     const tab = searchParams.get("tab")
     const requestId = searchParams.get("requestId")
+    if (requestId) {
+      const url = getRequestNavigationUrl({ role: "client", isDesktop, requestId })
+      if (url) {
+        router.replace(url)
+        return
+      }
+    }
     if (isDesktop && tab === "requests") {
-      router.replace("/client/requests" + (requestId ? `?requestId=${requestId}` : ""))
+      router.replace("/client/requests")
       return
     }
     if (tab === "requests" || tab === "statistics" || tab === "meeting-rooms") {
@@ -464,81 +472,6 @@ export default function ClientDashboard() {
       setModalStack(prev => prev.filter(modal => modal !== 'createRequest'));
     }
   }, [searchParams])
-
-  // Сохраняем requestId в state при первой загрузке
-  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
-  const [pendingSubRequestId, setPendingSubRequestId] = useState<string | null>(null);
-
-  // Обработка query параметров для открытия заявки
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const requestIdFromUrl = urlParams.get("requestId");
-    const subRequestIdFromUrl = urlParams.get("subRequestId");
-    
-    const requestId = requestIdFromUrl || searchParams.get("requestId");
-    const subRequestId = subRequestIdFromUrl || searchParams.get("subRequestId");
-
-    // Сохраняем requestId в state, если он есть и еще не сохранен
-    if (requestId && !pendingRequestId) {
-      setPendingRequestId(requestId);
-      if (subRequestId) {
-        setPendingSubRequestId(subRequestId);
-      }
-    }
-
-    // Ждем, пока заявки загрузятся
-    if (loading) {
-      return;
-    }
-
-    // Проверяем, что заявки загружены
-    if (requests.length === 0) {
-      return;
-    }
-
-    const idToUse = pendingRequestId || requestId;
-    const subIdToUse = pendingSubRequestId || subRequestId;
-
-    if (idToUse && !selectedRequest) {
-      // Ищем заявку по ID
-      const foundRequest = requests.find(r => r.id === parseInt(idToUse));
-      
-      if (foundRequest) {
-        setPendingRequestId(null);
-        setPendingSubRequestId(null);
-        window.history.replaceState({}, '', window.location.pathname);
-        // На мобильном открываем отдельную страницу заявки (как у других ролей)
-        if (!isDesktop) {
-          router.push(`/client/requests/${foundRequest.id}`);
-          return;
-        }
-        // Десктоп: открываем модал
-        if (subIdToUse) {
-          const subRequest = foundRequest.requests.find((req: SubRequest) => req.id === parseInt(subIdToUse));
-          if (subRequest) {
-            setSelectedRequest(foundRequest);
-            setExpandedSubRequests(new Set([subRequest.id]));
-            openModal('requestDetails');
-          } else {
-            setNotFoundRequestId(`${idToUse}/${subIdToUse}`);
-            setShowNotFoundModal(true);
-          }
-        } else {
-          setSelectedRequest(foundRequest);
-          openModal('requestDetails');
-        }
-      } else if (idToUse) {
-        // Заявка не найдена
-        setNotFoundRequestId(idToUse);
-        setShowNotFoundModal(true);
-        setPendingRequestId(null);
-        setPendingSubRequestId(null);
-        // Очищаем query параметры из URL
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, requests, selectedRequest, loading, pendingRequestId, pendingSubRequestId, openModal, isDesktop, router]);
 
   const fetchNotifications = async () => {
     try {
@@ -1190,8 +1123,8 @@ export default function ClientDashboard() {
       >
         <div className={`w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8 ${isDesktop ? "client-desktop-content" : ""}`}>
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className={`grid grid-cols-1 gap-8${!isDesktop ? " lg:grid-cols-3" : ""}`}>
+          <div className={!isDesktop ? "lg:col-span-2" : undefined}>
             {/* Десктоп: главный экран — Умный дом + Activity трекер; Бронь — только офисы */}
             {isDesktop && activeTab === "cabinet" && (
               <div className="max-w-4xl mx-auto py-8 client-desktop-dark space-y-8">
@@ -1606,8 +1539,8 @@ export default function ClientDashboard() {
                 </Tabs>
           </div>
 
-          {/* Sidebar - скрываем на мобильном в разделе заявок */}
-          {(isDesktop || activeTab !== "requests") && (
+          {/* Sidebar уведомлений — только мобилка (на десктопе уведомления в header) */}
+          {!isDesktop && activeTab !== "requests" && (
             <div className="space-y-6 mb-20 mt-6 lg:mt-0">
               <Card className={`overflow-hidden ${isDesktop ? "bg-transparent border-[#3A3A3C]" : ""}`}>
                 <CardContent className="p-0">
@@ -1615,18 +1548,9 @@ export default function ClientDashboard() {
                     variant="dark"
                     onNotificationClick={handleNotificationClick}
                     onRequestClick={(requestId) => {
-                      const parsedId = parseInt(requestId.split('/')[0]);
-                      const request = requests.find(r => r.id === parsedId);
-                      if (request) {
-                        if (!isDesktop) {
-                          router.push(`/client/requests/${request.id}`);
-                          return true;
-                        }
-                        setSelectedRequest(request);
-                        openModal('requestDetails');
-                        return true;
-                      }
-                      return false;
+                      const url = getRequestNavigationUrl({ role: "client", isDesktop, requestId });
+                      if (url) router.push(url);
+                      return true;
                     }}
                   />
                 </CardContent>
@@ -1726,18 +1650,10 @@ export default function ClientDashboard() {
                 </div>
                 <p className="text-sm text-gray-800 whitespace-pre-line">
                   {createClickableRequestIds(selectedNotification.content, (requestId) => {
-                    // Парсим ID заявки (может быть в формате "123" или "123/1")
-                    const parsedId = parseInt(requestId.split('/')[0]);
-                    const request = requests.find(r => r.id === parsedId);
-                    if (request) {
-                      setSelectedRequest(request);
-                      openModal('requestDetails');
-                      setIsModalOpen(false); // Закрываем модалку уведомления
-                    } else {
-                      // Заявка не найдена, показываем модалку предупреждения
-                      setNotFoundRequestId(requestId);
-                      setShowNotFoundModal(true);
-                    }
+                    setIsModalOpen(false);
+                    closeModalWithHistory();
+                    const url = getRequestNavigationUrl({ role: "client", isDesktop, requestId });
+                    if (url) router.push(url);
                   })}
                 </p>
                 <p className="text-xs text-gray-500 mt-4">

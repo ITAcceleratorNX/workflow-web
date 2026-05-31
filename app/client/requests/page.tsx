@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import { RatingModal } from "@/components/RatingModal";
 import { CardHeader } from "@/components/ui/card";
 import { CheckCircle, Clock, User, XCircle } from "lucide-react";
+import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 
 const translateStatus = (status: string) => {
   switch (status) {
@@ -48,12 +48,9 @@ const getStatusIcon = (status: string) => {
 };
 
 export default function ClientRequestsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token } = useAuthStore();
   const { toast } = useToast();
-  const requestIdFromUrl = searchParams?.get("requestId");
 
   const { requests, setRequests } = useRequestStore();
   const [filterStatus, setFilterStatus] = useState("all");
@@ -62,8 +59,6 @@ export default function ClientRequestsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
-  const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
   const [userRatings, setUserRatings] = useState<Record<number, { rating: number; comment?: string }>>({});
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
   const [requestToRate, setRequestToRate] = useState<SubRequest | null>(null);
@@ -119,35 +114,23 @@ export default function ClientRequestsPage() {
     [requests, filterStatus, filterType]
   );
 
-  useEffect(() => {
-    if (requestIdFromUrl && requests.length > 0) {
-      const found = requests.find((r) => String(r.id) === requestIdFromUrl);
-      setSelectedRequestData(found ?? null);
-    } else {
-      setSelectedRequestData(selectedRequest);
-    }
-  }, [requestIdFromUrl, requests, selectedRequest]);
-
-  const handleCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/client/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/client/requests/${request.id}`);
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/client/requests", { scroll: false });
-  };
+  const {
+    displayRequest,
+    selectRequest: handleCardClick,
+    closeDetail: handleClosePanel,
+    clearAfterUpdate,
+    setSelectedRequest,
+  } = useRequestSelectionFromUrl({
+    requestsBasePath: "/client/requests",
+    requestLists: [requests],
+    fallbackLists: [filteredRequests],
+    isDesktop,
+    isDataReady: !loading,
+  });
 
   const handleRequestUpdated = () => {
     fetchRequests(1);
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/client/requests", { scroll: false });
+    clearAfterUpdate();
   };
 
   const handleLoadMore = () => {
@@ -159,13 +142,11 @@ export default function ClientRequestsPage() {
   const handleDeleteSubRequest = async (subRequest: SubRequest) => {
     try {
       await api.delete(`/requests/${subRequest.id}`);
-      const current = selectedRequestData ?? selectedRequest;
-      if (current) {
-        const updated = current.requests.filter((r) => r.id !== subRequest.id);
-        const next = { ...current, requests: updated };
+      if (displayRequest) {
+        const updated = displayRequest.requests.filter((r) => r.id !== subRequest.id);
+        const next = { ...displayRequest, requests: updated };
         setSelectedRequest(next);
-        setSelectedRequestData(next);
-        const updatedList = requests.map((r) => (r.id === current.id ? next : r)).filter((r) => r.requests.length > 0);
+        const updatedList = requests.map((r) => (r.id === displayRequest.id ? next : r)).filter((r) => r.requests.length > 0);
         setRequests(updatedList);
         if (updated.length === 0) {
           handleClosePanel();
@@ -240,8 +221,6 @@ export default function ClientRequestsPage() {
   );
 
   if (isDesktop) {
-    const displayRequest = selectedRequestData ?? (requestIdFromUrl ? filteredRequests.find((r) => String(r.id) === requestIdFromUrl) ?? null : null);
-
     return (
       <>
         <AdminManagerRequestsDesktopFrame

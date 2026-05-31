@@ -25,6 +25,7 @@ import { NotificationsSidebar } from "@/components/notification/NotificationsSid
 import { createClickableRequestIds } from "@/lib/notificationUtils"
 import { LogsViewer } from "@/components/logs-viewer"
 import { formatNotificationDateTime } from "@/lib/dateTimeUtils"
+import { getRequestNavigationUrl } from "@/lib/requestNavigation"
 const roleTranslations: Record<string, string> = {
     client: "Клиент",
     "admin-worker": "Администратор офиса",
@@ -265,15 +266,12 @@ export default function ProfilePage() {
     }
 
     const handleRequestClick = (requestId: string) => {
-        const parsedId = parseInt(requestId.split("/")[0], 10)
-        if (role === "admin-worker") {
-            if (!isDesktop) router.push(`/admin-worker/requests/${parsedId}`)
-            else router.push(`/admin-worker?tab=incoming&requestId=${parsedId}`)
-        } else if (role === "department-head") router.push(`/department-head?requestId=${parsedId}`)
-        else if (role === "client") router.push(`/client?requestId=${parsedId}`)
-        else if (role === "executor") router.push(`/executor?requestId=${parsedId}`)
-        else if (role === "manager") router.push(`/manager?requestId=${parsedId}`)
-        else router.push(`/client?requestId=${parsedId}`)
+        const url = getRequestNavigationUrl({
+            role: role || "client",
+            isDesktop,
+            requestId,
+        })
+        if (url) router.push(url)
         setSelectedNotification(null)
         return true
     }
@@ -681,7 +679,7 @@ export default function ProfilePage() {
     // На десктопе для клиента — ProfileModal asSection + сайдбар (ClientDesktopShell)
     if (isDesktop && role === "client") {
         return (
-            <ClientDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
+            <ClientDesktopShell>
                 <div className="min-h-full bg-[#1A1A1A]">
                     <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
                 </div>
@@ -692,7 +690,7 @@ export default function ProfilePage() {
     // На десктопе для исполнителя — тот же стиль: ExecutorDesktopShell + ProfileModal asSection
     if (isDesktop && role === "executor") {
         return (
-            <ExecutorDesktopShell rightSlot={<NotificationsSidebar variant="dark" onNotificationClick={handleNotificationClick} />}>
+            <ExecutorDesktopShell>
                 <div className="min-h-full bg-[#1A1A1A]">
                     <ProfileModal isOpen={true} onClose={() => {}} asSection={true} />
                 </div>

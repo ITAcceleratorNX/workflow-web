@@ -1,45 +1,41 @@
 import { useCallback } from 'react';
 import { useRequestStore, RequestGroup } from '@/stores/useRequestStore';
+import { parseRequestGroupId } from '@/lib/requestNavigation';
 
 /**
- * Хук для работы с заявками из уведомлений
+ * Поиск заявки в локальном store (для NotificationsSidebar и т.п.).
+ * Навигация к заявке — через `getRequestNavigationUrl` / `useRequestSelectionFromUrl`.
  */
 export function useRequestFromNotification() {
-  const { 
-    requests, 
-    incomingRequests, 
-    myRequests, 
-    assignedRequests, 
-    completedRequests
+  const {
+    requests,
+    incomingRequests,
+    myRequests,
+    assignedRequests,
+    completedRequests,
   } = useRequestStore();
 
-  /**
-   * Ищет заявку в локальном store по ID
-   */
   const findRequestInStore = useCallback((requestId: string): RequestGroup | null => {
     const allRequests = [
       ...requests,
       ...incomingRequests,
       ...myRequests,
       ...assignedRequests,
-      ...completedRequests
+      ...completedRequests,
     ];
 
-    // Парсим ID заявки
-    const parsedId = parseInt(requestId.split('/')[0]);
-    
-    return allRequests.find(request => request.id === parsedId) || null;
+    const parsedId = parseRequestGroupId(requestId);
+
+    return allRequests.find((request) => request.id === parsedId) || null;
   }, [requests, incomingRequests, myRequests, assignedRequests, completedRequests]);
 
-  /**
-   * Получает заявку по ID (только из локального store)
-   */
-  const getRequestById = useCallback((requestId: string): RequestGroup | null => {
-    return findRequestInStore(requestId);
-  }, [findRequestInStore]);
+  const getRequestById = useCallback(
+    (requestId: string): RequestGroup | null => findRequestInStore(requestId),
+    [findRequestInStore]
+  );
 
   return {
     findRequestInStore,
-    getRequestById
+    getRequestById,
   };
 }

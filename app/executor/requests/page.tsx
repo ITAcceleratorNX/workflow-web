@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
+import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 
 function getTaskTypeOrder(type: string) {
   switch (type) {
@@ -38,11 +38,8 @@ function getTaskTypeOrder(type: string) {
 }
 
 export default function ExecutorRequestsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { toast } = useToast();
-  const requestIdFromUrl = searchParams?.get("requestId");
   const {
     assignedRequests,
     myRequests,
@@ -62,9 +59,6 @@ export default function ExecutorRequestsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
-  const [selectedRequestData, setSelectedRequestData] = useState<RequestGroup | null>(null);
-
   const { token } = useAuthStore();
   const { categories, fetchCategories } = useCategoryStore();
 
@@ -160,16 +154,6 @@ export default function ExecutorRequestsPage() {
   }, [isDesktop, fetchRequests, clearRequests]);
 
   useEffect(() => {
-    if (!requestIdFromUrl || (assignedRequests.length === 0 && myRequests.length === 0 && completedRequests.length === 0)) {
-      setSelectedRequestData(selectedRequest);
-      return;
-    }
-    const all = [...(assignedRequests || []), ...(myRequests || []), ...(completedRequests || [])];
-    const found = all.find((r) => String(r.id) === requestIdFromUrl);
-    setSelectedRequestData(found ?? null);
-  }, [requestIdFromUrl, assignedRequests, myRequests, completedRequests, selectedRequest]);
-
-  useEffect(() => {
     if (isDesktop && token) fetchCategories(token);
   }, [isDesktop, token, fetchCategories]);
 
@@ -217,6 +201,20 @@ export default function ExecutorRequestsPage() {
     [completedRequests, filterType]
   );
 
+  const {
+    displayRequest,
+    selectRequest: handleCardClick,
+    closeDetail: handleClosePanel,
+    clearAfterUpdate,
+    setSelectedRequest,
+  } = useRequestSelectionFromUrl({
+    requestsBasePath: "/executor/requests",
+    requestLists: [assignedRequests || [], myRequests || [], completedRequests || []],
+    fallbackLists: [filteredTasks, filteredMy, filteredCompleted],
+    isDesktop,
+    isDataReady: !loading,
+  });
+
   const renderCardHeader = useCallback(
     (requestGroup: RequestGroup) => (
       <div className="pb-3 px-5 pt-5">
@@ -247,26 +245,9 @@ export default function ExecutorRequestsPage() {
     []
   );
 
-  const handleCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/executor/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/executor/requests/${request.id}`);
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/executor/requests", { scroll: false });
-  };
-
   const handleRequestUpdated = () => {
     fetchRequests();
-    setSelectedRequest(null);
-    setSelectedRequestData(null);
-    router.push("/executor/requests", { scroll: false });
+    clearAfterUpdate();
   };
 
   const handleStartTask = useCallback(async (taskId: string) => {
@@ -280,7 +261,7 @@ export default function ExecutorRequestsPage() {
   }, [fetchRequests, toast]);
 
   const displayRequestIdRef = React.useRef<number | null>(null);
-  displayRequestIdRef.current = selectedRequestData?.id ?? null;
+  displayRequestIdRef.current = displayRequest?.id ?? null;
 
   const handleCompleteTask = useCallback((task: any) => {
     setSelectedTaskForComplete({
@@ -327,7 +308,7 @@ export default function ExecutorRequestsPage() {
       handleCloseRedirectModal();
       await fetchRequests();
       const res = await api.get(`/request-groups/${selectedRequestForRedirect.request_group_id ?? displayRequestIdRef.current}`);
-      setSelectedRequestData(res.data);
+      setSelectedRequest(res.data);
     } catch (err: unknown) {
       console.error("Ошибка при перенаправлении:", err);
       setRedirectError("Не удалось перенаправить подзаявку");
@@ -370,7 +351,7 @@ export default function ExecutorRequestsPage() {
       const groupId = selectedTaskForComplete.request_group_id ?? displayRequestIdRef.current;
       if (groupId) {
         const res = await api.get(`/request-groups/${groupId}`);
-        setSelectedRequestData(res.data);
+        setSelectedRequest(res.data);
       }
     } catch (err) {
       console.error("Ошибка при завершении задачи", err);
@@ -400,7 +381,7 @@ export default function ExecutorRequestsPage() {
       const groupId = selectedSubRequestForReject.request_group_id ?? displayRequestIdRef.current;
       if (groupId) {
         const res = await api.get(`/request-groups/${groupId}`);
-        setSelectedRequestData(res.data);
+        setSelectedRequest(res.data);
       }
     } catch (err: unknown) {
       console.error("Ошибка при отклонении заявки:", err);
@@ -417,14 +398,6 @@ export default function ExecutorRequestsPage() {
         : activeTab === "myTasks"
           ? filteredMy
           : filteredCompleted;
-    const displayRequest =
-      selectedRequestData ??
-      (requestIdFromUrl
-        ? [...(assignedRequests || []), ...(myRequests || []), ...(completedRequests || [])].find(
-            (r) => String(r.id) === requestIdFromUrl
-          )
-        : null);
-
     const tabsContent = (
       <>
         <button

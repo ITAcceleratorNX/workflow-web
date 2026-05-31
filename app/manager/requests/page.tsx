@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -17,15 +16,13 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { BottomNav } from "@/components/BottomNav";
 import { RequestDetails } from "@/components/RequestDetails";
 import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
+import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 
 type OfficeType = { id: number; name: string; city?: string; address?: string };
 
 export default function ManagerRequestsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { token } = useAuthStore();
-  const requestIdFromUrl = searchParams?.get("requestId");
 
   const { requests, setRequests } = useRequestStore();
 
@@ -168,32 +165,22 @@ export default function ManagerRequestsPage() {
     );
   }, []);
 
-  const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
-
-  const displayRequest = useMemo(() => {
-    if (selectedRequest) return selectedRequest;
-    if (requestIdFromUrl) return requests.find((r) => String(r.id) === requestIdFromUrl) ?? null;
-    return null;
-  }, [selectedRequest, requestIdFromUrl, requests]);
-
-  const handleCardClick = (request: RequestGroup) => {
-    if (isDesktop) {
-      setSelectedRequest(request);
-      router.push(`/manager/requests?requestId=${request.id}`, { scroll: false });
-    } else {
-      router.push(`/manager/requests/${request.id}`);
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedRequest(null);
-    router.push("/manager/requests", { scroll: false });
-  };
+  const {
+    displayRequest,
+    selectRequest: handleCardClick,
+    closeDetail: handleClosePanel,
+    clearAfterUpdate,
+  } = useRequestSelectionFromUrl({
+    requestsBasePath: "/manager/requests",
+    requestLists: [requests],
+    fallbackLists: [filteredRequests],
+    isDesktop,
+    isDataReady: !loading,
+  });
 
   const handleRequestUpdated = () => {
     fetchRequests(1);
-    setSelectedRequest(null);
-    router.push("/manager/requests", { scroll: false });
+    clearAfterUpdate();
   };
 
   if (isDesktop) {

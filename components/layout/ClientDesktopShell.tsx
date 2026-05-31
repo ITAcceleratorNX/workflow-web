@@ -79,7 +79,7 @@ export function ClientDesktopShell({ children, rightSlot }: ClientDesktopShellPr
           role="Клиент"
           variant="dark"
           profileHref="/profile"
-          requestsPathForNotification="/client"
+          requestsPathForNotification="/client/requests"
         />
         <div className="flex-1 flex min-h-0">
           <main className="flex-1 overflow-auto min-h-0 bg-[#1A1A1A]">
