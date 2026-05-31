@@ -4,7 +4,6 @@ import type { Metadata } from "next"
 import "./globals.css"
 import "../lib/fcm"
 import BridgeInit from "@/components/BridgeInit"
-import { NotificationPermissionRequest } from "@/components/NotificationPermissionRequest"
 import { RestorePendingRequestUrl } from "@/components/RestorePendingRequestUrl"
 import { MobileDeepLinkToApp } from "@/components/MobileDeepLinkToApp"
 import { Toaster } from "@/components/ui/toaster"
@@ -36,7 +35,6 @@ export default function RootLayout({
           <MobileDeepLinkToApp />
         </Suspense>
         {children}
-        <NotificationPermissionRequest />
         <Toaster />
       </body>
     </html>
