@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   Users,
+  Briefcase,
   ChevronLeft,
   BarChart3,
 } from "lucide-react";
@@ -18,6 +19,13 @@ const managementCards = [
     subtitle: "Роли и запросы на регистрацию",
     icon: Users,
     href: "/department-head/management/users",
+  },
+  {
+    key: "companies",
+    title: "Компании",
+    subtitle: "Юр. лица клиентов вашего офиса",
+    icon: Briefcase,
+    href: "/department-head/management/companies",
   },
   {
     key: "analytics",

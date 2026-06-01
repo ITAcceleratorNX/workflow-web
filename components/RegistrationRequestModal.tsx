@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/lib/api';
+import { api, getOfficeCompanies, getServiceCategoriesPublic } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -31,10 +31,18 @@ interface ServiceCategory {
     name: string;
 }
 
+interface Company {
+    id: number;
+    name: string;
+}
+
 const ROLES: Role[] = [
     { value: 'client', label: 'Клиент' },
     { value: 'executor', label: 'Исполнитель' }
 ];
+
+/** Спец-значение в селекте «Компания»: «Другое» — название будет введено вручную. */
+const COMPANY_OTHER_VALUE = '__other__';
 
 export default function RegistrationRequestModal({ isOpen, onClose }: RegistrationRequestModalProps) {
     const [formData, setFormData] = useState({
@@ -43,11 +51,16 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
         office_id: '',
         role: '',
         service_category_id: '',
+        /** id компании, '__other__' (Другое) или '' (не выбрано). */
+        company_id: '',
+        /** Произвольное название компании, если выбрано «Другое». */
+        company_other_name: '',
         password: '',
         confirm_password: ''
     });
     const [offices, setOffices] = useState<Office[]>([]);
     const [categories, setCategories] = useState<ServiceCategory[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
@@ -55,11 +68,9 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
     const { toast } = useToast()
     const [formErrors, setFormErrors] = useState<string | null>(null);
 
-    // Загружаем список офисов и категорий при открытии модала
     React.useEffect(() => {
         if (isOpen) {
             loadOffices();
-            loadCategories();
         }
     }, [isOpen]);
 
@@ -72,14 +83,52 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
         }
     };
 
-    const loadCategories = async () => {
-        try {
-            const response = await api.get('/service-categories/public');
-            setCategories(response.data);
-        } catch (error) {
-            console.error('Ошибка при загрузке категорий:', error);
+    React.useEffect(() => {
+        if (!isOpen) {
+            setCategories([]);
+            return;
         }
-    };
+        const officeId = Number(formData.office_id);
+        if (!officeId) {
+            setCategories([]);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await getServiceCategoriesPublic(officeId);
+                if (!cancelled) setCategories(list);
+            } catch (error) {
+                console.error('Ошибка при загрузке категорий:', error);
+                if (!cancelled) setCategories([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, formData.office_id]);
+
+    // Подгружаем компании выбранного офиса (только если открыт модал — иначе тратим запрос впустую).
+    React.useEffect(() => {
+        if (!isOpen || !formData.office_id) {
+            setCompanies([]);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await getOfficeCompanies(Number(formData.office_id));
+                if (cancelled) return;
+                setCompanies(list);
+            } catch (error) {
+                console.error('Ошибка при загрузке компаний:', error);
+                if (!cancelled) setCompanies([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, formData.office_id]);
 
     // Автоматическое форматирование телефона
     const formatPhone = (value: string) => {
@@ -129,7 +178,7 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
 
         setLoading(true);
         try {
-            const { phone, full_name, office_id, role, service_category_id, password } = formData;
+            const { phone, full_name, office_id, role, service_category_id, company_id, company_other_name, password } = formData;
             const requestData: any = {
                 phone,
                 full_name,
@@ -141,6 +190,21 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
             // Добавляем service_category_id только если роль - executor и категория выбрана
             if (role === 'executor' && service_category_id) {
                 requestData.service_category_id = parseInt(service_category_id);
+            }
+
+            // Привязка к компании актуальна только для клиента.
+            if (role === 'client') {
+                if (company_id === COMPANY_OTHER_VALUE) {
+                    const trimmed = company_other_name.trim();
+                    if (!trimmed) {
+                        setFormErrors('Укажите название компании');
+                        setLoading(false);
+                        return;
+                    }
+                    requestData.company_other_name = trimmed;
+                } else if (company_id) {
+                    requestData.company_id = parseInt(company_id);
+                }
             }
 
             await api.post('/registration-requests', requestData);
@@ -156,6 +220,8 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
                 office_id: '',
                 role: '',
                 service_category_id: '',
+                company_id: '',
+                company_other_name: '',
                 password: '',
                 confirm_password: ''
             });
@@ -212,7 +278,14 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
                                     <Label htmlFor="office" className="text-sm md:text-base">Офис *</Label>
                                     <Select
                                         value={formData.office_id}
-                                        onValueChange={(value) => setFormData(prev => ({ ...prev, office_id: value }))}
+                                        onValueChange={(value) => setFormData(prev => ({
+                                            ...prev,
+                                            office_id: value,
+                                            service_category_id: '',
+                                            // компания принадлежит офису — при смене офиса сбрасываем выбор.
+                                            company_id: '',
+                                            company_other_name: '',
+                                        }))}
                                         required
                                     >
                                         <SelectTrigger className="text-sm md:text-base">
@@ -232,7 +305,14 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
                                     <Label htmlFor="role" className="text-sm md:text-base">Роль *</Label>
                                     <Select
                                         value={formData.role}
-                                        onValueChange={(value) => setFormData(prev => ({ ...prev, role: value, service_category_id: '' }))}
+                                        onValueChange={(value) => setFormData(prev => ({
+                                            ...prev,
+                                            role: value,
+                                            service_category_id: '',
+                                            // компания только для клиента.
+                                            company_id: '',
+                                            company_other_name: '',
+                                        }))}
                                         required
                                     >
                                         <SelectTrigger className="text-sm md:text-base">
@@ -247,6 +327,42 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {formData.role === 'client' && formData.office_id && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="company" className="text-sm md:text-base">Компания *</Label>
+                                        <Select
+                                            value={formData.company_id}
+                                            onValueChange={(value) => setFormData(prev => ({
+                                                ...prev,
+                                                company_id: value,
+                                                company_other_name: value === COMPANY_OTHER_VALUE ? prev.company_other_name : '',
+                                            }))}
+                                            required
+                                        >
+                                            <SelectTrigger className="text-sm md:text-base">
+                                                <SelectValue placeholder={companies.length ? 'Выберите компанию' : 'Компании ещё не добавлены — выберите «Другое»'} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {companies.map((company) => (
+                                                    <SelectItem key={company.id} value={company.id.toString()}>
+                                                        {company.name}
+                                                    </SelectItem>
+                                                ))}
+                                                <SelectItem value={COMPANY_OTHER_VALUE}>Другое</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {formData.company_id === COMPANY_OTHER_VALUE && (
+                                            <Input
+                                                value={formData.company_other_name}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, company_other_name: e.target.value }))}
+                                                placeholder="Название компании"
+                                                maxLength={255}
+                                                className="text-sm md:text-base"
+                                            />
+                                        )}
+                                    </div>
+                                )}
 
                                 {formData.role === 'executor' && (
                                     <div className="space-y-2">
@@ -283,7 +399,12 @@ export default function RegistrationRequestModal({ isOpen, onClose }: Registrati
                                         !formData.full_name ||
                                         !formData.office_id ||
                                         !formData.role ||
-                                        (formData.role === 'executor' && !formData.service_category_id)
+                                        (formData.role === 'executor' && !formData.service_category_id) ||
+                                        // Клиент должен выбрать компанию или указать «Другое» с непустым названием.
+                                        (formData.role === 'client' && (
+                                            !formData.company_id ||
+                                            (formData.company_id === COMPANY_OTHER_VALUE && !formData.company_other_name.trim())
+                                        ))
                                     }
                                     className="w-full text-sm md:text-base py-2 md:py-3"
                                 >

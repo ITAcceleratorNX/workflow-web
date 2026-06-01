@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { api } from '@/lib/api';
+import { api, getOfficeCompanies, getServiceCategoriesPublic } from '@/lib/api';
 import { SuccessModal } from '@/components/success-model';
 import { Eye, EyeOff, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useSuccessModal } from "@/hooks/use-success-modal";
@@ -25,10 +25,18 @@ interface ServiceCategory {
     name: string;
 }
 
+interface Company {
+    id: number;
+    name: string;
+}
+
 const ROLES: Role[] = [
     { value: 'client', label: 'Клиент' },
     { value: 'executor', label: 'Исполнитель' }
 ];
+
+/** Спец-значение в селекте «Компания»: «Другое» — клиент укажет название вручную. */
+const COMPANY_OTHER_VALUE = '__other__';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -38,11 +46,16 @@ export default function RegisterPage() {
         office_id: '',
         role: '',
         service_category_id: '',
+        /** id компании, '__other__' (Другое) или '' (не выбрано). */
+        company_id: '',
+        /** Произвольное название компании, если выбрано «Другое». */
+        company_other_name: '',
         password: '',
         confirm_password: ''
     });
     const [offices, setOffices] = useState<Office[]>([]);
     const [categories, setCategories] = useState<ServiceCategory[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
@@ -56,10 +69,8 @@ export default function RegisterPage() {
     const [codeSent, setCodeSent] = useState(false);
     const [countdown, setCountdown] = useState(0);
 
-    // Загружаем список офисов и категорий при монтировании компонента
     useEffect(() => {
         loadOffices();
-        loadCategories();
     }, []);
 
     // Таймер обратного отсчета для повторной отправки кода
@@ -79,14 +90,50 @@ export default function RegisterPage() {
         }
     };
 
-    const loadCategories = async () => {
-        try {
-            const response = await api.get('/service-categories/public');
-            setCategories(response.data);
-        } catch (error) {
-            console.error('Ошибка при загрузке категорий:', error);
+    // Категории услуг привязаны к офису (для роли «Исполнитель»).
+    useEffect(() => {
+        const officeId = Number(formData.office_id);
+        if (!officeId) {
+            setCategories([]);
+            return;
         }
-    };
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await getServiceCategoriesPublic(officeId);
+                if (!cancelled) setCategories(list);
+            } catch (error) {
+                console.error('Ошибка при загрузке категорий:', error);
+                if (!cancelled) setCategories([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [formData.office_id]);
+
+    // Подгружаем список компаний выбранного офиса, чтобы клиент мог выбрать свою.
+    useEffect(() => {
+        const officeId = formData.office_id;
+        if (!officeId) {
+            setCompanies([]);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await getOfficeCompanies(Number(officeId));
+                if (cancelled) return;
+                setCompanies(list);
+            } catch (error) {
+                console.error('Ошибка при загрузке компаний:', error);
+                if (!cancelled) setCompanies([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [formData.office_id]);
 
     // Автоматическое форматирование телефона
     const formatPhone = (value: string) => {
@@ -198,7 +245,7 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const { phone, full_name, office_id, role, service_category_id, password } = formData;
+            const { phone, full_name, office_id, role, service_category_id, company_id, company_other_name, password } = formData;
             const requestData: any = {
                 phone,
                 full_name,
@@ -212,6 +259,21 @@ export default function RegisterPage() {
                 requestData.service_category_id = parseInt(service_category_id);
             }
 
+            // Привязка к компании актуальна только для клиента.
+            if (role === 'client') {
+                if (company_id === COMPANY_OTHER_VALUE) {
+                    const trimmed = company_other_name.trim();
+                    if (!trimmed) {
+                        setFormErrors('Укажите название компании');
+                        setLoading(false);
+                        return;
+                    }
+                    requestData.company_other_name = trimmed;
+                } else if (company_id) {
+                    requestData.company_id = parseInt(company_id);
+                }
+            }
+
             await api.post('/registration-requests', requestData);
 
             successModal.showSuccess();
@@ -222,6 +284,8 @@ export default function RegisterPage() {
                 office_id: '',
                 role: '',
                 service_category_id: '',
+                company_id: '',
+                company_other_name: '',
                 password: '',
                 confirm_password: ''
             });
@@ -446,7 +510,14 @@ export default function RegisterPage() {
                                 </label>
                                 <CustomSelect
                                     value={formData.office_id}
-                                    onChange={(value) => setFormData(prev => ({ ...prev, office_id: value }))}
+                                    onChange={(value) => setFormData(prev => ({
+                                        ...prev,
+                                        office_id: value,
+                                        service_category_id: '',
+                                        // компания принадлежит офису — при смене офиса сбрасываем выбор.
+                                        company_id: '',
+                                        company_other_name: '',
+                                    }))}
                                     options={offices.map(o => ({ value: o.id.toString(), label: o.name }))}
                                     placeholder="Выберите офис"
                                 />
@@ -467,11 +538,71 @@ export default function RegisterPage() {
                                 </label>
                                 <CustomSelect
                                     value={formData.role}
-                                    onChange={(value) => setFormData(prev => ({ ...prev, role: value, service_category_id: '' }))}
+                                    onChange={(value) => setFormData(prev => ({
+                                        ...prev,
+                                        role: value,
+                                        service_category_id: '',
+                                        // компания актуальна только для клиента.
+                                        company_id: '',
+                                        company_other_name: '',
+                                    }))}
                                     options={ROLES.map(r => ({ value: r.value, label: r.label }))}
                                     placeholder="Выберите роль"
                                 />
                             </div>
+
+                            {/* Company Select (только для клиента, после выбора офиса) */}
+                            {formData.role === 'client' && formData.office_id && (
+                                <div className="flex flex-col" style={{ gap: "8px" }}>
+                                    <label
+                                        style={{
+                                            fontFamily: "'Inter', sans-serif",
+                                            fontWeight: 500,
+                                            fontSize: "16px",
+                                            lineHeight: "24px",
+                                            color: "#FFFFFF"
+                                        }}
+                                    >
+                                        Компания
+                                    </label>
+                                    <CustomSelect
+                                        value={formData.company_id}
+                                        onChange={(value) => setFormData(prev => ({
+                                            ...prev,
+                                            company_id: value,
+                                            // если выбрали реальную компанию — текст «Другое» больше не нужен.
+                                            company_other_name: value === COMPANY_OTHER_VALUE ? prev.company_other_name : '',
+                                        }))}
+                                        options={[
+                                            ...companies.map(c => ({ value: c.id.toString(), label: c.name })),
+                                            { value: COMPANY_OTHER_VALUE, label: 'Другое' },
+                                        ]}
+                                        placeholder={companies.length ? 'Выберите компанию' : 'Компании ещё не добавлены — выберите «Другое»'}
+                                    />
+                                    {formData.company_id === COMPANY_OTHER_VALUE && (
+                                        <input
+                                            type="text"
+                                            placeholder="Название компании"
+                                            value={formData.company_other_name}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, company_other_name: e.target.value }))}
+                                            maxLength={255}
+                                            className="w-full outline-none"
+                                            style={{
+                                                height: "48px",
+                                                padding: "12px 16px",
+                                                border: "1px solid #212121",
+                                                borderRadius: "8px",
+                                                background: "transparent",
+                                                fontFamily: "'Inter', sans-serif",
+                                                fontWeight: 400,
+                                                fontSize: "16px",
+                                                lineHeight: "22px",
+                                                color: "#FFFFFF"
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            )}
 
                             {/* Service Category Select (for executor) */}
                             {formData.role === 'executor' && (
@@ -518,7 +649,12 @@ export default function RegisterPage() {
                                     !formData.full_name ||
                                     !formData.office_id ||
                                     !formData.role ||
-                                    (formData.role === 'executor' && !formData.service_category_id)
+                                    (formData.role === 'executor' && !formData.service_category_id) ||
+                                    // Клиент должен выбрать компанию или указать «Другое» с названием.
+                                    (formData.role === 'client' && (
+                                        !formData.company_id ||
+                                        (formData.company_id === COMPANY_OTHER_VALUE && !formData.company_other_name.trim())
+                                    ))
                                 }
                                 className="w-full flex justify-center items-center disabled:opacity-50"
                                 style={{

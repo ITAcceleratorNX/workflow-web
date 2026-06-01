@@ -8,6 +8,7 @@ import {
   FolderTree,
   Users,
   Building2,
+  Briefcase,
   Home,
   ChevronLeft,
   BarChart3,
@@ -37,6 +38,13 @@ const managementCards = [
     subtitle: "Кабинеты, переговорные, адреса",
     icon: Building2,
     href: "/admin-worker/management/office",
+  },
+  {
+    key: "companies",
+    title: "Компании",
+    subtitle: "Юр. лица клиентов внутри офисов",
+    icon: Briefcase,
+    href: "/admin-worker/management/companies",
   },
   {
     key: "smart-home",

@@ -32,6 +32,8 @@ interface OfficeUser {
   phone: string;
   role: string;
   office_id?: number;
+  company_id?: number | null;
+  company?: { id: number; name: string } | null;
 }
 
 const roleLabels: Record<string, string> = {
@@ -196,6 +198,9 @@ export default function UserManagementMobile() {
                     className="text-white focus:bg-[#3A3A3C]"
                   >
                     {u.full_name} <span className="text-[#8E8E93]">({u.phone})</span>
+                    {u.role === "client" && (
+                      <span className="text-[#8E8E93]"> · {u.company?.name ?? "Не указана"}</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -266,6 +271,9 @@ export default function UserManagementMobile() {
                     className="text-white focus:bg-[#3A3A3C]"
                   >
                     {u.full_name} — {roleLabels[u.role] || u.role}
+                    {u.role === "client" && (
+                      <span className="text-[#8E8E93]"> · {u.company?.name ?? "Не указана"}</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>

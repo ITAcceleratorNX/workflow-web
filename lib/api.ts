@@ -70,6 +70,13 @@ export const updateServiceCategory = (id: number, data: { name: string }) =>
 export const deleteServiceCategory = (id: number) =>
     api.delete(`/service-categories/${id}`);
 
+/** Публичный список категорий для регистрации (office_id обязателен на бэкенде). */
+export const getServiceCategoriesPublic = async (officeId: number) => {
+    const response = await api.get(`/service-categories/public?office_id=${officeId}`);
+    const data = response.data;
+    return Array.isArray(data) ? data : [data];
+};
+
 // Получить исполнителей по категории
 export const getExecutorsByCategory = (categoryId: number) =>
     api.get(`/service-categories/${categoryId}/executors`);
@@ -113,6 +120,41 @@ export const updateOfficeWorkingHours = (
         auto_track_enabled: boolean;
     }
 ) => api.patch(`/offices/${officeId}/working-hours`, data);
+
+
+// ==================== Companies ====================
+
+/**
+ * Компания (юр. лицо клиента) внутри офиса.
+ * Привязка клиента к компании опциональна и возможна только для роли `client`.
+ */
+export interface Company {
+    id: number;
+    office_id: number;
+    name: string;
+    created_at?: string;
+}
+
+/** Ответ GET /offices/:id/companies — список в поле `items`, не массив в корне. */
+type OfficeCompaniesResponse = { items: Company[] };
+
+/** Список компаний выбранного офиса (используется и при регистрации, и в админке). */
+export const getOfficeCompanies = async (officeId: number): Promise<Company[]> => {
+    const { data } = await api.get<OfficeCompaniesResponse>(`/offices/${officeId}/companies`);
+    return Array.isArray(data?.items) ? data.items : [];
+};
+
+export const createOfficeCompany = (officeId: number, data: { name: string }) =>
+    api.post<Company>(`/offices/${officeId}/companies`, data);
+
+export const updateOfficeCompany = (
+    officeId: number,
+    companyId: number,
+    data: { name: string }
+) => api.patch<Company>(`/offices/${officeId}/companies/${companyId}`, data);
+
+export const deleteOfficeCompany = (officeId: number, companyId: number) =>
+    api.delete(`/offices/${officeId}/companies/${companyId}`);
 
 
 

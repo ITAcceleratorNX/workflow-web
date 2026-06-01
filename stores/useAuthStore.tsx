@@ -6,6 +6,11 @@ interface Office {
     photo?: string | null;
 }
 
+interface Company {
+    id: number;
+    name: string;
+}
+
 interface User {
     id: number;
     full_name: string;
@@ -20,6 +25,9 @@ interface User {
     marketing_notifications: boolean;
     push_notifications: boolean;
     service_category_id?: number;
+    /** company_id заполнен только у клиентов; null/undefined — компания «Не указана». */
+    company_id?: number | null;
+    company?: Company | null;
 }
 
 interface AuthState {

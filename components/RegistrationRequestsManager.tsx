@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
+import { api, getOfficeCompanies } from '@/lib/api';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {useAuthStore} from "@/stores/useAuthStore";
@@ -18,10 +18,14 @@ interface RegistrationRequest {
     id: number;
     phone: string;
     full_name: string;
+    office_id: number;
     office: { name: string };
     role: string;
     service_category_id?: number;
     service_category?: { name: string };
+    company_id?: number | null;
+    company?: { id: number; name: string } | null;
+    company_other_name?: string | null;
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
 }
@@ -31,6 +35,15 @@ interface Office {
     name: string;
     photo?: string | null;
 }
+
+interface Company {
+    id: number;
+    name: string;
+}
+
+/** Спец-значения в селекте «Компания» при редактировании заявки администратором. */
+const COMPANY_OTHER_VALUE = '__other__';
+const COMPANY_NONE_VALUE = '__none__';
 
 interface RegistrationRequestsManagerProps {
     /** Тёмная тема для раздела Управление на десктопе у менеджера */
@@ -50,6 +63,16 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
         date_from: '',
         date_to: ''
     });
+
+    // Состояние модалки редактирования заявки администратором перед approve.
+    const [editing, setEditing] = useState<RegistrationRequest | null>(null);
+    const [editOfficeId, setEditOfficeId] = useState<string>('');
+    const [editCompanyId, setEditCompanyId] = useState<string>('');
+    const [editCompanyOtherName, setEditCompanyOtherName] = useState<string>('');
+    const [editCompanies, setEditCompanies] = useState<Company[]>([]);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const canEditOfficeCompany = role === 'admin-worker' || role === 'admin' || role === 'manager';
 
     useEffect(() => {
         loadOffices();
@@ -96,6 +119,91 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                 description: error.response?.data?.message || 'Произошла ошибка при одобрении',
                 variant: 'destructive'
             });
+        }
+    };
+
+    const openEdit = (request: RegistrationRequest) => {
+        setEditing(request);
+        setEditOfficeId(request.office_id ? String(request.office_id) : '');
+        if (request.company_id) {
+            setEditCompanyId(String(request.company_id));
+            setEditCompanyOtherName('');
+        } else if (request.company_other_name) {
+            setEditCompanyId(COMPANY_OTHER_VALUE);
+            setEditCompanyOtherName(request.company_other_name);
+        } else {
+            setEditCompanyId(COMPANY_NONE_VALUE);
+            setEditCompanyOtherName('');
+        }
+        setEditError(null);
+    };
+
+    const closeEdit = () => {
+        setEditing(null);
+        setEditCompanies([]);
+        setEditError(null);
+    };
+
+    // Подгружаем компании выбранного офиса при редактировании.
+    useEffect(() => {
+        if (!editing || !editOfficeId) {
+            setEditCompanies([]);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await getOfficeCompanies(Number(editOfficeId));
+                if (cancelled) return;
+                setEditCompanies(list);
+            } catch (error) {
+                console.error('Ошибка при загрузке компаний:', error);
+                if (!cancelled) setEditCompanies([]);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [editing, editOfficeId]);
+
+    const handleSaveEdit = async () => {
+        if (!editing) return;
+        if (!editOfficeId) {
+            setEditError('Выберите офис');
+            return;
+        }
+        const payload: Record<string, unknown> = {
+            office_id: parseInt(editOfficeId),
+        };
+        // Привязка к компании имеет смысл только для клиента.
+        if (editing.role === 'client') {
+            if (editCompanyId === COMPANY_OTHER_VALUE) {
+                const trimmed = editCompanyOtherName.trim();
+                if (!trimmed) {
+                    setEditError('Укажите название компании');
+                    return;
+                }
+                payload.company_id = null;
+                payload.company_other_name = trimmed;
+            } else if (editCompanyId === COMPANY_NONE_VALUE || !editCompanyId) {
+                payload.company_id = null;
+                payload.company_other_name = null;
+            } else {
+                payload.company_id = parseInt(editCompanyId);
+                payload.company_other_name = null;
+            }
+        }
+        setEditSaving(true);
+        setEditError(null);
+        try {
+            await api.put(`/registration-requests/${editing.id}`, payload);
+            toast({ title: 'Сохранено', description: 'Заявка обновлена' });
+            closeEdit();
+            loadRequests();
+        } catch (error: any) {
+            setEditError(error?.response?.data?.message || error?.response?.data?.error || 'Не удалось сохранить заявку');
+        } finally {
+            setEditSaving(false);
         }
     };
 
@@ -257,12 +365,28 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                                                     {request.role === 'executor' && request.service_category && (
                                                         <p>Категория: {request.service_category.name}</p>
                                                     )}
+                                                    {request.role === 'client' && (
+                                                        <p>
+                                                            Компания: {request.company?.name
+                                                                ?? (request.company_other_name ? `${request.company_other_name} (новая)` : 'Не указана')}
+                                                        </p>
+                                                    )}
                                                     <p>Дата: {format(new Date(request.created_at), 'dd MMMM yyyy HH:mm', { locale: ru })}</p>
                                                 </div>
                                             </div>
 
                                             {request.status === 'pending' && (
                                                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                                    {canEditOfficeCompany && (
+                                                        <Button
+                                                            onClick={() => openEdit(request)}
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${isDark ? 'border-white/20 text-white hover:bg-white/10' : ''}`}
+                                                        >
+                                                            Изменить офис / компанию
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         onClick={() => handleApprove(request.id)}
                                                         size="sm"
@@ -294,6 +418,87 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                     )}
                 </CardContent>
             </Card>
+
+            {editing && (
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+                    <div className={`w-full max-w-md rounded-lg p-5 space-y-4 ${isDark ? 'bg-[#2C2C2E] border border-white/10 text-white' : 'bg-white text-foreground'}`}>
+                        <div>
+                            <h3 className="text-lg font-semibold">Изменить офис и компанию</h3>
+                            <p className={`text-xs mt-1 ${mutedCl}`}>Заявка: {editing.full_name} ({editing.phone})</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className={`text-xs md:text-sm ${labelCl}`}>Офис</Label>
+                            <Select
+                                value={editOfficeId}
+                                onValueChange={(value) => {
+                                    setEditOfficeId(value);
+                                    // Компания зависит от офиса — сбрасываем выбор.
+                                    setEditCompanyId(editing?.role === 'client' ? COMPANY_NONE_VALUE : '');
+                                    setEditCompanyOtherName('');
+                                }}
+                            >
+                                <SelectTrigger className={`text-xs md:text-sm ${inputCl}`}>
+                                    <SelectValue placeholder="Выберите офис" />
+                                </SelectTrigger>
+                                <SelectContent className={isDark ? 'bg-[#2C2C2E] border-white/10 text-white' : ''}>
+                                    {offices.map((office) => (
+                                        <SelectItem key={office.id} value={office.id.toString()}>
+                                            {office.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {editing.role === 'client' && (
+                            <div className="space-y-2">
+                                <Label className={`text-xs md:text-sm ${labelCl}`}>Компания</Label>
+                                <Select
+                                    value={editCompanyId || COMPANY_NONE_VALUE}
+                                    onValueChange={(value) => {
+                                        setEditCompanyId(value);
+                                        if (value !== COMPANY_OTHER_VALUE) setEditCompanyOtherName('');
+                                    }}
+                                >
+                                    <SelectTrigger className={`text-xs md:text-sm ${inputCl}`}>
+                                        <SelectValue placeholder="Выберите компанию" />
+                                    </SelectTrigger>
+                                    <SelectContent className={isDark ? 'bg-[#2C2C2E] border-white/10 text-white' : ''}>
+                                        <SelectItem value={COMPANY_NONE_VALUE}>Не указана</SelectItem>
+                                        {editCompanies.map((company) => (
+                                            <SelectItem key={company.id} value={company.id.toString()}>
+                                                {company.name}
+                                            </SelectItem>
+                                        ))}
+                                        <SelectItem value={COMPANY_OTHER_VALUE}>Другое</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {editCompanyId === COMPANY_OTHER_VALUE && (
+                                    <Input
+                                        value={editCompanyOtherName}
+                                        onChange={(e) => setEditCompanyOtherName(e.target.value)}
+                                        placeholder="Название компании"
+                                        maxLength={255}
+                                        className={`text-xs md:text-sm ${inputCl}`}
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {editError && <p className="text-sm text-red-500">{editError}</p>}
+
+                        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                            <Button type="button" variant="ghost" onClick={closeEdit} disabled={editSaving}>
+                                Отмена
+                            </Button>
+                            <Button type="button" onClick={handleSaveEdit} disabled={editSaving}>
+                                {editSaving ? 'Сохранение...' : 'Сохранить'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

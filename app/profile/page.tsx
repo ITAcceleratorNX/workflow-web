@@ -503,6 +503,16 @@ export default function ProfilePage() {
                                     <Label className={labelClass}>Офис</Label>
                                     <Input value={user?.office?.name || ""} readOnly className={`${inputClass} cursor-not-allowed text-[#7F7F7F]`} />
                                 </div>
+                                {role === "client" && (
+                                    <div className="flex flex-col" style={{ gap: "8px" }}>
+                                        <Label className={labelClass}>Компания</Label>
+                                        <Input
+                                            value={user?.company?.name || "Не указана"}
+                                            readOnly
+                                            className={`${inputClass} cursor-not-allowed text-[#7F7F7F]`}
+                                        />
+                                    </div>
+                                )}
                                 <div className="flex flex-col" style={{ gap: "8px" }}>
                                     <Label className={labelClass}>ID</Label>
                                     <p className="font-mono text-sm text-[#7F7F7F]">#{user?.id}</p>
