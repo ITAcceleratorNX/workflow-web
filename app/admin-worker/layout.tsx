@@ -1,96 +1,60 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
 export default function AdminWorkerLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const { user, clearAuth } = useAuthStore();
-    const isDesktop = useIsDesktop();
-    const [hydrated, setHydrated] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, clearAuth } = useAuthStore();
+  const isDesktop = useIsDesktop();
+  const [hydrated, setHydrated] = useState(false);
 
-    useEffect(() => {
-        setHydrated(true);
-    }, []);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
-    useEffect(() => {
-        if (!hydrated) return;
+  useEffect(() => {
+    if (!hydrated) return;
 
-        if (!user || user.role !== "admin-worker") {
-            clearAuth();
-            router.push("/login");
-            return;
-        }
-
-        // On mobile: redirect /admin-worker to /admin-worker/management
-        // Unless we have tab/requestId params (e.g. from requests page card click)
-        // Use window.location.search as fallback - searchParams may not be updated yet on navigation
-        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-        const hasRequestParams =
-            searchParams?.get("tab") || searchParams?.get("requestId") ||
-            urlParams?.get("tab") || urlParams?.get("requestId");
-        if (!isDesktop && pathname === "/admin-worker" && !hasRequestParams) {
-            router.replace("/admin-worker/management");
-        }
-    }, [hydrated, user, router, clearAuth, isDesktop, pathname, searchParams]);
-
-    // Add body class for admin mobile (management + requests + statistics) - enables dark theme for portaled Select/dropdown
-    useEffect(() => {
-        const isManagement = pathname?.startsWith("/admin-worker/management");
-        const isRequests = pathname?.startsWith("/admin-worker/requests");
-        const isStatistics = pathname?.startsWith("/admin-worker/statistics");
-        if (!isDesktop && (isManagement || isRequests || isStatistics)) {
-            document.body.classList.add("admin-management-mobile");
-        } else {
-            document.body.classList.remove("admin-management-mobile");
-        }
-        return () => document.body.classList.remove("admin-management-mobile");
-    }, [pathname, isDesktop]);
-
-    if (!hydrated || !user) {
-        return null;
+    if (!user || user.role !== "admin-worker") {
+      clearAuth();
+      router.push("/login");
     }
+  }, [hydrated, user, router, clearAuth]);
 
-    // На мобильных /admin-worker без параметров редиректится в management — не показываем dashboard, чтобы избежать мигания
-    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    const hasRequestParams =
-        searchParams?.get("tab") || searchParams?.get("requestId") ||
-        urlParams?.get("tab") || urlParams?.get("requestId");
-    const shouldRedirectToManagement =
-        !isDesktop && pathname === "/admin-worker" && !hasRequestParams;
-
-    if (shouldRedirectToManagement) {
-        return (
-            <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-[#F35713]/50 border-t-[#F35713] rounded-full animate-spin" />
-            </div>
-        );
+  useEffect(() => {
+    const isManagement = pathname?.startsWith("/admin-worker/management");
+    const isRequests = pathname?.startsWith("/admin-worker/requests");
+    const isStatistics = pathname?.startsWith("/admin-worker/statistics");
+    if (!isDesktop && (isManagement || isRequests || isStatistics)) {
+      document.body.classList.add("admin-management-mobile");
+    } else {
+      document.body.classList.remove("admin-management-mobile");
     }
+    return () => document.body.classList.remove("admin-management-mobile");
+  }, [pathname, isDesktop]);
 
-    if (isDesktop) {
-        return (
-            <RoleDesktopShell role="admin-worker">
-                {children}
-            </RoleDesktopShell>
-        );
-    }
+  if (!hydrated || !user) {
+    return null;
+  }
 
-    return (
-        <div
-            className={`min-h-screen pb-[calc(110px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E]`}
-        >
-            {children}
-            <BottomNav />
-        </div>
-    );
+  if (isDesktop) {
+    return <RoleDesktopShell role="admin-worker">{children}</RoleDesktopShell>;
+  }
+
+  return (
+    <div className="min-h-screen pb-[calc(110px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E]">
+      {children}
+      <BottomNav />
+    </div>
+  );
 }

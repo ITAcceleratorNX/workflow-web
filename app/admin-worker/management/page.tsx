@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const ManagerDashboard = dynamic(() => import("@/app/manager/page"), { ssr: false });
+const ManagerDashboard = dynamic(
+  () => import("@/components/manager/home/manager-home-dashboard"),
+  { ssr: false }
+);
 
 const managementCards = [
   {

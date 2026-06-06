@@ -24,7 +24,8 @@ interface Stats {
   };
 }
 
-export function DepartmentHeadDesktopDashboard() {
+/** Desktop dashboard — без redesign: KPI + текущие заявки. */
+export function DepartmentHeadHomeDesktop() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [awaitingRequests, setAwaitingRequests] = useState<RequestGroup[]>([]);
@@ -142,3 +143,6 @@ export function DepartmentHeadDesktopDashboard() {
     </div>
   );
 }
+
+/** @deprecated Use DepartmentHeadHomeDesktop */
+export const DepartmentHeadDesktopDashboard = DepartmentHeadHomeDesktop;

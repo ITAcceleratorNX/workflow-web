@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useIsDesktop, useIsDesktopResolved } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
 
 export default function ClientLayout({
@@ -12,10 +12,8 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useIsDesktop();
-  const { matches: isDesktopResolved, resolved: mediaResolved } = useIsDesktopResolved();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -32,15 +30,8 @@ export default function ClientLayout({
     }
   }, [hydrated, user, router, clearAuth]);
 
-  // При переходе с десктопа на мобильную версию — сразу открывать /cabinet (мобильный «дом» клиента)
-  // Используем mediaResolved, чтобы не редиректить до определения размера экрана (избегаем ложного редиректа на десктопе)
-  useEffect(() => {
-    if (!hydrated || !mediaResolved || isDesktopResolved) return;
-    if (pathname === "/client") {
-      router.replace("/cabinet");
-    }
-  }, [hydrated, mediaResolved, isDesktopResolved, pathname, router]);
-
+  // На мобилке «Мой кабинет» — /client (главная client home, parity с RN).
+  // Редирект /client → /cabinet убран в 5.1.
   if (!hydrated || !user) {
     return null;
   }
