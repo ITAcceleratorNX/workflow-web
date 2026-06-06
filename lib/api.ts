@@ -3,6 +3,8 @@ import {useAuthStore} from "@/stores/useAuthStore";
 
 const API_BASE_URL = 'https://workflow-back-zpk4.onrender.com/api';
 
+export { API_BASE_URL };
+
 export const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
