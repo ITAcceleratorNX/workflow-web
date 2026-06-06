@@ -1,22 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle, Loader2, Trash2, Home } from "lucide-react"
-import api, { getYandexTokens, deleteYandexTokens, refreshYandexTokens } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
 import { formatDateTime } from "@/lib/dateTimeUtils"
-
-interface YandexToken {
-  id: number
-  expires_at: string | null
-  created_at: string
-  updated_at: string
-  has_tokens: boolean
-}
+import { useYandexSmartHomeTokens } from "@/hooks/use-yandex-smart-home-tokens"
 
 interface YandexSmartHomeAdminProps {
   /** Тёмная тема (для раздела Управление на десктопе у админа) */
@@ -24,79 +12,17 @@ interface YandexSmartHomeAdminProps {
 }
 
 export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [existingToken, setExistingToken] = useState<YandexToken | null>(null)
-  const { toast } = useToast()
+  const {
+    tokensMeta: existingToken,
+    isLoading,
+    error,
+    tokenAction,
+    handleRefreshTokens,
+    handleDeleteTokens,
+  } = useYandexSmartHomeTokens()
 
-  useEffect(() => {
-    loadTokens()
-  }, [])
-
-  const loadTokens = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await getYandexTokens()
-      setExistingToken(response.data)
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        setExistingToken(null)
-      } else {
-        setError(err.response?.data?.message || "Ошибка при загрузке информации о токенах")
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!existingToken) return
-
-    if (!confirm("Вы уверены, что хотите удалить токены?")) {
-      return
-    }
-
-    try {
-      setIsDeleting(true)
-      setError(null)
-      await deleteYandexTokens()
-
-      toast({
-        title: "Успешно",
-        description: "Токены удалены",
-        duration: 3000
-      })
-
-      setExistingToken(null)
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Ошибка при удалении токенов")
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    try {
-      setIsRefreshing(true)
-      setError(null)
-      const response = await refreshYandexTokens()
-
-      toast({
-        title: "Успешно",
-        description: "Токены обновлены",
-        duration: 3000
-      })
-
-      await loadTokens()
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Ошибка при обновлении токенов")
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
+  const isRefreshing = tokenAction === "refresh"
+  const isDeleting = tokenAction === "delete"
 
   const cardCl = dark ? "border-white/10 bg-[#2C2C2E]" : ""
   const titleCl = dark ? "text-white" : ""
@@ -150,7 +76,9 @@ export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps
                 <CheckCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${dark ? "text-blue-300" : "text-blue-600"}`} />
                 <div className={`text-sm ${successTextCl}`}>
                   <p className="font-medium mb-1">Токены настроены</p>
-                  <p>Создано: {formatDateTime(existingToken.created_at)}</p>
+                  {existingToken.created_at ? (
+                    <p>Создано: {formatDateTime(existingToken.created_at)}</p>
+                  ) : null}
                   {existingToken.expires_at && (
                     <p>Истекает: {formatDateTime(existingToken.expires_at)}</p>
                   )}
@@ -175,8 +103,8 @@ export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps
           {existingToken && (
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
+                onClick={() => void handleRefreshTokens()}
+                disabled={isRefreshing || !!tokenAction}
                 variant="outline"
                 className={`bg-transparent flex-1 ${buttonOutlineCl}`}
               >
@@ -193,8 +121,8 @@ export function YandexSmartHomeAdmin({ dark = false }: YandexSmartHomeAdminProps
                 )}
               </Button>
               <Button
-                onClick={handleDelete}
-                disabled={isDeleting}
+                onClick={() => void handleDeleteTokens()}
+                disabled={isDeleting || !!tokenAction}
                 variant="destructive"
                 className="flex-1 sm:flex-initial"
               >

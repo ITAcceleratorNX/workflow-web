@@ -207,176 +207,33 @@ export const getAllExecutorsForAdmin = () => api.get('/executors/all');
 
 
 // ==================== Recurring Tasks ====================
-
-// Типы для повторяющихся задач
-// Интерфейс для повторяющихся задач с подзаявками
-export interface RecurringTask {
-    id: number;
-    location: string;
-    location_detail?: string;
-    description?: string;
-    request_type: 'recurring';
-    recurrence_type: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    recurrence_interval: number;
-    next_due_date: string;
-    last_completed_date?: string;
-    status: string;
-    recurring_status: 'active' | 'paused' | 'completed';
-    created_date: string;
-    planned_date?: string;
-    client?: {
-        id: number;
-        name: string;
-        phone: string;
-    };
-    office?: {
-        id: number;
-        name: string;
-    };
-    executors?: {
-        id: number;
-        full_name: string;
-        phone: string;
-    }[];
-    taskInstances?: TaskInstance[];
-    // Подзаявки повторяющейся задачи
-    requests?: Array<{
-        id: number;
-        title: string;
-        description: string;
-        status: string;
-        category_id: number;
-        is_long_term?: boolean;
-        category?: {
-            id: number;
-            name: string;
-        };
-        requestExecutors?: Array<{
-            id: number;
-            request_id: number;
-            executor_id: number;
-            role: string;
-            executor?: {
-                id: number;
-                user_id: number;
-                department_id: number;
-                specialty: string;
-                user?: {
-                    id: number;
-                    full_name: string;
-                    phone: string;
-                };
-            };
-        }>;
-    }>;
-    photos?: Array<{
-        id: number;
-        photo_url: string;
-        type: 'before' | 'after';
-    }>;
-}
-
-export interface TaskInstance {
-    id: number;
-    due_date: string;
-    completed_date?: string;
-    status: 'pending' | 'completed' | 'overdue' | 'skipped';
-    notes?: string;
-    taskCompletedByUser?: {
-        id: number;
-        name: string;
-        phone: string;
-    };
-    recurringTaskGroup?: {
-        id: number;
-        location: string;
-        location_detail?: string;
-        recurrence_type: 'daily' | 'weekly' | 'monthly' | 'yearly';
-        recurrence_interval: number;
-    };
-}
-
-export interface TaskStats {
-    total_instances: number;
-    completed_instances: number;
-    pending_instances: number;
-    overdue_instances: number;
-    completion_rate: number;
-}
-
-// Создать повторяющуюся задачу
-export const createRecurringTask = (data: {
-    location: string;
-    location_detail?: string;
-    recurrence_type: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    recurrence_interval: number;
-    start_date: string;
-    request_type?: string;
-}) => api.post<RecurringTask>('/recurring-tasks', data);
-
-// Получить все повторяющиеся задачи
-export const getRecurringTasks = (page = 1, pageSize = 10) =>
-    api.get<{ tasks: RecurringTask[]; pagination: any }>(`/recurring-tasks?page=${page}&pageSize=${pageSize}`);
-
-// Получить повторяющуюся задачу по ID
-export const getRecurringTaskById = (id: number) =>
-    api.get<RecurringTask>(`/recurring-tasks/${id}`);
-
-// Обновить повторяющуюся задачу
-export const updateRecurringTask = (id: number, data: Partial<RecurringTask>) =>
-    api.put<RecurringTask>(`/recurring-tasks/${id}`, data);
-
-// Удалить повторяющуюся задачу
-export const deleteRecurringTask = (id: number) =>
-    api.delete(`/recurring-tasks/${id}`);
-
-// Приостановить/возобновить задачу
-export const toggleRecurringTask = (id: number, action: 'pause' | 'resume') =>
-    api.patch<RecurringTask>(`/recurring-tasks/${id}/toggle`, { action });
-
-// Обновить статус повторяющейся задачи
-export const updateRecurringTaskStatus = (id: number, recurringStatus: 'active' | 'paused' | 'completed') =>
-    api.patch<RecurringTask>(`/recurring-tasks/${id}/status`, { recurring_status: recurringStatus });
-
-// Назначить исполнителя для повторяющейся задачи
-export const assignRecurringTaskExecutor = (id: number, executorId: number) =>
-    api.patch<RecurringTask>(`/recurring-tasks/${id}/assign-executor`, { executor_id: executorId });
-
-// Изменить исполнителя для повторяющейся задачи
-export const changeRecurringTaskExecutor = (id: number, executorId: number) =>
-    api.patch<RecurringTask>(`/recurring-tasks/${id}/change-executor`, { executor_id: executorId });
-
-// Получить статистику задачи
-export const getTaskStats = (id: number) =>
-    api.get<TaskStats>(`/recurring-tasks/${id}/stats`);
-
-// Получить экземпляры задачи
-export const getTaskInstances = (requestGroupId: number, page = 1, pageSize = 10) =>
-    api.get<{ instances: TaskInstance[]; pagination: any }>(`/recurring-tasks/${requestGroupId}/instances?page=${page}&pageSize=${pageSize}`);
-
-// Отметить экземпляр как выполненный
-export const completeTaskInstance = (instanceId: number, notes?: string) =>
-    api.patch<TaskInstance>(`/recurring-tasks/instances/${instanceId}/complete`, { notes });
-
-// Пропустить экземпляр
-export const skipTaskInstance = (instanceId: number, notes?: string) =>
-    api.patch<TaskInstance>(`/recurring-tasks/instances/${instanceId}/skip`, { notes });
-
-// Получить предстоящие задачи
-export const getUpcomingTasks = (limit = 10) =>
-    api.get<{ data: TaskInstance[] }>(`/recurring-tasks/upcoming?limit=${limit}`);
-
-// Получить календарь задач
-export const getTaskCalendar = (startDate: string, endDate: string) =>
-    api.get<{ data: TaskInstance[] }>(`/recurring-tasks/calendar?start_date=${startDate}&end_date=${endDate}`);
-
-// Импорт повторяющихся задач через Excel
-export const importRecurringTasksFromExcel = (formData: FormData) =>
-    api.post('/recurring-tasks/import-excel', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+export type {
+  RecurringTask,
+  TaskInstance,
+  TaskStats,
+  RecurrenceType,
+  RecurringStatus,
+  TaskInstanceStatus,
+  CreateRecurringTaskPayload,
+} from '@/lib/recurring-tasks-api';
+export {
+  createRecurringTask,
+  getRecurringTasks,
+  getRecurringTaskById,
+  updateRecurringTask,
+  deleteRecurringTask,
+  toggleRecurringTask,
+  updateRecurringTaskStatus,
+  assignRecurringTaskExecutor,
+  changeRecurringTaskExecutor,
+  getTaskStats,
+  getTaskInstances,
+  completeTaskInstance,
+  skipTaskInstance,
+  getUpcomingTasks,
+  getTaskCalendar,
+  importRecurringTasksFromExcel,
+} from '@/lib/recurring-tasks-api';
 
 // ==================== Meeting Rooms ====================
 

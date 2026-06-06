@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Clock, Calendar, User, CheckCircle, Pause, Play, History, FileText, ChevronDown, ChevronUp, MessageCircle, Zap, XCircle, Hourglass, MapPin, Edit, Trash2, X, Calendar as CalendarLucid } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { RecurringTask, getExecutors } from '@/lib/api';
+import { getExecutors } from '@/lib/api';
+import type { RecurringTask } from '@/lib/recurring-tasks-api';
 import { RoleBasedActionMenu } from '@/components/action-menu';
 import { TaskInstancesList } from './TaskInstancesList';
 import { AssignExecutorsModal } from '@/components/AssignExecutorsModal';

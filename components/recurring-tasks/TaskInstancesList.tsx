@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,91 +10,33 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, Clock, User, MessageSquare, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getTaskInstances, completeTaskInstance, skipTaskInstance, TaskInstance } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import type { TaskInstance } from '@/lib/recurring-tasks-api';
+import { useTaskInstances } from '@/hooks/use-task-instances';
 
 interface TaskInstancesListProps {
   taskId: number;
 }
 
 export const TaskInstancesList: React.FC<TaskInstancesListProps> = ({ taskId }) => {
-  const [instances, setInstances] = useState<TaskInstance[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { instances, loading, actionLoading, completeInstance, skipInstance } =
+    useTaskInstances(taskId);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<TaskInstance | null>(null);
   const [notes, setNotes] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
-  const { toast } = useToast();
-
-  const fetchInstances = async () => {
-    try {
-      const response = await getTaskInstances(taskId);
-      setInstances(response.data.instances || []);
-    } catch (error) {
-      console.error('Ошибка загрузки экземпляров:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить экземпляры задачи',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInstances();
-  }, [taskId]);
 
   const handleComplete = async () => {
     if (!selectedInstance) return;
-    
-    setActionLoading(true);
-    try {
-      await completeTaskInstance(selectedInstance.id, notes);
-      toast({
-        title: 'Успешно',
-        description: 'Экземпляр отмечен как выполненный',
-      });
-      setShowCompleteDialog(false);
-      setNotes('');
-      fetchInstances();
-    } catch (error) {
-      console.error('Ошибка отметки выполнения:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось отметить как выполненный',
-        variant: 'destructive',
-      });
-    } finally {
-      setActionLoading(false);
-    }
+    await completeInstance(selectedInstance.id, notes);
+    setShowCompleteDialog(false);
+    setNotes('');
   };
 
   const handleSkip = async () => {
     if (!selectedInstance) return;
-    
-    setActionLoading(true);
-    try {
-      await skipTaskInstance(selectedInstance.id, notes);
-      toast({
-        title: 'Успешно',
-        description: 'Экземпляр пропущен',
-      });
-      setShowSkipDialog(false);
-      setNotes('');
-      fetchInstances();
-    } catch (error) {
-      console.error('Ошибка пропуска:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось пропустить экземпляр',
-        variant: 'destructive',
-      });
-    } finally {
-      setActionLoading(false);
-    }
+    await skipInstance(selectedInstance.id, notes);
+    setShowSkipDialog(false);
+    setNotes('');
   };
 
   const getStatusBadge = (status: string) => {

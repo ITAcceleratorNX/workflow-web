@@ -1,7 +1,7 @@
 "use client";
 
-import { AdminWorkerProfileView } from "@/components/admin-worker/profile/admin-worker-profile-view";
+import { RoleProfileDesktopView } from "@/components/profile/role-profile-desktop-view";
 
 export default function AdminProfilePage() {
-  return <AdminWorkerProfileView />;
+  return <RoleProfileDesktopView />;
 }

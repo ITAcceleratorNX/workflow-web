@@ -100,7 +100,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         ) {
             return 'requests'
         }
-        if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/department-head/messages')) return 'help'
+        if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/manager/messages') || path.startsWith('/department-head/messages')) return 'help'
         if (path === profileHref || path.startsWith('/profile') || path.startsWith('/department-head/profile') || path.startsWith('/admin-worker/profile') || path.startsWith('/manager/profile')) return 'profile'
         return undefined
     }

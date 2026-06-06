@@ -1,95 +1,22 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
 import {
     ChevronDown,
     ChevronLeft,
     Loader2,
-    Power,
     Trash2,
     Plus,
-    UserMinus,
     UserPlus,
     Building2,
     DoorOpen,
     Search,
-    Lightbulb,
-    Wind,
-    Blinds,
-    Plug,
-    Tv,
-    Speaker,
-    Thermometer,
-    Lock,
-    Monitor,
-    Wifi,
-    AlertTriangle,
     Users,
     Settings2,
     Home,
     MapPin,
 } from "lucide-react"
-import {
-    getOffices,
-    getMeetingRooms,
-    getYandexDevicesList,
-    getRoomDevices,
-    getRoomDevicesForClient,
-    createRoomDevice,
-    deleteRoomDevice,
-    controlDevice,
-    getRoomSubscriptions,
-    createClientRoomSubscription,
-    deleteClientRoomSubscription,
-    getAllUsers,
-    type Office,
-    type MeetingRoom,
-    type YandexDevice,
-    type RoomDevice,
-    type ControlDeviceRequest,
-    type ClientRoomSubscription,
-} from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
-
-// ---- Device Icon Helper ----
-function getDeviceIcon(deviceType: string | null | undefined, deviceName: string) {
-    const name = (deviceName || "").toLowerCase()
-    const type = (deviceType || "").toLowerCase()
-
-    if (name.includes("свет") || name.includes("сеет") || name.includes("лампа") || name.includes("light") || type.includes("light")) {
-        return Lightbulb
-    }
-    if (name.includes("кондиционер") || name.includes("вентил") || name.includes("thermostat") || type.includes("thermostat")) {
-        return Wind
-    }
-    if (name.includes("шторы") || name.includes("жалюзи") || name.includes("curtain") || type.includes("curtain") || type.includes("openable")) {
-        return Blinds
-    }
-    if (name.includes("розетка") || name.includes("socket") || type.includes("socket")) {
-        return Plug
-    }
-    if (name.includes("тв") || name.includes("телевизор") || type.includes("media_device")) {
-        return Tv
-    }
-    if (name.includes("колонка") || name.includes("speaker") || type.includes("speaker")) {
-        return Speaker
-    }
-    if (name.includes("термо") || type.includes("sensor")) {
-        return Thermometer
-    }
-    if (name.includes("замок") || name.includes("lock") || type.includes("lock")) {
-        return Lock
-    }
-    return Power
-}
-
-// ---- User type ----
-interface UserInfo {
-    id: number
-    full_name: string
-    phone: string
-    role: string
-}
+import { getSmartHomeDeviceIcon } from "@/lib/yandex-smart-home-utils"
+import { useSmartHomeManagement } from "@/hooks/use-smart-home-management"
 
 interface SmartHomeManagementProps {
     /** Тёмная тема (для раздела Управление на десктопе у админа) */
@@ -97,7 +24,50 @@ interface SmartHomeManagementProps {
 }
 
 export function SmartHomeManagement({ dark = false }: SmartHomeManagementProps) {
-    const { toast } = useToast()
+    const {
+        step,
+        offices,
+        selectedOffice,
+        rooms,
+        selectedRoom,
+        roomLinkedDevices,
+        roomSubscriptions,
+        loadingOffices,
+        loadingRooms,
+        loadingDevices,
+        loadingSubscriptions,
+        isControlling,
+        isDeletingDevice,
+        isDeletingSub,
+        isAddingDevice,
+        isAddingEmployee,
+        devicesExpanded,
+        setDevicesExpanded,
+        accessExpanded,
+        setAccessExpanded,
+        showAddDevice,
+        setShowAddDevice,
+        showAddEmployee,
+        setShowAddEmployee,
+        selectedNewDevice,
+        setSelectedNewDevice,
+        selectedNewEmployee,
+        setSelectedNewEmployee,
+        employeeFilter,
+        setEmployeeFilter,
+        handleSelectOffice,
+        handleSelectRoom,
+        handleBackToOffices,
+        getDeviceState,
+        handleToggleDevice,
+        handleAddDevice,
+        handleDeleteDevice,
+        handleAddEmployee,
+        handleDeleteSubscription,
+        getAvailableDevices,
+        getAvailableEmployees,
+        findYandexDevice,
+    } = useSmartHomeManagement()
 
     const d = dark
     const cardBg = d ? "bg-[#2C2C2E]" : "bg-white"
@@ -132,351 +102,6 @@ export function SmartHomeManagement({ dark = false }: SmartHomeManagementProps) 
     const userAvatarBg = d ? "bg-white/10" : "bg-gray-200"
     const userAvatarIcon = d ? "text-white/60" : "text-gray-500"
     const accessLabel = d ? "text-green-400" : "text-green-600"
-
-    // --- Step state ---
-    const [step, setStep] = useState<"offices" | "cabinets">("offices")
-
-    // --- Data ---
-    const [offices, setOffices] = useState<Office[]>([])
-    const [selectedOffice, setSelectedOffice] = useState<Office | null>(null)
-    const [rooms, setRooms] = useState<MeetingRoom[]>([])
-    const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
-
-    // --- Devices ---
-    const [roomLinkedDevices, setRoomLinkedDevices] = useState<RoomDevice[]>([])
-    const [roomYandexDevices, setRoomYandexDevices] = useState<YandexDevice[]>([])
-    const [allYandexDevices, setAllYandexDevices] = useState<YandexDevice[]>([])
-
-    // --- Subscriptions (employee access) ---
-    const [roomSubscriptions, setRoomSubscriptions] = useState<ClientRoomSubscription[]>([])
-    const [allUsers, setAllUsers] = useState<UserInfo[]>([])
-
-    // --- Loading states ---
-    const [loadingOffices, setLoadingOffices] = useState(false)
-    const [loadingRooms, setLoadingRooms] = useState(false)
-    const [loadingDevices, setLoadingDevices] = useState(false)
-    const [loadingSubscriptions, setLoadingSubscriptions] = useState(false)
-    const [isControlling, setIsControlling] = useState<string | null>(null)
-    const [isDeletingDevice, setIsDeletingDevice] = useState<number | null>(null)
-    const [isDeletingSub, setIsDeletingSub] = useState<number | null>(null)
-    const [isAddingDevice, setIsAddingDevice] = useState(false)
-    const [isAddingEmployee, setIsAddingEmployee] = useState(false)
-
-    // --- UI states ---
-    const [devicesExpanded, setDevicesExpanded] = useState(true)
-    const [accessExpanded, setAccessExpanded] = useState(true)
-    const [showAddDevice, setShowAddDevice] = useState(false)
-    const [showAddEmployee, setShowAddEmployee] = useState(false)
-    const [selectedNewDevice, setSelectedNewDevice] = useState<string>("")
-    const [selectedNewEmployee, setSelectedNewEmployee] = useState<number | "">("")
-    const [employeeFilter, setEmployeeFilter] = useState("")
-    const [showEmployeeFilterDropdown, setShowEmployeeFilterDropdown] = useState(false)
-
-    // --- Load offices on mount ---
-    useEffect(() => {
-        loadOffices()
-        loadAllYandexDevices()
-        loadAllUsers()
-    }, [])
-
-    const loadOffices = async () => {
-        try {
-            setLoadingOffices(true)
-            const response = await getOffices()
-            setOffices(response.data || [])
-        } catch (err) {
-            console.error("Error loading offices:", err)
-        } finally {
-            setLoadingOffices(false)
-        }
-    }
-
-    const loadAllYandexDevices = async () => {
-        try {
-            const response = await getYandexDevicesList()
-            setAllYandexDevices(response.data.devices || [])
-        } catch (err) {
-            console.error("Error loading Yandex devices:", err)
-        }
-    }
-
-    const loadAllUsers = async () => {
-        try {
-            const response = await getAllUsers()
-            const users = response.data?.users || response.data || []
-            setAllUsers(users)
-        } catch (err) {
-            console.error("Error loading users:", err)
-        }
-    }
-
-    const handleSelectOffice = async (office: Office) => {
-        setSelectedOffice(office)
-        setSelectedRoom(null)
-        setStep("cabinets")
-        try {
-            setLoadingRooms(true)
-            const response = await getMeetingRooms(office.id)
-            const allRooms = response.data || []
-            setRooms(allRooms)
-            // Auto-select first room
-            if (allRooms.length > 0) {
-                handleSelectRoom(allRooms[0])
-            }
-        } catch (err) {
-            console.error("Error loading rooms:", err)
-            setRooms([])
-        } finally {
-            setLoadingRooms(false)
-        }
-    }
-
-    const handleSelectRoom = useCallback(async (room: MeetingRoom) => {
-        setSelectedRoom(room)
-        setShowAddDevice(false)
-        setShowAddEmployee(false)
-        setSelectedNewDevice("")
-        setSelectedNewEmployee("")
-        setEmployeeFilter("")
-
-        // Load devices for this room
-        setLoadingDevices(true)
-        try {
-            const [linkedResp, clientResp] = await Promise.all([
-                getRoomDevices(room.id),
-                getRoomDevicesForClient(room.id).catch(() => ({ data: { devices: [] } })),
-            ])
-            setRoomLinkedDevices(linkedResp.data.devices || [])
-            setRoomYandexDevices(clientResp.data.devices || [])
-        } catch (err) {
-            console.error("Error loading room devices:", err)
-            setRoomLinkedDevices([])
-            setRoomYandexDevices([])
-        } finally {
-            setLoadingDevices(false)
-        }
-
-        // Load subscriptions for this room
-        setLoadingSubscriptions(true)
-        try {
-            const response = await getRoomSubscriptions(room.id)
-            setRoomSubscriptions(response.data.subscriptions || [])
-        } catch (err) {
-            console.error("Error loading subscriptions:", err)
-            setRoomSubscriptions([])
-        } finally {
-            setLoadingSubscriptions(false)
-        }
-    }, [])
-
-    const handleBackToOffices = () => {
-        setStep("offices")
-        setSelectedOffice(null)
-        setSelectedRoom(null)
-        setRooms([])
-        setRoomLinkedDevices([])
-        setRoomYandexDevices([])
-        setRoomSubscriptions([])
-    }
-
-    // --- Device control ---
-    const getDeviceState = (device: YandexDevice): boolean | null => {
-        const capability = device.capabilities?.find((cap: any) => cap.type === "devices.capabilities.on_off")
-        if (capability?.state?.value !== undefined) {
-            return capability.state.value
-        }
-        return null
-    }
-
-    const handleToggleDevice = async (device: YandexDevice) => {
-        const currentState = getDeviceState(device)
-        if (currentState === null) return
-
-        try {
-            setIsControlling(device.id)
-            const request: ControlDeviceRequest = {
-                device_id: device.id,
-                action_type: "devices.capabilities.on_off",
-                action_state: {
-                    instance: "on",
-                    value: !currentState,
-                },
-            }
-            await controlDevice(request)
-
-            // Update local state
-            setRoomYandexDevices((prev) =>
-                prev.map((d) => {
-                    if (d.id === device.id) {
-                        const updated = { ...d }
-                        const cap = updated.capabilities?.find((c: any) => c.type === "devices.capabilities.on_off")
-                        if (cap) {
-                            cap.state = { ...cap.state, value: !currentState }
-                        }
-                        return updated
-                    }
-                    return d
-                })
-            )
-
-            toast({
-                title: "Успешно",
-                description: `${device.name} ${!currentState ? "включено" : "выключено"}`,
-                duration: 2000,
-            })
-        } catch (err) {
-            toast({
-                title: "Ошибка",
-                description: "Не удалось управлять устройством",
-                variant: "destructive",
-                duration: 3000,
-            })
-        } finally {
-            setIsControlling(null)
-        }
-    }
-
-    // --- Add/Remove device ---
-    const handleAddDevice = async () => {
-        if (!selectedNewDevice || !selectedRoom) return
-        const device = allYandexDevices.find((d) => d.id === selectedNewDevice)
-        if (!device) return
-
-        try {
-            setIsAddingDevice(true)
-            await createRoomDevice({
-                meeting_room_id: selectedRoom.id,
-                device_id: device.id,
-                device_name: device.name,
-                device_type: device.type,
-            })
-            toast({
-                title: "Устройство добавлено",
-                description: `${device.name} добавлено в ${selectedRoom.name}`,
-                duration: 2000,
-            })
-            setSelectedNewDevice("")
-            setShowAddDevice(false)
-            // Refresh
-            handleSelectRoom(selectedRoom)
-        } catch (err: any) {
-            toast({
-                title: "Ошибка",
-                description: err.response?.data?.message || "Не удалось добавить устройство",
-                variant: "destructive",
-                duration: 3000,
-            })
-        } finally {
-            setIsAddingDevice(false)
-        }
-    }
-
-    const handleDeleteDevice = async (roomDevice: RoomDevice) => {
-        try {
-            setIsDeletingDevice(roomDevice.id)
-            await deleteRoomDevice(roomDevice.id)
-            toast({
-                title: "Устройство удалено",
-                description: `${roomDevice.device_name} удалено`,
-                duration: 2000,
-            })
-            if (selectedRoom) handleSelectRoom(selectedRoom)
-        } catch (err: any) {
-            toast({
-                title: "Ошибка",
-                description: err.response?.data?.message || "Не удалось удалить устройство",
-                variant: "destructive",
-                duration: 3000,
-            })
-        } finally {
-            setIsDeletingDevice(null)
-        }
-    }
-
-    // --- Add/Remove employee ---
-    const handleAddEmployee = async () => {
-        if (!selectedNewEmployee || !selectedRoom) return
-
-        try {
-            setIsAddingEmployee(true)
-            await createClientRoomSubscription({
-                client_id: selectedNewEmployee as number,
-                meeting_room_id: selectedRoom.id,
-            })
-            const user = allUsers.find((u) => u.id === selectedNewEmployee)
-            toast({
-                title: "Сотрудник добавлен",
-                description: `${user?.full_name || "Сотрудник"} получил доступ`,
-                duration: 2000,
-            })
-            setSelectedNewEmployee("")
-            setShowAddEmployee(false)
-            if (selectedRoom) handleSelectRoom(selectedRoom)
-        } catch (err: any) {
-            toast({
-                title: "Ошибка",
-                description: err.response?.data?.message || "Не удалось добавить сотрудника",
-                variant: "destructive",
-                duration: 3000,
-            })
-        } finally {
-            setIsAddingEmployee(false)
-        }
-    }
-
-    const handleDeleteSubscription = async (sub: ClientRoomSubscription) => {
-        try {
-            setIsDeletingSub(sub.id)
-            await deleteClientRoomSubscription(sub.id)
-            const name = (sub.subscribedClient || sub.client)?.full_name || "Сотрудник"
-            toast({
-                title: "Доступ забран",
-                description: `У ${name} забран доступ`,
-                duration: 2000,
-            })
-            if (selectedRoom) handleSelectRoom(selectedRoom)
-        } catch (err: any) {
-            toast({
-                title: "Ошибка",
-                description: err.response?.data?.message || "Не удалось удалить доступ",
-                variant: "destructive",
-                duration: 3000,
-            })
-        } finally {
-            setIsDeletingSub(null)
-        }
-    }
-
-    // --- Available devices (not yet linked to this room) ---
-    const getAvailableDevices = () => {
-        const linkedIds = roomLinkedDevices.map((rd) => rd.device_id)
-        return allYandexDevices.filter((d) => !linkedIds.includes(d.id))
-    }
-
-    // --- Available employees (not yet subscribed to this room) ---
-    const getAvailableEmployees = () => {
-        const subscribedIds = roomSubscriptions.map((s) => s.client_id)
-        // For cabinets show employees (non-clients), for meeting rooms show clients
-        const isCabinet = selectedRoom?.room_type === "cabinet"
-        let filtered = isCabinet
-            ? allUsers.filter((u) => u.role !== "client")
-            : allUsers.filter((u) => u.role === "client")
-        filtered = filtered.filter((u) => !subscribedIds.includes(u.id))
-        if (employeeFilter.trim()) {
-            const q = employeeFilter.toLowerCase()
-            filtered = filtered.filter(
-                (u) =>
-                    u.full_name.toLowerCase().includes(q) ||
-                    u.phone.includes(q)
-            )
-        }
-        return filtered
-    }
-
-    // --- Find YandexDevice by device_id from linked devices ---
-    const findYandexDevice = (deviceId: string): YandexDevice | undefined => {
-        return roomYandexDevices.find((d) => d.id === deviceId)
-    }
 
     // ============================================================
     // RENDER: Step 1 – Office Selection
@@ -660,7 +285,7 @@ export function SmartHomeManagement({ dark = false }: SmartHomeManagementProps) 
                                                     const isOn = yDevice ? getDeviceState(yDevice) : null
                                                     const isControllingThis = isControlling === rd.device_id
                                                     const isDeletingThis = isDeletingDevice === rd.id
-                                                    const DeviceIcon = getDeviceIcon(rd.device_type, rd.device_name)
+                                                    const DeviceIcon = getSmartHomeDeviceIcon(rd.device_type, rd.device_name)
 
                                                     return (
                                                         <div

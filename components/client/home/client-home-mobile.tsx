@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, Heart, Home, Sparkles } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { BottomNav } from "@/components/BottomNav";
+import { TasksTodayCard } from "@/components/tasks/tasks-today-card";
 import {
   MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
@@ -37,7 +38,7 @@ function NewsCarousel({ items, loading }: { items: NewsDisplayItem[]; loading: b
         <button
           key={item.id}
           type="button"
-          onClick={() => router.push(`/notifications`)}
+          onClick={() => router.push(`/client/news/${item.id}`)}
           className="min-w-[85vw] max-w-[320px] shrink-0 snap-start text-left rounded-2xl overflow-hidden bg-[#2C2C2E] border border-[#3A3A3C]"
         >
           <div className="relative h-[180px] bg-[#1C1C1E]">
@@ -98,7 +99,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
               </Link>
             </div>
             <Link
-              href="/notifications"
+              href="/client/news"
               className="inline-flex items-center gap-1 text-[#E85D2B] font-medium text-sm"
             >
               Все новости
@@ -112,7 +113,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
             <h2 className="text-xl font-bold text-white mb-4">Smart Control</h2>
             <div className="grid grid-cols-2 gap-3">
               <Link
-                href="/cabinet"
+                href="/client/smart-home"
                 className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#E85D2B]/20 flex items-center justify-center">
@@ -123,7 +124,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
                 </span>
               </Link>
               <Link
-                href="/cabinet"
+                href="/client/health"
                 className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#60A5FA]/20 flex items-center justify-center">
@@ -136,29 +137,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
 
           <section className="mt-6 pb-4">
             <h2 className="text-xl font-bold text-white mb-4">Задачи</h2>
-            <button
-              type="button"
-              onClick={() => router.push("/client/statistics")}
-              className="w-full rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 text-left active:scale-[0.98] transition-transform"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#E85D2B]/20 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-[#E85D2B]" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Продуктивность за сегодня</p>
-                    <p className="text-sm text-gray-400">Нажмите, чтобы открыть задачи</p>
-                  </div>
-                </div>
-                <span className="text-sm font-semibold text-[#E85D2B] px-2 py-1 rounded-lg bg-[#E85D2B]/10">
-                  —
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-[#E85D2B]/20 overflow-hidden">
-                <div className="h-full w-0 bg-[#E85D2B] rounded-full" />
-              </div>
-            </button>
+            <TasksTodayCard onPress={() => router.push("/client/tasks?tab=today")} />
           </section>
         </div>
       </PullToRefresh>

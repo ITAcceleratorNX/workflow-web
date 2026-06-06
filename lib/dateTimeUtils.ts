@@ -125,3 +125,104 @@ export function getTodayAppDateISO(): string {
   return formatter.format(new Date());
 }
 
+/** Ключ даты YYYY-MM-DD в Asia/Almaty (для user-tasks календаря). */
+export function toAppDateKey(value: DateInput): string {
+  const date = toDate(value);
+  if (!date) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Сдвиг календарной даты YYYY-MM-DD на N дней. */
+export function addDaysToDateKey(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** Дата YYYY-MM-DD для API (локальный календарный день). */
+export function formatDateForApi(date: Date): string {
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, "0");
+  const d = date.getDate().toString().padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Сегодняшний YYYY-MM-DD в Asia/Almaty (списки задач). */
+export function todayTaskDateKey(): string {
+  return toAppDateKey(new Date());
+}
+
+/** Сдвиг календарной даты YYYY-MM-DD на N дней (для «завтра» относительно ключа дня в Almaty). */
+export function addCalendarDaysToDateKey(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split("-").map((x) => parseInt(x, 10));
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return dateKey;
+  const t = Date.UTC(y, m - 1, d + days);
+  const dt = new Date(t);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+function getAlmatyOffsetMinutes(utcDate: Date): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: APP_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(utcDate);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
+    const y = Number(get("year"));
+    const m = Number(get("month"));
+    const d = Number(get("day"));
+    const hh = Number(get("hour"));
+    const mm = Number(get("minute"));
+    const ss = Number(get("second"));
+    const asUtc = Date.UTC(y, m - 1, d, hh, mm, ss);
+    return Math.round((asUtc - utcDate.getTime()) / 60000);
+  } catch {
+    return 300;
+  }
+}
+
+/** UTC ISO из даты (YYYY-MM-DD) и времени (HH:mm), интерпретируемых как Asia/Almaty. */
+export function toUtcIsoFromAppDateTime(dateKey: string, time: string): string {
+  const [yS, mS, dS] = (dateKey || "").split("-");
+  const [hhS, mmS] = (time || "").split(":");
+  const y = Number(yS);
+  const m = Number(mS);
+  const d = Number(dS);
+  const hh = Number(hhS);
+  const mm = Number(mmS);
+  if (
+    !Number.isFinite(y) ||
+    !Number.isFinite(m) ||
+    !Number.isFinite(d) ||
+    !Number.isFinite(hh) ||
+    !Number.isFinite(mm)
+  ) {
+    return new Date().toISOString();
+  }
+  const asIfUtcMs = Date.UTC(y, m - 1, d, hh, mm, 0);
+  const guessUtc = new Date(asIfUtcMs);
+  const offsetMin = getAlmatyOffsetMinutes(guessUtc);
+  const utcMs = asIfUtcMs - offsetMin * 60000;
+  return new Date(utcMs).toISOString();
+}
+
+/** Время HH:mm в Asia/Almaty для задач. */
+export function formatTaskTime(value: DateInput): string {
+  const formatted = formatTimeOnly(value);
+  if (formatted) return formatted;
+  const date = toDate(value);
+  if (!date) return "";
+  return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}`;
+}
+

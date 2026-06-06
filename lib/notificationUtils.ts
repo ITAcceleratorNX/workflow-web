@@ -4,6 +4,49 @@
 
 import React from 'react';
 
+/** Сегмент контента: текст или кликабельный ID заявки */
+export type ContentSegment =
+  | { type: 'text'; value: string }
+  | { type: 'requestId'; value: string; requestGroupId: number };
+
+const REQUEST_ID_REGEX = /(?:заявк[аи]\s*|подзаявк[аи]\s*)?№\s*(\d+)(?:\/(\d+))?/gi;
+
+/**
+ * Разбивает контент на сегменты: обычный текст и кликабельные ID заявок.
+ */
+export function getContentSegmentsWithRequestIds(content: string): ContentSegment[] {
+  if (!content) return [];
+
+  const segments: ContentSegment[] = [];
+  let lastIndex = 0;
+  const re = new RegExp(REQUEST_ID_REGEX.source, REQUEST_ID_REGEX.flags);
+  let match: RegExpExecArray | null;
+
+  while ((match = re.exec(content)) !== null) {
+    const groupId = match[1];
+    const subId = match[2];
+    const requestGroupId = parseInt(groupId, 10);
+    if (!Number.isFinite(requestGroupId)) continue;
+
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: content.slice(lastIndex, match.index) });
+    }
+
+    segments.push({
+      type: 'requestId',
+      value: subId != null ? `${groupId}/${subId}` : groupId,
+      requestGroupId,
+    });
+    lastIndex = re.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({ type: 'text', value: content.slice(lastIndex) });
+  }
+
+  return segments.length > 0 ? segments : [{ type: 'text', value: content }];
+}
+
 /**
  * Парсит ID заявок из контента уведомления
  * Ищет паттерны типа "№ 123", "№ 123/1", "заявка № 123", "заявка № 123/1"
