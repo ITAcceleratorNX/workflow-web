@@ -3,10 +3,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { getMeetingRoomStats, MeetingRoomStats } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { MeetingRoomCalendar } from "./MeetingRoomCalendar";
+import {
+  MeetingRoomsErrorState,
+  MeetingRoomsLoadingState,
+} from "./meeting-rooms-async-state";
 
 interface MeetingRoomStatisticsProps {
   variant?: "default" | "dark";
@@ -62,21 +66,11 @@ export function MeetingRoomStatistics({ variant = "default", defaultShowCalendar
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className={`h-8 w-8 animate-spin mb-4 ${isDark ? "text-[#F35713]" : "text-primary"}`} />
-        <p className={isDark ? "text-gray-400" : "text-muted-foreground"}>Загрузка статистики...</p>
-      </div>
-    );
+    return <MeetingRoomsLoadingState message="Загрузка статистики..." isDark={isDark} />;
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <p className="text-destructive text-center">{error}</p>
-      </div>
-    );
+    return <MeetingRoomsErrorState error={error} />;
   }
 
   if (!stats) {

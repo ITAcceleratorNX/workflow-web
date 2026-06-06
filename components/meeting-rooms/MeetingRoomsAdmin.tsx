@@ -3,6 +3,8 @@ import {
   MeetingRoom,
   MeetingRoomStatus,
   MeetingRoomType,
+  MEETING_ROOM_CAPACITIES,
+  MEETING_ROOM_FLOORS,
   useMeetingRoomsStore,
 } from "@/stores/meetingRoomsStore";
 import { MeetingRoomCard } from "@/components/meeting-rooms/MeetingRoomCard";
@@ -92,8 +94,8 @@ const toFormState = (room: MeetingRoom): RoomFormState => {
   };
 };
 
-const floorsRange = Array.from({ length: 10 }, (_, index) => index + 1);
-const capacities = [2, 4, 6, 8, 10, 12];
+const floorsRange = [...MEETING_ROOM_FLOORS];
+const capacities = [...MEETING_ROOM_CAPACITIES];
 const MAX_PHOTOS = 3;
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png"];
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file

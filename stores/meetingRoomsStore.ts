@@ -53,19 +53,23 @@ function getPhotosFromRoom(apiRoom: ApiMeetingRoom): string[] {
   return typeof one === "string" && one.trim() ? [one] : [];
 }
 
-const convertApiRoomToStoreRoom = (apiRoom: ApiMeetingRoom): MeetingRoom => ({
-  id: apiRoom.id,
-  name: apiRoom.name,
-  floor: apiRoom.floor,
-  capacity: apiRoom.capacity,
-  room_type: (apiRoom.room_type as MeetingRoomType) || "meeting",
-  photos: getPhotosFromRoom(apiRoom),
-  roomPhotos: (apiRoom as { roomPhotos?: { id: number; photo_url: string }[] }).roomPhotos,
-  status: apiRoom.status as MeetingRoomStatus,
-  isActive: apiRoom.isActive,
-  description: apiRoom.description || undefined,
-  office_id: apiRoom.office_id || null,
-});
+export function mapApiMeetingRoomToStore(apiRoom: ApiMeetingRoom): MeetingRoom {
+  return {
+    id: apiRoom.id,
+    name: apiRoom.name,
+    floor: apiRoom.floor,
+    capacity: apiRoom.capacity,
+    room_type: (apiRoom.room_type as MeetingRoomType) || "meeting",
+    photos: getPhotosFromRoom(apiRoom),
+    roomPhotos: (apiRoom as { roomPhotos?: { id: number; photo_url: string }[] }).roomPhotos,
+    status: apiRoom.status as MeetingRoomStatus,
+    isActive: apiRoom.isActive,
+    description: apiRoom.description || undefined,
+    office_id: apiRoom.office_id || null,
+  };
+}
+
+const convertApiRoomToStoreRoom = mapApiMeetingRoomToStore;
 
 export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
   rooms: [],

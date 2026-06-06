@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getMeetingRoomDailyCalendar,
   getMeetingRoomWeeklyCalendar,
@@ -14,6 +14,10 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
+import {
+  MeetingRoomsErrorState,
+  MeetingRoomsLoadingState,
+} from "./meeting-rooms-async-state";
 
 type CalendarMode = "day" | "week";
 
@@ -88,21 +92,11 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className={`h-8 w-8 animate-spin mb-4 ${isDark ? "text-[#F35713]" : "text-primary"}`} />
-        <p className={isDark ? "text-gray-400" : "text-muted-foreground"}>Загрузка календаря...</p>
-      </div>
-    );
+    return <MeetingRoomsLoadingState message="Загрузка календаря..." isDark={isDark} />;
   }
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <p className="text-destructive text-center">{error}</p>
-      </div>
-    );
+    return <MeetingRoomsErrorState error={error} />;
   }
 
   const cardClass = isDark ? "rounded-xl bg-[#2C2C2E] border-[#3A3A3C]" : "";

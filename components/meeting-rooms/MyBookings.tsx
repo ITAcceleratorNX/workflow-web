@@ -1,238 +1,116 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Calendar, Clock, X, ExternalLink, MapPin, QrCode } from "lucide-react"
-import { getMyBookings, cancelMeetingRoomBooking, MeetingRoomBooking, type MyBookingsStatusFilter } from "@/lib/api"
-import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils"
-import { useToast } from "@/hooks/use-toast"
-import { useRejectRequestModal } from "@/hooks/use-reject-modal"
-import { RejectRequestModal } from "@/components/RejectRequestModal"
-import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-
-function getBookingStatusText(status?: string): string {
-  switch (status) {
-    case "scheduled": return "Запланировано"
-    case "in_progress": return "В процессе"
-    case "completed": return "Завершено"
-    case "cancelled":
-    case "auto_cancelled": return "Отменено"
-    case "confirmed": return "Подтверждено"
-    default: return "Активно"
-  }
-}
-
-const PAGE_SIZE = 20
-
-function normalizeResponse(res: { data: unknown }): { data: MeetingRoomBooking[]; hasMore: boolean } {
-  const raw = res.data
-  if (Array.isArray(raw)) return { data: raw, hasMore: false }
-  const obj = raw as { data?: MeetingRoomBooking[]; hasMore?: boolean }
-  const list = Array.isArray(obj?.data) ? obj.data : []
-  const hasMore = typeof obj?.hasMore === "boolean" ? obj.hasMore : false
-  return { data: list, hasMore }
-}
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { MapPin, QrCode } from "lucide-react";
+import {
+  cancelMeetingRoomBooking,
+  type MeetingRoomBooking,
+  type MyBookingsStatusFilter,
+} from "@/lib/api";
+import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils";
+import { useToast } from "@/hooks/use-toast";
+import { useRejectRequestModal } from "@/hooks/use-reject-modal";
+import { RejectRequestModal } from "@/components/RejectRequestModal";
+import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useMyBookings } from "@/hooks/use-my-bookings";
+import {
+  getBookingStatusText,
+  MY_BOOKINGS_FILTERS,
+} from "./meeting-rooms-constants";
 
 interface MyBookingsProps {
-  /** 
-   * default/dark — карточка в панели (кабинет клиента, деп. руководитель)
-   * mobile — встраивание в мобильную страницу бронирований с оранжевыми табами
-   */
-  variant?: "default" | "dark" | "mobile"
+  variant?: "default" | "dark" | "mobile";
 }
 
-const FILTERS: { value: MyBookingsStatusFilter; label: string }[] = [
-  { value: "active", label: "Активные" },
-  { value: "completed", label: "Завершенные" },
-  { value: "cancelled", label: "Отменённые" },
-]
-
 export function MyBookings({ variant = "default" }: MyBookingsProps) {
-  const isDark = variant === "dark"
-  const isMobile = variant === "mobile"
+  const isDark = variant === "dark";
+  const isMobile = variant === "mobile";
 
-  const [filter, setFilter] = useState<MyBookingsStatusFilter>("active")
-  const [activeList, setActiveList] = useState<MeetingRoomBooking[]>([])
-  const [activePage, setActivePage] = useState(1)
-  const [activeHasMore, setActiveHasMore] = useState(false)
-  const [completedList, setCompletedList] = useState<MeetingRoomBooking[]>([])
-  const [completedPage, setCompletedPage] = useState(1)
-  const [completedHasMore, setCompletedHasMore] = useState(false)
-  const [cancelledList, setCancelledList] = useState<MeetingRoomBooking[]>([])
-  const [cancelledPage, setCancelledPage] = useState(1)
-  const [cancelledHasMore, setCancelledHasMore] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState<MyBookingsStatusFilter | null>(null)
-  const [cancellingId, setCancellingId] = useState<number | null>(null)
-  const [bookingToCancel, setBookingToCancel] = useState<MeetingRoomBooking | null>(null)
-  const [showCancelModal, setShowCancelModal] = useState(false)
-  const { toast } = useToast()
-  const rejectModal = useRejectRequestModal()
-  const router = useRouter()
+  const [filter, setFilter] = useState<MyBookingsStatusFilter>("active");
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<MeetingRoomBooking | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const { toast } = useToast();
+  const rejectModal = useRejectRequestModal();
+  const router = useRouter();
 
-  const fetchSegment = useCallback(async (status: MyBookingsStatusFilter, page: number, append: boolean) => {
-    const res = await getMyBookings({ status, page, pageSize: PAGE_SIZE })
-    const { data: list, hasMore } = normalizeResponse(res)
-    if (status === "active") {
-      setActiveList((prev) => (append ? [...prev, ...list] : list))
-      setActivePage(page)
-      setActiveHasMore(hasMore)
-    } else if (status === "completed") {
-      setCompletedList((prev) => (append ? [...prev, ...list] : list))
-      setCompletedPage(page)
-      setCompletedHasMore(hasMore)
-    } else {
-      setCancelledList((prev) => (append ? [...prev, ...list] : list))
-      setCancelledPage(page)
-      setCancelledHasMore(hasMore)
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      try {
-        const [a, b, c] = await Promise.all([
-          getMyBookings({ status: "active", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-          getMyBookings({ status: "completed", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-          getMyBookings({ status: "cancelled", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-        ])
-        if (cancelled) return
-        setActiveList(a.data)
-        setActivePage(1)
-        setActiveHasMore(a.hasMore)
-        setCompletedList(b.data)
-        setCompletedPage(1)
-        setCompletedHasMore(b.hasMore)
-        setCancelledList(c.data)
-        setCancelledPage(1)
-        setCancelledHasMore(c.hasMore)
-      } catch (error) {
-        console.error("Ошибка при загрузке бронирований:", error)
-        if (!cancelled) {
-          setActiveList([])
-          setCompletedList([])
-          setCancelledList([])
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
-
-  const loadMore = useCallback(async (status: MyBookingsStatusFilter) => {
-    if (status === "active" && activeHasMore) {
-      setLoadingMore("active")
-      await fetchSegment(status, activePage + 1, true)
-      setLoadingMore(null)
-    } else if (status === "completed" && completedHasMore) {
-      setLoadingMore("completed")
-      await fetchSegment(status, completedPage + 1, true)
-      setLoadingMore(null)
-    } else if (status === "cancelled" && cancelledHasMore) {
-      setLoadingMore("cancelled")
-      await fetchSegment(status, cancelledPage + 1, true)
-      setLoadingMore(null)
-    }
-  }, [activeHasMore, activePage, completedHasMore, completedPage, cancelledHasMore, cancelledPage, fetchSegment])
-
-  const fetchBookings = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [a, b, c] = await Promise.all([
-        getMyBookings({ status: "active", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-        getMyBookings({ status: "completed", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-        getMyBookings({ status: "cancelled", page: 1, pageSize: PAGE_SIZE }).then(normalizeResponse),
-      ])
-      setActiveList(a.data)
-      setActivePage(1)
-      setActiveHasMore(a.hasMore)
-      setCompletedList(b.data)
-      setCompletedPage(1)
-      setCompletedHasMore(b.hasMore)
-      setCancelledList(c.data)
-      setCancelledPage(1)
-      setCancelledHasMore(c.hasMore)
-    } catch (error) {
-      console.error("Ошибка при загрузке бронирований:", error)
-      setActiveList([])
-      setCompletedList([])
-      setCancelledList([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const {
+    activeList,
+    completedList,
+    cancelledList,
+    activeHasMore,
+    completedHasMore,
+    cancelledHasMore,
+    loading,
+    loadingMore,
+    loadMore,
+    refresh,
+  } = useMyBookings();
 
   const handleCancelClick = (booking: MeetingRoomBooking) => {
-    setBookingToCancel(booking)
-    setShowCancelModal(true)
-  }
+    setBookingToCancel(booking);
+    setShowCancelModal(true);
+  };
 
   const handleCancelBooking = async () => {
-    if (!bookingToCancel) return
+    if (!bookingToCancel) return;
 
-    const bookingId = bookingToCancel.id
-    setShowCancelModal(false)
+    const bookingId = bookingToCancel.id;
+    setShowCancelModal(false);
 
     try {
-      setCancellingId(bookingId)
-      await cancelMeetingRoomBooking(bookingId)
+      setCancellingId(bookingId);
+      await cancelMeetingRoomBooking(bookingId);
       toast({
         title: "Бронирование отменено",
         description: "Бронирование успешно отменено",
-      })
-      await fetchBookings()
+      });
+      await refresh();
     } catch (error: any) {
-      console.error("Ошибка при отмене бронирования:", error)
-      await fetchBookings()
+      console.error("Ошибка при отмене бронирования:", error);
+      await refresh();
       rejectModal.showReject({
         title: "Ошибка отмены",
         message: error.response?.data?.message || "Ошибка при отмене бронирования",
-      })
+      });
     } finally {
-      setCancellingId(null)
-      setBookingToCancel(null)
+      setCancellingId(null);
+      setBookingToCancel(null);
     }
-  }
-
-  // Helper функция для конвертации времени в строку
-  const timeToString = (time: string | Date): string => {
-    return typeof time === 'string' ? time : time.toISOString()
-  }
+  };
 
   const isBookingCancelled = (b: MeetingRoomBooking) =>
-    b.status === "cancelled" || b.status === "auto_cancelled"
-  const isBookingCompleted = (b: MeetingRoomBooking) =>
-    b.status === "completed"
+    b.status === "cancelled" || b.status === "auto_cancelled";
+  const isBookingCompleted = (b: MeetingRoomBooking) => b.status === "completed";
 
   const handleOpenBookingPage = (bookingId: number) => {
-    router.push(`/booking/${bookingId}`)
-  }
+    router.push(`/booking/${bookingId}`);
+  };
 
-  const currentList = filter === "active" ? activeList : filter === "completed" ? completedList : cancelledList
-  const currentHasMore = filter === "active" ? activeHasMore : filter === "completed" ? completedHasMore : cancelledHasMore
-  const activeCount = activeList.length
-  const completedCount = completedList.length
-  const cancelledCount = cancelledList.length
+  const currentList =
+    filter === "active" ? activeList : filter === "completed" ? completedList : cancelledList;
+  const currentHasMore =
+    filter === "active" ? activeHasMore : filter === "completed" ? completedHasMore : cancelledHasMore;
+  const activeCount = activeList.length;
+  const completedCount = completedList.length;
+  const cancelledCount = cancelledList.length;
 
   const emptyMessage =
     filter === "active"
       ? "Нет активных бронирований"
       : filter === "completed"
         ? "Нет завершённых бронирований"
-        : "Нет отменённых бронирований"
+        : "Нет отменённых бронирований";
 
   if (loading) {
     return (
       <div
         className={cn(
           "flex flex-col items-center justify-center space-y-4",
-          isMobile ? "py-10" : "p-12 rounded-xl bg-[#1A1A1A] border border-[#3A3A3C]"
+          isMobile ? "py-10" : "p-12 rounded-xl bg-[#1A1A1A] border border-[#3A3A3C]",
         )}
       >
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#3A3A3C] border-t-[#E85D2B]" />
@@ -240,32 +118,27 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
           Загрузка ваших бронирований...
         </p>
       </div>
-    )
+    );
   }
 
   return (
     <div
       className={cn(
         "space-y-4",
-        isMobile ? "" : "rounded-xl bg-[#1A1A1A] border border-[#3A3A3C] p-6"
+        isMobile ? "" : "rounded-xl bg-[#1A1A1A] border border-[#3A3A3C] p-6",
       )}
     >
-      <p
-        className={cn(
-          "text-sm mb-4",
-          isMobile ? "text-white/90" : "text-white/80"
-        )}
-      >
+      <p className={cn("text-sm mb-4", isMobile ? "text-white/90" : "text-white/80")}>
         Управляйте своими бронированиями переговорных комнат
       </p>
 
       <div
         className={cn(
           "mb-6",
-          isMobile ? "flex gap-2 overflow-x-auto pb-2" : "flex rounded-lg overflow-hidden bg-black/20"
+          isMobile ? "flex gap-2 overflow-x-auto pb-2" : "flex rounded-lg overflow-hidden bg-black/20",
         )}
       >
-        {FILTERS.map((f) => (
+        {MY_BOOKINGS_FILTERS.map((f) => (
           <button
             key={f.value}
             type="button"
@@ -282,7 +155,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
               isMobile &&
                 (filter === f.value
                   ? "bg-[#F35713] text-white"
-                  : "bg-[#262626] text-[#7C7C7C]")
+                  : "bg-[#262626] text-[#7C7C7C]"),
             )}
           >
             {f.label}
@@ -290,7 +163,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
               <span
                 className={cn(
                   "px-1.5 py-0.5 rounded-full text-[10px]",
-                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80"
+                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80",
                 )}
               >
                 {activeCount}
@@ -300,7 +173,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
               <span
                 className={cn(
                   "px-1.5 py-0.5 rounded-full text-[10px]",
-                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80"
+                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80",
                 )}
               >
                 {completedCount}
@@ -310,7 +183,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
               <span
                 className={cn(
                   "px-1.5 py-0.5 rounded-full text-[10px]",
-                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80"
+                  filter === f.value ? "bg-white/20" : "bg-white/10 text-white/80",
                 )}
               >
                 {cancelledCount}
@@ -334,8 +207,8 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
       <DeleteConfirmationModal
         isOpen={showCancelModal}
         onClose={() => {
-          setShowCancelModal(false)
-          setBookingToCancel(null)
+          setShowCancelModal(false);
+          setBookingToCancel(null);
         }}
         onConfirm={handleCancelBooking}
         title="Отменить бронирование?"
@@ -351,14 +224,15 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
       />
 
       {currentList.length === 0 ? (
-        <p className={cn("text-center py-8 text-sm", "text-white/70")}>
-          {emptyMessage}
-        </p>
+        <p className={cn("text-center py-8 text-sm", "text-white/70")}>{emptyMessage}</p>
       ) : (
         <div className="space-y-4">
           {currentList.map((booking) => {
-            const roomName = booking.meetingRoom?.name || booking.meeting_room?.name || `Комната #${booking.meeting_room_id}`
-            const canCancel = !isBookingCancelled(booking) && !isBookingCompleted(booking)
+            const roomName =
+              booking.meetingRoom?.name ||
+              booking.meeting_room?.name ||
+              `Комната #${booking.meeting_room_id}`;
+            const canCancel = !isBookingCancelled(booking) && !isBookingCompleted(booking);
             return (
               <div
                 key={booking.id}
@@ -366,7 +240,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
                   "rounded-xl p-4",
                   isMobile
                     ? "bg-[#1C1C1E]/90 border border-white/10"
-                    : "bg-white/[0.12] border border-white/20"
+                    : "bg-white/[0.12] border border-white/20",
                 )}
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -376,7 +250,8 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
                   </span>
                 </div>
                 <p className="text-sm text-white/80">
-                  {formatDateOnly(booking.start_time)} • {formatTimeOnly(booking.start_time)}–{formatTimeOnly(booking.end_time)}
+                  {formatDateOnly(booking.start_time)} • {formatTimeOnly(booking.start_time)}–
+                  {formatTimeOnly(booking.end_time)}
                 </p>
                 {booking.company_name && (
                   <p className="text-sm text-white/70 mt-1">{booking.company_name}</p>
@@ -409,7 +284,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
                   )}
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -427,8 +302,6 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
           </Button>
         </div>
       )}
-
     </div>
-  )
+  );
 }
-

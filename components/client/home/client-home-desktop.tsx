@@ -84,8 +84,6 @@ export function ClientHomeDesktop({
         onOfficeChange={setSelectedOffice}
         initialTab={meetingRoomsTab === "book" ? "book" : "my-bookings"}
         onTabChange={(tab) => setMeetingRoomsTab(tab === "book" ? "book" : "my-bookings")}
-        showCalculator={showDeskCalculator}
-        onCalculatorToggle={setShowDeskCalculator}
       />
 
       <Link

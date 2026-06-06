@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
-import { Calendar as CalendarIcon, Clock, Building2, Users, ImageIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MeetingRoom } from "@/stores/meetingRoomsStore"
 import api from "@/lib/api"
@@ -20,16 +20,11 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
 import { getRoomDailyAvailability, getMeetingRoomById, type MeetingRoom as ApiMeetingRoom } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"
+import { MeetingRoomMetaRow } from "@/components/meeting-rooms/meeting-room-meta-row"
+import { MeetingRoomPhotoCarousel } from "@/components/meeting-rooms/meeting-room-photo-carousel"
+import { MeetingRoomStatusBadge } from "@/components/meeting-rooms/meeting-room-status-badge"
+import { MEETING_ROOM_TIME_SLOTS } from "@/lib/meeting-room-time-slots"
 
 interface BookingModalProps {
   isOpen: boolean
@@ -41,22 +36,7 @@ interface BookingModalProps {
   variant?: "default" | "dark"
 }
 
-// Генерация временных слотов с 9:00 до 00:00 (24:00)
-const generateTimeSlots = () => {
-  const slots = []
-  for (let hour = 9; hour < 24; hour++) {
-    const startHour = hour.toString().padStart(2, "0")
-    const endHour = (hour + 1).toString().padStart(2, "0")
-    slots.push({
-      label: `${startHour}:00-${endHour}:00`,
-      start: `${startHour}:00`,
-      end: `${endHour}:00`,
-    })
-  }
-  return slots
-}
-
-const TIME_SLOTS = generateTimeSlots()
+const TIME_SLOTS = MEETING_ROOM_TIME_SLOTS
 
 export function BookingModal({
   isOpen,
@@ -357,56 +337,17 @@ export function BookingModal({
                 isDark ? "border-[#3A3A3C] bg-[#2C2C2E]" : "bg-card"
               )}>
                 <div className={cn("relative aspect-video", isDark ? "bg-[#1C1C1E]" : "bg-muted")}>
-                  {roomDetails.photos && roomDetails.photos.length > 0 ? (
-                    <Carousel
-                      opts={{ loop: true, align: "start" }}
-                      className="absolute inset-0 w-full h-full"
-                    >
-                      <CarouselContent className="-ml-0 h-full">
-                        {roomDetails.photos.map((photo, index) => (
-                          <CarouselItem key={index} className="pl-0 basis-full">
-                            <div className="relative w-full h-full">
-                              <Image
-                                src={photo}
-                                alt={`${roomDetails.name} — фото ${index + 1}`}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, 100%"
-                                priority={index === 0}
-                              />
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      {roomDetails.photos.length > 1 && (
-                        <>
-                          <CarouselPrevious className="left-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
-                          <CarouselNext className="right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white border-0" />
-                          <div className="absolute bottom-3 right-3 rounded-full bg-black/75 px-3 py-1 text-xs font-medium text-white z-10">
-                            {roomDetails.photos.length} фото
-                          </div>
-                        </>
-                      )}
-                    </Carousel>
-                  ) : (
-                    <div className={cn(
-                      "absolute inset-0 flex flex-col items-center justify-center gap-2",
-                      isDark ? "text-white/50" : "text-muted-foreground"
-                    )}>
-                      <ImageIcon className="h-12 w-12" />
-                      <span className="text-sm">Фото не загружено</span>
-                    </div>
-                  )}
-                  <Badge
-                    className={cn(
-                      "absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-semibold shadow-lg z-10",
-                      roomDetails.status === "available"
-                        ? "bg-gradient-to-r from-[#114A65] to-[#114A65]/90 text-white backdrop-blur-md border border-[#114A65]/50"
-                        : "bg-gradient-to-r from-[#B8400E] to-[#B8400E]/90 text-white backdrop-blur-md border border-[#B8400E]/50"
-                    )}
-                  >
-                    {roomDetails.status === "available" ? "Доступна" : "Забронирована"}
-                  </Badge>
+                  <MeetingRoomPhotoCarousel
+                    photos={roomDetails.photos}
+                    altPrefix={roomDetails.name}
+                    darkTheme={isDark}
+                    size="hero"
+                  />
+                  <MeetingRoomStatusBadge
+                    status={roomDetails.status}
+                    className="absolute top-3 left-3"
+                    size="md"
+                  />
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
@@ -416,22 +357,18 @@ export function BookingModal({
                     )}
                   </div>
                   <Separator className={isDark ? "bg-[#3A3A3C]" : ""} />
-                  <div className={cn("flex flex-wrap items-center gap-4 text-sm", isDark ? "text-white/70" : "text-muted-foreground")}>
-                    <div className="flex items-center gap-2">
-                      <Building2 className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
-                      <span>{roomDetails.floor} этаж</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
-                      <span>до {roomDetails.capacity} человек</span>
-                    </div>
-                    {roomDetails.office && (
-                      <div className="flex items-center gap-2">
-                        <Building2 className={cn("h-4 w-4", isDark ? "text-[#E85D2B]" : "text-primary")} />
-                        <span>{roomDetails.office.name}, {roomDetails.office.city}</span>
-                      </div>
-                    )}
-                  </div>
+                  <MeetingRoomMetaRow
+                    floor={roomDetails.floor}
+                    capacity={roomDetails.capacity}
+                    officeName={
+                      roomDetails.office
+                        ? `${roomDetails.office.name}, ${roomDetails.office.city}`
+                        : undefined
+                    }
+                    showOffice={!!roomDetails.office}
+                    darkTheme={isDark}
+                    size="md"
+                  />
                 </div>
               </div>
               <Separator className={isDark ? "bg-[#3A3A3C]" : ""} />
