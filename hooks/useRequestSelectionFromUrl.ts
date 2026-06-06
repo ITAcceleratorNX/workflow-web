@@ -21,7 +21,7 @@ export interface UseRequestSelectionFromUrlOptions {
 }
 
 /**
- * Общий флоу: `?requestId=` в URL → выбор заявки → панель деталей (десктоп) или `/requests/:id` (мобилка).
+ * Общий флоу: `?requestId=` в URL → выбор заявки → панель деталей (десктоп) или `/{role}/requests/:id` (мобилка).
  */
 export function useRequestSelectionFromUrl({
   requestsBasePath,

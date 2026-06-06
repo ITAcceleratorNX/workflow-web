@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { MOBILE_BOTTOM_NAV_LABELS } from "@/constants/mobile-layout";
+import { getRequestsListPath } from "@/constants/roles";
 
 interface BottomNavProps {
     activeTab?: 'home' | 'booking' | 'requests' | 'help' | 'profile' | 'history' | 'chat' | 'statistics';
@@ -27,13 +28,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         : role === 'department-head' ? '/department-head/management'
         : role === 'executor' ? '/executor?createRequest=false' : '/home'
     const bookingHref = '/meeting-rooms'
-    const requestsHref =
-        role === 'client' ? '/requests'
-        : role === 'admin-worker' ? '/admin-worker/requests'
-        : role === 'department-head' ? '/department-head/requests'
-        : role === 'executor' ? '/executor/requests'
-        : role === 'manager' ? '/manager/requests'
-        : '/create-request'
+    const requestsHref = getRequestsListPath(role);
     const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : '/chat-bot'
     const profileHref = role === 'department-head' ? '/department-head/profile' : role === 'admin-worker' ? '/admin-worker/profile' : role === 'manager' ? '/manager/profile' : '/profile'
 
@@ -91,7 +86,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
             (role === 'manager' && path.startsWith('/manager/cabinet'))
         if (isHomePath) return 'home'
         if (path === bookingHref || path.startsWith('/meeting-rooms')) return 'booking'
-        if (path === requestsHref || path === '/requests' || path === '/create-request' || path.startsWith('/admin-worker/requests') || path.startsWith('/department-head/requests') || path.startsWith('/executor/requests') || path.startsWith('/manager/requests')) return 'requests'
+        if (
+            path === requestsHref ||
+            path === '/requests' ||
+            path.startsWith('/client/requests') ||
+            path === '/create-request' ||
+            path.startsWith('/admin-worker/requests') ||
+            path.startsWith('/department-head/requests') ||
+            path.startsWith('/executor/requests') ||
+            path.startsWith('/manager/requests')
+        ) {
+            return 'requests'
+        }
         if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/department-head/messages')) return 'help'
         if (path === profileHref || path.startsWith('/profile') || path.startsWith('/department-head/profile') || path.startsWith('/admin-worker/profile') || path.startsWith('/manager/profile')) return 'profile'
         return undefined

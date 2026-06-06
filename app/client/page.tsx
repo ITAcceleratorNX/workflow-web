@@ -41,6 +41,7 @@ import {
   Home,
 } from "lucide-react"
 import api, { getOffices } from "@/lib/api";
+import { submitClientCreateRequestForm } from "@/lib/create-request-flow";
 import {useRouter, useSearchParams} from "next/navigation";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
@@ -770,30 +771,17 @@ export default function ClientDashboard() {
     setIsSubmitting(true);
     setFormErrors(null);
 
-    try {
-      const response = await api.post('/request-groups', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+    const result = await submitClientCreateRequestForm(formData);
 
-      const newRequestGroup = response.data;
-
-      // Обновляем состояние
-      addRequests([newRequestGroup]);
-      toast({
-        title: "Успешно",
-        description: "Заявка создана"
-      });
-
-      // Сброс формы
+    if (result.ok) {
+      addRequests([result.requestGroup]);
+      toast(result.toast);
       resetForm();
-    } catch (error: any) {
-      console.error("Ошибка при создании группы заявок:", error);
-      setFormErrors(
-          error.response?.data?.error || error.response?.data?.message || "Не удалось создать заявку. Повторите попытку."
-      );
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setFormErrors(result.error);
     }
+
+    setIsSubmitting(false);
   };
 
   const resetForm = () => {

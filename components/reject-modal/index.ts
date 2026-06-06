@@ -1,1 +1,1 @@
-export { RejectModal } from './RejectModal'
+export { RejectModal } from "@/components/requests";
