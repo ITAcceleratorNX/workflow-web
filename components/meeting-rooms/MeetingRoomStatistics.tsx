@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getMeetingRoomStats, MeetingRoomStats } from "@/lib/api";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { MeetingRoomCalendar } from "./MeetingRoomCalendar";
 import {
   MeetingRoomsErrorState,

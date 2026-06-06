@@ -182,7 +182,7 @@ export function isAdminManagerDesktopNavActive(
         ? path.startsWith('/admin-worker/messages')
         : role === 'manager'
           ? path.startsWith('/manager/messages')
-          : path.startsWith('/department-head/messages') || path.startsWith('/chat-bot');
+          : path.startsWith('/chat-bot');
     case 'management':
       return path.startsWith(`${ROLE_BASE_PATH[role]}/management`);
     case 'profile':

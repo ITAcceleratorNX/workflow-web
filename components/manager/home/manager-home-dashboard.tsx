@@ -67,7 +67,7 @@ import {getSubRequestDisplayId} from "@/lib/subRequestUtils";
 import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
 import { formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
-import {RejectRequestModal} from "@/components/RejectRequestModal";
+import {RejectRequestModal} from "@/components/requests";
 import {CommentsModal} from "@/components/CommentsModal";
 import {CreateRequestModal} from "@/components/CreateRequestModal";
 import {MapModal} from "@/components/MapModal";

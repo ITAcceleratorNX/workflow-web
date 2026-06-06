@@ -26,7 +26,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         : role === 'manager' ? '/manager/cabinet'
         : role === 'admin-worker' ? '/admin-worker'
         : role === 'department-head' ? '/department-head'
-        : role === 'executor' ? '/executor' : '/home'
+        : role === 'executor' ? '/executor' : '/client'
     const bookingHref = '/meeting-rooms'
     const requestsHref = getRequestsListPath(role);
     const helpHref = role === 'admin-worker' ? '/admin-worker/messages' : '/chat-bot'
@@ -78,9 +78,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
     const getActiveTabFromPath = (): string | undefined => {
         const path = pathname?.split('?')[0] || ''
         const isHomePath =
-            path === '/cabinet' ||
             path === '/client' ||
-            path === '/home' ||
+            path.startsWith('/client/health') ||
+            path.startsWith('/client/steps') ||
+            path.startsWith('/client/sleep') ||
             path === '/admin-worker' ||
             (role && path === `/${role}`) ||
             (role === 'admin-worker' && path.startsWith('/admin-worker/management')) ||
@@ -100,7 +101,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
         ) {
             return 'requests'
         }
-        if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/manager/messages') || path.startsWith('/department-head/messages')) return 'help'
+        if (path === helpHref || path.startsWith('/chat-bot') || path.startsWith('/admin-worker/messages') || path.startsWith('/manager/messages')) return 'help'
         if (path === profileHref || path.startsWith('/profile') || path.startsWith('/department-head/profile') || path.startsWith('/admin-worker/profile') || path.startsWith('/manager/profile')) return 'profile'
         return undefined
     }

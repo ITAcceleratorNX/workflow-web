@@ -95,6 +95,16 @@ function RequestCardComponent({
     [request.status]
   )
 
+  const cardClassName = useMemo(() => {
+    return `hover:shadow-xl transition-all duration-300 border-0 shadow-md relative overflow-hidden cursor-pointer will-change-transform backdrop-blur-sm ${
+      request.is_long_term && request.request_type !== 'recurring'
+        ? 'bg-gradient-to-r from-[#E25B21]/10 via-white to-[#1A9A8A]/5 hover:from-[#E25B21]/15 hover:via-white hover:to-[#1A9A8A]/10 border-l-4 border-[#1A9A8A] backdrop-blur-md' 
+        : 'bg-gradient-to-br from-white via-[#F3F3F3] to-white hover:shadow-[#E25B21]/20'
+    }`
+  }, [request.is_long_term, request.request_type])
+
+  const headerContent = useMemo(() => renderCardHeader(request), [renderCardHeader, request])
+
   // Compact вариант карточки (как на скриншотах)
   if (variant === 'compact') {
     const firstPhoto = request.photos && request.photos.length > 0 ? request.photos[0] : null
@@ -156,17 +166,6 @@ function RequestCardComponent({
   }
 
   // Default вариант карточки (оригинальный)
-  const cardClassName = useMemo(() => {
-    return `hover:shadow-xl transition-all duration-300 border-0 shadow-md relative overflow-hidden cursor-pointer will-change-transform backdrop-blur-sm ${
-      request.is_long_term && request.request_type !== 'recurring'
-        ? 'bg-gradient-to-r from-[#E25B21]/10 via-white to-[#1A9A8A]/5 hover:from-[#E25B21]/15 hover:via-white hover:to-[#1A9A8A]/10 border-l-4 border-[#1A9A8A] backdrop-blur-md' 
-        : 'bg-gradient-to-br from-white via-[#F3F3F3] to-white hover:shadow-[#E25B21]/20'
-    }`
-  }, [request.is_long_term, request.request_type])
-  
-  // Мемоизируем renderCardHeader результат для избежания повторных вычислений
-  const headerContent = useMemo(() => renderCardHeader(request), [renderCardHeader, request])
-
   return (
     <Card
       ref={isLast ? lastElementRef : null}

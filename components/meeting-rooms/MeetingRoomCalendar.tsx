@@ -11,7 +11,7 @@ import {
   DailyCalendarData,
   WeeklyCalendarData,
 } from "@/lib/api";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import {

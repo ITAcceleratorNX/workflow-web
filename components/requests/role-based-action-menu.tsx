@@ -113,6 +113,19 @@ export function RoleBasedActionMenu({
     setMounted(true)
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sheetRef.current && !sheetRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    if (open && !isDesktop) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open, isDesktop])
+
   const isExecutorLeader = request?.executors?.find((executor: any) => {
     return executor?.user?.id === user?.id && executor?.RequestExecutor?.role === 'leader'
   })
@@ -578,20 +591,6 @@ export function RoleBasedActionMenu({
     
     setIsDragging(false)
   }
-
-  // Закрытие по клику вне компонента
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sheetRef.current && !sheetRef.current.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-
-    if (open && !isDesktop) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [open, isDesktop])
 
   const isAdminDark = variant === "admin"
 

@@ -50,7 +50,7 @@ export function useLogin(): UseLoginResult {
     const url = requestId
       ? getRequestRedirectUrl(role, requestId, isDesktop)
       : role.toLowerCase() === 'client'
-        ? '/cabinet'
+        ? '/client'
         : `/${role?.toLowerCase().replace(' ', '-') || ''}`;
 
     if (requestId) clearPendingRequestId();
@@ -110,7 +110,7 @@ export function useLogin(): UseLoginResult {
       }
 
       if (userRole.toLowerCase() === 'client') {
-        router.push('/cabinet');
+        router.push('/client');
       } else {
         router.push(`/${userRole.toLowerCase().replace(' ', '-')}`);
       }
@@ -129,7 +129,7 @@ export function useLogin(): UseLoginResult {
 
   const handleGuestLogin = useCallback(() => {
     setGuestAuth();
-    router.push('/cabinet');
+    router.push('/client');
   }, [router, setGuestAuth]);
 
   return {

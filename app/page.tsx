@@ -28,7 +28,7 @@ export default function Home() {
             const url = requestId
                 ? getRequestRedirectUrl(role, requestId, isDesktop)
                 : role.toLowerCase() === "client"
-                    ? "/cabinet"
+                    ? "/client"
                     : `/${role.toLowerCase().replace(/\s+/g, "-")}`
             setHasRedirected(true)
             router.replace(url)

@@ -11,7 +11,7 @@ import {
 import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useToast } from "@/hooks/use-toast";
 import { useRejectRequestModal } from "@/hooks/use-reject-modal";
-import { RejectRequestModal } from "@/components/RejectRequestModal";
+import { RejectRequestModal } from "@/components/requests";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";

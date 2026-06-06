@@ -31,7 +31,6 @@ export default function ClientLayout({
   }, [hydrated, user, router, clearAuth]);
 
   // На мобилке «Мой кабинет» — /client (главная client home, parity с RN).
-  // Редирект /client → /cabinet убран в 5.1.
   if (!hydrated || !user) {
     return null;
   }
