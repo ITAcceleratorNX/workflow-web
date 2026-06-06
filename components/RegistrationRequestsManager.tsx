@@ -12,8 +12,7 @@ import { api, getOfficeCompanies } from '@/lib/api';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {useAuthStore} from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
-
+import { useIsMobile } from "@/hooks/use-media-query";
 interface RegistrationRequest {
     id: number;
     phone: string;
@@ -52,7 +51,7 @@ interface RegistrationRequestsManagerProps {
 
 export default function RegistrationRequestsManager({ variant = 'light' }: RegistrationRequestsManagerProps) {
     const {role} = useAuthStore();
-    const isMobile = useMediaQuery("(max-width: 767px)");
+    const isMobile = useIsMobile();
     const isDark = variant === 'dark';
     const [requests, setRequests] = useState<RegistrationRequest[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);

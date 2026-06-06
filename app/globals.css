@@ -4,52 +4,87 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 197 70% 25%;
-    --primary-foreground: 210 40% 98%;
-    /* Desktop admin/manager theme tokens (Background #1A1A1A, Primary #E85D2B, Accent #2A9D8F) */
-    --desktop-bg: 0 0% 10%;
-    --desktop-primary: 14 80% 56%;
-    --desktop-accent: 168 58% 39%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
+    /* ── Brand (workflow-mobile/constants/theme.ts) ── */
+    --brand-primary: 19 77% 51%; /* #E25B21 */
+    --brand-primary-foreground: 0 0% 100%;
+    --brand-error: 18 90% 51%; /* #F35713 — bottom nav, admin accent */
+    --brand-accent-soft: 19 77% 51% / 0.12;
+
+    /* ── Surfaces (light) ── */
+    --surface: 0 0% 100%;
+    --surface-elevated: 210 20% 98%; /* #F8F9FB */
+    --surface-muted: 240 9% 96%; /* #F2F2F7 */
+
+    /* ── Text (light) ── */
+    --text-muted: 0 0% 43%; /* #6E6E6E */
+    --text-secondary: 240 3% 25%; /* #3C3C43 */
+
+    /* ── Status (light) ── */
+    --success: 142 71% 45%; /* #22c55e */
+    --warning: 41 96% 40%; /* #CA8A04 */
+    --destructive: 0 84% 60%; /* #DC2626 */
+    --info: 199 89% 48%; /* #0284C7 */
+
+    /* ── Desktop shell (текущий web desktop — без redesign) ── */
+    --desktop-bg: 0 0% 10%; /* #1A1A1A */
+    --desktop-primary: 14 80% 56%; /* #E85D2B */
+    --desktop-accent: 168 58% 39%; /* #2A9D8F */
+    --desktop-surface-card: 240 2% 17%; /* #2C2C2E */
+    --desktop-surface-muted: 240 2% 12%; /* #1C1C1E */
+    --desktop-border: 240 2% 23%; /* #3A3A3C */
+    --desktop-border-subtle: 0 0% 13%; /* #212121 */
+    --desktop-text-muted: 240 3% 56%; /* #8E8E93 */
+
+    /* ── shadcn/ui (mobile light semantics) ── */
+    --background: var(--surface);
+    --foreground: 204 24% 9%; /* #11181C */
+    --card: var(--surface);
+    --card-foreground: 204 24% 9%;
+    --popover: var(--surface);
+    --popover-foreground: 204 24% 9%;
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--brand-primary-foreground);
+    --secondary: var(--surface-muted);
+    --secondary-foreground: 204 24% 9%;
+    --muted: var(--surface-muted);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--surface-muted);
+    --accent-foreground: 204 24% 9%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%; /* #E5E5EA */
+    --input: 240 6% 90%;
+    --ring: var(--brand-primary);
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 197 70% 25%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262.1 83.3% 57.8%;
+    /* ── Surfaces (dark) ── */
+    --surface: 0 0% 10%; /* #1A1A1A */
+    --surface-elevated: 0 0% 14%; /* #242424 */
+    --surface-muted: 0 0% 6%; /* #0F0F0F */
+    --text-muted: 0 0% 43%;
+    --text-secondary: 240 2% 63%; /* #A0A0A5 */
+    --brand-accent-soft: 19 77% 51% / 0.18;
+
+    --background: 0 0% 1.5%; /* #040404 */
+    --foreground: 210 11% 93%; /* #ECEDEE */
+    --card: var(--surface);
+    --card-foreground: 210 11% 93%;
+    --popover: var(--surface);
+    --popover-foreground: 210 11% 93%;
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--brand-primary-foreground);
+    --secondary: var(--surface-muted);
+    --secondary-foreground: 210 11% 93%;
+    --muted: var(--surface-muted);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--surface-muted);
+    --accent-foreground: 210 11% 93%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 13%; /* #212121 */
+    --input: 0 0% 13%;
+    --ring: var(--brand-primary);
   }
 }
 
@@ -370,8 +405,8 @@ body.department-head-management {
   --input: 240 2% 23%;
   --accent: 240 2% 23%;
   --accent-foreground: 0 0% 100%;
-  --primary: 18 77% 50%;
-  --primary-foreground: 0 0% 100%;
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-primary-foreground);
 }
 body.department-head-management [data-radix-select-viewport] [data-highlighted] {
   background-color: #3A3A3C !important;
@@ -442,11 +477,11 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   /* Клиент десктоп — в одном стиле с админом/менеджером (тёмная оболочка + оранжевый акцент) */
   .client-desktop-dark,
   .client-desktop-content {
-    --client-accent: #E85D2B;
-    --client-bg-card: #2C2C2E;
-    --client-bg-muted: #1C1C1E;
-    --client-border: #3A3A3C;
-    --client-border-subtle: #212121;
+    --client-accent: hsl(var(--desktop-primary));
+    --client-bg-card: hsl(var(--desktop-surface-card));
+    --client-bg-muted: hsl(var(--desktop-surface-muted));
+    --client-border: hsl(var(--desktop-border));
+    --client-border-subtle: hsl(var(--desktop-border-subtle));
   }
   .client-desktop-dark .rounded-lg.border,
   .client-desktop-dark .bg-white,
@@ -859,4 +894,30 @@ input, textarea, select {
   .ultra-small-gap {
     gap: 0.25rem;
   }
+}
+
+/* PageLoader — workflow-mobile/components/ui/page-loader.tsx */
+@keyframes page-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes page-loader-fill {
+  0%,
+  100% {
+    height: 0%;
+  }
+  45%,
+  55% {
+    height: 100%;
+  }
+}
+
+.page-loader-spin {
+  animation: page-loader-spin 4.2s linear infinite;
+}
+
+.page-loader-fill {
+  animation: page-loader-fill 2.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

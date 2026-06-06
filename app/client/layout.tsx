@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery, useMediaQueryResolved } from "@/hooks/use-media-query";
+import { useIsDesktop, useIsDesktopResolved } from "@/hooks/use-media-query";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
 
 export default function ClientLayout({
@@ -14,8 +14,8 @@ export default function ClientLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-  const { matches: isDesktopResolved, resolved: mediaResolved } = useMediaQueryResolved("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
+  const { matches: isDesktopResolved, resolved: mediaResolved } = useIsDesktopResolved();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {

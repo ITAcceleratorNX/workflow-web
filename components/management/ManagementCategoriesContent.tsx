@@ -11,10 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { createServiceCategory, deleteServiceCategory, getExecutorsByCategory } from "@/lib/api";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 
 export function ManagementCategoriesContent() {
-  const isMobile = !useMediaQuery("(min-width: 768px)");
+  const isMobile = !useIsDesktop();
   const { token } = useAuthStore();
   const { categories, fetchCategories, createSubcategory, deleteSubcategory } = useCategoryStore();
   const { toast } = useToast();

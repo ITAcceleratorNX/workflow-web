@@ -16,7 +16,7 @@ import {AlertTriangle, BarChart3, Calendar as CalendarLucid, ChevronLeft, Downlo
 import Header from "@/app/header/Header";
 import api from "@/lib/api";
 import {useRouter} from "next/navigation";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import Link from "next/link";
@@ -61,7 +61,7 @@ type OfficeType = {
 export default function ManagerStatisticsPage() {
   const {token, clearAuth, user} = useAuthStore()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const [period, setPeriod] = useState("month")
   const [office, setOffice] = useState("all")
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)

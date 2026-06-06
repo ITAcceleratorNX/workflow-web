@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {useAuthStore} from "@/stores/useAuthStore";
@@ -32,7 +32,7 @@ interface Stats {
 export default function DepartmentHeadStatisticsPage() {
   const {token, clearAuth, user} = useAuthStore()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const [stats, setStats] = useState<Stats | null>(null);
 
   const {depHeadStats, fetchStats, resetStats} = useStatsStore();

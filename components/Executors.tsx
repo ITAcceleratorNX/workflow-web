@@ -2,7 +2,7 @@ import type React from "react"
 import {Star, User, MessageCircle} from "lucide-react"
 import {SubRequest} from "@/stores/useRequestStore";
 import {LeaderIndicator} from "@/components/ui/leader-indicator";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExecutorsProps {
@@ -18,7 +18,7 @@ const Executors: React.FC<ExecutorsProps> = ({ subRequest, userRatings }) => {
                 ? [subRequest.executor]
                 : []
 
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
     const { toast } = useToast();
 
     const handlePhoneClick = (phone: string, executorName: string) => {

@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
-import { ExecutorMobilePageLayout } from "@/components/executor-mobile/ExecutorMobilePageLayout";
+import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ExecutorCompletedPage() {
@@ -68,7 +68,7 @@ export default function ExecutorCompletedPage() {
   );
 
   return (
-    <ExecutorMobilePageLayout title="Завершенные" onRefresh={handleRefresh}>
+    <MobilePageLayout title="Завершенные" onRefresh={handleRefresh} backHref="/executor/management">
       <div className="space-y-4">
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
@@ -101,6 +101,6 @@ export default function ExecutorCompletedPage() {
           <div className="text-white/80 py-8 text-center">Нет завершенных задач</div>
         )}
       </div>
-    </ExecutorMobilePageLayout>
+    </MobilePageLayout>
   );
 }

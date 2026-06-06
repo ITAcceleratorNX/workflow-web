@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
   getPendingRequestId,
   clearPendingRequestId,
@@ -19,7 +19,7 @@ export function RestorePendingRequestUrl() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { role } = useAuthStore();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (typeof window === "undefined") return;

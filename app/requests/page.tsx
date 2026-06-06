@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 import api from "@/lib/api"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav"
 import { useRequestStore } from "@/stores/useRequestStore"
 import { RequestGroup, SubRequest } from '@/stores/useRequestStore'
@@ -48,6 +48,9 @@ import Executors from "@/components/Executors"
 import { CompletedTaskReport } from "@/components/CompletedTaskReport"
 import { MapModal } from "@/components/MapModal"
 import PhotoModal from "@/components/photo/PhotoModal"
+import { getStatusLabel, getStatusOptionsForRole, REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests"
+import { isRequestGroupsRole } from "@/constants/roles"
+import { filterRequestGroups, sortRequestGroupsByCreatedDate } from "@/lib/request-utils"
 
 interface Rating {
   id: number;
@@ -68,10 +71,14 @@ export default function RequestsPage() {
   
   const searchParams = useSearchParams()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState("all")
+  const statusFilterOptions = useMemo(
+    () => getStatusOptionsForRole(isRequestGroupsRole(role) ? role : 'client'),
+    [role]
+  )
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -100,21 +107,16 @@ export default function RequestsPage() {
   const observer = useRef<IntersectionObserver | null>(null)
   const lastRequestRef = useRef<HTMLDivElement | null>(null)
 
-  const filteredRequests = useMemo(() => requests
-    .filter((request) => {
-      const statusMatch = filterStatus === "all" || 
-        (filterStatus === "long_term" ? request.requests.some(req => req.is_long_term) : request.status === filterStatus)
-      const requestType = request.request_type
-      const typeMatch = filterType === "all" || requestType === filterType
-      return statusMatch && typeMatch
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.created_date).getTime()
-      const dateB = new Date(b.created_date).getTime()
-      const safeDateA = isNaN(dateA) ? 0 : dateA
-      const safeDateB = isNaN(dateB) ? 0 : dateB
-      return safeDateB - safeDateA
-    }), [requests, filterStatus, filterType])
+  const filteredRequests = useMemo(
+    () =>
+      sortRequestGroupsByCreatedDate(
+        filterRequestGroups(requests, {
+          status: filterStatus,
+          type: filterType,
+        })
+      ),
+    [requests, filterStatus, filterType]
+  );
 
   // Check rating for specific request
   const checkUserRating = useCallback(async (requestId: number) => {
@@ -237,21 +239,9 @@ export default function RequestsPage() {
     }
   }
 
-  const translateStatus = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'completed': 'Завершено',
-      'in_progress': 'В обработке',
-      'awaiting_assignment': 'Ожидает назначения',
-      'execution': 'Исполнение',
-      'rejected': 'Отклонено',
-      'cancelled': 'Отменено'
-    }
-    return statusMap[status] || status
-  }
-
   const renderStatusWithTooltip = (status: string) => {
     const icon = getStatusIcon(status)
-    const text = translateStatus(status)
+    const text = getStatusLabel(status)
 
     if (isDesktop) {
       return (
@@ -475,7 +465,7 @@ export default function RequestsPage() {
             {/* Status + Type */}
             <div className="flex items-center gap-2 flex-wrap">
               {getStatusIcon(selectedRequest.status)}
-              <span className="text-white">{translateStatus(selectedRequest.status)}</span>
+              <span className="text-white">{getStatusLabel(selectedRequest.status)}</span>
               <span className={`text-xs font-medium px-3 py-1 rounded-full ${
                 selectedRequest.request_type === 'urgent'
                   ? 'text-white bg-[#B8400E]'
@@ -805,12 +795,11 @@ export default function RequestsPage() {
                       <SelectValue placeholder="Статус" />
                     </SelectTrigger>
                     <SelectContent className="z-[110] bg-[#262626] border-gray-700">
-                      <SelectItem value="all" className="text-white">Все</SelectItem>
-                      <SelectItem value="in_progress" className="text-white">В обработке</SelectItem>
-                      <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
-                      <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
-                      <SelectItem value="completed" className="text-white">Завершено</SelectItem>
-                      <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
+                      {statusFilterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-white">
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Select value={filterType} onValueChange={setFilterType}>
@@ -825,10 +814,11 @@ export default function RequestsPage() {
                       <SelectValue placeholder="Тип" />
                     </SelectTrigger>
                     <SelectContent className="z-[110] bg-[#262626] border-gray-700">
-                      <SelectItem value="all" className="text-white">Все</SelectItem>
-                      <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-                      <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-                      <SelectItem value="planned" className="text-white">Плановая</SelectItem>
+                      {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-white">
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

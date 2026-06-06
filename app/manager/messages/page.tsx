@@ -2,14 +2,14 @@
 
 import React from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { AdminManagerMessagesDesktop } from "@/components/layout/AdminManagerMessagesDesktop";
 import { AdminMessages } from "@/components/support-chat/AdminMessages";
 
 export default function ManagerMessagesPage() {
   const { user, role } = useAuthStore();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   if (!user || role !== "manager") {
     return null;

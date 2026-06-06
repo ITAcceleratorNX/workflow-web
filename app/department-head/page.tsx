@@ -42,7 +42,7 @@ import Image from "next/image";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
 import {BottomNav} from "@/components/BottomNav";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
 import {Request, RequestGroup, SubRequest, useRequestStore} from "@/stores/useRequestStore";
 import PullToRefresh from "@/components/pull-to-refresh";
@@ -172,7 +172,7 @@ export default function DepartmentHeadDashboard() {
   const [selectedSubRequestForChange, setSelectedSubRequestForChange] = useState<any>(null);
   const [showImportExcelModal, setShowImportExcelModal] = useState(false);
   const [upcomingTasksRefreshTrigger, setUpcomingTasksRefreshTrigger] = useState(0);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const [showDeleteRequestModal, setShowDeleteRequestModal] = useState(false)
 
   // На desktop скрываем вкладку «Аналитика» — переключаем на другую, если она выбрана

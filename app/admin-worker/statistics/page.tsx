@@ -19,7 +19,7 @@ import Header from "@/app/header/Header";
 import api from "@/lib/api";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useStatsStore} from "@/stores/statsStore";
@@ -64,7 +64,7 @@ declare global {
 export default function AdminWorkerStatisticsPage() {
   const {token, clearAuth, user} = useAuthStore()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const [stats, setStats] = useState<Stats | null>(null);
   const [period, setPeriod] = useState("month")
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)

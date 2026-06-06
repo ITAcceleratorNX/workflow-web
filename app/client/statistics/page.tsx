@@ -5,7 +5,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import Header from "@/app/header/Header";
 import api from "@/lib/api";
 import {useRouter} from "next/navigation";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {useAuthStore} from "@/stores/useAuthStore";
@@ -24,7 +24,7 @@ export default function ClientStatisticsPage() {
   const user = useAuthStore(state => state.user)
   const clearAuth = useAuthStore(state => state.clearAuth)
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const [stats, setStats] = useState<Stats | null>(null);
 
   const [hydrated, setHydrated] = useState(false);

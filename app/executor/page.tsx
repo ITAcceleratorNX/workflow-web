@@ -36,7 +36,7 @@ import Image from "next/image";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
 import {BottomNav} from "@/components/BottomNav";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import PerformerCard from "@/components/rating";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
 import {Request, RequestGroup, SubRequest, useRequestStore} from "@/stores/useRequestStore";
@@ -131,7 +131,7 @@ export default function ExecutorDashboard() {
   const [executorId, setExecutorId] = useState<number | null>(null);
   const [myRating, setMyRating] = useState<number | null>(null)
   const [stats, setStats] = useState<Stats | null>(null);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const [showDeleteRequestModal, setShowDeleteRequestModal] = useState(false)
   const [showQRScanner, setShowQRScanner] = useState(false)
 
@@ -1576,8 +1576,6 @@ export default function ExecutorDashboard() {
     }
   };
 
-  const formatDate = (dateString: string) => formatDateOnly(dateString);
-
   const renderCardHeader = useCallback((requestGroup: RequestGroup) => {
     const isLongTerm = requestGroup.requests.some(req => req.is_long_term);
     // Убрали счетчик подзаявок - теперь показываем только один заявка
@@ -1616,7 +1614,7 @@ export default function ExecutorDashboard() {
                 </span>
                 {requestGroup.next_due_date && (
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full text-green-600 bg-green-50 border border-green-200">
-                    📅 Следующая: {formatDate(requestGroup.next_due_date)}
+                    📅 Следующая: {formatDateOnly(requestGroup.next_due_date)}
                   </span>
                 )}
               </div>
@@ -2176,10 +2174,10 @@ export default function ExecutorDashboard() {
                           <div className="text-sm text-green-700 space-y-1">
                             <div>Тип повторения: {getRecurrenceText(selectedRequest.recurrence_type || 'daily', selectedRequest.recurrence_interval || 1)}</div>
                             {selectedRequest.next_due_date && (
-                              <div>Следующая дата: {formatDate(selectedRequest.next_due_date)}</div>
+                              <div>Следующая дата: {formatDateOnly(selectedRequest.next_due_date)}</div>
                             )}
                             {selectedRequest.last_completed_date && (
-                              <div>Последнее выполнение: {formatDate(selectedRequest.last_completed_date)}</div>
+                              <div>Последнее выполнение: {formatDateOnly(selectedRequest.last_completed_date)}</div>
                             )}
                             <div>Статус: {selectedRequest.recurring_status === 'active' ? 'Активна' : selectedRequest.recurring_status === 'paused' ? 'Приостановлена' : 'Завершена'}</div>
                           </div>

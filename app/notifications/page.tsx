@@ -10,7 +10,7 @@ import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { useRequestFromNotification } from '@/hooks/useRequestFromNotification';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { formatDateOnly } from "@/lib/dateTimeUtils";
 
 interface Notification {
@@ -29,7 +29,7 @@ interface NotificationsResponse {
 
 export default function NotificationsPage() {
     const router = useRouter();
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
     const { user } = useAuthStore();
     
     const [allNotifications, setAllNotifications] = useState<Notification[]>([]);

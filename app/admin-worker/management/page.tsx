@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
   FolderTree,
   Users,
@@ -63,7 +63,7 @@ const managementCards = [
 ];
 
 export default function ManagementPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   // На desktop показываем тот же интерфейс, что и у менеджера (Управление)
   if (isDesktop) {

@@ -20,7 +20,7 @@ import {
   Cell,
 } from "recharts";
 import api from "@/lib/api";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { useStatsStore } from "@/stores/statsStore";
 
@@ -105,7 +105,7 @@ export default function DepartmentHeadAnalytics() {
   const [offices, setOffices] = useState<any[]>([]);
   const [executors, setExecutors] = useState<any[]>([]);
   const { depHeadStats } = useStatsStore();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     fetchAnalytics();

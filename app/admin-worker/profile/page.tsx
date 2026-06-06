@@ -2,12 +2,12 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { ProfileModal } from "@/components/ProfileModal";
 
 export default function AdminProfilePage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   // На мобилке — тот же дизайн, что у department-head (общая страница /profile).
   useEffect(() => {

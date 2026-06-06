@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import RegistrationRequestsManager from "@/components/RegistrationRequestsManager";
 import UserManagementMobile from "@/components/UserManagementMobile";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { ChevronLeft, UserPlus, Users } from "lucide-react";
 
 export default function ManagementUsersPage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const [activeTab, setActiveTab] = useState<"requests" | "management">("requests");
 
   useEffect(() => {

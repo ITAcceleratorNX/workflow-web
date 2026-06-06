@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -18,7 +18,7 @@ export default function ClientRequestDetailPage() {
   const searchParams = useSearchParams();
   const id = params?.id as string;
   const fromRequests = searchParams.get("from") === "requests";
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const [request, setRequest] = useState<RequestGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

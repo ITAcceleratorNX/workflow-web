@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { AdminManagerMessagesDesktop } from "@/components/layout/AdminManagerMessagesDesktop";
 import { AdminMessages } from "@/components/support-chat/AdminMessages";
@@ -11,7 +11,7 @@ import { AdminMessages } from "@/components/support-chat/AdminMessages";
 export default function AdminMessagesPage() {
     const router = useRouter();
     const { user, role } = useAuthStore();
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
 
     useEffect(() => {
         const canAccessAdminMessages = role === "admin-worker";

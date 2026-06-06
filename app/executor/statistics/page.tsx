@@ -7,7 +7,7 @@ import Link from "next/link";
 import Header from "@/app/header/Header";
 import api from "@/lib/api";
 import {useRouter} from "next/navigation";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {useAuthStore} from "@/stores/useAuthStore";
@@ -29,7 +29,7 @@ interface Stats {
 export default function ExecutorStatisticsPage() {
   const {token, clearAuth, user} = useAuthStore()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const [stats, setStats] = useState<Stats | null>(null);
 
   const {executorStats, myRating, fetchStats, resetStats} = useStatsStore();

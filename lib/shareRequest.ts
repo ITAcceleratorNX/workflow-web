@@ -3,19 +3,8 @@
  * Ссылка открывается в веб-приложении или в мобильном приложении (Universal/App Links).
  */
 
-const STATUS_LABELS: Record<string, string> = {
-  completed: "Завершена",
-  in_progress: "В процессе",
-  awaiting_assignment: "Ожидает назначения",
-  execution: "Выполняется",
-  assigned: "Назначена",
-  rejected: "Отклонена",
-  cancelled: "Отменена",
-};
-
-function translateStatus(status: string): string {
-  return STATUS_LABELS[status] ?? status;
-}
+import { getStatusLabel } from "@/constants/requests";
+import { getRequestsListPath } from "@/constants/roles";
 
 export interface ShareRequestParams {
   requestId: number;
@@ -49,7 +38,7 @@ export function getRequestShareMessage(params: ShareRequestParams): string {
       ? `${params.requestId}/${params.subRequestId}`
       : String(params.requestId);
   const title = params.title ?? "Заявка";
-  const status = translateStatus(params.status ?? "");
+  const status = getStatusLabel(params.status ?? "");
   const desc = (params.description ?? "").slice(0, 200);
   const shortDesc =
     params.description && params.description.length > 200 ? `${desc}...` : desc;
@@ -138,11 +127,5 @@ export function getRequestRedirectUrl(
   isDesktop: boolean
 ): string {
   const requestUrl = isDesktop ? `?requestId=${requestId}` : `/${requestId}`;
-  const r = (role || "client").toLowerCase();
-  if (r === "admin-worker") return `/admin-worker/requests${requestUrl}`;
-  if (r === "department-head") return `/department-head/requests${requestUrl}`;
-  if (r === "client") return `/client/requests${requestUrl}`;
-  if (r === "executor") return `/executor/requests${requestUrl}`;
-  if (r === "manager") return `/manager/requests${requestUrl}`;
-  return `/client/requests${requestUrl}`;
+  return `${getRequestsListPath(role)}${requestUrl}`;
 }

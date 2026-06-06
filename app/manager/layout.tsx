@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop, useMediaQuery } from "@/hooks/use-media-query";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
 export default function ManagerLayout({
@@ -15,7 +15,7 @@ export default function ManagerLayout({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, clearAuth } = useAuthStore();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const isLargeDesktop = useMediaQuery("(min-width: 1200px)");
   const [hydrated, setHydrated] = useState(false);
 

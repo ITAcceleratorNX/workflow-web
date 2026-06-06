@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalculator";
 import { Ruler } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-media-query";
 import { getOffices, Office } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 

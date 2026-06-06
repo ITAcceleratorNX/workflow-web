@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
-import { ExecutorMobilePageLayout } from "@/components/executor-mobile/ExecutorMobilePageLayout";
+import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function getTaskTypeOrder(type: string) {
@@ -83,7 +83,7 @@ export default function ExecutorTasksPage() {
     .sort((a: any, b: any) => getTaskTypeOrder(a.request_type || a.type) - getTaskTypeOrder(b.request_type || b.type));
 
   return (
-    <ExecutorMobilePageLayout title="Мои задачи" onRefresh={handleRefresh}>
+    <MobilePageLayout title="Мои задачи" onRefresh={handleRefresh} backHref="/executor/management">
       <div className="space-y-4">
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
@@ -116,6 +116,6 @@ export default function ExecutorTasksPage() {
           <div className="text-white/80 py-8 text-center">Нет назначенных задач</div>
         )}
       </div>
-    </ExecutorMobilePageLayout>
+    </MobilePageLayout>
   );
 }

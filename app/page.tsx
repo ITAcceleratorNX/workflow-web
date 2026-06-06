@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from "@/stores/useAuthStore"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
   parseRequestDeepLinkUrl,
   savePendingRequestId,
@@ -13,7 +13,7 @@ import {
 export default function Home() {
     const router = useRouter()
     const { role } = useAuthStore()
-    const isDesktop = useMediaQuery("(min-width: 768px)")
+    const isDesktop = useIsDesktop()
     const [hasRedirected, setHasRedirected] = useState(false)
 
     useEffect(() => {

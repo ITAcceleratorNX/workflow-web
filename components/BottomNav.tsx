@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { MOBILE_BOTTOM_NAV_LABELS } from "@/constants/mobile-layout";
 
 interface BottomNavProps {
     activeTab?: 'home' | 'booking' | 'requests' | 'help' | 'profile' | 'history' | 'chat' | 'statistics';
@@ -43,35 +44,35 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
     const navItems = [
         { 
             key: 'home', 
-            label: 'Мой кабинет', 
+            label: MOBILE_BOTTOM_NAV_LABELS.home, 
             href: homeHref, 
             icon: House,
             width: 'w-[65px]'
         },
         { 
             key: 'booking', 
-            label: 'Бронь', 
+            label: MOBILE_BOTTOM_NAV_LABELS.booking, 
             href: bookingHref, 
             icon: LayoutGrid,
             width: 'w-[31px]'
         },
         { 
             key: 'requests', 
-            label: 'Заявки', 
+            label: MOBILE_BOTTOM_NAV_LABELS.requests, 
             href: requestsHref, 
             icon: Wrench,
             width: 'w-[36px]'
         },
         { 
             key: 'help', 
-            label: 'Сообщение', 
+            label: MOBILE_BOTTOM_NAV_LABELS.help, 
             href: helpHref, 
             icon: MessageCircle,
             width: 'w-[52px]'
         },
         { 
             key: 'profile', 
-            label: 'Профиль', 
+            label: MOBILE_BOTTOM_NAV_LABELS.profile, 
             href: profileHref, 
             icon: User,
             width: 'w-[46px]'
@@ -132,7 +133,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab: activeTabProp, 
                 padding: '15px 20px',
                 gap: '8px',
                 height: '70px',
-                background: '#F35713',
+                background: 'hsl(var(--brand-error))',
                 borderRadius: '25px',
                 left: '12px',
                 right: '12px',

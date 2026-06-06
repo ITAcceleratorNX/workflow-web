@@ -2,7 +2,7 @@
 
 import {useState} from "react";
 import { formatTimeOnly } from "@/lib/dateTimeUtils";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -53,7 +53,7 @@ export function CommentList({
                                 onDelete,
                                 variant = "default",
                             }: CommentListProps) {
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
     const [showActions, setShowActions] = useState<{
         visible: boolean;
         comment: Comment | null;

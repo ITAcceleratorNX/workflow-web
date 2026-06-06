@@ -47,7 +47,7 @@ import {format, isAfter, subDays, subMonths, subYears} from "date-fns";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
 import {BottomNav} from "@/components/BottomNav";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {AcceptRequestModal} from "@/components/AcceptRequestModal";
 import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
@@ -279,7 +279,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     totalItems: 0,
   });
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   // На мобильной вкладки «Логи» и «Заявки» доступны в профиле/разделе заявок — сбрасываем на главной при переходе на мобильный
   useEffect(() => {

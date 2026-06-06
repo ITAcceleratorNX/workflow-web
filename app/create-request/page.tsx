@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useRequestStore } from "@/stores/useRequestStore";
 import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { api, getClientRoomSubscriptions } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import FullScreenLoading from "@/components/FullScreenLoading";
@@ -42,7 +42,7 @@ interface Executor {
 export default function CreateRequestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   
   const { user, clearAuth, token, isGuest } = useAuthStore();
   const { categories, fetchCategories, updateCategories } = useCategoryStore();

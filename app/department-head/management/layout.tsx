@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -14,7 +14,7 @@ export default function DepartmentHeadManagementLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const { user, clearAuth } = useAuthStore();
   const [hydrated, setHydrated] = useState(false);
 

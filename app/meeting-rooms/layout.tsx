@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function MeetingRoomsLayout({
@@ -11,7 +11,7 @@ export default function MeetingRoomsLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const role = useAuthStore((s) => s.role);
   const user = useAuthStore((s) => s.user);
   const isClient = (user?.role ?? role) === "client";

@@ -2,14 +2,14 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 export default function DepartmentHeadManagementOfficePage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (isDesktop) {

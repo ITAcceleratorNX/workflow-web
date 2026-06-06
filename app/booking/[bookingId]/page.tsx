@@ -7,14 +7,14 @@ import { QrCode, Copy, Share2, MapPin, Building2, Calendar, Clock, ArrowLeft } f
 import { getPublicBooking, type MeetingRoomBooking } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { BottomNav } from "@/components/BottomNav"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { useGuestDemoStore } from "@/stores/useGuestDemoStore"
 import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils"
 
 export default function BookingQRPage() {
   const params = useParams()
   const router = useRouter()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
   const bookingId = params?.bookingId ? parseInt(params.bookingId as string) : null
   const [booking, setBooking] = useState<MeetingRoomBooking | null>(null)
   const [loading, setLoading] = useState(true)

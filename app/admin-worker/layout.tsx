@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
@@ -16,7 +16,7 @@ export default function AdminWorkerLayout({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { user, clearAuth } = useAuthStore();
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
     const [hydrated, setHydrated] = useState(false);
 
     useEffect(() => {

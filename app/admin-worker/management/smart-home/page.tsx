@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeManagement";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { ChevronLeft } from "lucide-react";
 
 export default function ManagementSmartHomePage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (isDesktop) {

@@ -16,7 +16,7 @@ import {useNotificationStore} from "@/stores/notificationStore"
 import {useRequestStore} from "@/stores/useRequestStore"
 import {useStatsStore} from "@/stores/statsStore"
 import {useAuthStore} from "@/stores/useAuthStore"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { ProfileModal } from "@/components/ProfileModal"
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell"
 import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell"
@@ -37,7 +37,7 @@ const roleTranslations: Record<string, string> = {
 export default function ProfilePage() {
     const { clearAuth, user, updateUser, role, isGuest } = useAuthStore()
     const router = useRouter()
-    const isDesktop = useMediaQuery("(min-width: 768px)")
+    const isDesktop = useIsDesktop()
     const { toast } = useToast()
     const [isOpen, setIsOpen] = useState(true)
     const [oldPassword, setOldPassword] = useState("")

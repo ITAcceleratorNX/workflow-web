@@ -4,7 +4,7 @@ import {Card, CardContent} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
 import {useRouter} from "next/navigation"
 import React, {useEffect, useMemo, useState} from "react"
-import {useMediaQuery} from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav"
 import Header from "@/app/header/Header"
 import OfficeMap, {type OfficePoint} from "@/components/office-map/OfficeMap"
@@ -60,7 +60,7 @@ export default function HomePage() {
 
     const router = useRouter()
     const {role, token, user} = useAuthStore()
-    const isDesktop = useMediaQuery("(min-width: 768px)")
+    const isDesktop = useIsDesktop()
     const [mapOpen, setMapOpen] = useState(false)
     const [period, setPeriod] = useState("month")
     const [office, setOffice] = useState("all")

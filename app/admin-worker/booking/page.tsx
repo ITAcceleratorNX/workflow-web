@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/
 import { Building2, BarChart3, Calendar } from "lucide-react";
 
 export default function AdminBookingPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] pb-20">

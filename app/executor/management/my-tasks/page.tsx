@@ -6,8 +6,10 @@ import api from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/RequestCard";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
-import { ExecutorMobilePageLayout } from "@/components/executor-mobile/ExecutorMobilePageLayout";
+import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getStatusOptionsForRole, REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+import { filterRequestGroups } from "@/lib/request-utils";
 
 export default function ExecutorMyTasksPage() {
   const router = useRouter();
@@ -16,6 +18,8 @@ export default function ExecutorMyTasksPage() {
   const [filterType, setFilterType] = useState("all");
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(true);
+
+  const statusFilterOptions = useMemo(() => getStatusOptionsForRole('executor'), []);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -66,20 +70,17 @@ export default function ExecutorMyTasksPage() {
     await fetchRequests();
   };
 
-  const filtered = useMemo(() => {
-    return (myRequests || []).filter((request: any) => {
-      const statusMatch =
-        filterStatus === "all" ||
-        (filterStatus === "long_term"
-          ? request.requests?.some((req: any) => req.is_long_term && request.request_type !== "recurring")
-          : request.status === filterStatus);
-      const typeMatch = filterType === "all" || request.request_type === filterType;
-      return statusMatch && typeMatch;
-    });
-  }, [myRequests, filterStatus, filterType]);
+  const filtered = useMemo(
+    () =>
+      filterRequestGroups(myRequests || [], {
+        status: filterStatus,
+        type: filterType,
+      }),
+    [myRequests, filterStatus, filterType]
+  );
 
   return (
-    <ExecutorMobilePageLayout title="Мои заявки" onRefresh={handleRefresh}>
+    <MobilePageLayout title="Мои заявки" onRefresh={handleRefresh} backHref="/executor/management">
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -87,13 +88,11 @@ export default function ExecutorMyTasksPage() {
               <SelectValue placeholder="Статус" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-[#3A3A3C]">
-              <SelectItem value="all">Все</SelectItem>
-              <SelectItem value="in_progress">В обработке</SelectItem>
-              <SelectItem value="awaiting_assignment">Ожидает назначения</SelectItem>
-              <SelectItem value="assigned">Назначен</SelectItem>
-              <SelectItem value="execution">Исполнение</SelectItem>
-              <SelectItem value="completed">Завершено</SelectItem>
-              <SelectItem value="long_term">Долгосрочные</SelectItem>
+              {statusFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={filterType} onValueChange={setFilterType}>
@@ -101,10 +100,11 @@ export default function ExecutorMyTasksPage() {
               <SelectValue placeholder="Тип заявки" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-[#3A3A3C]">
-              <SelectItem value="all">Все</SelectItem>
-              <SelectItem value="normal">Обычная</SelectItem>
-              <SelectItem value="urgent">Экстренная</SelectItem>
-              <SelectItem value="planned">Плановая</SelectItem>
+              {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -128,6 +128,6 @@ export default function ExecutorMyTasksPage() {
           <div className="text-white/80 py-8 text-center">Нет заявок</div>
         )}
       </div>
-    </ExecutorMobilePageLayout>
+    </MobilePageLayout>
   );
 }

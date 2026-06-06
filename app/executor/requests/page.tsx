@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Plus, AlertTriangle, Loader2 } from "lucide-react";
 import api from "@/lib/api";
@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
+import { getStatusOptionsForRole, REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+import { filterRequestGroups, matchesRequestTypeFilter } from "@/lib/request-utils";
 
 function getTaskTypeOrder(type: string) {
   switch (type) {
@@ -38,7 +40,7 @@ function getTaskTypeOrder(type: string) {
 }
 
 export default function ExecutorRequestsPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const {
     assignedRequests,
@@ -74,6 +76,8 @@ export default function ExecutorRequestsPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectError, setRedirectError] = useState<string | null>(null);
+
+  const statusFilterOptions = useMemo(() => getStatusOptionsForRole('executor'), []);
 
   const fetchRequests = useCallback(async (pageToLoad = 1) => {
     try {
@@ -168,36 +172,30 @@ export default function ExecutorRequestsPage() {
     }
   };
 
-  const filteredTasks = useMemo(
-    () =>
-      (assignedRequests || [])
-        .filter((t: any) => filterType === "all" || t.request_type === filterType)
-        .sort(
-          (a: any, b: any) =>
-            getTaskTypeOrder(a.request_type || a.type) - getTaskTypeOrder(b.request_type || b.type)
-        ),
-    [assignedRequests, filterType]
-  );
-
   const filteredMy = useMemo(
     () =>
-      (myRequests || []).filter((request: any) => {
-        const statusMatch =
-          filterMyStatus === "all" ||
-          (filterMyStatus === "long_term"
-            ? request.requests?.some((req: any) => req.is_long_term && request.request_type !== "recurring")
-            : request.status === filterMyStatus);
-        const typeMatch = filterMyType === "all" || request.request_type === filterMyType;
-        return statusMatch && typeMatch;
+      filterRequestGroups(myRequests || [], {
+        status: filterMyStatus,
+        type: filterMyType,
       }),
     [myRequests, filterMyStatus, filterMyType]
   );
 
+  const filteredTasks = useMemo(
+    () =>
+      (assignedRequests || [])
+        .filter((t) => matchesRequestTypeFilter(t, filterType))
+        .sort(
+          (a, b) =>
+            getTaskTypeOrder(a.request_type || (a as { type?: string }).type) -
+            getTaskTypeOrder(b.request_type || (b as { type?: string }).type)
+        ),
+    [assignedRequests, filterType]
+  );
+
   const filteredCompleted = useMemo(
     () =>
-      (completedRequests || []).filter(
-        (t: any) => filterType === "all" || t.request_type === filterType
-      ),
+      (completedRequests || []).filter((t) => matchesRequestTypeFilter(t, filterType)),
     [completedRequests, filterType]
   );
 
@@ -431,10 +429,11 @@ export default function ExecutorRequestsPage() {
             <SelectValue placeholder="Тип" />
           </SelectTrigger>
           <SelectContent className="bg-[#2C2C2E] border-white/10">
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="normal">Обычная</SelectItem>
-            <SelectItem value="urgent">Экстренная</SelectItem>
-            <SelectItem value="planned">Плановая</SelectItem>
+            {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       ) : activeTab === "myTasks" ? (
@@ -444,14 +443,11 @@ export default function ExecutorRequestsPage() {
               <SelectValue placeholder="Статус" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-white/10">
-              <SelectItem value="all">Все</SelectItem>
-              <SelectItem value="in_progress">В обработке</SelectItem>
-              <SelectItem value="awaiting_assignment">Ожидает</SelectItem>
-              <SelectItem value="execution">Исполнение</SelectItem>
-<SelectItem value="completed">Завершено</SelectItem>
-              <SelectItem value="overdue">Просрочено</SelectItem>
-              <SelectItem value="long_term">Долгосрочные</SelectItem>
-              <SelectItem value="rejected">Отклонено</SelectItem>
+              {statusFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
           </SelectContent>
           </Select>
           <Select value={filterMyType} onValueChange={setFilterMyType}>
@@ -459,10 +455,11 @@ export default function ExecutorRequestsPage() {
               <SelectValue placeholder="Тип" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-white/10">
-              <SelectItem value="all">Все</SelectItem>
-              <SelectItem value="normal">Обычная</SelectItem>
-              <SelectItem value="urgent">Экстренная</SelectItem>
-              <SelectItem value="planned">Плановая</SelectItem>
+              {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </>
@@ -472,10 +469,11 @@ export default function ExecutorRequestsPage() {
             <SelectValue placeholder="Тип" />
           </SelectTrigger>
           <SelectContent className="bg-[#2C2C2E] border-white/10">
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="normal">Обычная</SelectItem>
-            <SelectItem value="urgent">Экстренная</SelectItem>
-            <SelectItem value="planned">Плановая</SelectItem>
+            {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       );
@@ -681,10 +679,11 @@ export default function ExecutorRequestsPage() {
                     <SelectValue placeholder="Тип" />
                   </SelectTrigger>
                   <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                    <SelectItem value="all" className="text-white">Все</SelectItem>
-                    <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-                    <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-                    <SelectItem value="planned" className="text-white">Плановая</SelectItem>
+                    {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white">
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -720,14 +719,11 @@ export default function ExecutorRequestsPage() {
                     <SelectValue placeholder="Статус" />
                   </SelectTrigger>
                   <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                    <SelectItem value="all" className="text-white">Все</SelectItem>
-                    <SelectItem value="in_progress" className="text-white">В обработке</SelectItem>
-                    <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
-                    <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
-<SelectItem value="completed" className="text-white">Завершено</SelectItem>
-                    <SelectItem value="overdue" className="text-white">Просрочено</SelectItem>
-                    <SelectItem value="long_term" className="text-white">Долгосрочные</SelectItem>
-                    <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
+                    {statusFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white">
+                        {option.label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
                 </Select>
                 <Select value={filterMyType} onValueChange={setFilterMyType}>
@@ -735,10 +731,11 @@ export default function ExecutorRequestsPage() {
                     <SelectValue placeholder="Тип" />
                   </SelectTrigger>
                   <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                    <SelectItem value="all" className="text-white">Все</SelectItem>
-                    <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-                    <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-                    <SelectItem value="planned" className="text-white">Плановая</SelectItem>
+                    {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white">
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -774,10 +771,11 @@ export default function ExecutorRequestsPage() {
                     <SelectValue placeholder="Тип" />
                   </SelectTrigger>
                   <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                    <SelectItem value="all" className="text-white">Все</SelectItem>
-                    <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-                    <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-                    <SelectItem value="planned" className="text-white">Плановая</SelectItem>
+                    {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white">
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

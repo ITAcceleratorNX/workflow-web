@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import api, { getOffices } from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { ExecutorRoomsRequestsView } from "@/components/meeting-rooms/ExecutorRoomsRequestsView";
-import { ExecutorMobilePageLayout } from "@/components/executor-mobile/ExecutorMobilePageLayout";
+import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 
 export default function ExecutorMeetingRoomsPage() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export default function ExecutorMeetingRoomsPage() {
   };
 
   return (
-    <ExecutorMobilePageLayout title="Переговорные" onRefresh={handleRefresh}>
+    <MobilePageLayout title="Переговорные" onRefresh={handleRefresh} backHref="/executor/management">
       {loading ? (
         <div className="text-white/80 py-8 text-center">Загрузка...</div>
       ) : (
@@ -67,6 +67,6 @@ export default function ExecutorMeetingRoomsPage() {
           onRequestClick={(request) => router.push(`/executor?tab=meeting-rooms&requestId=${request.id}`)}
         />
       )}
-    </ExecutorMobilePageLayout>
+    </MobilePageLayout>
   );
 }

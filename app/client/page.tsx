@@ -44,7 +44,7 @@ import api, { getOffices } from "@/lib/api";
 import {useRouter, useSearchParams} from "next/navigation";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {BottomNav} from "@/components/BottomNav";
 import Link from "next/link";
 import Image from "next/image";
@@ -161,7 +161,7 @@ export default function ClientDashboard() {
   const observer = useRef<IntersectionObserver | null>(null);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
   const [pageSize] = useState(10);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   
   // Обработка query параметра tab и requestId из ссылки (шаринг заявки)
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav";
 import { MeetingRoomsAdmin } from "@/components/meeting-rooms/MeetingRoomsAdmin";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
@@ -15,7 +15,7 @@ import Image from "next/image";
 import { getOffices } from "@/lib/api";
 
 export default function DepartmentHeadBookingPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const [meetingRoomsTab, setMeetingRoomsTab] = useState<"book" | "my-bookings">("book");
   const [selectedOffice, setSelectedOffice] = useState<any | null>(null);
 

@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight, Clock } from "lucide-react"
 import { RequestGroup } from "@/stores/useRequestStore"
 import { getThumbnailUrl } from "@/lib/imageOptimization"
-import { formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
+import { formatCardDateShort, formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
+import { getStatusLabel, getTypeLabel } from "@/constants/requests"
 
 interface RequestCardProps {
   request: RequestGroup
@@ -72,34 +73,27 @@ function RequestCardComponent({
   variant = 'default'
 }: RequestCardProps) {
 
-  const formattedDate = useMemo(
-    () => formatDateOnly(request.created_date),
+  const formattedDateShort = useMemo(
+    () => formatCardDateShort(request.created_date),
     [request.created_date]
   )
-  const formattedDateLong = useMemo(
-    () => formatDateTime(request.created_date),
+  const formattedDate = useMemo(
+    () => formatDateOnly(request.created_date),
     [request.created_date]
   )
   
   const handleClick = useCallback(() => onCardClick(request), [onCardClick, request])
   
   // Получаем тип заявки и статус для compact варианта
-  const requestTypeLabel = useMemo(() => {
-    if (request.request_type === 'urgent') return 'Экстренная'
-    if (request.request_type === 'planned') return 'Плановая'
-    return 'Обычная'
-  }, [request.request_type])
+  const requestTypeLabel = useMemo(
+    () => getTypeLabel(request.request_type ?? 'normal'),
+    [request.request_type]
+  )
 
-  const statusLabel = useMemo(() => {
-    switch (request.status) {
-      case 'in_progress': return 'В обработке'
-      case 'awaiting_assignment': return 'Ожидает назначение'
-      case 'execution': return 'Исполнение'
-      case 'completed': return 'Завершено'
-      case 'rejected': return 'Отклонено'
-      default: return 'В обработке'
-    }
-  }, [request.status])
+  const statusLabel = useMemo(
+    () => getStatusLabel(request.status),
+    [request.status]
+  )
 
   // Compact вариант карточки (как на скриншотах)
   if (variant === 'compact') {
@@ -151,7 +145,7 @@ function RequestCardComponent({
           {/* Дата */}
           <div className="flex items-center gap-2 text-gray-400 text-sm">
             <Clock className="w-4 h-4" />
-            <span>{formattedDateLong}</span>
+            <span>{formattedDateShort}</span>
           </div>
         </div>
 

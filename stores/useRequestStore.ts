@@ -1,4 +1,21 @@
 import { create } from 'zustand';
+import { sortRequestGroupsByPriority } from '@/lib/request-utils';
+import type {
+    Request,
+    RequestExecutorAssignment,
+    RequestGroup,
+    RequestPhoto,
+    SubRequest,
+} from '@/lib/types/request';
+
+export type {
+    ClientRating,
+    Request,
+    RequestExecutorAssignment,
+    RequestGroup,
+    RequestPhoto,
+    SubRequest,
+} from '@/lib/types/request';
 
 interface RequestState {
     requests: RequestGroup[];
@@ -20,91 +37,23 @@ interface RequestState {
     removeIncomingRequest: (id: number) => void;
     removeAssignedRequests: (id: number) => void;
     updateSubRequestRating: (requestGroupId: number, subRequestId: number, rating: number) => void;
-    updateSubRequestExecutors: (requestGroupId: number, subRequestId: number, executors: any[], status?: string) => void;
+    updateSubRequestExecutors: (
+        requestGroupId: number,
+        subRequestId: number,
+        executors: RequestExecutorAssignment[],
+        status?: string
+    ) => void;
     updateRequestGroupStatus: (requestGroupId: number) => void;
     updateSubRequestRedirect: (requestGroupId: number, subRequestId: number, categoryId: number) => void;
-    updateSubRequestComplete: (requestGroupId: number, subRequestId: number, comment: string, photos: any[]) => void;
+    updateSubRequestComplete: (
+        requestGroupId: number,
+        subRequestId: number,
+        comment: string,
+        photos: RequestPhoto[]
+    ) => void;
 }
 
-export interface SubRequest {
-    id: number;
-    title: string;
-    description: string;
-    status: string;
-    category_id?: number;
-    category?: Category;
-    complexity?: string;
-    sla?: string;
-    created_date: string;
-    executor?: {user: { id: number; full_name: any; phone?: string }; RequestExecutor?: { role: string } }; // Для обратной совместимости
-    executors?: Array<{user: { id: number; full_name: any; phone?: string; }; RequestExecutor?: { role: string } }>; // Новый массив исполнителей
-    is_long_term?: boolean;
-    ratings?: Array<{rating: number; comment?: string; comments?: string[]}>;
-    comment?: string;
-    rating?: number;
-    photos?: Photo[];
-    location?: string;
-}
-
-export interface RequestGroup {
-    id: number;
-    client_id: number;
-    office_id: number;
-    location: string;
-    location_detail: string;
-    date_submitted?: string;
-    status: string;
-    request_type: string;
-    rejection_reason?: string;
-    planned_date?: string;
-    created_date: string;
-    client?: { full_name: string; phone?: string; role?: string };
-    office?: { id: number; name: string; city: string; address?: string };
-    photos?: Photo[];
-    requests: SubRequest[];
-    is_long_term?: boolean;
-    clientRatings?: any[];
-    // Поля для повторяющихся задач
-    recurrence_type?: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    recurrence_interval?: number;
-    next_due_date?: string;
-    last_completed_date?: string;
-    recurring_status?: 'active' | 'paused' | 'completed';
-}
-
-// Для обратной совместимости
-export interface Request extends RequestGroup {}
-
-interface Category {
-    id: number;
-    name: string;
-}
-
-interface Photo {
-    id: number;
-    request_id: number;
-    photo_url: string;
-    type: string;
-    created_at: string;
-}
-
-export const sortRequests = (requests: RequestGroup[]): RequestGroup[] => {
-    return [...requests].sort((a, b) => {
-        // Сначала заявки в работе
-        const aInProgress = a.status === "in_progress";
-        const bInProgress = b.status === "in_progress";
-        if (aInProgress !== bInProgress) return aInProgress ? -1 : 1;
-
-        // Затем срочные заявки
-        if (a.request_type === "urgent" && b.request_type !== "urgent") return -1;
-        if (b.request_type === "urgent" && a.request_type !== "urgent") return 1;
-
-        // Затем по дате (новые выше)
-        const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
-        const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
-        return dateB - dateA;
-    });
-};
+export const sortRequests = sortRequestGroupsByPriority;
 
 export const useRequestStore = create<RequestState>((set, get) => ({
     requests: [],

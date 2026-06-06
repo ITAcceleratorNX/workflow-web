@@ -8,6 +8,7 @@ import { Clock, Calendar, MapPin, Repeat, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { RecurringTask } from '@/lib/api';
+import { getStatusLabel } from '@/constants/requests';
 
 interface RecurringTaskCardProps {
   task: RecurringTask;
@@ -23,17 +24,18 @@ export const RecurringTaskCard: React.FC<RecurringTaskCardProps> = ({
   onCompleteTask
 }) => {
   const getStatusBadge = (status: string) => {
+    const label = getStatusLabel(status);
     switch (status) {
       case 'awaiting_assignment':
-        return <Badge className="bg-orange-100 text-orange-800">Ожидает назначения</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800">{label}</Badge>;
       case 'assigned':
-        return <Badge className="bg-blue-100 text-blue-800">Назначена</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">{label}</Badge>;
       case 'in_progress':
-        return <Badge className="bg-green-100 text-green-800">В работе</Badge>;
+        return <Badge className="bg-green-100 text-green-800">{label}</Badge>;
       case 'completed':
-        return <Badge className="bg-gray-100 text-gray-800">Завершена</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800">{label}</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{label}</Badge>;
     }
   };
 

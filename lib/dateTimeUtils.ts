@@ -33,6 +33,53 @@ export function formatDateTime(value: DateInput): string {
   });
 }
 
+/** Дата и время заявки — alias для formatDateTime (как formatRequestDate в mobile). */
+export function formatRequestDate(value: DateInput): string {
+  return formatDateTime(value);
+}
+
+/** Короткая дата для карточки списка: «15 мар., 14:30» (как workflow-mobile formatCardDateShort). */
+export function formatCardDateShort(value: DateInput): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  const datePart = formatWithOptions(date, {
+    day: "numeric",
+    month: "short",
+  });
+  const timePart = formatTimeOnly(date);
+  return datePart && timePart ? `${datePart}, ${timePart}` : "—";
+}
+
+/** Дата из ISO с fallback при ошибке Intl (как в mobile). */
+export function formatDisplayDateFromIso(iso: string): string {
+  const formatted = formatDateOnly(iso);
+  if (formatted) return formatted;
+  const part = iso.slice(0, 10);
+  if (part.length === 10) return part.split("-").reverse().join(".");
+  return iso;
+}
+
+/** «только что» / «N мин назад» / «N дн назад» / DD.MM.YYYY */
+export function formatTimeAgo(dateStr: string): string {
+  const date = toDate(dateStr);
+  if (!date) return dateStr;
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (totalMinutes < 1) return "только что";
+  if (totalMinutes < 60) return `${totalMinutes} мин назад`;
+  if (totalMinutes < 60 * 24) {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return m === 0 ? `${h} ч назад` : `${h} ч ${m} мин назад`;
+  }
+  if (diffDays < 7) return `${diffDays} дн назад`;
+
+  return formatDateOnly(date) || dateStr;
+}
+
 export function formatDateOnly(value: DateInput): string {
   return formatWithOptions(value, {
     day: "2-digit",

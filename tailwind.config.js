@@ -18,16 +18,46 @@ module.exports = {
       },
     },
     screens: {
-      'xs': '320px',
-      'sm': '640px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
-      '2xl': '1536px',
+      xs: "320px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
     },
     extend: {
       fontFamily: {
-        'sf-pro': ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        "sf-pro": [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"SF Pro Text"',
+          '"SF Pro Display"',
+          '"Helvetica Neue"',
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
+      },
+      spacing: {
+        "4pt-xs": "4px",
+        "4pt-sm": "8px",
+        "4pt-md": "12px",
+        "4pt-lg": "16px",
+        "4pt-xl": "20px",
+        "4pt-xxl": "24px",
+        "4pt-huge": "32px",
+        "4pt-giant": "48px",
+      },
+      borderRadius: {
+        "4pt-xs": "6px",
+        "4pt-sm": "8px",
+        "4pt-md": "12px",
+        "4pt-lg": "16px",
+        "4pt-xl": "20px",
+        "4pt-pill": "999px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       colors: {
         border: "hsl(var(--border))",
@@ -35,6 +65,16 @@ module.exports = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        brand: {
+          DEFAULT: "hsl(var(--brand-primary))",
+          foreground: "hsl(var(--brand-primary-foreground))",
+          error: "hsl(var(--brand-error))",
+        },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          elevated: "hsl(var(--surface-elevated))",
+          muted: "hsl(var(--surface-muted))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -63,6 +103,9 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
         violet: {
           50: "#f3e8ff",
           100: "#e9d5ff",
@@ -76,15 +119,13 @@ module.exports = {
           900: "#581c87",
         },
         desktop: {
-          bg: "#1A1A1A",
-          primary: "#E85D2B",
-          accent: "#2A9D8F",
+          bg: "hsl(var(--desktop-bg))",
+          primary: "hsl(var(--desktop-primary))",
+          accent: "hsl(var(--desktop-accent))",
+          card: "hsl(var(--desktop-surface-card))",
+          muted: "hsl(var(--desktop-surface-muted))",
+          border: "hsl(var(--desktop-border))",
         },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
         "accordion-down": {
@@ -103,4 +144,4 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
+};

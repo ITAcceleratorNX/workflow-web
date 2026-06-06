@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 
 export default function ExecutorManagementLayout({
   children,
@@ -14,7 +15,7 @@ export default function ExecutorManagementLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const { user, clearAuth } = useAuthStore();
   const [hydrated, setHydrated] = useState(false);
 
@@ -58,7 +59,7 @@ export default function ExecutorManagementLayout({
       <div
         className="min-h-screen pb-20"
         style={{
-          background: "linear-gradient(180deg, #1C1C1E 0%, #2C2C2E 50%, #1C1C1E 100%)",
+          background: MOBILE_PAGE_GRADIENTS.plain,
         }}
       >
         {children}

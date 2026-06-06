@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop, useMediaQuery } from "@/hooks/use-media-query";
 import {
   Building2,
   LayoutDashboard,
@@ -62,7 +62,7 @@ const cabinetCards = [
 
 export default function ManagerCabinetPage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const isLargeDesktop = useMediaQuery("(min-width: 1200px)");
 
   useEffect(() => {

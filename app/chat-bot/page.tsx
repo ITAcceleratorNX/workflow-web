@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, FormEvent, KeyboardEvent } from "react";
 import { Send, Trash2, Copy, Building2, Wrench, Ruler, Bell, Home, BarChart3, AlertTriangle, User, Menu, Bot, Clock, ChevronRight, X, Loader2, Headphones, ArrowLeft } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import axios, { AxiosError } from "axios";
 import api, { createSupportTicket, getSupportTicketMessages, sendSupportMessage, getMySupportTickets, type SupportTicket, type SupportMessage } from "@/lib/api";
 import ReactMarkdown from 'react-markdown';
@@ -140,7 +140,7 @@ const topics: Topic[] = [
 
 export default function ChatPage() {
     const { token, isGuest, user } = useAuthStore();
-    const isDesktop = useMediaQuery("(min-width: 768px)");
+    const isDesktop = useIsDesktop();
     /** Внутри чата: первая — чат-бот, вторая — техподдержка */
     const [innerChatTab, setInnerChatTab] = useState<"bot" | "support">("bot")
     const [messages, setMessages] = useState<Message[]>([

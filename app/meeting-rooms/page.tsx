@@ -10,7 +10,7 @@ import { ru } from "date-fns/locale";
 import { getRoomDailyAvailability, MeetingRoomBooking } from "@/lib/api";
 import { formatDateLong, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useGuestDemoStore } from "@/stores/useGuestDemoStore";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +63,7 @@ const MOCK_ROOMS: Room[] = [{ id: 1, name: "Переговорная 1 (демо
 
 export default function MeetingRoomsPage() {
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const isGuest = useAuthStore((s) => s.isGuest);
   const { toast } = useToast();
   const { guestBookings, addGuestBooking, removeGuestBooking } = useGuestDemoStore();

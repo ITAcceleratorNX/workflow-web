@@ -33,32 +33,8 @@ import ClientRatingModal from "@/components/ClientRatingModal";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
-
-const translateStatus = (status: string) => {
-  const statusMap: Record<string, string> = {
-    completed: "Завершена",
-    in_progress: "В процессе",
-    execution: "Выполняется",
-    awaiting_assignment: "Ожидает назначения",
-    awaiting_sla: "Ожидание времени выполнения",
-    assigned: "Назначена",
-    rejected: "Отклонена",
-  };
-  return statusMap[status?.toLowerCase()] || status;
-};
-
-const translateType = (type: string) => {
-  switch (type) {
-    case "urgent":
-      return "Экстренная";
-    case "normal":
-      return "Обычная";
-    case "planned":
-      return "Плановая";
-    default:
-      return type;
-  }
-};
+import { getStatusLabel, getTypeLabel } from "@/constants/requests";
+import { getRoleBasePath } from "@/constants/roles";
 
 const getTypeBadgeClass = (type: string) => {
   switch (type) {
@@ -90,13 +66,6 @@ const getStatusIcon = (status: string) => {
   }
 };
 
-const ROLE_BASE_PATH: Record<string, string> = {
-  "admin-worker": "/admin-worker",
-  "department-head": "/department-head",
-  executor: "/executor",
-  client: "/client",
-  manager: "/manager",
-};
 
 export type RequestDetailsUserRole = "admin-worker" | "department-head" | "executor" | "client" | "manager";
 
@@ -155,7 +124,7 @@ export function RequestDetails({
   onDelete: onDeleteProp,
   embedInPanel = false,
 }: RequestDetailsProps) {
-  const basePath = fullModeRedirectBase ?? ROLE_BASE_PATH[userRoleProp] ?? "/admin-worker";
+  const basePath = fullModeRedirectBase ?? getRoleBasePath(userRoleProp);
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuthStore();
@@ -507,14 +476,14 @@ export function RequestDetails({
             <div className="flex items-center gap-2 flex-wrap">
               {getStatusIcon(selectedRequest.status)}
               <span className="text-white">
-                {translateStatus(selectedRequest.status)}
+                {getStatusLabel(selectedRequest.status)}
               </span>
               <span
                 className={`text-xs font-medium px-3 py-1 rounded-full ${getTypeBadgeClass(
                   selectedRequest.request_type
                 )}`}
               >
-                {translateType(selectedRequest.request_type)}
+                {getTypeLabel(selectedRequest.request_type)}
               </span>
               {(subRequest.is_long_term ||
                 selectedRequest.requests?.some(

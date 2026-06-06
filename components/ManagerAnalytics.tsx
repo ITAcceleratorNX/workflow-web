@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Clock, Star, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import api from "@/lib/api";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 
 interface SLAStats {
@@ -102,7 +102,7 @@ export default function ManagerAnalytics() {
   const [categories, setCategories] = useState<any[]>([]);
   const [offices, setOffices] = useState<any[]>([]);
   const [executors, setExecutors] = useState<any[]>([]);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   const cardCl = isDesktop ? "rounded-xl border border-white/10 bg-[#2C2C2E]" : "rounded-xl border-[#3A3A3C] bg-[#2C2C2E]";
   const titleCl = isDesktop ? "text-white" : "text-white";

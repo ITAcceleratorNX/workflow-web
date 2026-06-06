@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import ManagerDashboard from "../page";
 
 export default function ManagerManagementPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   // На десктопе показываем контент управления как отдельную страницу
   if (isDesktop) {

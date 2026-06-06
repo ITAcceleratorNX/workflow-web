@@ -93,20 +93,6 @@ export function RoleBasedActionMenu({
   const [mounted, setMounted] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  // Функция для перевода статуса
-  const translateStatus = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      'in_progress': 'В процессе',
-      'awaiting_assignment': 'Ожидает назначения Исполнителя',
-      'assigned': 'Назначена',
-      'execution': 'Выполняется',
-      'completed': 'Завершена',
-      'rejected': 'Отклонена',
-      'cancelled': 'Отменена'
-    };
-    return statusMap[status] || status;
-  };
-
   // Поделиться заявкой в WhatsApp (URL и текст из lib/shareRequest — как в workflow-mobile)
   const handleShareWhatsApp = () => {
     const params = {

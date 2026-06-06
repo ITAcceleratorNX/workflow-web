@@ -9,7 +9,7 @@ import {
   clearPendingRequestId,
   getRequestRedirectUrl,
 } from "@/lib/shareRequest";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useCategoryStore} from "@/stores/useCategoryStore";
@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { role, token, setGuestAuth } = useAuthStore()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     if (token && role) {

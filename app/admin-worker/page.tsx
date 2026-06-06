@@ -42,7 +42,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
 import {BottomNav} from "@/components/BottomNav";
-import {useMediaQuery} from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
 import {RejectRequestModal} from "@/components/RejectRequestModal";
@@ -268,7 +268,7 @@ export default function AdminWorkerDashboard() {
   const [requestGroupToRate, setRequestGroupToRate] = useState<any>(null);
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
 
   // Legacy tab redirect: ?tab=... → dedicated routes for desktop
   useEffect(() => {

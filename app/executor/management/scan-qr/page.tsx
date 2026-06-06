@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QrCode, Camera } from "lucide-react";
-import { ExecutorMobilePageLayout } from "@/components/executor-mobile/ExecutorMobilePageLayout";
+import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 import { QRScanner } from "@/components/QRScanner";
 
 export default function ExecutorScanQrPage() {
@@ -14,7 +14,7 @@ export default function ExecutorScanQrPage() {
   };
 
   return (
-    <ExecutorMobilePageLayout title="QR сканер" onRefresh={handleRefresh}>
+    <MobilePageLayout title="QR сканер" onRefresh={handleRefresh} backHref="/executor/management">
       <div className="space-y-4">
         <div className="rounded-2xl p-6" style={{ background: "#D94F15" }}>
           <h3 className="flex items-center gap-2 text-white font-semibold mb-2">
@@ -45,6 +45,6 @@ export default function ExecutorScanQrPage() {
           </div>
         )}
       </div>
-    </ExecutorMobilePageLayout>
+    </MobilePageLayout>
   );
 }

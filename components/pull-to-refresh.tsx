@@ -1,259 +1,225 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import Image from "next/image"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { PageLoader } from "@/components/ui/page-loader";
 
-type PullToRefreshProps = {
-    children?: React.ReactNode
-    onRefresh?: () => Promise<void>
-    threshold?: number
-    maxPull?: number
-    color?: string
-}
+export type PullToRefreshProps = {
+  children?: React.ReactNode;
+  onRefresh?: () => Promise<void>;
+  threshold?: number;
+  maxPull?: number;
+  /** @deprecated используйте variant overlay через PageLoader */
+  color?: string;
+  /** Минимальное время показа лоадера после refresh (ms), как в mobile */
+  minVisibleMs?: number;
+  loaderSize?: number;
+};
 
-export default function PullToRefresh(props: PullToRefreshProps) {
-    const {
-        children,
-        onRefresh = async () => {
-            await new Promise((r) => setTimeout(r, 1000))
-        },
-        threshold = 96,
-        maxPull = 180,
-        color = "#114A65",
-    } = props
+export function PullToRefresh(props: PullToRefreshProps) {
+  const {
+    children,
+    onRefresh = async () => {
+      await new Promise((r) => setTimeout(r, 1000));
+    },
+    threshold = 96,
+    maxPull = 180,
+    minVisibleMs = 1200,
+    loaderSize = 56,
+  } = props;
 
-    const containerRef = React.useRef<HTMLDivElement | null>(null)
-    const startYRef = React.useRef<number>(0)
-    const pullingRef = React.useRef<boolean>(false)
-    const [pull, setPull] = React.useState(0)
-    const [refreshing, setRefreshing] = React.useState(false)
-    const [animatingBack, setAnimatingBack] = React.useState(false)
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const startYRef = React.useRef<number>(0);
+  const pullingRef = React.useRef<boolean>(false);
+  const refreshStartedAtRef = React.useRef<number | null>(null);
+  const hideTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pull, setPull] = React.useState(0);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [animatingBack, setAnimatingBack] = React.useState(false);
+  const [showLoader, setShowLoader] = React.useState(false);
 
-    const rubber = React.useCallback((x: number, max: number) => {
-        const resistance = 0.6
-        const result = (x * resistance * max) / (x * resistance + max)
-        return Math.max(0, Math.min(result, max))
-    }, [])
+  const rubber = React.useCallback((x: number, max: number) => {
+    const resistance = 0.6;
+    const result = (x * resistance * max) / (x * resistance + max);
+    return Math.max(0, Math.min(result, max));
+  }, []);
 
-    const progress = Math.max(0, Math.min(1, pull / threshold))
+  const progress = Math.max(0, Math.min(1, pull / threshold));
+  const loaderScale = 0.3 + progress * 0.7;
+  const loaderOpacity = refreshing ? 1 : Math.max(progress, 0.12);
 
-    const reset = React.useCallback(() => {
-        setAnimatingBack(true)
-        setPull(0)
-        const t = setTimeout(() => setAnimatingBack(false), 220)
-        return () => clearTimeout(t)
-    }, [])
+  const reset = React.useCallback(() => {
+    setAnimatingBack(true);
+    setPull(0);
+    const t = setTimeout(() => {
+      setAnimatingBack(false);
+      setShowLoader(false);
+    }, 220);
+    return () => clearTimeout(t);
+  }, []);
 
-    const doRefresh = React.useCallback(async () => {
-        try {
-            setRefreshing(true)
-            setPull(threshold)
-            await onRefresh()
-        } finally {
-            setRefreshing(false)
-            reset()
-        }
-    }, [onRefresh, reset, threshold])
+  const finishRefresh = React.useCallback(() => {
+    const startedAt = refreshStartedAtRef.current;
+    const elapsed = startedAt ? Date.now() - startedAt : minVisibleMs;
+    const wait = Math.max(minVisibleMs - elapsed, 0);
 
-    const onPointerDown = React.useCallback((e: PointerEvent) => {
-        if (refreshing) return
-        const target = containerRef.current
-        if (!target) return
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
 
-        const isPrimary = e.isPrimary !== false && e.button === 0
-        if (!isPrimary) return
+    hideTimerRef.current = setTimeout(() => {
+      setRefreshing(false);
+      refreshStartedAtRef.current = null;
+      reset();
+    }, wait);
+  }, [minVisibleMs, reset]);
 
-        if (target.scrollTop <= 0) {
-            pullingRef.current = true
-            startYRef.current = e.clientY
-        }
-    }, [refreshing])
+  const doRefresh = React.useCallback(async () => {
+    try {
+      refreshStartedAtRef.current = Date.now();
+      setRefreshing(true);
+      setShowLoader(true);
+      setPull(threshold);
+      await onRefresh();
+    } finally {
+      finishRefresh();
+    }
+  }, [finishRefresh, onRefresh, threshold]);
 
-    const onPointerMove = React.useCallback((e: PointerEvent) => {
-        if (!pullingRef.current || refreshing) return
+  const onPointerDown = React.useCallback(
+    (e: PointerEvent) => {
+      if (refreshing) return;
+      const target = containerRef.current;
+      if (!target) return;
 
-        const dy = e.clientY - startYRef.current
-        const atTop = containerRef.current?.scrollTop === 0
+      const isPrimary = e.isPrimary !== false && e.button === 0;
+      if (!isPrimary) return;
 
-        if (dy > 0 && atTop) {
-            // только если тянем вниз в самом верху
-            e.preventDefault()
-            setPull(rubber(dy, maxPull))
-        } else {
-            // если двигаемся вверх или уже не на верху — отпускаем
-            pullingRef.current = false
-            setPull(0)
-        }
-    }, [maxPull, refreshing, rubber])
+      if (target.scrollTop <= 0) {
+        pullingRef.current = true;
+        startYRef.current = e.clientY;
+      }
+    },
+    [refreshing]
+  );
 
-    const onPointerUp = React.useCallback(() => {
-        if (!pullingRef.current || refreshing) return
-        pullingRef.current = false
+  const onPointerMove = React.useCallback(
+    (e: PointerEvent) => {
+      if (!pullingRef.current || refreshing) return;
 
-        if (pull >= threshold) {
-            void doRefresh()
-        } else {
-            reset()
-        }
-    }, [doRefresh, pull, refreshing, reset, threshold])
+      const dy = e.clientY - startYRef.current;
+      const atTop = containerRef.current?.scrollTop === 0;
 
-    React.useEffect(() => {
-        const el = containerRef.current
-        if (!el) return
+      if (dy > 0 && atTop) {
+        e.preventDefault();
+        const nextPull = rubber(dy, maxPull);
+        setPull(nextPull);
+        setShowLoader(nextPull > threshold * 0.02);
+      } else {
+        pullingRef.current = false;
+        setPull(0);
+        setShowLoader(false);
+      }
+    },
+    [maxPull, refreshing, rubber, threshold]
+  );
 
-        const down = (e: Event) => onPointerDown(e as PointerEvent)
-        const move = (e: Event) => onPointerMove(e as PointerEvent)
-        const up = () => onPointerUp()
+  const onPointerUp = React.useCallback(() => {
+    if (!pullingRef.current || refreshing) return;
+    pullingRef.current = false;
 
-        el.addEventListener("pointerdown", down, { passive: true })
-        el.addEventListener("pointermove", move as any, { passive: false })
-        el.addEventListener("pointerup", up, { passive: true })
-        el.addEventListener("pointercancel", up, { passive: true })
-        el.addEventListener("pointerleave", up, { passive: true })
+    if (pull >= threshold) {
+      void doRefresh();
+    } else {
+      reset();
+    }
+  }, [doRefresh, pull, refreshing, reset, threshold]);
 
-        const touchmove = (e: TouchEvent) => {
-            const atTop = containerRef.current?.scrollTop === 0
-            if (pullingRef.current && !refreshing && atTop) {
-                e.preventDefault()
-            }
-        }
-        el.addEventListener("touchmove", touchmove, { passive: false })
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-        return () => {
-            el.removeEventListener("pointerdown", down)
-            el.removeEventListener("pointermove", move as any)
-            el.removeEventListener("pointerup", up)
-            el.removeEventListener("pointercancel", up)
-            el.removeEventListener("pointerleave", up)
-            el.removeEventListener("touchmove", touchmove as any)
-        }
-    }, [onPointerDown, onPointerMove, onPointerUp, refreshing])
+    const down = (e: Event) => onPointerDown(e as PointerEvent);
+    const move = (e: Event) => onPointerMove(e as PointerEvent);
+    const up = () => onPointerUp();
 
-    const angle = Math.round(progress * 360)
-    const ringSize = 48
-    const ringThickness = 5
-    const contentTranslateY = refreshing ? threshold : pull
+    el.addEventListener("pointerdown", down, { passive: true });
+    el.addEventListener("pointermove", move as EventListener, { passive: false });
+    el.addEventListener("pointerup", up, { passive: true });
+    el.addEventListener("pointercancel", up, { passive: true });
+    el.addEventListener("pointerleave", up, { passive: true });
 
-    return (
-        <div
-            ref={containerRef}
-            className="relative h-[calc(100vh_-_theme(spacing.14))] sm:h-[calc(100vh_-_theme(spacing.16))] overflow-y-auto overscroll-contain"
-            role="region"
-            aria-label="Лента"
-            style={{ 
-                WebkitOverflowScrolling: "touch" as any,
-                scrollBehavior: "auto",
-                contain: "layout style paint"
-            }}
-        >
-            <div
-                className={cn("pointer-events-none sticky top-0 z-10 flex items-end justify-center bg-transparent")}
-                style={{
-                    height: `${contentTranslateY}px`,
-                    transition: animatingBack ? "height 220ms ease" : undefined,
-                }}
-                aria-hidden="true"
-            >
-                <div className="pb-2">
-                    <ProgressRing
-                        size={ringSize}
-                        thickness={ringThickness}
-                        color={color}
-                        angle={angle}
-                        spinning={refreshing}
-                        progress={progress}
-                    />
-                </div>
-            </div>
+    const touchmove = (e: TouchEvent) => {
+      const atTop = containerRef.current?.scrollTop === 0;
+      if (pullingRef.current && !refreshing && atTop) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("touchmove", touchmove, { passive: false });
 
-            <div
-                style={{
-                    transform: `translateY(${contentTranslateY}px)`,
-                    transition: animatingBack ? "transform 220ms ease" : undefined,
-                }}
-            >
-                {children}
-            </div>
-        </div>
-    )
-}
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move as EventListener);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      el.removeEventListener("pointerleave", up);
+      el.removeEventListener("touchmove", touchmove);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, [onPointerDown, onPointerMove, onPointerUp, refreshing]);
 
-function ProgressRing({
-                          size = 48,
-                          thickness = 5,
-                          color = "#114A65",
-                          angle = 0,
-                          spinning = false,
-                          progress = 0,
-                      }) {
-    const primaryColor = "#114A65"
-    const secondaryColor = "#B8400E"
-    const bg = spinning
-        ? `conic-gradient(from 0deg, ${primaryColor} 0deg, ${secondaryColor} 180deg, ${primaryColor} 360deg)`
-        : `conic-gradient(${primaryColor} ${angle}deg, #e5e7eb 0deg)`
-    const rotate = spinning ? "animate-spin" : ""
-    const scale = 0.9 + progress * 0.15
-    const rotateDeg = spinning ? 0 : Math.round(progress * 20)
+  const contentTranslateY = refreshing ? threshold : pull;
 
-    return (
-        <div
-            className={cn("relative", rotate)}
-            style={{
-                width: size,
-                height: size,
-            }}
-            aria-label={spinning ? "Обновление" : "Прогресс обновления"}
-            role={spinning ? "status" : "progressbar"}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
-        >
-            <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                    background: bg,
-                    transition: spinning ? "none" : "background 60ms linear",
-                }}
+  return (
+    <div
+      ref={containerRef}
+      className="relative h-[calc(100vh_-_theme(spacing.14))] sm:h-[calc(100vh_-_theme(spacing.16))] overflow-y-auto overscroll-contain"
+      role="region"
+      aria-label="Лента"
+      style={{
+        WebkitOverflowScrolling: "touch",
+        scrollBehavior: "auto",
+        contain: "layout style paint",
+      }}
+    >
+      <div
+        className="pointer-events-none sticky top-0 z-10 flex items-end justify-center bg-transparent"
+        style={{
+          height: `${contentTranslateY}px`,
+          transition: animatingBack ? "height 220ms ease" : undefined,
+        }}
+        aria-hidden={!showLoader && !refreshing}
+      >
+        {(showLoader || refreshing) && (
+          <div className="pb-2">
+            <PageLoader
+              size={loaderSize}
+              variant="overlay"
+              style={{
+                transform: `scale(${refreshing ? 1 : loaderScale})`,
+                opacity: loaderOpacity,
+                transition: refreshing
+                  ? "transform 200ms ease, opacity 200ms ease"
+                  : "transform 120ms ease, opacity 120ms ease",
+              }}
+              className={cn(refreshing && "animate-pulse")}
             />
-            <div
-                className="absolute rounded-full bg-white shadow-lg"
-                style={{
-                    top: thickness,
-                    left: thickness,
-                    right: thickness,
-                    bottom: thickness,
-                }}
-            />
-            <div
-                className="absolute inset-0 grid place-items-center"
-                style={{
-                    transform: `scale(${scale}) rotate(${rotateDeg}deg)`,
-                    transition: "transform 120ms ease",
-                }}
-            >
-                <WorkFlowMark size={size - thickness * 2 - 6} />
-            </div>
-        </div>
-    )
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          transform: `translateY(${contentTranslateY}px)`,
+          transition: animatingBack ? "transform 220ms ease" : undefined,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
-function WorkFlowMark({ size = 40 }) {
-    return (
-        <div
-            className="rounded-full grid place-items-center bg-gradient-to-br from-[#114A65] to-[#B8400E] shadow-lg"
-            style={{
-                width: size,
-                height: size,
-                color: "white",
-                fontWeight: 800,
-                letterSpacing: "0.02em",
-                fontSize: Math.max(14, Math.round(size * 0.48)),
-                boxShadow: "0 6px 16px rgba(17, 74, 101, 0.3)",
-            }}
-            aria-hidden="true"
-        >
-            {"W"}
-        </div>
-    )
-}
+export default PullToRefresh;

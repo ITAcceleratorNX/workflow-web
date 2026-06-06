@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuthStore } from "@/stores/useAuthStore"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { BottomNav } from "@/components/BottomNav"
 import PullToRefresh from "@/components/pull-to-refresh"
 import { Home, Lightbulb, Power, Loader2, ChevronDown, Footprints } from "lucide-react"
@@ -19,7 +19,7 @@ export default function CabinetPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, role, token, isGuest } = useAuthStore()
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const isDesktop = useIsDesktop()
 
   const {
     hasAccess,

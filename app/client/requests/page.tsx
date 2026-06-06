@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
@@ -20,19 +20,8 @@ import { RatingModal } from "@/components/RatingModal";
 import { CardHeader } from "@/components/ui/card";
 import { CheckCircle, Clock, User, XCircle } from "lucide-react";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
-
-const translateStatus = (status: string) => {
-  switch (status) {
-    case "completed": return "Завершено";
-    case "in_progress": return "В процессе";
-    case "execution": return "Выполняется";
-    case "awaiting_assignment": return "Ожидает назначения";
-    case "awaiting_sla": return "Ожидание времени выполнения";
-    case "assigned": return "Назначена";
-    case "rejected": return "Отклонена";
-    default: return status;
-  }
-};
+import { getStatusOptionsForRole, REQUEST_TYPE_FILTER_OPTIONS, getTypeLabel } from "@/constants/requests";
+import { filterRequestGroups } from "@/lib/request-utils";
 
 const getStatusIcon = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -48,11 +37,11 @@ const getStatusIcon = (status: string) => {
 };
 
 export default function ClientRequestsPage() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useIsDesktop();
   const { token } = useAuthStore();
   const { toast } = useToast();
 
-  const { requests, setRequests } = useRequestStore();
+  const statusFilterOptions = useMemo(() => getStatusOptionsForRole('client'), []);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -104,12 +93,9 @@ export default function ClientRequestsPage() {
 
   const filteredRequests = useMemo(
     () =>
-      requests.filter((r) => {
-        const statusOk =
-          filterStatus === "all" ||
-          (filterStatus === "long_term" ? r.requests?.some((req) => req.is_long_term) : r.status === filterStatus);
-        const typeOk = filterType === "all" || r.request_type === filterType;
-        return statusOk && typeOk;
+      filterRequestGroups(requests, {
+        status: filterStatus,
+        type: filterType,
       }),
     [requests, filterStatus, filterType]
   );
@@ -194,7 +180,7 @@ export default function ClientRequestsPage() {
                     : "text-white bg-[#114A65]"
               }`}
             >
-              {requestGroup.request_type === "urgent" ? "Экстренная" : requestGroup.request_type === "planned" ? "Плановая" : "Обычная"}
+              {getTypeLabel(requestGroup.request_type ?? 'normal')}
             </span>
           </div>
           <div className="flex gap-1 items-center">
@@ -231,13 +217,11 @@ export default function ClientRequestsPage() {
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="in_progress">В обработке</SelectItem>
-                  <SelectItem value="awaiting_assignment">Ожидает назначения</SelectItem>
-                  <SelectItem value="execution">Исполнение</SelectItem>
-                  <SelectItem value="completed">Завершено</SelectItem>
-                  <SelectItem value="long_term">Долгосрочные</SelectItem>
-                  <SelectItem value="rejected">Отклонено</SelectItem>
+                  {statusFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -245,10 +229,11 @@ export default function ClientRequestsPage() {
                   <SelectValue placeholder="Тип заявки" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#2C2C2E] border-white/10">
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="normal">Обычная</SelectItem>
-                  <SelectItem value="urgent">Экстренная</SelectItem>
-                  <SelectItem value="planned">Плановая</SelectItem>
+                  {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </>
@@ -355,12 +340,11 @@ export default function ClientRequestsPage() {
               <SelectValue placeholder="Статус" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-gray-700">
-              <SelectItem value="all" className="text-white">Все</SelectItem>
-              <SelectItem value="in_progress" className="text-white">В обработке</SelectItem>
-              <SelectItem value="awaiting_assignment" className="text-white">Ожидает</SelectItem>
-              <SelectItem value="execution" className="text-white">Исполнение</SelectItem>
-              <SelectItem value="completed" className="text-white">Завершено</SelectItem>
-              <SelectItem value="rejected" className="text-white">Отклонено</SelectItem>
+              {statusFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-white">
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={filterType} onValueChange={setFilterType}>
@@ -368,10 +352,11 @@ export default function ClientRequestsPage() {
               <SelectValue placeholder="Тип" />
             </SelectTrigger>
             <SelectContent className="bg-[#2C2C2E] border-gray-700">
-              <SelectItem value="all" className="text-white">Все</SelectItem>
-              <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-              <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-              <SelectItem value="planned" className="text-white">Плановая</SelectItem>
+              {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-white">
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

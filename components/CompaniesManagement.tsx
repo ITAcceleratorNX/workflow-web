@@ -34,8 +34,7 @@ import {
     updateOfficeCompany,
 } from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useMediaQuery } from "@/hooks/use-media-query";
-
+import { useIsMobile } from "@/hooks/use-media-query";
 /**
  * Управление компаниями внутри офиса.
  * - `admin-worker` (variant="admin-worker"): выбирает офис и управляет любой компанией.
@@ -48,7 +47,7 @@ interface CompaniesManagementProps {
 export default function CompaniesManagement({ variant }: CompaniesManagementProps) {
     const { user } = useAuthStore();
     const { toast } = useToast();
-    const isMobile = useMediaQuery("(max-width: 767px)");
+    const isMobile = useIsMobile();
     // Тёмная тема в управлении используется на мобилке и на десктопе у админа.
     const isDark = isMobile || variant === "admin-worker";
 
