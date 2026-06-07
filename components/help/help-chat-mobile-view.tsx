@@ -64,14 +64,14 @@ export function HelpChatMobileView({
   }, [messages, isBotTyping]);
 
   const inputBarClass = isDesktop
-    ? "bottom-0 bg-[#1C1C1E] border-[#212121]"
-    : "bottom-0 bg-[#1C1C1E] border-[#3A3A3C]";
+    ? "bottom-0 bg-background border-border"
+    : "bottom-0 bg-background border-border";
 
   return (
     <>
-      <div className={`flex flex-col h-screen safe-area-padding bg-[#1C1C1E]`}>
+      <div className={`flex flex-col h-screen safe-area-padding bg-background`}>
         <header className="sticky top-0 z-10 pt-[max(3rem,env(safe-area-inset-top))] pb-4 px-4 border-b border-[#3A3A3C]">
-          <h1 className="text-2xl font-bold text-white mb-4">Сообщение</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Сообщение</h1>
           <div className="flex rounded-xl overflow-hidden bg-[#2C2C2E] p-1 gap-1">
             <button
               type="button"

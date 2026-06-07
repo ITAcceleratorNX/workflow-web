@@ -12,7 +12,7 @@ export function ExecutorManagementMobile() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-xl font-bold text-white mb-1">Мой кабинет</h1>
+      <h1 className="text-xl font-bold text-foreground mb-1">Мой кабинет</h1>
       <p className="text-sm text-white/60 mb-6">Выберите раздел</p>
 
       <div className="grid grid-cols-2 gap-3">
@@ -45,7 +45,7 @@ export function ExecutorManagementMobile() {
       </div>
 
       <section className="mt-6 pb-4">
-        <h2 className="text-xl font-bold text-white mb-4">Задачи</h2>
+        <h2 className="text-xl font-bold text-foreground mb-4">Задачи</h2>
         <button
           type="button"
           onClick={() => router.push("/executor/requests")}

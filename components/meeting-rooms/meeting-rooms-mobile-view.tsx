@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
-import { BOOKING_TAB_SCENE_UNDERLAY, MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
+import {
+  BOOKING_TAB_SCENE_UNDERLAY,
+  MOBILE_BOOKING_GRADIENT,
+  MOBILE_BOTTOM_NAV_PADDING,
+} from "@/constants/mobile-layout";
 import { useBottomNavLayout } from "@/hooks/use-bottom-nav-layout";
 import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { DeskHeightCalculatorMobile } from "@/components/meeting-rooms/desk-height-calculator-mobile";
@@ -50,14 +54,15 @@ export function MeetingRoomsMobileView() {
 
   return (
     <div
-      className="flex flex-col min-h-screen bg-black"
+      className="flex flex-col min-h-screen"
       style={{
         paddingBottom: navPadding,
+        background: MOBILE_BOOKING_GRADIENT,
         ...(showNav ? { backgroundColor: BOOKING_TAB_SCENE_UNDERLAY } : {}),
       }}
     >
       <div className="pt-12 px-3">
-        <h1 className="text-xl font-bold text-white mb-4">Бронь</h1>
+        <h1 className="text-xl font-bold text-foreground mb-4">Бронь</h1>
       </div>
 
       <div className="px-3 mb-4">

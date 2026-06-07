@@ -3,7 +3,6 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequestDetails } from "@/components/requests";
-import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 import type { UseClientRequestDetailResult } from "@/hooks/use-client-request-detail";
 
 type ClientRequestDetailMobileProps = Pick<
@@ -22,10 +21,7 @@ export function ClientRequestDetailMobile({
 }: ClientRequestDetailMobileProps) {
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: MOBILE_PAGE_GRADIENTS.client }}
-      >
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-400">Загрузка...</p>
       </div>
     );
@@ -33,10 +29,7 @@ export function ClientRequestDetailMobile({
 
   if (error || !request) {
     return (
-      <div
-        className="min-h-screen p-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{ background: MOBILE_PAGE_GRADIENTS.client }}
-      >
+      <div className="min-h-screen p-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <Button variant="ghost" className="text-white mb-4 -ml-2" onClick={handleClose}>
           <ArrowLeft className="w-5 h-5 mr-2" />
           Назад
@@ -47,7 +40,7 @@ export function ClientRequestDetailMobile({
   }
 
   return (
-    <div className="min-h-screen" style={{ background: MOBILE_PAGE_GRADIENTS.client }}>
+    <div className="min-h-screen">
       <RequestDetails
         request={request}
         onClose={handleClose}

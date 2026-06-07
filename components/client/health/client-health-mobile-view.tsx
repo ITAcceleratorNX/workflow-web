@@ -237,7 +237,7 @@ export function ClientHealthMobileView() {
     <>
       <PullToRefresh onRefresh={handleRefresh}>
         <div
-          className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
+          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
           
         >
           <header className="flex items-center gap-2 mb-4">
@@ -249,7 +249,7 @@ export function ClientHealthMobileView() {
             >
               <ChevronLeft className="w-7 h-7" />
             </button>
-            <h1 className="text-xl font-bold text-white flex-1 text-center pr-8">Healthy</h1>
+            <h1 className="text-xl font-bold text-foreground flex-1 text-center pr-8">Healthy</h1>
           </header>
 
           <div className="flex gap-1 mb-4 p-1 rounded-xl bg-[#2C2C2E]">

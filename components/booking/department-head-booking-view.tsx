@@ -15,7 +15,7 @@ export function DepartmentHeadBookingView() {
 
   if (isDesktop) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A]">
+      <div className="min-h-screen bg-background">
         <div className="w-full max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8 client-desktop-dark">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white mb-1">Бронь переговорных</h1>

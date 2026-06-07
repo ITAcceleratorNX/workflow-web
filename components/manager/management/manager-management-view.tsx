@@ -13,7 +13,7 @@ export function ManagerManagementView() {
   const isDesktop = useIsDesktop();
 
   return (
-    <div className={`min-h-screen ${isDesktop ? "" : "min-h-[100dvh] bg-[#1A1A1A]"}`}>
+    <div className={`min-h-screen ${isDesktop ? "" : "min-h-[100dvh] bg-background"}`}>
       <ManagerHomeDashboard standaloneManagement />
     </div>
   );

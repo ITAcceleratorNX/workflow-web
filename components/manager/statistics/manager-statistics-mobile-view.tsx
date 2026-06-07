@@ -78,7 +78,7 @@ export function ManagerStatisticsMobileView({
   const rts = stats?.requestTypeSummary ?? {};
 
   return (
-    <div className="min-h-screen bg-[#1C1C1E] ">
+    <div className="min-h-screen bg-background ">
       <ScreenHeader title="Аналитика" />
 
       <div className="flex gap-2 px-4 mb-3">

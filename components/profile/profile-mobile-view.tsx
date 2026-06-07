@@ -59,20 +59,20 @@ export function ProfileMobileView({
   if (!user) return null;
 
   const inputClass =
-    "h-12 rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white placeholder:text-[#6E6E6E] focus-visible:ring-2 focus-visible:ring-[#212121]";
-  const labelClass = "text-[15px] font-medium text-white";
+    "h-12 rounded-lg border border-border bg-transparent px-4 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-border";
+  const labelClass = "text-[15px] font-medium text-foreground";
 
   return (
     <div
-      className="min-h-screen bg-[#040404]"
+      className="min-h-screen bg-background"
       style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
     >
       <div className="mx-auto w-full max-w-[420px] px-5 pt-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-[28px] leading-10 font-semibold text-white">Профиль</h1>
+          <h1 className="text-[28px] leading-10 font-semibold text-foreground">Профиль</h1>
           <Link
             href="/settings"
-            className="p-2 text-white hover:text-[#F35713] transition-colors"
+            className="p-2 text-foreground hover:text-primary transition-colors"
             aria-label="Настройки"
           >
             <Settings className="h-[22px] w-[22px]" />

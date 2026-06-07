@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseDepartmentHeadRequestsListResult } from "@/hooks/use-department-head-requests-list";
 import { useDepartmentHeadRequestCardHeader } from "./department-head-request-card-header";
 import {
@@ -55,7 +52,7 @@ function MobileTabPanel({
 }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-white">{title}</h2>
+      <h2 className="text-lg font-bold text-foreground">{title}</h2>
       <div className="flex gap-2">
         <DepartmentHeadRequestsFilters
           variant="mobile"
@@ -115,12 +112,8 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.plain
-        }}
-      >
-        <h1 className="text-2xl font-bold text-white mb-4">Заявки</h1>
+        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <DepartmentHeadRequestsTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -174,7 +167,7 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
 
           {activeTab === "recurring" && (
             <div className="space-y-4 admin-management-content pb-8">
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-foreground">
                 {DEPARTMENT_HEAD_TAB_TITLES.recurring}
               </h2>
               <DepartmentHeadRequestsRecurringTab

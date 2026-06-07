@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { Bell, ChevronRight, Sparkles, Wrench } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseAdminWorkerHomeResult } from "@/hooks/use-admin-worker-home";
 import { ADMIN_WORKER_HOME_CARDS } from "./admin-worker-home-constants";
 
@@ -19,15 +16,10 @@ export function AdminWorkerHomeMobile({ handleRefresh }: AdminWorkerHomeMobilePr
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.plain
-        }}
-      >
+      <div className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="mb-4">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-white">Управление системой</h1>
+            <h1 className="text-2xl font-bold text-foreground">Управление системой</h1>
             <Link
               href="/notifications"
               className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -69,7 +61,7 @@ export function AdminWorkerHomeMobile({ handleRefresh }: AdminWorkerHomeMobilePr
         </div>
 
         <section className="mt-6 pb-4">
-          <h2 className="text-xl font-bold text-white mb-4">Задачи</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">Задачи</h2>
           <button
             type="button"
             onClick={() => router.push("/admin-worker/requests")}

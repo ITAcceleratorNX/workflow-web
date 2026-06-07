@@ -71,5 +71,5 @@ export default function ManagerLayout({
     );
   }
 
-  return <MobileRoleShell className="min-h-screen min-h-[100dvh] bg-transparent">{children}</MobileRoleShell>;
+  return <MobileRoleShell>{children}</MobileRoleShell>;
 }

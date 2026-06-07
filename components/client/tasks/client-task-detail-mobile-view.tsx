@@ -75,7 +75,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
   return (
     <>
       <div
-        className="min-h-screen bg-[#1C1C1E]"
+        className="min-h-screen bg-background"
         
       >
         <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4">

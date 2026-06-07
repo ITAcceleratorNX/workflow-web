@@ -46,7 +46,7 @@ export function AdminSupportTicketsList({
 
   return (
     <>
-      <div className="min-h-screen flex flex-col bg-[#1C1C1E]">
+      <div className="min-h-screen flex flex-col bg-background">
         <header className="sticky top-0 z-10 px-4 pt-[max(3rem,env(safe-area-inset-top))] pb-4 border-b border-[#3A3A3C]">
           <h1 className="text-2xl font-bold text-white mb-3">Сообщения</h1>
           <div className="flex items-center gap-3 pb-1">

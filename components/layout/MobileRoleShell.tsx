@@ -2,6 +2,7 @@
 
 import { BottomNav } from "@/components/BottomNav";
 import { useBottomNavLayout } from "@/hooks/use-bottom-nav-layout";
+import { cn } from "@/lib/utils";
 
 interface MobileRoleShellProps {
   children: React.ReactNode;
@@ -9,16 +10,19 @@ interface MobileRoleShellProps {
   style?: React.CSSProperties;
 }
 
-/** Mobile wrapper: content padding under absolute BottomNav + nav bar. */
+/** Mobile wrapper: page background + content padding under absolute BottomNav + nav bar. */
 export function MobileRoleShell({
   children,
-  className = "min-h-screen bg-[#1C1C1E]",
+  className,
   style,
 }: MobileRoleShellProps) {
   const { paddingBottom } = useBottomNavLayout();
 
   return (
-    <div className={className} style={{ ...style, paddingBottom }}>
+    <div
+      className={cn("min-h-screen min-h-[100dvh] bg-background", className)}
+      style={{ ...style, paddingBottom }}
+    >
       {children}
       <BottomNav />
     </div>

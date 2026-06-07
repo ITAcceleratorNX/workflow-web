@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Bell, ChevronRight } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseDepartmentHeadHomeResult } from "@/hooks/use-department-head-home";
 import { DEPARTMENT_HEAD_HOME_CARDS } from "./department-head-home-constants";
 
@@ -16,15 +13,10 @@ type DepartmentHeadHomeMobileProps = UseDepartmentHeadHomeResult;
 export function DepartmentHeadHomeMobile({ handleRefresh }: DepartmentHeadHomeMobileProps) {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.plain
-        }}
-      >
+      <div className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="mb-4">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-white">Управление</h1>
+            <h1 className="text-2xl font-bold text-foreground">Управление</h1>
             <Link
               href="/notifications"
               className="relative p-2 rounded-full hover:bg-white/10 transition-colors"

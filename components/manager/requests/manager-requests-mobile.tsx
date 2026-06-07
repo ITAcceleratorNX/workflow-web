@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-list";
 import { useManagerRequestCardHeader } from "./manager-request-card-header";
 import { ManagerRequestsFilters } from "./manager-requests-filters";
@@ -43,13 +40,9 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
     <>
       <PullToRefresh onRefresh={handleRefresh}>
         <div
-          className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          style={{
-            background: MOBILE_PAGE_GRADIENTS.plain
-          }}
-        >
+          className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-white">Заявки</h1>
+            <h1 className="text-2xl font-bold text-foreground">Заявки</h1>
             <Link href="/create-request">
               <Button className="h-12 px-5 bg-[#F35713] hover:bg-[#E04A0A] text-white font-semibold rounded-2xl">
                 <Plus className="h-4 w-4 mr-2" />

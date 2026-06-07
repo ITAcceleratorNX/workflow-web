@@ -41,12 +41,12 @@ export function SupportChatMobileView({
   const inputBarClass = isDesktop
     ? "bottom-0 bg-[#1C1C1E] border-[#212121]"
     : canRespond
-      ? "bottom-[calc(90px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E] border-[#3A3A3C]"
-      : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E] border-[#3A3A3C]";
+      ? "bottom-[calc(90px+env(safe-area-inset-bottom,0px))] bg-background border-border"
+      : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-background border-border";
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-[#E85D2B]" />
       </div>
     );
@@ -54,7 +54,7 @@ export function SupportChatMobileView({
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-[#1C1C1E]">
+      <div className="flex flex-col h-screen bg-background">
         <header className="flex items-center gap-3 px-4 py-3 border-b border-[#3A3A3C] pt-[max(3rem,env(safe-area-inset-top))]">
           <button
             type="button"

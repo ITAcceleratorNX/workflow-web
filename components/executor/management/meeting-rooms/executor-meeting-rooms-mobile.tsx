@@ -21,7 +21,7 @@ export function ExecutorMeetingRoomsMobile({
       title="Переговорные"
       onRefresh={handleRefresh}
       backHref={EXECUTOR_MANAGEMENT_TASKS_BACK_HREF}
-      gradient="plain"
+      background="default"
     >
       {loading ? (
         <div className="text-white/80 py-8 text-center">Загрузка...</div>

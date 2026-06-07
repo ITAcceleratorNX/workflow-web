@@ -31,7 +31,7 @@ export function ClientNewsDetailMobileView({ newsId }: ClientNewsDetailMobileVie
 
   return (
     <div
-      className="min-h-screen bg-[#1C1C1E]"
+      className="min-h-screen bg-background"
     >
       <div className="flex items-center px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
         <button
@@ -75,7 +75,7 @@ export function ClientNewsDetailMobileView({ newsId }: ClientNewsDetailMobileVie
                 </span>
               ) : null}
             </div>
-            <h2 className="text-xl font-bold text-white">{item.title}</h2>
+            <h2 className="text-xl font-bold text-foreground">{item.title}</h2>
             <p className="text-[15px] leading-[22px] text-[#8E8E93] whitespace-pre-line">
               {item.desc}
             </p>

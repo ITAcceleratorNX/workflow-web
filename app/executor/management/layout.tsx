@@ -6,7 +6,6 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
 import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
-import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 
 export default function ExecutorManagementLayout({
   children,
@@ -56,9 +55,7 @@ export default function ExecutorManagementLayout({
   return (
     <>
       <Header handleLogout={handleLogout} notificationCount={0} role="Исполнитель" />
-      <MobileRoleShell className="min-h-screen" style={{ background: MOBILE_PAGE_GRADIENTS.plain } as React.CSSProperties}>
-        {children}
-      </MobileRoleShell>
+      <MobileRoleShell>{children}</MobileRoleShell>
     </>
   );
 }

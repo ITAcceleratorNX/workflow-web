@@ -3,9 +3,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseManagerCabinetResult } from "@/hooks/use-manager-cabinet";
 import { MANAGER_CABINET_CARDS } from "./manager-cabinet-constants";
 
@@ -14,14 +11,9 @@ type ManagerCabinetMobileProps = UseManagerCabinetResult;
 /** Mobile «Мой кабинет» — hub с карточками разделов. */
 export function ManagerCabinetMobile({ isDesktop }: ManagerCabinetMobileProps) {
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: MOBILE_PAGE_GRADIENTS.plain,
-      }}
-    >
+    <div className="min-h-screen">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6 lg:py-8">
-        <h1 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-5 md:mb-6">
+        <h1 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-5 md:mb-6">
           Мой кабинет
         </h1>
 

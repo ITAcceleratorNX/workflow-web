@@ -6,6 +6,8 @@ import "../lib/fcm"
 import BridgeInit from "@/components/BridgeInit"
 import { RestorePendingRequestUrl } from "@/components/RestorePendingRequestUrl"
 import { MobileDeepLinkToApp } from "@/components/MobileDeepLinkToApp"
+import { AppProviders } from "@/components/theme/app-providers"
+import { ColorSchemeInitScript } from "@/components/theme/color-scheme-init-script"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
@@ -25,17 +27,20 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        <ColorSchemeInitScript />
       </head>
       <body className="font-sf-pro">
-        <BridgeInit />
-        <Suspense fallback={null}>
-          <RestorePendingRequestUrl />
-        </Suspense>
-        <Suspense fallback={null}>
-          <MobileDeepLinkToApp />
-        </Suspense>
-        {children}
-        <Toaster />
+        <AppProviders>
+          <BridgeInit />
+          <Suspense fallback={null}>
+            <RestorePendingRequestUrl />
+          </Suspense>
+          <Suspense fallback={null}>
+            <MobileDeepLinkToApp />
+          </Suspense>
+          {children}
+          <Toaster />
+        </AppProviders>
       </body>
     </html>
   )

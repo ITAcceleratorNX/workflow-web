@@ -31,7 +31,7 @@ export default function UiKitSmokePage() {
         subtitle="Smoke test — MobilePageLayout"
         onRefresh={handleRefresh}
         padForBottomNav
-        gradient="executor"
+        background="default"
         hideBackLabel
         onBack={() => window.history.back()}
       >

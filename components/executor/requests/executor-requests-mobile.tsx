@@ -5,9 +5,6 @@ import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import type { UseExecutorRequestsListResult } from "@/hooks/use-executor-requests-list";
 import { EXECUTOR_REQUEST_TABS } from "./executor-requests-constants";
@@ -46,17 +43,13 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.executor
-        }}
-      >
-        <h1 className="text-2xl font-bold text-white mb-4">Заявки</h1>
+        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <ExecutorRequestsTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="mt-4 space-y-4">
-          <h2 className="text-lg font-bold text-white">{activeTabLabel}</h2>
+          <h2 className="text-lg font-bold text-foreground">{activeTabLabel}</h2>
 
           <div className="flex gap-2">
             <ExecutorRequestsFilters

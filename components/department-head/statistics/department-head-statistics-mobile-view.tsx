@@ -55,7 +55,7 @@ export function DepartmentHeadStatisticsMobileView({
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
-      <div className="min-h-screen bg-[#1C1C1E] flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <ScreenHeader title="Аналитика" />
 
         {loading && !stats ? (

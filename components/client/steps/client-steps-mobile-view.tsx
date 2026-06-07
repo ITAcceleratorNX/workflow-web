@@ -132,7 +132,7 @@ export function ClientStepsMobileView() {
     <>
       <PullToRefresh onRefresh={handleRefresh}>
         <div
-          className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
+          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
           
         >
           <header className="flex items-center gap-2 mb-4 pb-3 border-b border-[#3A3A3C]">
@@ -144,7 +144,7 @@ export function ClientStepsMobileView() {
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold text-white">Шаги</h1>
+            <h1 className="text-xl font-bold text-foreground">Шаги</h1>
           </header>
 
           <div className="flex gap-1 mb-6 p-1 rounded-xl bg-[#2C2C2E]">

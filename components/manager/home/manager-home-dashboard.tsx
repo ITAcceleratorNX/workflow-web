@@ -2489,7 +2489,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       )}
 
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen bg-[#1A1A1A]">
+    <div className={`min-h-screen ${isDesktop ? "bg-[#1A1A1A]" : "bg-background"}`}>
       {/* Header */}
       <main className={`px-4 py-4 sm:px-5 sm:py-6 md:px-6 md:py-8 lg:px-8 max-w-7xl mx-auto min-w-0 ${!isDesktop ? "manager-mobile-content" : ""}`}>
         {/* Назад — только на мобилке при просмотре раздела (как у admin-worker) */}

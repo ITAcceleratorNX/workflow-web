@@ -19,7 +19,7 @@ export function RoleBookingTabsView({
   title = "Бронь переговорных",
 }: RoleBookingTabsViewProps) {
   return (
-    <div className="min-h-screen bg-[#1A1A1A] pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <div className="w-full max-w-7xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-white mb-6">{title}</h1>
 

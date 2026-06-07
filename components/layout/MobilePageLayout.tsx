@@ -3,29 +3,10 @@
 import { useRouter } from "next/navigation";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import {
-  MOBILE_PAGE_GRADIENTS,
-  type MobilePageGradient,
-} from "@/constants/mobile-layout";
+import { MOBILE_BOOKING_GRADIENT } from "@/constants/mobile-theme";
 import { cn } from "@/lib/utils";
 
-const HEADER_TONE: Record<
-  MobilePageGradient,
-  { titleClassName: string; backClassName: string }
-> = {
-  executor: {
-    titleClassName: "text-white",
-    backClassName: "text-[#E25B21]",
-  },
-  client: {
-    titleClassName: "text-white",
-    backClassName: "text-[#E25B21]",
-  },
-  plain: {
-    titleClassName: "text-white",
-    backClassName: "text-primary",
-  },
-};
+export type MobilePageBackground = "default" | "booking";
 
 export interface MobilePageLayoutProps {
   title: string;
@@ -38,7 +19,7 @@ export interface MobilePageLayoutProps {
   rightSlot?: React.ReactNode;
   hideBackLabel?: boolean;
   inlineTitle?: boolean;
-  gradient?: MobilePageGradient;
+  background?: MobilePageBackground;
   /** Доп. padding снизу под BottomNav (если родительский layout его не даёт) */
   padForBottomNav?: boolean;
   className?: string;
@@ -46,7 +27,7 @@ export interface MobilePageLayoutProps {
 }
 
 /**
- * Единый mobile page wrapper: ScreenHeader, PullToRefresh, safe-area, gradient.
+ * Единый mobile page wrapper: ScreenHeader, PullToRefresh, safe-area, background.
  * Desktop (≥768px): ScreenHeader скрыт; контент рендерится для redirect/shell pages.
  */
 export function MobilePageLayout({
@@ -59,7 +40,7 @@ export function MobilePageLayout({
   rightSlot,
   hideBackLabel,
   inlineTitle,
-  gradient = "executor",
+  background = "default",
   padForBottomNav = false,
   className,
   contentClassName,
@@ -70,16 +51,19 @@ export function MobilePageLayout({
     onBack ??
     (backHref ? () => router.push(backHref) : () => router.back());
 
-  const headerTone = HEADER_TONE[gradient];
-
   const inner = (
     <div
       className={cn(
         "min-h-screen pt-[env(safe-area-inset-top,0px)]",
+        background === "default" && "bg-background",
         padForBottomNav && "pb-[calc(52px+max(env(safe-area-inset-bottom,0px),10px))]",
         className
       )}
-      style={{ background: MOBILE_PAGE_GRADIENTS[gradient] }}
+      style={
+        background === "booking"
+          ? { background: MOBILE_BOOKING_GRADIENT }
+          : undefined
+      }
     >
       <div
         className={cn(
@@ -94,8 +78,8 @@ export function MobilePageLayout({
           rightSlot={rightSlot}
           hideBackLabel={hideBackLabel}
           inlineTitle={inlineTitle}
-          titleClassName={headerTone.titleClassName}
-          backClassName={headerTone.backClassName}
+          titleClassName="text-foreground"
+          backClassName="text-primary"
           className="px-0 pb-4pt-md"
         />
         {children}

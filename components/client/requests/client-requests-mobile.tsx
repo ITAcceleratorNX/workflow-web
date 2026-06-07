@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseClientRequestsListResult } from "@/hooks/use-client-requests-list";
 import { useClientRequestCardHeader } from "./client-request-card-header";
 import { ClientRequestsFilters } from "./client-requests-filters";
@@ -54,13 +51,8 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
 
   return (
     <PullToRefresh onRefresh={() => fetchRequests(1)}>
-      <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.client
-        }}
-      >
-        <h1 className="text-2xl font-bold text-white mb-4">Заявки</h1>
+      <div className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <div className="flex gap-2 mb-4">
           <ClientRequestsFilters

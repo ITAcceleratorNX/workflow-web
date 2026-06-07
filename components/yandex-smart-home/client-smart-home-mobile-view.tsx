@@ -26,7 +26,7 @@ export function ClientSmartHomeMobileView({
     return (
       <>
         <div
-          className="min-h-screen bg-[#1C1C1E] flex items-center justify-center"
+          className="min-h-screen bg-background flex items-center justify-center"
           
         >
           <PageLoader size={96} />
@@ -38,7 +38,7 @@ export function ClientSmartHomeMobileView({
   return (
     <>
       <div
-        className="min-h-screen bg-[#1C1C1E]"
+        className="min-h-screen bg-background"
         
       >
         <ScreenHeader

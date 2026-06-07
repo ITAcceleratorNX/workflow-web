@@ -78,7 +78,7 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
   return (
     <>
       <div
-        className="min-h-screen bg-[#1C1C1E] flex flex-col"
+        className="min-h-screen bg-background flex flex-col"
         
       >
         <ScreenHeader title="Задачи" rightSlot={headerRight} />

@@ -126,7 +126,7 @@ export function ClientSleepMobileView() {
     <>
       <PullToRefresh onRefresh={handleRefresh}>
         <div
-          className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
+          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
           
         >
           <header className="flex items-center gap-2 mb-4">
@@ -140,7 +140,7 @@ export function ClientSleepMobileView() {
             </button>
           </header>
 
-          <h1 className="text-2xl font-bold text-white mb-6">Сон</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-6">Сон</h1>
 
           {recommendations.length > 0 && (
             <div className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-5 mb-4">

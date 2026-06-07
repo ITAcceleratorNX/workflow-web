@@ -44,7 +44,7 @@ export function ExecutorManagementTasksMobile(props: ExecutorManagementTasksMobi
       title={getPageTitle(tab)}
       onRefresh={handleRefresh}
       backHref={EXECUTOR_MANAGEMENT_TASKS_BACK_HREF}
-      gradient="plain"
+      background="default"
     >
       <div className="space-y-4">
         <div className={tab === "myTasks" ? "flex flex-wrap gap-2" : "w-full"}>

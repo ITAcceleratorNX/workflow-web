@@ -23,7 +23,7 @@ export function ExecutorScanQrMobile({
       title="QR сканер"
       onRefresh={handleRefresh}
       backHref={EXECUTOR_MANAGEMENT_TASKS_BACK_HREF}
-      gradient="plain"
+      background="default"
     >
       {permissionState === "loading" ? (
         <div className="rounded-2xl border border-[#3A3A3C] bg-[#2C2C2E] p-5">

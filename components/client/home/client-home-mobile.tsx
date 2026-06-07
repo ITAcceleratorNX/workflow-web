@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, Heart, Home, Sparkles } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { TasksTodayCard } from "@/components/tasks/tasks-today-card";
-import {
-  MOBILE_PAGE_GRADIENTS,
-} from "@/constants/mobile-layout";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
 import { useClientHomeNews } from "@/hooks/use-client-home-news";
 import type { NewsDisplayItem } from "@/lib/news-api";
@@ -78,21 +75,16 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
   return (
     <>
       <PullToRefresh onRefresh={onRefresh}>
-        <div
-          className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          style={{
-            background: MOBILE_PAGE_GRADIENTS.client
-          }}
-        >
+        <div className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="mb-4">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-white">Обзор дня</h1>
+              <h1 className="text-2xl font-bold text-foreground">Обзор дня</h1>
               <Link
                 href="/notifications"
-                className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
+                className="relative p-2 rounded-full hover:bg-muted/50 transition-colors"
                 aria-label="Уведомления"
               >
-                <Bell className="w-6 h-6 text-white" />
+                <Bell className="w-6 h-6 text-foreground" />
               </Link>
             </div>
             <Link
@@ -107,33 +99,33 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
           <NewsCarousel items={items} loading={loading} />
 
           <section className="mt-6">
-            <h2 className="text-xl font-bold text-white mb-4">Smart Control</h2>
+            <h2 className="text-xl font-bold text-foreground mb-4">Smart Control</h2>
             <div className="grid grid-cols-2 gap-3">
               <Link
                 href="/client/smart-home"
-                className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
+                className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#E85D2B]/20 flex items-center justify-center">
                   <Home className="w-7 h-7 text-[#E85D2B]" />
                 </div>
-                <span className="text-sm font-medium text-white leading-snug">
+                <span className="text-sm font-medium text-foreground leading-snug">
                   Управление умным офисом
                 </span>
               </Link>
               <Link
                 href="/client/health"
-                className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
+                className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-3 active:scale-[0.98] transition-transform"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#60A5FA]/20 flex items-center justify-center">
                   <Heart className="w-7 h-7 text-[#60A5FA]" />
                 </div>
-                <span className="text-sm font-medium text-white leading-snug">Health трекер</span>
+                <span className="text-sm font-medium text-foreground leading-snug">Health трекер</span>
               </Link>
             </div>
           </section>
 
           <section className="mt-6 pb-4">
-            <h2 className="text-xl font-bold text-white mb-4">Задачи</h2>
+            <h2 className="text-xl font-bold text-foreground mb-4">Задачи</h2>
             <TasksTodayCard onPress={() => router.push("/client/tasks?tab=today")} />
           </section>
         </div>

@@ -41,7 +41,7 @@ export function ClientNewsMobileView({
   return (
     <>
       <div
-        className="min-h-screen bg-[#1C1C1E]"
+        className="min-h-screen bg-background"
         
       >
         <ScreenHeader title="Все новости" />

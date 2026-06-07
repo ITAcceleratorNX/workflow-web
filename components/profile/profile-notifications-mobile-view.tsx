@@ -34,29 +34,29 @@ export function ProfileNotificationsMobileView() {
 
   if (!user) return null;
 
-  const labelClass = "text-[15px] font-medium text-white";
+  const labelClass = "text-[15px] font-medium text-foreground";
 
   return (
     <div
-      className="min-h-screen bg-[#040404]"
+      className="min-h-screen bg-background"
       style={{ paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="flex items-center px-4 pt-4 pb-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="min-w-11 min-h-11 flex items-center justify-center text-white"
+          className="min-w-11 min-h-11 flex items-center justify-center text-foreground"
           aria-label="Назад"
         >
           <ArrowLeft className="h-[22px] w-[22px]" />
         </button>
-        <h1 className="flex-1 text-center text-xl font-semibold text-white">Уведомления</h1>
+        <h1 className="flex-1 text-center text-xl font-semibold text-foreground">Уведомления</h1>
         <div className="w-[26px]" />
       </div>
 
       <div className="mx-auto w-full max-w-[420px] px-5 space-y-6">
-        <div className="rounded-xl border border-[#212121] p-5 space-y-4">
-          <h2 className="text-lg font-semibold text-white">Настройки уведомлений</h2>
+        <div className="rounded-xl border border-border p-5 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Настройки уведомлений</h2>
           {(
             [
               ["email_notifications", "Email уведомления"],
@@ -66,7 +66,7 @@ export function ProfileNotificationsMobileView() {
           ).map(([key, label]) => (
             <div
               key={key}
-              className="flex items-center justify-between rounded-lg px-4 py-3 border border-[#212121]"
+              className="flex items-center justify-between rounded-lg px-4 py-3 border border-border"
             >
               <Label className={labelClass}>{label}</Label>
               <Switch
@@ -113,7 +113,7 @@ export function ProfileNotificationsMobileView() {
           onClick={() => setSelectedNotification(null)}
         >
           <div
-            className="rounded-xl shadow-lg max-w-md w-full p-6 border border-[#212121] bg-[#040404]"
+            className="rounded-xl shadow-lg max-w-md w-full p-6 border border-border bg-background"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">

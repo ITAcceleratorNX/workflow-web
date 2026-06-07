@@ -2,7 +2,6 @@
 
 import FullScreenLoading from "@/components/FullScreenLoading";
 import { CreateRequestModal } from "@/components/CreateRequestModal";
-import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 import type { UseCreateRequestPageResult } from "@/hooks/use-create-request-page";
 
 type CreateRequestViewProps = UseCreateRequestPageResult;
@@ -36,7 +35,7 @@ export function CreateRequestView(props: CreateRequestViewProps) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: MOBILE_PAGE_GRADIENTS.client }}>
+    <div className="min-h-screen">
       <CreateRequestModal
         isOpen={isOpen}
         onClose={handleClose}

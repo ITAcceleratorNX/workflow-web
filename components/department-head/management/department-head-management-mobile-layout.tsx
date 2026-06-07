@@ -18,7 +18,7 @@ export function DepartmentHeadManagementMobileLayout({
     <MobilePageLayout
       title={title}
       backHref={DEPARTMENT_HEAD_MANAGEMENT_BACK_HREF}
-      gradient="plain"
+      background="default"
       onRefresh={onRefresh}
     >
       <div className="admin-management-content">{children}</div>
