@@ -253,6 +253,62 @@ export async function deleteUserTask(
   }
 }
 
+export type UserTaskAttachmentKind = "image" | "video" | "document";
+
+export interface UserTaskAttachment {
+  id: number;
+  user_task_id: number;
+  uploaded_by_id: number;
+  file_url: string;
+  file_name: string | null;
+  mime_type: string | null;
+  file_kind: UserTaskAttachmentKind;
+  created_at: string;
+}
+
+export async function getUserTaskAttachments(
+  taskId: number,
+): Promise<{ ok: true; data: UserTaskAttachment[] } | { ok: false; error: string }> {
+  try {
+    const res = await api.get<{ attachments: UserTaskAttachment[] }>(
+      `/user-tasks/${taskId}/attachments`,
+    );
+    return { ok: true, data: res.data.attachments ?? [] };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+export async function uploadUserTaskAttachments(
+  taskId: number,
+  files: File[],
+): Promise<{ ok: true; data: UserTaskAttachment[] } | { ok: false; error: string }> {
+  try {
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
+    const res = await api.post<{ attachments: UserTaskAttachment[] }>(
+      `/user-tasks/${taskId}/attachments`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return { ok: true, data: res.data.attachments ?? [] };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+export async function deleteUserTaskAttachment(
+  taskId: number,
+  attachmentId: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await api.delete(`/user-tasks/${taskId}/attachments/${attachmentId}`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
 export function canEditUserTaskDetails(task: UserTask, userId: number | null | undefined): boolean {
   if (!task || userId == null) return false;
   if (task.creator_id === userId) return true;

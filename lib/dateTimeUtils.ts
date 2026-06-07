@@ -217,6 +217,23 @@ export function toUtcIsoFromAppDateTime(dateKey: string, time: string): string {
   return new Date(utcMs).toISOString();
 }
 
+/** Час 0–23 в Asia/Almaty (слоты календаря дня). */
+export function getAlmatyHour(value: DateInput): number {
+  const date = toDate(value);
+  if (!date) return 0;
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: APP_TIMEZONE,
+      hour: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+    const hour = parts.find((p) => p.type === "hour")?.value ?? "0";
+    return parseInt(hour, 10) || 0;
+  } catch {
+    return date.getUTCHours();
+  }
+}
+
 /** Время HH:mm в Asia/Almaty для задач. */
 export function formatTaskTime(value: DateInput): string {
   const formatted = formatTimeOnly(value);

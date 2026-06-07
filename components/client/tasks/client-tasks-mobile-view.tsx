@@ -201,7 +201,7 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
         )}
 
         {viewMode === "calendar" ? (
-          <div className="flex-1 pt-2">
+          <div className="flex-1 min-h-0 flex flex-col pt-2">
             <CalendarTab />
           </div>
         ) : loadingTasks ? (

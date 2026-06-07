@@ -21,7 +21,7 @@ const VIEW_TABS: { value: TaskMainView; label: string }[] = [
   { value: "completed", label: "Выполненные" },
 ];
 
-const UPCOMING_CALENDAR_DAYS_BACK = 0;
+/** Полоса «Предстоящие» — только будущие дни (с завтра), сегодня в «Сегодня». */
 const UPCOMING_CALENDAR_DAYS_FORWARD = 180;
 const COMPLETED_CALENDAR_DAYS_HISTORY = UPCOMING_CALENDAR_DAYS_FORWARD;
 
@@ -141,10 +141,8 @@ export function useClientTasksPage() {
   }, [upcomingVisibleDateKey, upcomingDate, tomorrowKey]);
 
   const upcomingStripDays = useMemo((): CalendarStripDay[] => {
-    return Array.from(
-      { length: UPCOMING_CALENDAR_DAYS_BACK + UPCOMING_CALENDAR_DAYS_FORWARD + 1 },
-      (_, idx) => {
-        const dayOffset = idx - UPCOMING_CALENDAR_DAYS_BACK;
+    return Array.from({ length: UPCOMING_CALENDAR_DAYS_FORWARD + 1 }, (_, idx) => {
+        const dayOffset = idx + 1;
         const key = addCalendarDaysToDateKey(todayKey, dayOffset);
         const dayPart = key.split("-")[2];
         const dayNumber = dayPart ? parseInt(dayPart, 10) : 1;
