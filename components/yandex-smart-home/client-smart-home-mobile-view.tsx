@@ -3,7 +3,6 @@
 import { ChevronDown, Home, Lightbulb, Loader2, Power } from "lucide-react";
 import { PageLoader } from "@/components/ui/page-loader";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { SmartDeskCalculatorCompact } from "@/components/yandex-smart-home/smart-desk-calculator-compact";
 import type { UseClientSmartHomeResult } from "@/hooks/use-client-smart-home";
 
 type ClientSmartHomeMobileViewProps = UseClientSmartHomeResult;
@@ -54,7 +53,6 @@ export function ClientSmartHomeMobileView({
                 <p className="text-base font-semibold text-white">Нет подписок на комнаты</p>
                 <p className="text-sm text-[#8E8E93] mt-1">Обратитесь к администратору</p>
               </div>
-              <SmartDeskCalculatorCompact />
             </>
           ) : (
             <>
@@ -168,8 +166,6 @@ export function ClientSmartHomeMobileView({
                   </div>
                 )}
               </div>
-
-              <SmartDeskCalculatorCompact />
             </>
           )}
         </div>
