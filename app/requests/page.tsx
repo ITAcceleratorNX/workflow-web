@@ -24,7 +24,7 @@ export default function LegacyRequestsRedirectPage() {
   }, [router, user, role, isGuest]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1C1C1E]">
+    <div className="min-h-screen flex items-center justify-center bg-[#040404]">
       <div className="w-8 h-8 border-2 border-[#F35713]/50 border-t-[#F35713] rounded-full animate-spin" />
     </div>
   );

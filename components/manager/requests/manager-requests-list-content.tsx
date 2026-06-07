@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
+import {
+  MOBILE_REQUESTS_EMPTY_TEXT,
+  MOBILE_REQUESTS_LOAD_MORE_BTN,
+} from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 
 interface ManagerRequestsListContentProps {
@@ -36,7 +40,7 @@ export function ManagerRequestsListContent({
       <div
         className={cn(
           "text-center py-12",
-          isDesktop ? "text-white/60" : "py-8 text-gray-400"
+          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
         )}
       >
         Загрузка...
@@ -49,7 +53,7 @@ export function ManagerRequestsListContent({
       <div
         className={cn(
           "text-center py-12",
-          isDesktop ? "text-white/60" : "py-8 text-gray-400"
+          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
         )}
       >
         Нет заявок
@@ -80,7 +84,7 @@ export function ManagerRequestsListContent({
             className={
               isDesktop
                 ? "bg-transparent border-white/20 text-white hover:bg-[#E04A0A]"
-                : "bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                : MOBILE_REQUESTS_LOAD_MORE_BTN
             }
           >
             {loadingMore ? (

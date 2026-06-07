@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
 import type { RequestGroup } from "@/stores/useRequestStore";
@@ -43,7 +45,7 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-4 pt-[max(1rem,env(safe-area-inset-top))]")}>
         <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <ExecutorRequestsTabs activeTab={activeTab} onTabChange={setActiveTab} />

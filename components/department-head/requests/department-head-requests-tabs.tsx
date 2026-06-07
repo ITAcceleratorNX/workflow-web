@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  MOBILE_REQUESTS_TABS_ROW,
+  mobileRequestsTabClass,
+} from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 import {
   DEPARTMENT_HEAD_REQUEST_TABS,
@@ -40,16 +44,13 @@ export function DepartmentHeadRequestsTabs({
   }
 
   return (
-    <div className="flex rounded-xl overflow-hidden bg-[#3D3D3D]">
+    <div className={MOBILE_REQUESTS_TABS_ROW}>
       {DEPARTMENT_HEAD_REQUEST_TABS.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onTabChange(tab.key)}
-          className={cn(
-            "flex-1 py-3 px-4 text-sm font-medium transition-all duration-200",
-            activeTab === tab.key ? "bg-[#5A5A5A] text-white" : "bg-transparent text-gray-400"
-          )}
+          className={mobileRequestsTabClass(activeTab === tab.key)}
         >
           {tab.label}
         </button>

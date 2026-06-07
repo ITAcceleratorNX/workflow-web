@@ -15,10 +15,13 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
   const {
     activeTab,
     setActiveTab,
-    filterIncomingStatus,
-    setFilterIncomingStatus,
-    filterIncomingType,
-    setFilterIncomingType,
+    filterStatus,
+    setFilterStatus,
+    filterType,
+    setFilterType,
+    filterOffice,
+    setFilterOffice,
+    offices,
     statusFilterOptions,
     loading,
     loadingMore,
@@ -56,10 +59,13 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
       filtersSlot={
         <AdminWorkerRequestsFilters
           variant="desktop"
-          filterStatus={filterIncomingStatus}
-          onFilterStatusChange={setFilterIncomingStatus}
-          filterType={filterIncomingType}
-          onFilterTypeChange={setFilterIncomingType}
+          filterStatus={filterStatus}
+          onFilterStatusChange={setFilterStatus}
+          filterType={filterType}
+          onFilterTypeChange={setFilterType}
+          filterOffice={filterOffice}
+          onFilterOfficeChange={setFilterOffice}
+          offices={offices}
           statusFilterOptions={statusFilterOptions}
         />
       }

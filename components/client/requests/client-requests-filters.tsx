@@ -7,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  mobileRequestsFilterContent,
+  mobileRequestsFilterTrigger,
+} from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
-import { cn } from "@/lib/utils";
 
 interface FilterOption {
   value: string;
@@ -37,21 +40,10 @@ export function ClientRequestsFilters({
   return (
     <>
       <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-        <SelectTrigger
-          className={cn(
-            "w-[140px]",
-            isDesktop
-              ? "bg-[#2C2C2E] border-white/10 text-white"
-              : "flex-1 bg-[#2C2C2E] border-gray-700 text-white"
-          )}
-        >
+        <SelectTrigger className={mobileRequestsFilterTrigger(variant)}>
           <SelectValue placeholder="Статус" />
         </SelectTrigger>
-        <SelectContent
-          className={cn(
-            isDesktop ? "bg-[#2C2C2E] border-white/10" : "bg-[#2C2C2E] border-gray-700"
-          )}
-        >
+        <SelectContent className={mobileRequestsFilterContent(variant)}>
           {statusFilterOptions.map((option) => (
             <SelectItem
               key={option.value}
@@ -64,21 +56,10 @@ export function ClientRequestsFilters({
         </SelectContent>
       </Select>
       <Select value={filterType} onValueChange={onFilterTypeChange}>
-        <SelectTrigger
-          className={cn(
-            "w-[140px]",
-            isDesktop
-              ? "bg-[#2C2C2E] border-white/10 text-white"
-              : "flex-1 bg-[#2C2C2E] border-gray-700 text-white"
-          )}
-        >
+        <SelectTrigger className={mobileRequestsFilterTrigger(variant)}>
           <SelectValue placeholder={isDesktop ? "Тип заявки" : "Тип"} />
         </SelectTrigger>
-        <SelectContent
-          className={cn(
-            isDesktop ? "bg-[#2C2C2E] border-white/10" : "bg-[#2C2C2E] border-gray-700"
-          )}
-        >
+        <SelectContent className={mobileRequestsFilterContent(variant)}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
             <SelectItem
               key={option.value}

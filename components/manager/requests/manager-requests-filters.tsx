@@ -7,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  mobileRequestsFilterContent,
+  mobileRequestsFilterTrigger,
+} from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
-import { cn } from "@/lib/utils";
 import {
   MANAGER_PERIOD_OPTIONS,
   type ManagerOffice,
@@ -47,20 +50,13 @@ export function ManagerRequestsFilters({
   statusFilterOptions,
   variant = "mobile",
 }: ManagerRequestsFiltersProps) {
-  const isDesktop = variant === "desktop";
-  const officeTriggerClass = isDesktop
-    ? "w-[140px] bg-[#2C2C2E] border-white/10 text-white"
-    : "flex-1 min-w-[120px] bg-[#2C2C2E] border-[#3A3A3C] text-white";
-  const periodTriggerClass = isDesktop
-    ? "w-[120px] bg-[#2C2C2E] border-white/10 text-white"
-    : "flex-1 min-w-[120px] bg-[#2C2C2E] border-[#3A3A3C] text-white";
-  const filterTriggerClass = isDesktop
-    ? "w-[140px] bg-[#2C2C2E] border-white/10 text-white"
-    : "flex-1 min-w-[120px] bg-[#2C2C2E] border-[#3A3A3C] text-white";
-  const contentClass = isDesktop
-    ? "bg-[#2C2C2E] border-white/10"
-    : "bg-[#2C2C2E] border-[#3A3A3C]";
-  const itemClass = cn(!isDesktop && "text-white");
+  const officeTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
+  const periodTriggerClass = mobileRequestsFilterTrigger(
+    variant,
+    variant === "desktop" ? "w-[120px]" : "min-w-[120px]",
+  );
+  const filterTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
+  const contentClass = mobileRequestsFilterContent(variant);
 
   return (
     <>
@@ -69,11 +65,11 @@ export function ManagerRequestsFilters({
           <SelectValue placeholder="Офис" />
         </SelectTrigger>
         <SelectContent className={contentClass}>
-          <SelectItem value="all" className={itemClass}>
+          <SelectItem value="all">
             Все офисы
           </SelectItem>
           {offices.map((o) => (
-            <SelectItem key={o.id} value={String(o.id)} className={itemClass}>
+            <SelectItem key={o.id} value={String(o.id)}>
               {o.name}
             </SelectItem>
           ))}
@@ -85,7 +81,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {MANAGER_PERIOD_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
+            <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
           ))}
@@ -97,7 +93,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {statusFilterOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
+            <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
           ))}
@@ -109,7 +105,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
+            <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
           ))}

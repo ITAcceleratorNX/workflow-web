@@ -17,7 +17,15 @@ import {
 import { RequestGroup, SubRequest } from "@/stores/useRequestStore";
 import { formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils";
 import Executors from "@/components/Executors";
-import { RoleBasedActionMenu } from "./role-based-action-menu";
+import {
+  AdminAcceptRequestModal,
+  AdminRejectRequestModal,
+  StaffCompleteModal,
+  type AdminAcceptRequestPayload,
+} from "./admin-request-decision-modals";
+import { EditRequestGroupModal, type UpdateRequestGroupPayload } from "./edit-request-group-modal";
+import { RequestActionMenu } from "./request-action-menu-sheet";
+import { RequestDetailMobileBody } from "./request-detail-mobile-body";
 import { CompletedTaskReport } from "@/components/CompletedTaskReport";
 import { getPreviewUrl } from "@/lib/imageOptimization";
 import { IconInfoModal } from "@/components/IconInfoModal";
@@ -30,9 +38,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { RatingModal } from "@/components/RatingModal";
 import ClientRatingModal from "@/components/ClientRatingModal";
-import api from "@/lib/api";
+import api, { getOffices } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getServiceCategories } from "@/lib/service-categories-api";
+import type { RequestUserRole } from "@/lib/request-action-config";
 import { getStatusLabel, getTypeLabel } from "@/constants/requests";
 import { getRoleBasePath } from "@/constants/roles";
 
@@ -127,7 +137,7 @@ export function RequestDetails({
   const basePath = fullModeRedirectBase ?? getRoleBasePath(userRoleProp);
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [showComments, setShowComments] = useState<number | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{
     url: string;
@@ -155,12 +165,52 @@ export function RequestDetails({
   const [clientRatingValue, setClientRatingValue] = useState(0);
   const [clientRatingComment, setClientRatingComment] = useState("");
 
+  const [showAcceptGroupModal, setShowAcceptGroupModal] = useState(false);
+  const [showRejectGroupModal, setShowRejectGroupModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showStaffCompleteModal, setShowStaffCompleteModal] = useState(false);
+  const [staffCompleteCount, setStaffCompleteCount] = useState(0);
+  const [adminModalError, setAdminModalError] = useState<string | null>(null);
+  const [offices, setOffices] = useState<{ id: number; name: string }[]>([]);
+  const [editCategories, setEditCategories] = useState<{ id: number; name: string }[]>([]);
+
   useEffect(() => {
     if (selectedRequest) {
       setEditableRequestType(selectedRequest.request_type || "normal");
       setEditableLocationDetail(selectedRequest.location_detail || "");
     }
   }, [selectedRequest]);
+
+  useEffect(() => {
+    if (!showEditModal || !selectedRequest) {
+      if (!showEditModal) setEditCategories([]);
+      return;
+    }
+    const officeId = selectedRequest.office_id ?? selectedRequest.office?.id;
+    if (!officeId) {
+      setEditCategories([]);
+      return;
+    }
+    let cancelled = false;
+    void getServiceCategories(officeId).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setEditCategories(res.data.map((c) => ({ id: c.id, name: c.name })));
+      } else {
+        setEditCategories([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showEditModal, selectedRequest]);
+
+  useEffect(() => {
+    if (userRoleProp !== "admin-worker" || !showAcceptGroupModal) return;
+    getOffices()
+      .then((res) => setOffices(res.data || []))
+      .catch(() => setOffices([]));
+  }, [userRoleProp, showAcceptGroupModal]);
 
   const handleAcceptRequestGroup = async () => {
     try {
@@ -223,26 +273,116 @@ export function RequestDetails({
     }
   };
 
-  const handleAdminCompleteRequest = async () => {
+  const staffCompleteDefaultComment =
+    userRoleProp === "department-head"
+      ? "Завершено офис-менеджером"
+      : "Завершено администратором";
+
+  const handleAdminCompleteRequest = async (comment?: string) => {
     try {
       setIsSubmitting(true);
       setFormErrors(null);
-      // Complete all sub-requests in the group
-      for (const subReq of selectedRequest.requests) {
-        if (['in_progress', 'awaiting_assignment', 'assigned'].includes(subReq.status)) {
-          await api.patch(`/requests/${subReq.id}/admin-complete`, {
-            comment: rejectionReason || "Завершено администратором"
-          });
-        }
+      setAdminModalError(null);
+      const completionComment = comment?.trim() || rejectionReason || staffCompleteDefaultComment;
+      const targets = selectedRequest.requests.filter((subReq) =>
+        ["in_progress", "awaiting_assignment", "assigned"].includes(subReq.status),
+      );
+      if (!targets.length) {
+        const msg = "Нет подзаявок для завершения";
+        setFormErrors(msg);
+        setAdminModalError(msg);
+        return;
       }
-      toast({ title: "Заявка завершена администратором" });
+      for (const subReq of targets) {
+        await api.patch(`/requests/${subReq.id}/admin-complete`, {
+          comment: completionComment,
+        });
+      }
+      toast({
+        title:
+          userRoleProp === "department-head"
+            ? "Заявка завершена"
+            : "Заявка завершена администратором",
+      });
+      setShowStaffCompleteModal(false);
       onRequestUpdated?.();
       onClose();
     } catch (err: any) {
-      setFormErrors(err?.response?.data?.message || "Ошибка при завершении заявки");
+      const msg = err?.response?.data?.message || "Ошибка при завершении заявки";
+      setFormErrors(msg);
+      setAdminModalError(msg);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleAdminAcceptFromModal = async (payload: AdminAcceptRequestPayload) => {
+    try {
+      setIsSubmitting(true);
+      setAdminModalError(null);
+      await api.patch(`/request-groups/${selectedRequest.id}`, {
+        patch_code: 1,
+        sub_requests: payload.sub_requests,
+        request_type: payload.request_type,
+        location_detail: payload.location_detail,
+        office_id: payload.office_id,
+      });
+      toast({ title: "Заявка принята в работу" });
+      setShowAcceptGroupModal(false);
+      onRequestUpdated?.();
+      onClose();
+    } catch {
+      setAdminModalError("Ошибка при принятии заявки");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAdminRejectFromModal = async (reason: string) => {
+    try {
+      setIsSubmitting(true);
+      setAdminModalError(null);
+      await api.patch(`/request-groups/${selectedRequest.id}`, {
+        patch_code: 2,
+        rejection_reason: reason,
+      });
+      toast({ title: "Заявка отклонена" });
+      setShowRejectGroupModal(false);
+      onRequestUpdated?.();
+      onClose();
+    } catch {
+      setAdminModalError("Ошибка при отклонении заявки");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditRequestGroup = async (body: UpdateRequestGroupPayload) => {
+    try {
+      setIsSubmitting(true);
+      setAdminModalError(null);
+      await api.put(`/request-groups/${selectedRequest.id}`, body);
+      toast({ title: "Заявка обновлена" });
+      setShowEditModal(false);
+      onRequestUpdated?.();
+    } catch {
+      setAdminModalError("Ошибка при сохранении заявки");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openStaffCompleteModal = () => {
+    const targets = selectedRequest.requests.filter((sr) =>
+      ["in_progress", "awaiting_assignment", "assigned"].includes(sr.status),
+    );
+    if (!targets.length) {
+      toast({ title: "Нет подзаявок для завершения", variant: "destructive" });
+      return;
+    }
+    setStaffCompleteCount(targets.length);
+    setAdminModalError(null);
+    setShowStaffCompleteModal(true);
   };
 
   const handleRateExecutor = async () => {
@@ -294,7 +434,11 @@ export function RequestDetails({
   });
 
   const subRequest = selectedRequest.requests?.[0];
-  const hasComments = subRequest ? showComments === subRequest.id : false;
+
+  const isExecutorLeader = !!subRequest?.executors?.some(
+    (executor) =>
+      executor?.user?.id === user?.id && executor?.RequestExecutor?.role === "leader",
+  );
 
   const handleToggleLongTerm = async (
     requestId: number,
@@ -335,12 +479,13 @@ export function RequestDetails({
 
   const isAdminOrDepartmentHead = userRoleProp === "admin-worker" || userRoleProp === "department-head";
   const showAcceptReject =
+    embedInPanel &&
     isAdminOrDepartmentHead &&
     selectedRequest.status === "in_progress" &&
     hideFullModeButton;
 
-  // Показывать кнопку завершения для admin-worker когда задача в статусе awaiting_assignment или assigned
   const showAdminComplete =
+    embedInPanel &&
     userRoleProp === "admin-worker" &&
     ["awaiting_assignment", "assigned"].includes(selectedRequest.status) &&
     hideFullModeButton;
@@ -352,22 +497,22 @@ export function RequestDetails({
   if (!subRequest) {
     const wrapperClass = embedInPanel
       ? "flex flex-col h-full bg-[#1C1C1E]"
-      : "fixed inset-0 z-[100] bg-[#1C1C1E] flex flex-col";
+      : "fixed inset-0 z-[100] bg-[#040404] flex flex-col";
     return (
       <div
         className={wrapperClass}
-        style={embedInPanel ? undefined : { paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={embedInPanel ? undefined : { paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {!embedInPanel && (
-          <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800" aria-label="Назад к заявкам">
-              <ArrowLeft className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+            <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-muted/50" aria-label="Назад к заявкам">
+              <ArrowLeft className="w-6 h-6 text-foreground" />
             </button>
-            <h1 className="text-xl font-bold text-white">Заявка #{selectedRequest.id}</h1>
+            <h1 className="text-xl font-bold text-foreground">Заявка #{selectedRequest.id}</h1>
           </div>
         )}
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-gray-400">Нет данных заявки</p>
+          <p className="text-muted-foreground">Нет данных заявки</p>
         </div>
       </div>
     );
@@ -376,63 +521,97 @@ export function RequestDetails({
   const actionBar = (
     <div className="flex items-center gap-1">
       <button
-        onClick={() => {
-          setShowComments(hasComments ? null : subRequest.id);
-        }}
-        className="p-2 rounded-full hover:bg-gray-800"
+        type="button"
+        onClick={() => setShowComments(subRequest.id)}
+        className="p-2 rounded-full hover:bg-muted/50"
+        aria-label="Комментарии"
       >
         <MessageCircle
           className={`w-5 h-5 ${
-            hasComments ? "text-[#F35713]" : "text-gray-400"
+            showComments === subRequest.id ? "text-[#F35713]" : "text-muted-foreground"
           }`}
         />
       </button>
-      <RoleBasedActionMenu
-        request={subRequest}
-        requestGroup={selectedRequest}
-        isDesktop={embedInPanel}
-        userRole={userRoleProp}
-        isSubRequest={true}
-        variant="admin"
+      <RequestActionMenu
+        request={selectedRequest}
+        subRequest={subRequest}
+        userRole={userRoleProp as RequestUserRole}
+        userId={user?.id}
+        userServiceCategoryId={user?.service_category_id}
+        isExecutorLeader={isExecutorLeader}
         onRateRequest={
-          onRateRequestProp ??
-          (() => {
-            setRequestToRate(subRequest);
-            setRatingValue(userRatings[subRequest.id]?.rating || 0);
-            setRatingComment("");
-            setShowRatingModal(true);
-          })
+          onRateRequestProp
+            ? (sr) => onRateRequestProp(sr)
+            : (sr) => {
+                setRequestToRate(sr);
+                setRatingValue(userRatings[sr.id]?.rating || 0);
+                setRatingComment("");
+                setShowRatingModal(true);
+              }
         }
         onRateClient={
-          onRateClientProp ??
-          (() => {
-            setClientRatingValue(selectedRequest.clientRatings?.[0]?.rating || 0);
-            setClientRatingComment("");
-            setShowClientRatingModal(true);
-          })
+          onRateClientProp
+            ? () => onRateClientProp(selectedRequest)
+            : () => {
+                setClientRatingValue(selectedRequest.clientRatings?.[0]?.rating || 0);
+                setClientRatingComment("");
+                setShowClientRatingModal(true);
+              }
         }
         onDelete={onDeleteProp ?? handleDeleteSubRequest}
         onToggleLongTerm={onToggleLongTermProp ?? handleToggleLongTerm}
         onAssignExecutor={
-          onAssignExecutorProp ? () => onAssignExecutorProp(subRequest) : () => openFullMode()
+          onAssignExecutorProp
+            ? (sr) => onAssignExecutorProp(sr)
+            : undefined
         }
         onChangeExecutors={
-          onChangeExecutorsProp ? () => onChangeExecutorsProp(subRequest) : () => openFullMode()
+          onChangeExecutorsProp
+            ? (sr) => onChangeExecutorsProp(sr)
+            : undefined
         }
-        onRedirectToOtherDepartment={
+        onRedirect={
           onRedirectToOtherDepartmentProp
-            ? () => onRedirectToOtherDepartmentProp(subRequest)
+            ? (sr) => onRedirectToOtherDepartmentProp(sr)
             : onExecutorRedirectProp
-              ? () => onExecutorRedirectProp(subRequest)
-              : () => openFullMode()
+              ? (sr) => onExecutorRedirectProp(sr)
+              : undefined
         }
-        onReject={onRejectProp}
-        onStartTask={onStartTaskProp}
-        onCompleteTask={onCompleteTaskProp}
-        onAddComment={() =>
-          setShowComments(
-            showComments === subRequest.id ? null : subRequest.id
-          )
+        onReject={onRejectProp ? (sr) => onRejectProp(sr) : undefined}
+        onStartTask={
+          onStartTaskProp ? (id) => onStartTaskProp(String(id)) : undefined
+        }
+        onCompleteTask={onCompleteTaskProp ? (sr) => onCompleteTaskProp(sr) : undefined}
+        onOpenComments={() => setShowComments(subRequest.id)}
+        onAdminAcceptGroup={
+          userRoleProp === "admin-worker" && selectedRequest.status === "in_progress"
+            ? () => {
+                setAdminModalError(null);
+                setShowAcceptGroupModal(true);
+              }
+            : undefined
+        }
+        onAdminRejectGroup={
+          userRoleProp === "admin-worker" && selectedRequest.status === "in_progress"
+            ? () => {
+                setAdminModalError(null);
+                setShowRejectGroupModal(true);
+              }
+            : undefined
+        }
+        onAdminCompleteGroup={
+          userRoleProp === "admin-worker" || userRoleProp === "department-head"
+            ? openStaffCompleteModal
+            : undefined
+        }
+        onEditRequestGroup={
+          (userRoleProp === "admin-worker" || userRoleProp === "manager") &&
+          selectedRequest.status !== "completed"
+            ? () => {
+                setAdminModalError(null);
+                setShowEditModal(true);
+              }
+            : undefined
         }
       />
     </div>
@@ -440,27 +619,32 @@ export function RequestDetails({
 
   const wrapperClass = embedInPanel
     ? "flex flex-col h-full bg-[#1C1C1E] min-h-0"
-    : "fixed inset-0 z-[100] bg-[#1C1C1E]";
-  const wrapperStyle = embedInPanel ? undefined : { paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' };
-  const contentPaddingBottom = embedInPanel ? "pb-4" : "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]";
+    : "fixed inset-0 z-[100] bg-[#040404] flex flex-col";
+  const wrapperStyle = embedInPanel
+    ? undefined
+    : { paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" };
+  const contentPaddingBottom = embedInPanel
+    ? "pb-4"
+    : "pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]";
 
   return (
     <>
       <div className={wrapperClass} style={wrapperStyle}>
         <div className="flex flex-col h-full min-h-0">
           {!embedInPanel && (
-            <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
               <button
+                type="button"
                 onClick={() => {
                   setShowComments(null);
                   onClose();
                 }}
-                className="p-2 rounded-full hover:bg-gray-800"
+                className="p-2 rounded-full hover:bg-muted/50"
                 aria-label="Назад к заявкам"
               >
-                <ArrowLeft className="w-6 h-6 text-white" />
+                <ArrowLeft className="w-6 h-6 text-foreground" />
               </button>
-              <h1 className="text-xl font-bold text-white flex-1">
+              <h1 className="text-xl font-bold text-foreground flex-1">
                 Заявка #{selectedRequest.id}
               </h1>
               {actionBar}
@@ -472,7 +656,14 @@ export function RequestDetails({
             </div>
           )}
 
-          <div className={`flex-1 overflow-y-auto p-4 space-y-4 min-h-0 ${contentPaddingBottom}`}>
+          <div className={`flex-1 overflow-y-auto p-4 min-h-0 ${contentPaddingBottom}`}>
+            {!embedInPanel ? (
+              <RequestDetailMobileBody
+                request={selectedRequest}
+                onPhotoClick={(photo) => setSelectedPhoto(photo)}
+              />
+            ) : (
+            <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
               {getStatusIcon(selectedRequest.status)}
               <span className="text-white">
@@ -766,7 +957,7 @@ export function RequestDetails({
                 {userRoleProp === "admin-worker" && (
                   <div className="pt-2 border-t border-gray-700">
                     <Button
-                      onClick={handleAdminCompleteRequest}
+                      onClick={() => void handleAdminCompleteRequest()}
                       disabled={isSubmitting}
                       className="w-full bg-[#114A65] hover:bg-[#0d3a4f] text-white"
                     >
@@ -804,7 +995,7 @@ export function RequestDetails({
                   <p className="text-[#F35713] text-sm">{formErrors}</p>
                 )}
                 <Button
-                  onClick={handleAdminCompleteRequest}
+                  onClick={() => void handleAdminCompleteRequest()}
                   disabled={isSubmitting}
                   className="w-full bg-[#114A65] hover:bg-[#0d3a4f] text-white"
                 >
@@ -906,6 +1097,8 @@ export function RequestDetails({
                   </div>
                 </div>
               )}
+            </div>
+            )}
           </div>
         </div>
       </div>
@@ -976,6 +1169,56 @@ export function RequestDetails({
         title="Оценить клиента"
         description="Поставьте оценку клиенту за сотрудничество"
         variant="dark"
+      />
+
+      <AdminAcceptRequestModal
+        isOpen={showAcceptGroupModal}
+        request={selectedRequest}
+        offices={offices}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowAcceptGroupModal(false);
+          setAdminModalError(null);
+        }}
+        onAccept={handleAdminAcceptFromModal}
+      />
+
+      <AdminRejectRequestModal
+        isOpen={showRejectGroupModal}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowRejectGroupModal(false);
+          setAdminModalError(null);
+        }}
+        onReject={handleAdminRejectFromModal}
+      />
+
+      <StaffCompleteModal
+        isOpen={showStaffCompleteModal}
+        requestId={selectedRequest.id}
+        subCount={staffCompleteCount}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowStaffCompleteModal(false);
+          setAdminModalError(null);
+        }}
+        onConfirm={handleAdminCompleteRequest}
+      />
+
+      <EditRequestGroupModal
+        isOpen={showEditModal}
+        request={selectedRequest}
+        categories={editCategories}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowEditModal(false);
+          setAdminModalError(null);
+        }}
+        onSubmit={handleEditRequestGroup}
       />
     </>
   );

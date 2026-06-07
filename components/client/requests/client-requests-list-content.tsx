@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
+import {
+  MOBILE_REQUESTS_EMPTY_TEXT,
+  MOBILE_REQUESTS_LOAD_MORE_BTN,
+} from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 
 interface ClientRequestsListContentProps {
@@ -36,7 +40,7 @@ export function ClientRequestsListContent({
       <div
         className={cn(
           "text-center py-12",
-          isDesktop ? "text-white/60" : "py-8 text-gray-400"
+          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
         )}
       >
         Загрузка...
@@ -61,7 +65,7 @@ export function ClientRequestsListContent({
         <div
           className={cn(
             "text-center py-12",
-            isDesktop ? "text-white/60" : "py-8 text-gray-400"
+            isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
           )}
         >
           У вас пока нет заявок
@@ -74,7 +78,7 @@ export function ClientRequestsListContent({
             className={
               isDesktop
                 ? "border-white/20 text-white hover:bg-white/10"
-                : "bg-[#2C2C2E] border-[#3A3A3C] text-white hover:bg-[#3D3D3D]"
+                : MOBILE_REQUESTS_LOAD_MORE_BTN
             }
             onClick={onLoadMore}
             disabled={loadingMore}

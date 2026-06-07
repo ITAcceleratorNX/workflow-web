@@ -7,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  mobileRequestsFilterContent,
+  mobileRequestsFilterTrigger,
+} from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
-import { cn } from "@/lib/utils";
 import type { ExecutorRequestsTab } from "./executor-requests-constants";
 
 interface FilterOption {
@@ -39,13 +42,8 @@ export function ExecutorRequestsFilters({
   statusFilterOptions,
   variant = "mobile",
 }: ExecutorRequestsFiltersProps) {
-  const isDesktop = variant === "desktop";
-  const triggerClass = isDesktop
-    ? "w-[140px] bg-[#2C2C2E] border-white/10 text-white"
-    : "flex-1 bg-[#2C2C2E] border-[#3A3A3C] text-white";
-  const contentClass = isDesktop
-    ? "bg-[#2C2C2E] border-white/10"
-    : "z-[110] bg-[#2C2C2E] border-[#3A3A3C]";
+  const triggerClass = mobileRequestsFilterTrigger(variant);
+  const contentClass = mobileRequestsFilterContent(variant);
 
   if (activeTab === "myTasks") {
     return (
@@ -56,11 +54,7 @@ export function ExecutorRequestsFilters({
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {statusFilterOptions.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className={cn(!isDesktop && "text-white")}
-              >
+              <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
             ))}
@@ -72,11 +66,7 @@ export function ExecutorRequestsFilters({
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className={cn(!isDesktop && "text-white")}
-              >
+              <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
             ))}
@@ -93,11 +83,7 @@ export function ExecutorRequestsFilters({
       </SelectTrigger>
       <SelectContent className={contentClass}>
         {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-          <SelectItem
-            key={option.value}
-            value={option.value}
-            className={cn(!isDesktop && "text-white")}
-          >
+          <SelectItem key={option.value} value={option.value}>
             {option.label}
           </SelectItem>
         ))}

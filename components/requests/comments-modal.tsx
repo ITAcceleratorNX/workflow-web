@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Send, X } from "lucide-react";
+import { MOBILE_REQUESTS_COMMENTS_SHEET } from "@/constants/mobile-requests-ui";
+import { cn } from "@/lib/utils";
 import { CommentList, Comment } from "@/components/comment/Comment";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCommentsStore } from "@/stores/useCommentsStore";
@@ -105,70 +107,102 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
 
   if (!isOpen || !requestId) return null;
 
-  // Админ/менеджер: тёмный дизайн (мобилка full-screen, десктоп — панель)
-  if (variant === "admin") {
-    return (
-      <div className={`flex flex-col bg-[#1A1A1A] ${isDesktop ? "fixed top-0 right-0 h-full w-[400px] max-w-[100vw] shadow-2xl border-l border-white/10 z-[110]" : "fixed inset-0 z-[110]"}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-          <h3 className="font-semibold text-lg text-white">Комментарии</h3>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
-            aria-label="Закрыть"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Список комментариев */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
-          {loading[requestId || 0] ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400 text-sm">Загрузка комментариев...</p>
-            </div>
-          ) : (comments[requestId || 0] || []).length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400 text-sm">Комментариев пока нет</p>
-            </div>
-          ) : (
-            <CommentList
-              comments={comments[requestId || 0] || []}
-              currentUserId={currentUserId}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              variant="dark"
-            />
-          )}
-        </div>
-
-        {/* Поле ввода — с отступом под safe-area, навбар не виден */}
-        <div className="p-4 pt-3 border-t border-white/10 bg-[#1A1A1A] pb-[env(safe-area-inset-bottom,0px)]">
-          <div className="flex flex-col gap-3">
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onInput={handleInput}
-              placeholder="Написать комментарий..."
-              className="w-full min-h-[44px] max-h-[120px] p-3 rounded-xl text-sm bg-[#2C2C2E] border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#E85D2B] focus:border-transparent resize-none"
-              style={{
-                height: "auto",
-                minHeight: "44px",
-                maxHeight: "120px",
-              }}
-            />
-            <div className="flex justify-center">
-              <button
-                onClick={() => handleSend(requestId)}
-                disabled={!comment.trim()}
-                className="px-6 py-3 rounded-xl bg-[#E85D2B] hover:bg-[#E04A0A] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors inline-flex items-center justify-center gap-2"
-              >
-                <Send className="w-5 h-5" />
-                Отправить
-              </button>
-            </div>
+  const commentsBody = (listVariant: "dark" | "default") => (
+    <>
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        {loading[requestId || 0] ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">Загрузка комментариев...</p>
           </div>
+        ) : (comments[requestId || 0] || []).length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">Комментариев пока нет</p>
+          </div>
+        ) : (
+          <CommentList
+            comments={comments[requestId || 0] || []}
+            currentUserId={currentUserId}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            variant={listVariant === "dark" ? "dark" : undefined}
+          />
+        )}
+      </div>
+      <div className="p-4 pt-3 border-t border-border bg-surface pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="flex flex-col gap-3">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onInput={handleInput}
+            placeholder="Написать комментарий..."
+            className="w-full min-h-[44px] max-h-[120px] p-3 rounded-xl text-sm bg-surface-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            style={{
+              height: "auto",
+              minHeight: "44px",
+              maxHeight: "120px",
+            }}
+          />
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => handleSend(requestId)}
+              disabled={!comment.trim()}
+              className="px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground font-medium transition-colors inline-flex items-center justify-center gap-2"
+            >
+              <Send className="w-5 h-5" />
+              Отправить
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  if (variant === "admin") {
+    if (isDesktop) {
+      return (
+        <div className="flex flex-col bg-desktop-bg fixed top-0 right-0 h-full w-[400px] max-w-[100vw] shadow-2xl border-l border-white/10 z-[110]">
+          <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+            <h3 className="font-semibold text-lg text-white">Комментарии</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+              aria-label="Закрыть"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {commentsBody("dark")}
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-[110] flex items-end">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div
+          className={cn(
+            "relative w-full max-h-[85vh] min-h-[50vh] rounded-t-3xl flex flex-col shadow-2xl",
+            MOBILE_REQUESTS_COMMENTS_SHEET,
+          )}
+        >
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-border" />
+          </div>
+          <div className="flex items-center justify-between px-4 pb-3 border-b border-border flex-shrink-0">
+            <h3 className="font-semibold text-lg text-foreground">Комментарии</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/10 text-muted-foreground transition-colors"
+              aria-label="Закрыть"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {commentsBody("dark")}
         </div>
       </div>
     );
@@ -185,68 +219,22 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
             onClick={onClose}
           />
 
-          {/* Панель комментариев */}
-          <div className="relative bg-white w-full max-h-[85vh] min-h-[50vh] rounded-t-3xl flex flex-col transform translate-y-0 transition-all duration-300 ease-out shadow-2xl animate-in slide-in-from-bottom-8">
-            {/* Заголовок */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-lg">Комментарии</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-              >
+          <div
+            className={cn(
+              "relative w-full max-h-[85vh] min-h-[50vh] rounded-t-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-8",
+              MOBILE_REQUESTS_COMMENTS_SHEET,
+            )}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-border flex-shrink-0">
+              <h3 className="font-semibold text-lg text-foreground">Комментарии</h3>
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
-
-            {/* Список комментариев */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {loading[requestId || 0] ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">Загрузка комментариев...</p>
-                </div>
-              ) : (comments[requestId || 0] || []).length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">Комментариев пока нет</p>
-                </div>
-              ) : (
-                <CommentList
-                  comments={comments[requestId || 0] || []}
-                  currentUserId={currentUserId}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              )}
-            </div>
-
-            {/* Поле ввода */}
-            <div className="p-4 border-t bg-gray-50 safe-area-bottom">
-              <div className="flex items-end gap-2">
-                <div className="flex-1 min-w-0">
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    onInput={handleInput}
-                    placeholder="Написать комментарий..."
-                    className="w-full min-h-[40px] max-h-[120px] p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#114A65] focus:border-transparent resize-none"
-                    style={{
-                      height: 'auto',
-                      minHeight: '40px',
-                      maxHeight: '120px'
-                    }}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleSend(requestId)}
-                  className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] p-3 rounded-lg flex-shrink-0 text-white"
-                  disabled={!comment.trim()}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            {commentsBody("default")}
           </div>
         </div>
       )}

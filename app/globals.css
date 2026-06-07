@@ -401,7 +401,7 @@ body.department-head-management .admin-management-content [class*="border-input"
 body.department-head-management {
   --popover: 0 0% 17%;
   --popover-foreground: 0 0% 100%;
-  --background: 240 2% 12%;
+  --background: 0 0% 1.5%; /* #040404 — RN mobile background */
   --input: 240 2% 23%;
   --accent: 240 2% 23%;
   --accent-foreground: 0 0% 100%;
@@ -419,7 +419,7 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   body.manager-mobile {
     --popover: 0 0% 17%;
     --popover-foreground: 0 0% 100%;
-    --background: 240 2% 12%;
+    --background: 0 0% 1.5%; /* #040404 — RN mobile background */
     --input: 240 2% 23%;
     --accent: 240 2% 23%;
     --accent-foreground: 0 0% 100%;

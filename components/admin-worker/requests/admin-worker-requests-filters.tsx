@@ -7,7 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  mobileRequestsFilterContent,
+  mobileRequestsFilterTrigger,
+} from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+import type { AdminWorkerOffice } from "@/hooks/use-admin-worker-requests-list";
 import { cn } from "@/lib/utils";
 
 interface FilterOption {
@@ -20,6 +25,9 @@ interface AdminWorkerRequestsFiltersProps {
   onFilterStatusChange: (value: string) => void;
   filterType: string;
   onFilterTypeChange: (value: string) => void;
+  filterOffice: string;
+  onFilterOfficeChange: (value: string) => void;
+  offices: AdminWorkerOffice[];
   statusFilterOptions: FilterOption[];
   variant?: "mobile" | "desktop";
 }
@@ -29,51 +37,61 @@ export function AdminWorkerRequestsFilters({
   onFilterStatusChange,
   filterType,
   onFilterTypeChange,
+  filterOffice,
+  onFilterOfficeChange,
+  offices,
   statusFilterOptions,
   variant = "mobile",
 }: AdminWorkerRequestsFiltersProps) {
   const isDesktop = variant === "desktop";
-  const triggerClass = isDesktop
-    ? "w-[140px] bg-[#2C2C2E] border-white/10 text-white"
-    : "flex-1 bg-[#2C2C2E] border-[#3A3A3C] text-white";
-  const contentClass = isDesktop
-    ? "bg-[#2C2C2E] border-white/10"
-    : "bg-[#2C2C2E] border-[#3A3A3C]";
+  const triggerClass = mobileRequestsFilterTrigger(variant);
+  const contentClass = mobileRequestsFilterContent(variant);
 
   return (
-    <>
-      <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-        <SelectTrigger className={triggerClass}>
-          <SelectValue placeholder="Статус" />
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          {statusFilterOptions.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              className={cn(!isDesktop && "text-white")}
-            >
-              {option.label}
+    <div className={cn("space-y-2", isDesktop ? "flex flex-wrap gap-2 space-y-0" : undefined)}>
+      <div className={cn("flex gap-2", isDesktop && "contents")}>
+        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+          <SelectTrigger className={triggerClass}>
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent className={contentClass}>
+            {statusFilterOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterType} onValueChange={onFilterTypeChange}>
+          <SelectTrigger className={triggerClass}>
+            <SelectValue placeholder="Тип" />
+          </SelectTrigger>
+          <SelectContent className={contentClass}>
+            {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className={cn("flex gap-2", isDesktop && "contents")}>
+        <Select value={filterOffice} onValueChange={onFilterOfficeChange}>
+          <SelectTrigger className={triggerClass}>
+            <SelectValue placeholder="Офис" />
+          </SelectTrigger>
+          <SelectContent className={contentClass}>
+            <SelectItem value="all">
+              Все офисы
             </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={filterType} onValueChange={onFilterTypeChange}>
-        <SelectTrigger className={triggerClass}>
-          <SelectValue placeholder="Тип" />
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              className={cn(!isDesktop && "text-white")}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </>
+            {offices.map((office) => (
+              <SelectItem key={office.id} value={String(office.id)}>
+                {office.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 }

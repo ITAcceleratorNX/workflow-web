@@ -63,3 +63,9 @@ export const MOBILE_BOOKING_GRADIENT =
 export const BOOKING_TAB_SCENE_UNDERLAY = "#281504";
 
 export const COLOR_SCHEME_STORAGE_KEY = "workflow-color-scheme";
+
+/** RN ThemedView page background — use on mobile shells where tokens may be overridden. */
+export const MOBILE_PAGE_BACKGROUND = {
+  dark: MOBILE_COLORS.dark.background,
+  light: MOBILE_COLORS.light.background,
+} as const;

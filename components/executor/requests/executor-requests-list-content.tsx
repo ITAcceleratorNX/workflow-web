@@ -2,6 +2,7 @@
 
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
+import { MOBILE_REQUESTS_EMPTY_TEXT } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 import { EXECUTOR_EMPTY_MESSAGES, type ExecutorRequestsTab } from "./executor-requests-constants";
 
@@ -31,7 +32,7 @@ export function ExecutorRequestsListContent({
       <div
         className={cn(
           "text-center py-12",
-          isDesktop ? "text-white/60" : "py-8 text-gray-400"
+          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
         )}
       >
         Загрузка...
@@ -44,7 +45,7 @@ export function ExecutorRequestsListContent({
       <div
         className={cn(
           "text-center py-12",
-          isDesktop ? "text-white/60" : "py-8 text-gray-400"
+          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
         )}
       >
         {EXECUTOR_EMPTY_MESSAGES[activeTab]}

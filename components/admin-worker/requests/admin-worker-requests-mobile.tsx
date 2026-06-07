@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { UseAdminWorkerRequestsListResult } from "@/hooks/use-admin-worker-requests-list";
 import { useAdminWorkerRequestCardHeader } from "./admin-worker-request-card-header";
@@ -17,83 +19,18 @@ import { AdminWorkerRequestsTabs } from "./admin-worker-requests-tabs";
 
 type AdminWorkerRequestsMobileProps = UseAdminWorkerRequestsListResult;
 
-function MobileTabPanel({
-  activeTab,
-  title,
-  filterStatus,
-  onFilterStatusChange,
-  filterType,
-  onFilterTypeChange,
-  statusFilterOptions,
-  loading,
-  loadingMore,
-  hasMore,
-  requests,
-  onCardClick,
-  renderCardHeader,
-  onLoadMore,
-  lastElementRef,
-}: {
-  activeTab: AdminWorkerRequestsTab;
-  title: string;
-  filterStatus: string;
-  onFilterStatusChange: (value: string) => void;
-  filterType: string;
-  onFilterTypeChange: (value: string) => void;
-  statusFilterOptions: { value: string; label: string }[];
-  loading: boolean;
-  loadingMore: boolean;
-  hasMore: boolean;
-  requests: UseAdminWorkerRequestsListResult["activeList"];
-  onCardClick: UseAdminWorkerRequestsListResult["handleCardClick"];
-  renderCardHeader: ReturnType<typeof useAdminWorkerRequestCardHeader>;
-  onLoadMore: () => void;
-  lastElementRef: React.RefObject<HTMLDivElement>;
-}) {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-foreground">{title}</h2>
-      <div className="flex gap-2">
-        <AdminWorkerRequestsFilters
-          variant="mobile"
-          filterStatus={filterStatus}
-          onFilterStatusChange={onFilterStatusChange}
-          filterType={filterType}
-          onFilterTypeChange={onFilterTypeChange}
-          statusFilterOptions={statusFilterOptions}
-        />
-      </div>
-      <div className="space-y-4 pb-40">
-        <AdminWorkerRequestsListContent
-          variant="mobile"
-          loading={loading}
-          loadingMore={loadingMore}
-          hasMore={hasMore}
-          requests={requests}
-          activeTab={activeTab}
-          onCardClick={onCardClick}
-          renderCardHeader={renderCardHeader}
-          onLoadMore={onLoadMore}
-          lastElementRef={lastElementRef}
-        />
-      </div>
-    </div>
-  );
-}
-
 /** Mobile list — parity с workflow-mobile requests index (admin-worker). */
 export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps) {
   const {
     activeTab,
     setActiveTab,
-    filterMyStatus,
-    setFilterMyStatus,
-    filterMyType,
-    setFilterMyType,
-    filterIncomingStatus,
-    setFilterIncomingStatus,
-    filterIncomingType,
-    setFilterIncomingType,
+    filterStatus,
+    setFilterStatus,
+    filterType,
+    setFilterType,
+    filterOffice,
+    setFilterOffice,
+    offices,
     statusFilterOptions,
     loading,
     loadingMore,
@@ -109,13 +46,40 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
 
   const renderCardHeader = useAdminWorkerRequestCardHeader();
 
+  const tabRequests =
+    activeTab === "incoming"
+      ? filteredIncomingRequests
+      : activeTab === "my-requests"
+        ? filteredMyRequests
+        : [];
+
+  const tabTitle =
+    activeTab === "recurring"
+      ? ADMIN_WORKER_TAB_TITLES.recurring
+      : ADMIN_WORKER_TAB_TITLES[activeTab as Exclude<AdminWorkerRequestsTab, "recurring">];
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div
-        className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-4 pt-[max(1rem,env(safe-area-inset-top))]")}>
         <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <AdminWorkerRequestsTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {activeTab !== "recurring" && (
+          <div className="mt-4">
+            <AdminWorkerRequestsFilters
+              variant="mobile"
+              filterStatus={filterStatus}
+              onFilterStatusChange={setFilterStatus}
+              filterType={filterType}
+              onFilterTypeChange={setFilterType}
+              filterOffice={filterOffice}
+              onFilterOfficeChange={setFilterOffice}
+              offices={offices}
+              statusFilterOptions={statusFilterOptions}
+            />
+          </div>
+        )}
 
         <div className="mt-4 space-y-4">
           <Link href="/create-request" className="block">
@@ -125,54 +89,28 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
             </Button>
           </Link>
 
-          {activeTab === "incoming" && (
-            <MobileTabPanel
-              activeTab="incoming"
-              title={ADMIN_WORKER_TAB_TITLES.incoming}
-              filterStatus={filterIncomingStatus}
-              onFilterStatusChange={setFilterIncomingStatus}
-              filterType={filterIncomingType}
-              onFilterTypeChange={setFilterIncomingType}
-              statusFilterOptions={statusFilterOptions}
-              loading={loading}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              requests={filteredIncomingRequests}
-              onCardClick={handleCardClick}
-              renderCardHeader={renderCardHeader}
-              onLoadMore={handleLoadMore}
-              lastElementRef={lastElementRef}
-            />
-          )}
-
-          {activeTab === "my-requests" && (
-            <MobileTabPanel
-              activeTab="my-requests"
-              title={ADMIN_WORKER_TAB_TITLES["my-requests"]}
-              filterStatus={filterMyStatus}
-              onFilterStatusChange={setFilterMyStatus}
-              filterType={filterMyType}
-              onFilterTypeChange={setFilterMyType}
-              statusFilterOptions={statusFilterOptions}
-              loading={loading}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              requests={filteredMyRequests}
-              onCardClick={handleCardClick}
-              renderCardHeader={renderCardHeader}
-              onLoadMore={handleLoadMore}
-              lastElementRef={lastElementRef}
-            />
-          )}
-
-          {activeTab === "recurring" && (
+          {activeTab === "recurring" ? (
             <div className="space-y-4 admin-management-content pb-8">
-              <h2 className="text-lg font-bold text-foreground">
-                {ADMIN_WORKER_TAB_TITLES.recurring}
-              </h2>
+              <h2 className="text-lg font-bold text-foreground">{tabTitle}</h2>
               <AdminWorkerRequestsRecurringTab
                 isDesktop={false}
                 onDeleteTask={handleDeleteRecurringTask}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4 pb-40">
+              <h2 className="text-lg font-bold text-foreground">{tabTitle}</h2>
+              <AdminWorkerRequestsListContent
+                variant="mobile"
+                loading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                requests={tabRequests}
+                activeTab={activeTab}
+                onCardClick={handleCardClick}
+                renderCardHeader={renderCardHeader}
+                onLoadMore={handleLoadMore}
+                lastElementRef={lastElementRef}
               />
             </div>
           )}

@@ -129,3 +129,49 @@ export function getRequestRedirectUrl(
   const requestUrl = isDesktop ? `?requestId=${requestId}` : `/${requestId}`;
   return `${getRequestsListPath(role)}${requestUrl}`;
 }
+
+function buildShareRequestParams(
+  requestId: number,
+  subRequest?: { id: number; title?: string; status?: string; description?: string } | null,
+): ShareRequestParams {
+  return {
+    requestId,
+    subRequestId: subRequest?.id,
+    title: subRequest?.title,
+    status: subRequest?.status,
+    description: subRequest?.description,
+  };
+}
+
+/**
+ * Системное «Поделиться» — parity с workflow-mobile shareRequestWithContent.
+ * Web Share API → clipboard → WhatsApp.
+ */
+export async function shareRequestWithContent(
+  request: { id: number; requests?: Array<{ id: number; title?: string; status?: string; description?: string }> },
+  subRequest?: { id: number; title?: string; status?: string; description?: string } | null,
+): Promise<void> {
+  const sub = subRequest ?? request.requests?.[0] ?? null;
+  const params = buildShareRequestParams(request.id, sub);
+  const message = getRequestShareMessage(params);
+  const title =
+    params.subRequestId != null
+      ? `Заявка #${params.requestId}/${params.subRequestId}`
+      : `Заявка #${params.requestId}`;
+
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share({ title, text: message });
+      return;
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+    }
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(message);
+    return;
+  }
+
+  window.open(getWhatsAppShareUrl(params), "_blank", "noopener,noreferrer");
+}

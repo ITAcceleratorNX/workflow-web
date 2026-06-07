@@ -2,14 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import api, { deleteRecurringTask } from "@/lib/api";
+import api, { deleteRecurringTask, getOffices } from "@/lib/api";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 import { getStatusOptionsForRole } from "@/constants/requests";
-import { filterRequestGroups, sortRequestGroupsByPriority } from "@/lib/request-utils";
+import {
+  filterRequestGroups,
+  sortRequestGroupsByCreatedDate,
+} from "@/lib/request-utils";
 import type { AdminWorkerRequestsTab } from "@/components/admin-worker/requests/admin-worker-requests-constants";
+
+export type AdminWorkerOffice = { id: number; name: string };
 
 export function useAdminWorkerRequestsList() {
   const isDesktop = useIsDesktop();
@@ -17,10 +22,12 @@ export function useAdminWorkerRequestsList() {
   const { toast } = useToast();
   const { incomingRequests, setIncomingRequests, myRequests, setMyRequests } = useRequestStore();
 
-  const [filterMyStatus, setFilterMyStatus] = useState("all");
-  const [filterMyType, setFilterMyType] = useState("all");
-  const [filterIncomingStatus, setFilterIncomingStatus] = useState("all");
-  const [filterIncomingType, setFilterIncomingType] = useState("all");
+  /** Единые фильтры для всех вкладок — parity с workflow-mobile requests index (admin-worker). */
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [filterOffice, setFilterOffice] = useState("all");
+  const [offices, setOffices] = useState<AdminWorkerOffice[]>([]);
+
   const [activeTab, setActiveTab] = useState<AdminWorkerRequestsTab>("incoming");
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -29,6 +36,19 @@ export function useAdminWorkerRequestsList() {
   const lastElementRef = useRef<HTMLDivElement>(null);
 
   const statusFilterOptions = useMemo(() => getStatusOptionsForRole("admin-worker"), []);
+
+  const fetchOffices = useCallback(async () => {
+    try {
+      const res = await getOffices();
+      setOffices(res.data || []);
+    } catch (error) {
+      console.error("Ошибка загрузки офисов:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOffices();
+  }, [fetchOffices]);
 
   const fetchRequests = useCallback(
     async (currentPage = 1) => {
@@ -41,29 +61,36 @@ export function useAdminWorkerRequestsList() {
           page: currentPage.toString(),
           pageSize: "10",
         });
-        if (filterIncomingStatus !== "all" && filterIncomingStatus !== "long_term") {
-          params.append("status", filterIncomingStatus);
+
+        if (filterStatus !== "all" && filterStatus !== "long_term") {
+          params.append("status", filterStatus);
         }
-        if (filterIncomingType !== "all") {
-          params.append("priority", filterIncomingType);
+        if (filterType !== "all") {
+          params.append("priority", filterType);
+        }
+        if (filterOffice !== "all") {
+          params.append("office_id", filterOffice);
         }
 
         const response = await api.get(`/request-groups?${params.toString()}`);
-        const sortedIncoming = sortRequestGroupsByPriority(response.data.otherRequests || []);
-        const sortedMy = sortRequestGroupsByPriority(response.data.myRequests || []);
+        const sortedIncoming = sortRequestGroupsByCreatedDate(
+          response.data.otherRequests || [],
+        );
+        const sortedMy = sortRequestGroupsByCreatedDate(response.data.myRequests || []);
 
         setIncomingRequests((prev) =>
           currentPage === 1
             ? sortedIncoming
-            : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))]
+            : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))],
         );
         setMyRequests((prev) =>
           currentPage === 1
             ? sortedMy
-            : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))]
+            : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))],
         );
         setHasMore(
-          (response.data.otherRequests?.length || 0) + (response.data.myRequests?.length || 0) >= 10
+          (response.data.otherRequests?.length || 0) + (response.data.myRequests?.length || 0) >=
+            10,
         );
         setPage(currentPage);
       } catch (error) {
@@ -73,33 +100,40 @@ export function useAdminWorkerRequestsList() {
         else setLoadingMore(false);
       }
     },
-    [token, filterIncomingStatus, filterIncomingType, setIncomingRequests, setMyRequests]
+    [
+      token,
+      filterStatus,
+      filterType,
+      filterOffice,
+      setIncomingRequests,
+      setMyRequests,
+    ],
   );
 
   useEffect(() => {
     fetchRequests(1);
   }, [fetchRequests]);
 
-  const filteredMyRequests = useMemo(
-    () =>
-      sortRequestGroupsByPriority(
-        filterRequestGroups(myRequests, {
-          status: filterMyStatus,
-          type: filterMyType,
-        })
+  const applyFilters = useCallback(
+    (requests: typeof incomingRequests) =>
+      sortRequestGroupsByCreatedDate(
+        filterRequestGroups(requests, {
+          status: filterStatus,
+          type: filterType,
+          officeId: filterOffice,
+        }),
       ),
-    [myRequests, filterMyStatus, filterMyType]
+    [filterStatus, filterType, filterOffice],
   );
 
   const filteredIncomingRequests = useMemo(
-    () =>
-      sortRequestGroupsByPriority(
-        filterRequestGroups(incomingRequests, {
-          status: filterIncomingStatus,
-          type: filterIncomingType,
-        })
-      ),
-    [incomingRequests, filterIncomingStatus, filterIncomingType]
+    () => applyFilters(incomingRequests),
+    [incomingRequests, applyFilters],
+  );
+
+  const filteredMyRequests = useMemo(
+    () => applyFilters(myRequests),
+    [myRequests, applyFilters],
   );
 
   const activeList = useMemo(() => {
@@ -145,21 +179,20 @@ export function useAdminWorkerRequestsList() {
         toast({ title: "Ошибка", variant: "destructive" });
       }
     },
-    [toast]
+    [toast],
   );
 
   return {
     isDesktop,
     activeTab,
     setActiveTab,
-    filterMyStatus,
-    setFilterMyStatus,
-    filterMyType,
-    setFilterMyType,
-    filterIncomingStatus,
-    setFilterIncomingStatus,
-    filterIncomingType,
-    setFilterIncomingType,
+    filterStatus,
+    setFilterStatus,
+    filterType,
+    setFilterType,
+    filterOffice,
+    setFilterOffice,
+    offices,
     statusFilterOptions,
     loading,
     loadingMore,

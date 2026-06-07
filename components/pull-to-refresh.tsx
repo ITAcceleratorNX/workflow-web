@@ -175,7 +175,7 @@ export function PullToRefresh(props: PullToRefreshProps) {
   return (
     <div
       ref={containerRef}
-      className="relative h-[calc(100vh_-_theme(spacing.14))] sm:h-[calc(100vh_-_theme(spacing.16))] overflow-y-auto overscroll-contain"
+      className="relative min-h-full h-[calc(100vh_-_theme(spacing.14))] sm:h-[calc(100vh_-_theme(spacing.16))] overflow-y-auto overscroll-contain bg-inherit"
       role="region"
       aria-label="Лента"
       style={{
