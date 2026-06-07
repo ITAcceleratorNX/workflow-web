@@ -2,7 +2,6 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BottomNav } from "@/components/BottomNav";
 import { RequestDetails } from "@/components/requests";
 import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 import type { UseManagerRequestDetailResult } from "@/hooks/use-manager-request-detail";
@@ -26,7 +25,6 @@ export function ManagerRequestDetailMobile({
         >
           <p className="text-gray-400">Загрузка...</p>
         </div>
-        <BottomNav activeTab="requests" />
       </>
     );
   }
@@ -44,7 +42,6 @@ export function ManagerRequestDetailMobile({
           </Button>
           <p className="text-red-400">{error || "Заявка не найдена"}</p>
         </div>
-        <BottomNav activeTab="requests" />
       </>
     );
   }
@@ -62,7 +59,6 @@ export function ManagerRequestDetailMobile({
           displayMode="fullscreen"
         />
       </div>
-      <BottomNav activeTab="requests" />
     </>
   );
 }

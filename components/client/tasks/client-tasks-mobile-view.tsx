@@ -15,13 +15,11 @@ import {
   X,
   Check,
 } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { CalendarTab } from "@/components/tasks/calendar-tab";
 import { TaskAddSheet } from "@/components/tasks/task-add-sheet";
 import { UserTaskRow } from "@/components/tasks/user-task-row";
 import { TeamsInboxPanel } from "@/components/teams/teams-inbox-panel";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import type { UseClientTasksPageResult } from "@/hooks/use-client-tasks-page";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -81,7 +79,7 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
     <>
       <div
         className="min-h-screen bg-[#1C1C1E] flex flex-col"
-        style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+        
       >
         <ScreenHeader title="Задачи" rightSlot={headerRight} />
 
@@ -265,7 +263,7 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
               type="button"
               onClick={() => setAddSheetOpen(true)}
               aria-label="Добавить задачу"
-              className="fixed right-4 bottom-[calc(80px+env(safe-area-inset-bottom,0px)+8px)] w-14 h-14 rounded-full bg-[#E25B21] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform z-10"
+              className="fixed right-4 bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px)+8px)] w-14 h-14 rounded-full bg-[#E25B21] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform z-10"
             >
               <Plus className="h-7 w-7" />
             </button>
@@ -389,8 +387,6 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
       />
 
       {teamsPanelOpen ? <TeamsInboxPanel onClose={() => setTeamsPanelOpen(false)} /> : null}
-
-      <BottomNav activeTab="home" />
     </>
   );
 }

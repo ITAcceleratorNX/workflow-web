@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, Loader2, Trash2 } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { useToast } from "@/hooks/use-toast";
 import { deleteUserTask, getUserTask, updateUserTask, type UserTask } from "@/lib/user-tasks-api";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
@@ -78,7 +76,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
     <>
       <div
         className="min-h-screen bg-[#1C1C1E]"
-        style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+        
       >
         <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
           <button
@@ -136,7 +134,6 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           ) : null}
         </div>
       </div>
-      <BottomNav activeTab="home" />
     </>
   );
 }

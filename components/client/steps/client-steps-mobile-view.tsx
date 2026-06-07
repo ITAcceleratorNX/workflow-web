@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Footprints } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { SmartDeskCalculatorCompact } from "@/components/yandex-smart-home/smart-desk-calculator-compact";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { useToast } from "@/hooks/use-toast";
 import { requestMotionAndOrientationPermission } from "@/lib/utils";
 import { usePedometerStore, stepsToKm } from "@/stores/usePedometerStore";
@@ -135,7 +133,7 @@ export function ClientStepsMobileView() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div
           className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <header className="flex items-center gap-2 mb-4 pb-3 border-b border-[#3A3A3C]">
             <button
@@ -315,8 +313,6 @@ export function ClientStepsMobileView() {
           )}
         </div>
       </PullToRefresh>
-
-      <BottomNav activeTab="home" />
     </>
   );
 }

@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { MeetingRoomBookingCalendar } from "@/components/meeting-rooms/meeting-room-booking-calendar";
 import { MEETING_ROOM_TIME_SLOTS } from "@/lib/meeting-room-time-slots";
 import type { MeetingRoom, Office } from "@/lib/api";
@@ -21,7 +20,6 @@ import type { UseMeetingRoomsMobilePageResult } from "@/hooks/use-meeting-rooms-
 interface MeetingRoomsMobileRoomBookingModalProps {
   office: Office | null;
   room: MeetingRoom;
-  showBottomNav: boolean;
   page: Pick<
     UseMeetingRoomsMobilePageResult,
     | "selectedDate"
@@ -50,7 +48,6 @@ interface MeetingRoomsMobileRoomBookingModalProps {
 export function MeetingRoomsMobileRoomBookingModal({
   office,
   room,
-  showBottomNav,
   page,
 }: MeetingRoomsMobileRoomBookingModalProps) {
   const {
@@ -258,7 +255,6 @@ export function MeetingRoomsMobileRoomBookingModal({
           </button>
         </div>
       </div>
-      {showBottomNav && <BottomNav activeTab="booking" />}
     </div>
   );
 }

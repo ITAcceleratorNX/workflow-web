@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { UseManagerCabinetResult } from "@/hooks/use-manager-cabinet";
@@ -19,7 +18,6 @@ export function ManagerCabinetMobile({ isDesktop }: ManagerCabinetMobileProps) {
       className="min-h-screen"
       style={{
         background: MOBILE_PAGE_GRADIENTS.plain,
-        paddingBottom: isDesktop ? undefined : MOBILE_BOTTOM_NAV_PADDING,
       }}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6 lg:py-8">

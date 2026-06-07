@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
-import { BottomNav } from "@/components/BottomNav";
+import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
 import { MOBILE_PAGE_GRADIENTS } from "@/constants/mobile-layout";
 
 export default function ExecutorManagementLayout({
@@ -56,15 +56,9 @@ export default function ExecutorManagementLayout({
   return (
     <>
       <Header handleLogout={handleLogout} notificationCount={0} role="Исполнитель" />
-      <div
-        className="min-h-screen pb-20"
-        style={{
-          background: MOBILE_PAGE_GRADIENTS.plain,
-        }}
-      >
+      <MobileRoleShell className="min-h-screen" style={{ background: MOBILE_PAGE_GRADIENTS.plain } as React.CSSProperties}>
         {children}
-      </div>
-      <BottomNav hidden={false} />
+      </MobileRoleShell>
     </>
   );
 }

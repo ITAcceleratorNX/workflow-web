@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import { BottomNav } from "@/components/BottomNav";
+import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
 
 export default function DepartmentHeadLayout({
@@ -55,10 +55,5 @@ export default function DepartmentHeadLayout({
     );
   }
 
-  return (
-    <div className="min-h-screen pb-[calc(110px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E]">
-      {children}
-      <BottomNav />
-    </div>
-  );
+  return <MobileRoleShell>{children}</MobileRoleShell>;
 }

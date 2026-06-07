@@ -31,7 +31,6 @@ export function SupportChatView({ ticketId, mode }: SupportChatViewProps) {
     <SupportChatMobileView
       {...state}
       isDesktop={isDesktop}
-      showBottomNav={mode === "client"}
     />
   );
 

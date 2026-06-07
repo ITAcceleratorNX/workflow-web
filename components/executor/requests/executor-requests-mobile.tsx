@@ -6,7 +6,6 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { RequestGroup } from "@/stores/useRequestStore";
@@ -49,8 +48,7 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
       <div
         className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
         style={{
-          background: MOBILE_PAGE_GRADIENTS.executor,
-          paddingBottom: MOBILE_BOTTOM_NAV_PADDING,
+          background: MOBILE_PAGE_GRADIENTS.executor
         }}
       >
         <h1 className="text-2xl font-bold text-white mb-4">Заявки</h1>

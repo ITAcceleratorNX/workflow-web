@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogsViewer } from "@/components/logs-viewer";
 import { ROLE_TRANSLATIONS, type ProfileTab } from "@/constants/profile";
+import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import type { UseProfilePageResult } from "@/hooks/use-profile-page";
 import { ProfileTabs } from "./profile-tabs";
 
@@ -64,7 +65,7 @@ export function ProfileMobileView({
   return (
     <div
       className="min-h-screen bg-[#040404]"
-      style={{ paddingBottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+      style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
     >
       <div className="mx-auto w-full max-w-[420px] px-5 pt-8 space-y-6">
         <div className="flex items-center justify-between">

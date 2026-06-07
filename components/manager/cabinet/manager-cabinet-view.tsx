@@ -1,6 +1,5 @@
 "use client";
 
-import { BottomNav } from "@/components/BottomNav";
 import { useManagerCabinet } from "@/hooks/use-manager-cabinet";
 import { ManagerCabinetMobile } from "./manager-cabinet-mobile";
 
@@ -14,7 +13,6 @@ export function ManagerCabinetView() {
   return (
     <>
       <ManagerCabinetMobile {...state} />
-      <BottomNav activeTab="home" />
     </>
   );
 }

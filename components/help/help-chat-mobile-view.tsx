@@ -12,7 +12,6 @@ import {
   User,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { BottomNav } from "@/components/BottomNav";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { HELP_TOPICS, ticketStatusLabel } from "@/constants/help-topics";
 import type { UseHelpChatPageResult } from "@/hooks/use-help-chat-page";
@@ -66,7 +65,7 @@ export function HelpChatMobileView({
 
   const inputBarClass = isDesktop
     ? "bottom-0 bg-[#1C1C1E] border-[#212121]"
-    : "bottom-[calc(70px+env(safe-area-inset-bottom,0px))] bg-[#1C1C1E] border-[#3A3A3C]";
+    : "bottom-0 bg-[#1C1C1E] border-[#3A3A3C]";
 
   return (
     <>
@@ -326,8 +325,6 @@ export function HelpChatMobileView({
           </>
         )}
       </div>
-
-      {!isDesktop && <BottomNav activeTab="help" />}
 
       <HelpSupportFormModal
         open={showSupportForm}

@@ -12,6 +12,7 @@ import {
   Clock,
   ArrowLeft,
 } from "lucide-react";
+import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/BottomNav";
 import { useIsDesktop } from "@/hooks/use-media-query";
@@ -91,7 +92,10 @@ export function BookingQrView() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-black">
+    <div
+      className="flex flex-col min-h-screen bg-black"
+      style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+    >
       <div className="pt-12 px-3 pb-4">
         <button
           type="button"

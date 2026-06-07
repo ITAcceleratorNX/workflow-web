@@ -12,14 +12,12 @@ import {
   Bell,
   Target,
 } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
 import {
   HealthyAiInsightsPanel,
   TodayAiSummaryCard,
 } from "@/components/health/healthy-ai-insights-panel";
 import { MoodCheckInCard } from "@/components/health/mood-check-in-card";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { formatDateForApi } from "@/lib/dateTimeUtils";
 import { formatLiters, sleepRatingLabel } from "@/lib/health-format";
 import {
@@ -240,7 +238,7 @@ export function ClientHealthMobileView() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div
           className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <header className="flex items-center gap-2 mb-4">
             <button
@@ -406,8 +404,6 @@ export function ClientHealthMobileView() {
 
       <WaterAddModal open={waterAddOpen} onClose={() => setWaterAddOpen(false)} />
       <WaterNormaModal open={waterNormaOpen} onClose={() => setWaterNormaOpen(false)} />
-
-      <BottomNav activeTab="home" />
     </>
   );
 }

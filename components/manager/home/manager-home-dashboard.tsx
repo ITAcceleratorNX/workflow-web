@@ -46,8 +46,8 @@ import {CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Toolt
 import {format, isAfter, subDays, subMonths, subYears} from "date-fns";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
-import {BottomNav} from "@/components/BottomNav";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { useBottomNavUiStore } from "@/stores/bottom-nav-ui-store";
 import {AcceptRequestModal} from "@/components/AcceptRequestModal";
 import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
@@ -280,6 +280,32 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   });
 
   const isDesktop = useIsDesktop();
+  const setBottomNavForceHidden = useBottomNavUiStore((s) => s.setForceHidden);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setBottomNavForceHidden(false);
+      return;
+    }
+    const hideNav =
+      showCreateRequestModal ||
+      showMapModal ||
+      showDeleteRequestModal ||
+      isModalOpen ||
+      !!selectedPhoto ||
+      !!selectedRequest;
+    setBottomNavForceHidden(hideNav);
+    return () => setBottomNavForceHidden(false);
+  }, [
+    isDesktop,
+    showCreateRequestModal,
+    showMapModal,
+    showDeleteRequestModal,
+    isModalOpen,
+    selectedPhoto,
+    selectedRequest,
+    setBottomNavForceHidden,
+  ]);
 
   // На мобильной вкладки «Логи» и «Заявки» доступны в профиле/разделе заявок — сбрасываем на главной при переходе на мобильный
   useEffect(() => {
@@ -2463,7 +2489,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       )}
 
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className={`min-h-screen bg-[#1A1A1A] ${!isDesktop ? "pb-[calc(110px+env(safe-area-inset-bottom,0px))]" : ""}`}>
+    <div className="min-h-screen bg-[#1A1A1A]">
       {/* Header */}
       <main className={`px-4 py-4 sm:px-5 sm:py-6 md:px-6 md:py-8 lg:px-8 max-w-7xl mx-auto min-w-0 ${!isDesktop ? "manager-mobile-content" : ""}`}>
         {/* Назад — только на мобилке при просмотре раздела (как у admin-worker) */}
@@ -4500,11 +4526,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           iconInfo={showIconInfo}
           isDesktop={isDesktop}
       />
-
-      {!isDesktop && <BottomNav
-          activeTab="history"
-          hidden={showCreateRequestModal || showMapModal || showDeleteRequestModal || isModalOpen || !!selectedPhoto || !!selectedRequest}
-      />}
 
       {isDesktop && <Link
           href="/chat-bot"

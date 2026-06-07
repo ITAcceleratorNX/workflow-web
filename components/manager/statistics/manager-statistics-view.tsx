@@ -1,6 +1,5 @@
 "use client";
 
-import { BottomNav } from "@/components/BottomNav";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useManagerStatisticsMobilePage } from "@/hooks/use-manager-statistics-mobile-page";
 import { ManagerStatisticsDesktopView } from "./manager-statistics-desktop-view";
@@ -17,7 +16,6 @@ export function ManagerStatisticsView() {
   return (
     <>
       <ManagerStatisticsMobileView {...mobileState} />
-      <BottomNav activeTab="statistics" />
     </>
   );
 }

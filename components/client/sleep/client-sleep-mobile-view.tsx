@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Lightbulb, Moon, X } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import PullToRefresh from "@/components/pull-to-refresh";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { formatDateForApi } from "@/lib/dateTimeUtils";
 import {
   formatSleepDuration,
@@ -129,7 +127,7 @@ export function ClientSleepMobileView() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div
           className="min-h-screen bg-[#1C1C1E] px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <header className="flex items-center gap-2 mb-4">
             <button
@@ -328,8 +326,6 @@ export function ClientSleepMobileView() {
       )}
 
       <SleepSurveyModal open={surveyOpen} onClose={() => setSurveyOpen(false)} />
-
-      <BottomNav activeTab="home" />
     </>
   );
 }

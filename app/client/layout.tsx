@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
+import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
 
 export default function ClientLayout({
   children,
@@ -30,7 +31,6 @@ export default function ClientLayout({
     }
   }, [hydrated, user, router, clearAuth]);
 
-  // На мобилке «Мой кабинет» — /client (главная client home, parity с RN).
   if (!hydrated || !user) {
     return null;
   }
@@ -39,5 +39,5 @@ export default function ClientLayout({
     return <ClientDesktopShell>{children}</ClientDesktopShell>;
   }
 
-  return <>{children}</>;
+  return <MobileRoleShell>{children}</MobileRoleShell>;
 }

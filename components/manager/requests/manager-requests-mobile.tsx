@@ -4,9 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
-import { BottomNav } from "@/components/BottomNav";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-list";
@@ -47,8 +45,7 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
         <div
           className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
           style={{
-            background: MOBILE_PAGE_GRADIENTS.plain,
-            paddingBottom: MOBILE_BOTTOM_NAV_PADDING,
+            background: MOBILE_PAGE_GRADIENTS.plain
           }}
         >
           <div className="flex justify-between items-center mb-4">
@@ -94,8 +91,6 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
           </div>
         </div>
       </PullToRefresh>
-
-      <BottomNav activeTab="requests" />
     </>
   );
 }

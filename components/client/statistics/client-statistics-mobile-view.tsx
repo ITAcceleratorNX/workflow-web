@@ -2,9 +2,7 @@
 
 import { Loader2, Lock } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
-import { BottomNav } from "@/components/BottomNav";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import {
   ProgressDonut,
   StatBar,
@@ -46,7 +44,7 @@ export function ClientStatisticsMobileView({
       <PullToRefresh onRefresh={onRefresh}>
         <div
           className="min-h-screen bg-background flex flex-col"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <ScreenHeader title="Статистика задач" />
 
@@ -148,8 +146,6 @@ export function ClientStatisticsMobileView({
           </div>
         </div>
       </PullToRefresh>
-
-      <BottomNav activeTab="statistics" />
     </>
   );
 }

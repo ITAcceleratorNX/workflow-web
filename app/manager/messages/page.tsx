@@ -18,5 +18,5 @@ export default function ManagerMessagesPage() {
     return <AdminManagerMessagesDesktop canRespond={false} />;
   }
 
-  return <AdminSupportTicketsList canRespond={false} basePath="/manager/messages" showBottomNav />;
+  return <AdminSupportTicketsList canRespond={false} basePath="/manager/messages" />;
 }

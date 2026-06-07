@@ -5,7 +5,6 @@ import { Bell, ChevronRight } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { UseDepartmentHeadHomeResult } from "@/hooks/use-department-head-home";
@@ -20,8 +19,7 @@ export function DepartmentHeadHomeMobile({ handleRefresh }: DepartmentHeadHomeMo
       <div
         className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
         style={{
-          background: MOBILE_PAGE_GRADIENTS.plain,
-          paddingBottom: MOBILE_BOTTOM_NAV_PADDING,
+          background: MOBILE_PAGE_GRADIENTS.plain
         }}
       >
         <div className="mb-4">

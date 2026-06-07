@@ -1,14 +1,12 @@
 "use client";
 
 import { ArrowLeft, Headphones, Loader2, Send, User } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { ticketStatusLabel } from "@/constants/help-topics";
 import { formatTimeOnly } from "@/lib/dateTimeUtils";
 import type { UseSupportChatPageResult } from "@/hooks/use-support-chat-page";
 
 type SupportChatMobileViewProps = UseSupportChatPageResult & {
   isDesktop?: boolean;
-  showBottomNav?: boolean;
 };
 
 export function SupportChatMobileView({
@@ -24,7 +22,6 @@ export function SupportChatMobileView({
   handleBack,
   handleSend,
   isDesktop = false,
-  showBottomNav = true,
 }: SupportChatMobileViewProps) {
   const clientName =
     activeTicket?.client_name ??
@@ -162,9 +159,6 @@ export function SupportChatMobileView({
             </div>
           </form>
       </div>
-
-      {!isDesktop && showBottomNav && !canRespond && <BottomNav activeTab="help" />}
-      {!isDesktop && showBottomNav && canRespond && <BottomNav activeTab="help" />}
     </>
   );
 }

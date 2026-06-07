@@ -76,7 +76,7 @@ export function MobilePageLayout({
     <div
       className={cn(
         "min-h-screen pt-[env(safe-area-inset-top,0px)]",
-        padForBottomNav && "pb-[calc(80px+env(safe-area-inset-bottom,0px))]",
+        padForBottomNav && "pb-[calc(52px+max(env(safe-area-inset-bottom,0px),10px))]",
         className
       )}
       style={{ background: MOBILE_PAGE_GRADIENTS[gradient] }}

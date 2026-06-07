@@ -3,11 +3,9 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle, Clock, Loader2, Users } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
-import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { StatRow } from "@/components/ui/stat-row";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import type { ExecutorStats } from "@/lib/executor-stats-api";
 
 interface ExecutorStatisticsMobileViewProps {
@@ -63,7 +61,7 @@ export function ExecutorStatisticsMobileView({
           </Button>
         </div>
       ) : (
-        <div className="px-4 pb-6" style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}>
+        <div className="px-4 pb-6" >
           <div className="flex flex-wrap gap-2.5 mb-4">
             <QuickStatCard
               icon={<Users className="h-[22px] w-[22px] text-blue-500" />}
@@ -126,7 +124,6 @@ export function ExecutorStatisticsMobileView({
       <PullToRefresh onRefresh={onRefresh}>
         <div className="min-h-screen bg-background flex flex-col">{content}</div>
       </PullToRefresh>
-      <BottomNav activeTab="statistics" />
     </>
   );
 }

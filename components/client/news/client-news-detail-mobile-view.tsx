@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { formatNewsDisplayDate } from "@/constants/news-filters";
 import { useClientNewsDetailPage } from "@/hooks/use-client-news-page";
 import { recordNewsView } from "@/lib/news-api";
@@ -33,7 +32,6 @@ export function ClientNewsDetailMobileView({ newsId }: ClientNewsDetailMobileVie
   return (
     <div
       className="min-h-screen bg-[#1C1C1E]"
-      style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
     >
       <div className="flex items-center px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
         <button

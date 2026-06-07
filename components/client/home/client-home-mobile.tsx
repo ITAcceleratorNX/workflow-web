@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, Heart, Home, Sparkles } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
-import { BottomNav } from "@/components/BottomNav";
 import { TasksTodayCard } from "@/components/tasks/tasks-today-card";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
@@ -83,8 +81,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
         <div
           className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
           style={{
-            background: MOBILE_PAGE_GRADIENTS.client,
-            paddingBottom: MOBILE_BOTTOM_NAV_PADDING,
+            background: MOBILE_PAGE_GRADIENTS.client
           }}
         >
           <div className="mb-4">
@@ -141,8 +138,6 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
           </section>
         </div>
       </PullToRefresh>
-
-      <BottomNav activeTab="home" />
     </>
   );
 }

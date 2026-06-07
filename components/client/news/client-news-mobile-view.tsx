@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2, Search, X } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -13,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import {
   formatNewsDisplayDate,
   NEWS_DATE_FILTER_OPTIONS,
@@ -44,7 +42,7 @@ export function ClientNewsMobileView({
     <>
       <div
         className="min-h-screen bg-[#1C1C1E]"
-        style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+        
       >
         <ScreenHeader title="Все новости" />
 
@@ -116,7 +114,6 @@ export function ClientNewsMobileView({
           </div>
         )}
       </div>
-      <BottomNav activeTab="home" />
     </>
   );
 }

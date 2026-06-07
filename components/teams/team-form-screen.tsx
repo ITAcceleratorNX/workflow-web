@@ -3,9 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Lock, Star, Trash2, X } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import { useToast } from "@/hooks/use-toast";
 import {
   normalizeUserSearchItem,
@@ -244,13 +242,12 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
       <>
         <div
           className="min-h-screen bg-[#1C1C1E] flex flex-col items-center justify-center px-6"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <ScreenHeader title={isEdit ? "Команда" : "Новая команда"} />
           <Lock className="h-10 w-10 text-[#8E8E93] mb-3" />
           <p className="text-[#8E8E93] text-center">Войдите в аккаунт, чтобы управлять командами</p>
         </div>
-        <BottomNav activeTab="home" />
       </>
     );
   }
@@ -260,14 +257,13 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
       <>
         <div
           className="min-h-screen bg-[#1C1C1E]"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <ScreenHeader title="Команда" />
           <p className="px-6 text-[#8E8E93] text-center mt-8">
             Редактировать команду могут только создатель и руководитель
           </p>
         </div>
-        <BottomNav activeTab="home" />
       </>
     );
   }
@@ -277,14 +273,13 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
       <>
         <div
           className="min-h-screen bg-[#1C1C1E] flex flex-col"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <ScreenHeader title={title} />
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-[#E25B21]" />
           </div>
         </div>
-        <BottomNav activeTab="home" />
       </>
     );
   }
@@ -293,7 +288,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
     <>
       <div
         className="min-h-screen bg-[#1C1C1E] flex flex-col"
-        style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+        
       >
         <ScreenHeader title={title} />
 
@@ -431,7 +426,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
         </div>
 
         {canManageMembers ? (
-          <div className="fixed bottom-[calc(80px+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 py-3 border-t border-[#3A3A3C] bg-[#1C1C1E]">
+          <div className="fixed bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px))] left-0 right-0 px-4 py-3 border-t border-[#3A3A3C] bg-[#1C1C1E]">
             <button
               type="button"
               onClick={() => void handleSave()}
@@ -444,7 +439,6 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
           </div>
         ) : null}
       </div>
-      <BottomNav activeTab="home" />
     </>
   );
 }

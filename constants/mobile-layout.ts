@@ -13,17 +13,11 @@ export const MOBILE_PAGE_GRADIENTS = {
 
 export type MobilePageGradient = keyof typeof MOBILE_PAGE_GRADIENTS;
 
-/** Отступ снизу под floating BottomNav + safe area (workflow-mobile BOTTOM_NAV_ROW_HEIGHT). */
-export const MOBILE_BOTTOM_NAV_PADDING =
-  "calc(80px + env(safe-area-inset-bottom, 0px))";
+/** Совпадает с последним стопом градиента на booking — закрашивает запас под absolute BottomNav. */
+export const BOOKING_TAB_SCENE_UNDERLAY = "#281504";
 
-/** Подписи вкладок — workflow-mobile/components/bottom-nav.tsx */
-export const MOBILE_BOTTOM_NAV_LABELS = {
-  home: "Главная",
-  booking: "Бронь",
-  requests: "Заявки",
-  help: "Сообщение",
-  profile: "Профиль",
-} as const;
-
-export type MobileBottomNavTabKey = keyof typeof MOBILE_BOTTOM_NAV_LABELS;
+export {
+  MOBILE_BOTTOM_NAV_LABELS,
+  MOBILE_BOTTOM_NAV_PADDING,
+  type MobileBottomNavTabKey,
+} from "@/lib/bottom-nav";

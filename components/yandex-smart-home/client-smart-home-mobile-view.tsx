@@ -1,11 +1,9 @@
 "use client";
 
 import { ChevronDown, Home, Lightbulb, Loader2, Power } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { PageLoader } from "@/components/ui/page-loader";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { SmartDeskCalculatorCompact } from "@/components/yandex-smart-home/smart-desk-calculator-compact";
-import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import type { UseClientSmartHomeResult } from "@/hooks/use-client-smart-home";
 
 type ClientSmartHomeMobileViewProps = UseClientSmartHomeResult;
@@ -29,11 +27,10 @@ export function ClientSmartHomeMobileView({
       <>
         <div
           className="min-h-screen bg-[#1C1C1E] flex items-center justify-center"
-          style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+          
         >
           <PageLoader size={96} />
         </div>
-        <BottomNav activeTab="home" />
       </>
     );
   }
@@ -42,7 +39,7 @@ export function ClientSmartHomeMobileView({
     <>
       <div
         className="min-h-screen bg-[#1C1C1E]"
-        style={{ paddingBottom: MOBILE_BOTTOM_NAV_PADDING }}
+        
       >
         <ScreenHeader
           title="Управление умным офисом"
@@ -177,7 +174,6 @@ export function ClientSmartHomeMobileView({
           )}
         </div>
       </div>
-      <BottomNav activeTab="home" />
     </>
   );
 }

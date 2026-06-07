@@ -2,14 +2,12 @@
 
 import Image from "next/image";
 import { X, Building2, Users, ImageIcon } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import type { MeetingRoom, Office } from "@/lib/api";
 
 interface MeetingRoomsMobileOfficeRoomsModalProps {
   office: Office;
   rooms: MeetingRoom[];
   loadingRooms: boolean;
-  showBottomNav: boolean;
   onClose: () => void;
   onRoomClick: (room: MeetingRoom) => void;
 }
@@ -18,7 +16,6 @@ export function MeetingRoomsMobileOfficeRoomsModal({
   office,
   rooms,
   loadingRooms,
-  showBottomNav,
   onClose,
   onRoomClick,
 }: MeetingRoomsMobileOfficeRoomsModalProps) {
@@ -89,7 +86,6 @@ export function MeetingRoomsMobileOfficeRoomsModal({
           )}
         </div>
       </div>
-      {showBottomNav && <BottomNav activeTab="booking" />}
     </div>
   );
 }

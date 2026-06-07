@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import {
-  MOBILE_BOTTOM_NAV_PADDING,
   MOBILE_PAGE_GRADIENTS,
 } from "@/constants/mobile-layout";
 import type { UseDepartmentHeadRequestsListResult } from "@/hooks/use-department-head-requests-list";
@@ -118,8 +117,7 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
       <div
         className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]"
         style={{
-          background: MOBILE_PAGE_GRADIENTS.plain,
-          paddingBottom: MOBILE_BOTTOM_NAV_PADDING,
+          background: MOBILE_PAGE_GRADIENTS.plain
         }}
       >
         <h1 className="text-2xl font-bold text-white mb-4">Заявки</h1>

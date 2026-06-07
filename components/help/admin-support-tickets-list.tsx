@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Headphones, Loader2, MessageCircle, User } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { ticketStatusLabel } from "@/constants/help-topics";
 import { getSupportTickets, type SupportTicket } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -11,14 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 type AdminSupportTicketsListProps = {
   canRespond?: boolean;
   basePath?: string;
-  showBottomNav?: boolean;
 };
 
 /** Список чатов с клиентами — parity с RN help (admin-worker). */
 export function AdminSupportTicketsList({
   canRespond = true,
   basePath = "/admin-worker/messages",
-  showBottomNav = true,
 }: AdminSupportTicketsListProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -108,8 +105,6 @@ export function AdminSupportTicketsList({
           )}
         </div>
       </div>
-
-      {showBottomNav && <BottomNav activeTab="help" />}
     </>
   );
 }

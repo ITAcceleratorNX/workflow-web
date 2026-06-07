@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import { BottomNav } from "@/components/BottomNav";
 import { MeetingRoomsCatalog } from "@/components/meeting-rooms/MeetingRoomsCatalog";
 import { Button } from "@/components/ui/button";
 import type { Office } from "@/lib/api";
