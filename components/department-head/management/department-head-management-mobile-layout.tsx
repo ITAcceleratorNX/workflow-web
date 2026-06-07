@@ -7,12 +7,16 @@ interface DepartmentHeadManagementMobileLayoutProps {
   title: string;
   children: React.ReactNode;
   onRefresh?: () => Promise<void>;
+  rightSlot?: React.ReactNode;
+  inlineTitle?: boolean;
 }
 
 export function DepartmentHeadManagementMobileLayout({
   title,
   children,
   onRefresh,
+  rightSlot,
+  inlineTitle = false,
 }: DepartmentHeadManagementMobileLayoutProps) {
   return (
     <MobilePageLayout
@@ -20,6 +24,8 @@ export function DepartmentHeadManagementMobileLayout({
       backHref={DEPARTMENT_HEAD_MANAGEMENT_BACK_HREF}
       background="default"
       onRefresh={onRefresh}
+      rightSlot={rightSlot}
+      inlineTitle={inlineTitle}
     >
       <div className="admin-management-content">{children}</div>
     </MobilePageLayout>

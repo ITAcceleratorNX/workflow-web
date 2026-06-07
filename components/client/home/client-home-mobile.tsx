@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, Heart, Home, Sparkles } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
-import { TasksTodayCard } from "@/components/tasks/tasks-today-card";
+import { TasksSection } from "@/components/tasks/tasks-section";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
 import { useClientHomeNews } from "@/hooks/use-client-home-news";
 import type { NewsDisplayItem } from "@/lib/news-api";
@@ -124,10 +124,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
             </div>
           </section>
 
-          <section className="mt-6 pb-4">
-            <h2 className="text-xl font-bold text-foreground mb-4">Задачи</h2>
-            <TasksTodayCard onPress={() => router.push("/client/tasks?tab=today")} />
-          </section>
+          <TasksSection layout="embedded" />
         </div>
       </PullToRefresh>
     </>

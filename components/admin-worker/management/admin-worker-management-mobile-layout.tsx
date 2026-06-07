@@ -7,19 +7,27 @@ interface AdminWorkerManagementMobileLayoutProps {
   title: string;
   children: React.ReactNode;
   onRefresh?: () => Promise<void>;
+  rightSlot?: React.ReactNode;
+  inlineTitle?: boolean;
+  backHref?: string;
 }
 
 export function AdminWorkerManagementMobileLayout({
   title,
   children,
   onRefresh,
+  rightSlot,
+  inlineTitle = false,
+  backHref = ADMIN_WORKER_MANAGEMENT_BACK_HREF,
 }: AdminWorkerManagementMobileLayoutProps) {
   return (
     <MobilePageLayout
       title={title}
-      backHref={ADMIN_WORKER_MANAGEMENT_BACK_HREF}
+      backHref={backHref}
       background="default"
       onRefresh={onRefresh}
+      rightSlot={rightSlot}
+      inlineTitle={inlineTitle}
     >
       <div className="admin-management-content">{children}</div>
     </MobilePageLayout>

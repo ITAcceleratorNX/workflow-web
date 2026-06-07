@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useRef } from "react";
-import { CategoryManagementScreen } from "@/components/categories/category-management-screen";
+import { useCallback, useRef, useState } from "react";
+import { OfficeLocationCatalogManagementScreen } from "@/components/office-location-catalog/office-location-catalog-management-screen";
 import { AdminWorkerManagementMobileLayout } from "../admin-worker-management-mobile-layout";
 
-export function AdminWorkerCategoriesMobile() {
+export function AdminWorkerLocationCatalogMobile() {
   const refreshRef = useRef<(() => Promise<void>) | null>(null);
+  const [headerSlot, setHeaderSlot] = useState<React.ReactNode>(null);
 
   const handleRegisterRefresh = useCallback((refetch: () => Promise<void>) => {
     refreshRef.current = refetch;
@@ -17,12 +18,15 @@ export function AdminWorkerCategoriesMobile() {
 
   return (
     <AdminWorkerManagementMobileLayout
-      title="Категории и подкатегории"
+      title="Шаблоны локаций"
       onRefresh={handleRefresh}
+      rightSlot={headerSlot}
+      inlineTitle
     >
-      <CategoryManagementScreen
+      <OfficeLocationCatalogManagementScreen
         variant="admin-worker"
         onRegisterRefresh={handleRegisterRefresh}
+        onRegisterHeaderSlot={setHeaderSlot}
       />
     </AdminWorkerManagementMobileLayout>
   );

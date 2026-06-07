@@ -30,7 +30,7 @@ export const DEPARTMENT_HEAD_HOME_CARDS: DepartmentHeadHomeCard[] = [
     title: "Шаблоны локаций",
     subtitle: "Блок, этаж и помещения для заявок в вашем офисе",
     icon: MapPin,
-    href: "/department-head/management/office",
+    href: "/department-head/management/location-catalog",
   },
   {
     key: "companies",

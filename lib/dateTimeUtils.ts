@@ -38,6 +38,38 @@ export function formatRequestDate(value: DateInput): string {
   return formatDateTime(value);
 }
 
+/** Допуск «чуть в прошлом» для планирования публикации новостей (мс). */
+export const NEWS_SCHEDULE_PAST_SLACK_MS = 60_000;
+
+/** Максимум через сколько можно запланировать публикацию (365 суток). */
+export const NEWS_SCHEDULE_MAX_LEAD_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function getNewsScheduleMinimumDate(): Date {
+  return new Date(Date.now() - NEWS_SCHEDULE_PAST_SLACK_MS);
+}
+
+export function getNewsScheduleMaximumDate(): Date {
+  return new Date(Date.now() + NEWS_SCHEDULE_MAX_LEAD_MS);
+}
+
+export function clampNewsScheduleDate(d: Date): Date {
+  const min = getNewsScheduleMinimumDate();
+  const max = getNewsScheduleMaximumDate();
+  const t = d.getTime();
+  if (t < min.getTime()) return new Date(min);
+  if (t > max.getTime()) return new Date(max);
+  return d;
+}
+
+/** Дата и время публикации новости (Asia/Almaty). */
+export function formatNewsScheduleDateTime(value: DateInput): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  const d = formatDateOnly(date);
+  const t = formatTimeOnly(date);
+  return d && t ? `${d} ${t}` : "—";
+}
+
 /** Короткая дата для карточки списка: «15 мар., 14:30» (как workflow-mobile formatCardDateShort). */
 export function formatCardDateShort(value: DateInput): string {
   const date = toDate(value);

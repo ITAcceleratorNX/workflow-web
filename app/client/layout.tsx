@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { isClientSharedStackPath } from "@/lib/client-shared-stack";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
@@ -13,9 +14,11 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
   const isDesktop = useIsDesktop();
   const [hydrated, setHydrated] = useState(false);
+  const isSharedStack = isClientSharedStackPath(pathname);
 
   useEffect(() => {
     setHydrated(true);
@@ -24,12 +27,18 @@ export default function ClientLayout({
   useEffect(() => {
     if (!hydrated) return;
 
-    if (!user || user.role !== "client") {
+    if (!user) {
       clearAuth();
       router.push("/login");
       return;
     }
-  }, [hydrated, user, router, clearAuth]);
+
+    if (!isSharedStack && user.role !== "client") {
+      clearAuth();
+      router.push("/login");
+      return;
+    }
+  }, [hydrated, user, router, clearAuth, isSharedStack]);
 
   if (!hydrated || !user) {
     return null;

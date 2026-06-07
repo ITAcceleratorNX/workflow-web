@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bell, ChevronRight, Sparkles, Wrench } from "lucide-react";
+import { Bell, ChevronRight } from "lucide-react";
+import { TasksSection } from "@/components/tasks/tasks-section";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UseExecutorHomeResult } from "@/hooks/use-executor-home";
@@ -12,8 +12,6 @@ type ExecutorHomeMobileProps = UseExecutorHomeResult;
 
 /** Mobile home — parity с workflow-mobile ExecutorCabinetScreen. */
 export function ExecutorHomeMobile({ handleRefresh }: ExecutorHomeMobileProps) {
-  const router = useRouter();
-
   return (
     <>
       <PullToRefresh onRefresh={handleRefresh}>
@@ -61,30 +59,7 @@ export function ExecutorHomeMobile({ handleRefresh }: ExecutorHomeMobileProps) {
             })}
           </div>
 
-          <section className="mt-6 pb-4">
-            <h2 className="text-xl font-bold text-foreground mb-4">Задачи</h2>
-            <button
-              type="button"
-              onClick={() => router.push("/executor/requests")}
-              className="w-full rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-4 text-left active:scale-[0.98] transition-transform"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#E85D2B]/20 flex items-center justify-center">
-                    <Wrench className="w-5 h-5 text-[#E85D2B]" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Мои задачи</p>
-                    <p className="text-sm text-gray-400">Нажмите, чтобы открыть заявки</p>
-                  </div>
-                </div>
-                <Sparkles className="w-5 h-5 text-[#E85D2B]/60 shrink-0" />
-              </div>
-              <div className="h-2 rounded-full bg-[#E85D2B]/20 overflow-hidden">
-                <div className="h-full w-0 bg-[#E85D2B] rounded-full" />
-              </div>
-            </button>
-          </section>
+          <TasksSection layout="embedded" />
         </div>
       </PullToRefresh>
     </>

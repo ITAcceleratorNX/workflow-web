@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { CategoryManagementScreen } from "@/components/categories/category-management-screen";
+import { AdminWorkerNewsManagementScreen } from "@/components/admin-worker/news/admin-worker-news-management-screen";
 import { AdminWorkerManagementMobileLayout } from "../admin-worker-management-mobile-layout";
 
-export function AdminWorkerCategoriesMobile() {
+export function AdminWorkerNewsMobile() {
   const refreshRef = useRef<(() => Promise<void>) | null>(null);
 
   const handleRegisterRefresh = useCallback((refetch: () => Promise<void>) => {
@@ -16,14 +16,8 @@ export function AdminWorkerCategoriesMobile() {
   }, []);
 
   return (
-    <AdminWorkerManagementMobileLayout
-      title="Категории и подкатегории"
-      onRefresh={handleRefresh}
-    >
-      <CategoryManagementScreen
-        variant="admin-worker"
-        onRegisterRefresh={handleRegisterRefresh}
-      />
+    <AdminWorkerManagementMobileLayout title="Управление новостями" onRefresh={handleRefresh}>
+      <AdminWorkerNewsManagementScreen onRegisterRefresh={handleRegisterRefresh} />
     </AdminWorkerManagementMobileLayout>
   );
 }

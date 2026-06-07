@@ -42,7 +42,7 @@ export const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
     title: "Шаблоны локаций",
     subtitle: "Блок, этаж и помещения для заявок по выбранному офису",
     icon: MapPin,
-    href: "/admin-worker/management/office",
+    href: "/admin-worker/management/location-catalog",
   },
   {
     key: "companies",
@@ -84,6 +84,6 @@ export const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
     title: "Управление новостями",
     subtitle: "Создание и редактирование новостей для клиентов",
     icon: Newspaper,
-    href: "/notifications",
+    href: "/admin-worker/management/news",
   },
 ];

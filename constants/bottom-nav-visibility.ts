@@ -22,7 +22,6 @@ export const CLIENT_BOTTOM_NAV_ROOTS = ["/client", "/client/requests"] as const;
  * Parity: RN admin-worker/department-head/executor management drill-downs вне tabs.
  */
 export const BOTTOM_NAV_VISIBLE_HUBS = [
-  "/admin-worker/management",
   "/department-head/management",
   "/executor/management",
 ] as const;
@@ -39,6 +38,7 @@ export const BOTTOM_NAV_HIDDEN_EXACT_PATHS = [
 export const BOTTOM_NAV_HIDDEN_PREFIXES = [
   "/chat-bot",
   "/admin-worker/messages",
+  "/admin-worker/management",
   "/manager/messages",
   "/settings/",
 ] as const;

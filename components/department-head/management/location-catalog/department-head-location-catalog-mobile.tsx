@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useRef } from "react";
-import { CategoryManagementScreen } from "@/components/categories/category-management-screen";
+import { useCallback, useRef, useState } from "react";
+import { OfficeLocationCatalogManagementScreen } from "@/components/office-location-catalog/office-location-catalog-management-screen";
 import { DepartmentHeadManagementMobileLayout } from "../department-head-management-mobile-layout";
 
-export function DepartmentHeadCategoriesMobile() {
+export function DepartmentHeadLocationCatalogMobile() {
   const refreshRef = useRef<(() => Promise<void>) | null>(null);
+  const [headerSlot, setHeaderSlot] = useState<React.ReactNode>(null);
 
   const handleRegisterRefresh = useCallback((refetch: () => Promise<void>) => {
     refreshRef.current = refetch;
@@ -17,12 +18,15 @@ export function DepartmentHeadCategoriesMobile() {
 
   return (
     <DepartmentHeadManagementMobileLayout
-      title="Категории и подкатегории"
+      title="Шаблоны локаций"
       onRefresh={handleRefresh}
+      rightSlot={headerSlot}
+      inlineTitle
     >
-      <CategoryManagementScreen
+      <OfficeLocationCatalogManagementScreen
         variant="department-head"
         onRegisterRefresh={handleRegisterRefresh}
+        onRegisterHeaderSlot={setHeaderSlot}
       />
     </DepartmentHeadManagementMobileLayout>
   );

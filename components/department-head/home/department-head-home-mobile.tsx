@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Bell, ChevronRight } from "lucide-react";
+import { TasksSection } from "@/components/tasks/tasks-section";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UseDepartmentHeadHomeResult } from "@/hooks/use-department-head-home";
@@ -56,6 +57,8 @@ export function DepartmentHeadHomeMobile({ handleRefresh }: DepartmentHeadHomeMo
             );
           })}
         </div>
+
+        <TasksSection layout="embedded" />
       </div>
     </PullToRefresh>
   );
