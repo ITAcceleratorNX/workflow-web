@@ -11,8 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups, sortRequestGroupsByPriority } from "@/lib/request-utils";
-import type { DepartmentHeadRequestsTab } from "@/components/department-head/requests/department-head-requests-constants";
-import type { DepartmentHeadExecutor } from "@/components/department-head/requests/department-head-requests-constants";
+import {
+  mapExecutorInCategoryToAssignModal,
+  type DepartmentHeadExecutor,
+  type DepartmentHeadRequestsTab,
+} from "@/components/department-head/requests/department-head-requests-constants";
+import { getExecutorsForSubRequestAssignment } from "@/lib/users-management-api";
 
 export function useDepartmentHeadRequestsList() {
   const router = useRouter();
@@ -92,14 +96,12 @@ export function useDepartmentHeadRequestsList() {
     [token, filterIncomingStatus, filterIncomingType, setIncomingRequests, setMyRequests]
   );
 
-  const fetchExecutors = useCallback(async () => {
-    try {
-      const response = await api.get("/executors");
-      setExecutors(response.data || []);
-    } catch (error) {
-      console.error("Ошибка загрузки исполнителей:", error);
-    }
-  }, []);
+  const subForExecutorList =
+    showAssignExecutorsModal && selectedSubRequestForAssignment
+      ? selectedSubRequestForAssignment
+      : showChangeExecutorsModal && selectedSubRequestForChange
+        ? selectedSubRequestForChange
+        : null;
 
   useEffect(() => {
     fetchRequests(1);
@@ -107,10 +109,30 @@ export function useDepartmentHeadRequestsList() {
 
   useEffect(() => {
     if (isDesktop && token) {
-      fetchExecutors();
       fetchCategories(token);
     }
-  }, [isDesktop, token, fetchExecutors, fetchCategories]);
+  }, [isDesktop, token, fetchCategories]);
+
+  useEffect(() => {
+    if (!isDesktop || !subForExecutorList) {
+      if (!subForExecutorList) setExecutors([]);
+      return;
+    }
+    let cancelled = false;
+    const officeId = user?.office_id != null ? Number(user.office_id) : undefined;
+    void getExecutorsForSubRequestAssignment(subForExecutorList, officeId).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setExecutors(res.data.map(mapExecutorInCategoryToAssignModal));
+      } else {
+        setExecutors([]);
+        console.error("Ошибка загрузки исполнителей:", res.error);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDesktop, subForExecutorList, user?.office_id]);
 
   const filteredMyRequests = useMemo(
     () =>

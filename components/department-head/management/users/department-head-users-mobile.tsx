@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { UserPlus, Users } from "lucide-react";
 import RegistrationRequestsManager from "@/components/RegistrationRequestsManager";
-import UserManagementMobile from "@/components/UserManagementMobile";
+import { DepartmentHeadUserManagementTab } from "./department-head-user-management-tab";
 import { DepartmentHeadManagementMobileLayout } from "../department-head-management-mobile-layout";
 
 type DepartmentHeadUsersTab = "requests" | "management";
@@ -41,7 +41,7 @@ export function DepartmentHeadUsersMobile() {
       </div>
 
       {activeTab === "requests" && <RegistrationRequestsManager />}
-      {activeTab === "management" && <UserManagementMobile />}
+      {activeTab === "management" && <DepartmentHeadUserManagementTab />}
     </DepartmentHeadManagementMobileLayout>
   );
 }

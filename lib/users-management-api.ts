@@ -194,6 +194,21 @@ export async function getUsersForManagement(options?: {
   }
 }
 
+export async function getExecutorsForSubRequestAssignment(
+  subRequest: { category_id?: number; category?: { id: number } },
+  officeId?: number,
+): Promise<{ ok: true; data: ExecutorInCategory[] } | { ok: false; error: string }> {
+  const categoryId = subRequest.category_id ?? subRequest.category?.id;
+  const parsed =
+    categoryId != null && Number.isFinite(Number(categoryId)) && Number(categoryId) > 0
+      ? Number(categoryId)
+      : undefined;
+  if (!parsed) {
+    return { ok: true, data: [] };
+  }
+  return getExecutors(parsed, officeId);
+}
+
 export async function getExecutors(
   categoryId?: number,
   officeId?: number,
@@ -313,6 +328,17 @@ export async function updateUserRole(
     if (options?.category_ids?.length) body.category_ids = options.category_ids;
     if (options?.specialty?.trim()) body.specialty = options.specialty.trim();
     await api.put(`/users/${userId}`, body);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+export async function deleteExecutor(
+  executorId: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await api.delete(`/executors/${executorId}`);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: extractError(error) };

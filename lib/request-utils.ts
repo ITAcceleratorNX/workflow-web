@@ -17,6 +17,14 @@ export function getPrimarySubRequest(request: RequestGroup): SubRequest | undefi
   return request.requests?.[0];
 }
 
+/** category_id с бэкенда или вложенный category.id */
+export function getSubRequestCategoryId(
+  sub: Pick<SubRequest, 'category_id' | 'category'>,
+): number | undefined {
+  const id = sub.category_id ?? sub.category?.id;
+  return id != null && Number.isFinite(Number(id)) && Number(id) > 0 ? Number(id) : undefined;
+}
+
 /** Первое фото: с группы или с первой подзаявки (как в mobile). */
 export function getFirstPhotoUrl(request: RequestGroup): string | null {
   const fromGroup = request.photos?.[0]?.photo_url;

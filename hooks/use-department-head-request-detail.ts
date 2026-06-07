@@ -8,7 +8,11 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useToast } from "@/hooks/use-toast";
 import type { RequestGroup } from "@/stores/useRequestStore";
-import type { DepartmentHeadExecutor } from "@/components/department-head/requests/department-head-requests-constants";
+import {
+  mapExecutorInCategoryToAssignModal,
+  type DepartmentHeadExecutor,
+} from "@/components/department-head/requests/department-head-requests-constants";
+import { getExecutorsForSubRequestAssignment } from "@/lib/users-management-api";
 
 export function useDepartmentHeadRequestDetail() {
   const router = useRouter();
@@ -64,18 +68,33 @@ export function useDepartmentHeadRequestDetail() {
     if (token) fetchCategories(token);
   }, [token, fetchCategories]);
 
+  const subForExecutorList =
+    showAssignModal && subRequestForAssign
+      ? subRequestForAssign
+      : showChangeModal && subRequestForChange
+        ? subRequestForChange
+        : null;
+
   useEffect(() => {
-    if (isDesktop) return;
-    const loadExecutors = async () => {
-      try {
-        const res = await api.get("/executors");
-        setExecutors(res.data || []);
-      } catch (e) {
-        console.error("Ошибка загрузки исполнителей:", e);
+    if (isDesktop || !subForExecutorList) {
+      if (!subForExecutorList) setExecutors([]);
+      return;
+    }
+    let cancelled = false;
+    const officeId = request?.office_id ?? request?.office?.id;
+    void getExecutorsForSubRequestAssignment(subForExecutorList, officeId).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setExecutors(res.data.map(mapExecutorInCategoryToAssignModal));
+      } else {
+        setExecutors([]);
+        console.error("Ошибка загрузки исполнителей:", res.error);
       }
+    });
+    return () => {
+      cancelled = true;
     };
-    loadExecutors();
-  }, [isDesktop]);
+  }, [isDesktop, subForExecutorList, request?.office_id, request?.office?.id]);
 
   const handleClose = useCallback(() => {
     router.push("/department-head/requests");

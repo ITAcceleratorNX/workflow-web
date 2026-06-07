@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogsViewer } from "@/components/logs-viewer";
-import { ROLE_TRANSLATIONS, type ProfileTab } from "@/constants/profile";
+import { ROLE_TRANSLATIONS, ROLES_WITH_LOGS, type ProfileTab } from "@/constants/profile";
 import { MOBILE_BOTTOM_NAV_PADDING } from "@/constants/mobile-layout";
 import type { UseProfilePageResult } from "@/hooks/use-profile-page";
 import { ProfileTabs } from "./profile-tabs";
