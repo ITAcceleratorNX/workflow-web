@@ -56,6 +56,13 @@ export default api;
 // Получить все категории
 export const getServiceCategories = () => api.get('/service-categories');
 
+/** Категории с подкатегориями для выбранного офиса (как workflow-mobile getServiceCategories). */
+export async function getServiceCategoriesByOffice(officeId: number) {
+  const response = await api.get(`/service-categories?office_id=${officeId}`);
+  const data = response.data;
+  return Array.isArray(data) ? data : data ? [data] : [];
+}
+
 // Получить категорию по ID
 export const getServiceCategoryById = (id: number) =>
     api.get(`/service-categories/${id}`);

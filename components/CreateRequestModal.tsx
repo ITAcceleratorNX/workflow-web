@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import { ru } from "date-fns/locale";
 import { ImportExcelModal } from "./ImportExcelModal";
 import { findNearestOffice, getLocationByIP } from "@/lib/utils";
 import { getBlocksForOffice, getLocationsForBlock, getRoomsForLocation, hasLocationsForBlock, hasRoomsForLocation } from "@/lib/office-locations";
+import { getServiceCategoriesByOffice } from "@/lib/api";
+import { RequestTypeChips } from "@/components/create-request/request-type-chips";
+import { ServiceCategoryPicker } from "@/components/create-request/service-category-picker";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface ServiceCategory {
   id: number;
@@ -150,6 +155,83 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriedLocationRef = useRef(false);
+
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const primaryColor = useThemeColor("primary");
+  const textColor = useThemeColor("text");
+  const textMuted = useThemeColor("textMuted");
+  const borderColor = useThemeColor("border");
+  const onPrimaryColor = useThemeColor("onPrimary");
+
+  const [officeCategories, setOfficeCategories] = useState<ServiceCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  const effectiveOfficeId = useMemo(() => {
+    if (locationSource === "cabinet" && selectedCabinetRoom?.office_id) {
+      return selectedCabinetRoom.office_id;
+    }
+    if (selectedOfficeId) return selectedOfficeId;
+    return null;
+  }, [locationSource, selectedCabinetRoom, selectedOfficeId]);
+
+  const selectedOfficeForCategories = useMemo(() => {
+    if (locationSource === "cabinet" && selectedCabinetRoom) {
+      return offices.find((o) => o.id === selectedCabinetRoom.office_id) ?? null;
+    }
+    return offices.find((o) => o.id === selectedOfficeId) ?? null;
+  }, [locationSource, selectedCabinetRoom, selectedOfficeId, offices]);
+
+  const resetSubRequestCategory = useCallback(() => {
+    setSubRequests((prev) => {
+      const next = [...prev];
+      next[0] = { ...next[0], category_id: 0, subcategory_id: 0, title: "" };
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!effectiveOfficeId) {
+      setOfficeCategories([]);
+      setCategoriesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCategoriesLoading(true);
+    setOfficeCategories([]);
+    resetSubRequestCategory();
+
+    if (isGuest) {
+      const demo = categories.filter(
+        (c) =>
+          !(c as ServiceCategory & { office_id?: number }).office_id ||
+          Number((c as ServiceCategory & { office_id?: number }).office_id) === effectiveOfficeId,
+      );
+      if (!cancelled) {
+        setOfficeCategories(demo.length > 0 ? demo : categories);
+        setCategoriesLoading(false);
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getServiceCategoriesByOffice(effectiveOfficeId)
+      .then((list) => {
+        if (cancelled) return;
+        setOfficeCategories(list);
+        setCategoriesLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOfficeCategories([]);
+        setCategoriesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveOfficeId, isGuest, categories, resetSubRequestCategory]);
 
   // Сброс формы при закрытии
   useEffect(() => {
@@ -1179,50 +1261,42 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 );
   };
 
-  // Рендер шага 3: Тип заявки, категория, название
+  // Рендер шага 3: Тип заявки, категория, название (parity с workflow-mobile)
   const renderStep3 = () => {
     const subRequest = subRequests[0];
-    const selectedCategory = categories.find(c => c.id === subRequest.category_id);
-    
-    const requestTypes = [
-      { value: "normal", label: "Обычная" },
-      { value: "urgent", label: "Экстренная" },
-    ];
-    
-    if (userRole === 'admin-worker' || userRole === 'department-head') {
-      requestTypes.push({ value: "planned", label: "Плановая" });
-    }
-    if (userRole === 'admin-worker') {
-      requestTypes.push({ value: "recurring", label: "Повторяющаяся задача" });
-    }
+    const selectedCategory = officeCategories.find((c) => c.id === subRequest.category_id);
+    const stepTitleClass = isFullScreen
+      ? "text-lg font-semibold mb-2 block"
+      : "text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white";
+    const fieldLabelClass = isFullScreen
+      ? "text-sm font-medium mb-2 block"
+      : "text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white";
 
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* Тип заявки */}
-          <div>
-          <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Тип заявки</Label>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {requestTypes.map((type) => (
-              <div
-                key={type.value}
-                onClick={() => {
-                  setRequestType(type.value);
-                  setIsRecurringTask(type.value === 'recurring');
-                }}
-                className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
-                  requestType === type.value
-                    ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
-                    : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
-                }`}
-              >
-                {type.label}
-              </div>
-            ))}
-          </div>
+        <h3 className={stepTitleClass} style={isFullScreen ? { color: textColor } : undefined}>
+          Тип и категория
+        </h3>
+
+        <div>
+          <Label
+            className={fieldLabelClass}
+            style={isFullScreen ? { color: textMuted } : undefined}
+          >
+            Тип заявки
+          </Label>
+          <RequestTypeChips
+            userRole={userRole}
+            value={requestType}
+            onChange={(val) => {
+              setRequestType(val);
+              setIsRecurringTask(val === "recurring");
+            }}
+          />
           {hasAttemptedSubmit && !requestType && (
             <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите тип заявки</p>
-            )}
-          </div>
+          )}
+        </div>
 
         {/* Планируемая дата для плановых заявок */}
           {requestType === "planned" && (userRole === 'admin-worker' || userRole === 'department-head') && (
@@ -1331,71 +1405,104 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           </div>
         )}
 
-        {/* Категория */}
         <div>
-          <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Категория заявки</Label>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                onClick={() => {
-                  const newSubRequests = [...subRequests];
-                  newSubRequests[0] = {
-                    ...newSubRequests[0],
-                    category_id: category.id,
-                    subcategory_id: 0,
-                    title: ''
-                  };
-                  setSubRequests(newSubRequests);
-                }}
-                className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
-                  subRequest.category_id === category.id
-                    ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
-                    : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
-                }`}
-              >
-                {category.name}
-              </div>
-            ))}
-          </div>
+          <Label
+            className={fieldLabelClass}
+            style={isFullScreen ? { color: textMuted } : undefined}
+          >
+            Категория заявки
+          </Label>
+          <ServiceCategoryPicker
+            categories={officeCategories}
+            selectedId={subRequest.category_id}
+            loading={categoriesLoading}
+            officeName={selectedOfficeForCategories?.name ?? null}
+            onSelect={(category) => {
+              const newSubRequests = [...subRequests];
+              newSubRequests[0] = {
+                ...newSubRequests[0],
+                category_id: category.id,
+                subcategory_id: 0,
+                title: "",
+              };
+              setSubRequests(newSubRequests);
+            }}
+          />
           {hasAttemptedSubmit && (!subRequest.category_id || subRequest.category_id === 0) && (
             <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите категорию</p>
           )}
         </div>
 
-        {/* Название заявки (подкатегория) */}
-        {subRequest.category_id > 0 && selectedCategory?.subcategories && selectedCategory.subcategories.length > 0 && (
-          <div>
-            <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Название заявки</Label>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {selectedCategory.subcategories.map((subcategory) => (
-                <div
-                  key={subcategory.id}
-                  onClick={() => {
-                    const newSubRequests = [...subRequests];
-                    newSubRequests[0] = {
-                      ...newSubRequests[0],
-                      title: subcategory.name,
-                      subcategory_id: subcategory.id
-                    };
-                    setSubRequests(newSubRequests);
-                  }}
-                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
-                    subRequest.title === subcategory.name
-                      ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
-                      : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
-                  }`}
-                >
-                  {subcategory.name}
-                </div>
-              ))}
-            </div>
-            {hasAttemptedSubmit && !subRequest.title.trim() && (
-              <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите название заявки</p>
-            )}
-          </div>
-                )}
+        {subRequest.category_id > 0 &&
+          selectedCategory?.subcategories &&
+          selectedCategory.subcategories.length > 0 && (
+            <div>
+              <Label
+                className={fieldLabelClass}
+                style={isFullScreen ? { color: textMuted } : undefined}
+              >
+                Название (подкатегория)
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedCategory.subcategories.map((subcategory) => {
+                  const selected = subRequest.title === subcategory.name;
+                  return (
+                    <button
+                      key={subcategory.id}
+                      type="button"
+                      onClick={() => {
+                        const newSubRequests = [...subRequests];
+                        newSubRequests[0] = {
+                          ...newSubRequests[0],
+                          title: subcategory.name,
+                          subcategory_id: subcategory.id,
+                        };
+                        setSubRequests(newSubRequests);
+                      }}
+                      className="px-3.5 py-2.5 rounded-[10px] border text-[13px] font-medium min-h-11 transition-colors"
+                      style={{
+                        borderColor: selected ? primaryColor : borderColor,
+                        backgroundColor: selected ? primaryColor : "transparent",
+                        color: selected ? onPrimaryColor : textColor,
+                      }}
+                    >
+                      {subcategory.name}
+                    </button>
+                  );
+                })}
               </div>
+              {hasAttemptedSubmit && !subRequest.title.trim() && (
+                <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите название заявки</p>
+              )}
+            </div>
+          )}
+
+        {subRequest.category_id > 0 &&
+          (!selectedCategory?.subcategories || selectedCategory.subcategories.length === 0) && (
+            <div>
+              <Label
+                className={fieldLabelClass}
+                style={isFullScreen ? { color: textMuted } : undefined}
+              >
+                Название заявки
+              </Label>
+              <Input
+                placeholder="Краткое название"
+                value={subRequest.title}
+                onChange={(e) => updateSubRequest(0, "title", e.target.value)}
+                className={
+                  isFullScreen
+                    ? "bg-background border rounded-lg min-h-11"
+                    : "bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] border-[#1E1E1E]"
+                }
+                style={isFullScreen ? { borderColor, color: textColor } : undefined}
+              />
+              {hasAttemptedSubmit && !subRequest.title.trim() && (
+                <p className="text-xs text-red-500 mt-2">Пожалуйста, укажите название заявки</p>
+              )}
+            </div>
+          )}
+      </div>
     );
   };
 
