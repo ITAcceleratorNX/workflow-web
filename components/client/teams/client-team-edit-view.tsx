@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { TeamFormScreen } from "@/components/teams/team-form-screen";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { TeamFormScreen } from "@/components/teams/team-form-screen";
+import { ClientTeamEditDesktopView } from "./client-team-edit-desktop-view";
 
 type ClientTeamEditViewProps = {
   teamId: number;
 };
 
 export function ClientTeamEditView({ teamId }: ClientTeamEditViewProps) {
-  const router = useRouter();
   const isDesktop = useIsDesktop();
 
-  useEffect(() => {
-    if (isDesktop) router.replace("/client");
-  }, [isDesktop, router]);
-
-  if (isDesktop) return null;
+  if (isDesktop) {
+    return <ClientTeamEditDesktopView teamId={teamId} />;
+  }
 
   return <TeamFormScreen teamId={teamId} />;
 }

@@ -1,14 +1,11 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerSmartHomeDesktop } from "./admin-worker-smart-home-desktop";
 import { AdminWorkerSmartHomeMobile } from "./admin-worker-smart-home-mobile";
 
 export function AdminWorkerSmartHomeView() {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerSmartHomeDesktop />;
   return <AdminWorkerSmartHomeMobile />;
 }

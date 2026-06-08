@@ -81,7 +81,7 @@ export function DesktopShellLayout({
           requestsPathForNotification={requestsPathForNotification}
         />
         <div className="flex-1 flex min-h-0">
-          <main className="flex-1 overflow-auto min-h-0 bg-[#1A1A1A]">
+          <main className="flex-1 overflow-auto min-h-0 bg-[#1A1A1A] desktop-main-content">
             {children}
           </main>
           {rightSlot && (

@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Bell } from "lucide-react";
 import api from "@/lib/api";
 import { RequestCard } from "@/components/RequestCard";
 import { DashboardKpiCards } from "@/components/dashboard/DashboardKpiCards";
+import { DesktopHubCards } from "@/components/layout/desktop-hub-cards";
+import { TasksSection } from "@/components/tasks/tasks-section";
+import { DEPARTMENT_HEAD_HOME_CARDS } from "./department-head-home-constants";
 import { RequestGroup } from "@/stores/useRequestStore";
 import { sortRequests } from "@/stores/useRequestStore";
 
@@ -99,8 +104,36 @@ export function DepartmentHeadHomeDesktop() {
   );
 
   return (
-    <div className="px-4 py-4 sm:px-5 sm:py-6 md:px-6 md:py-8 lg:px-8 max-w-7xl mx-auto min-w-0">
-      <div className="mb-4 md:mb-6">
+    <div className="px-4 py-4 sm:px-5 sm:py-6 md:px-6 md:py-8 lg:px-8 max-w-7xl mx-auto min-w-0 client-desktop-dark">
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Управление</h1>
+          <p className="text-sm text-white/60 mt-1">Офис и заявки</p>
+        </div>
+        <Link
+          href="/notifications"
+          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          aria-label="Уведомления"
+        >
+          <Bell className="w-6 h-6 text-white" />
+        </Link>
+      </div>
+
+      <DesktopHubCards
+        cards={DEPARTMENT_HEAD_HOME_CARDS.map((c) => ({
+          key: c.key,
+          title: c.title,
+          subtitle: c.subtitle,
+          icon: c.icon,
+          href: c.href,
+        }))}
+        columns={3}
+        className="mb-8"
+      />
+
+      <TasksSection layout="embedded" />
+
+      <div className="mb-4 md:mb-6 mt-8">
         <DashboardKpiCards
           stats={{
             statusCounts: {

@@ -66,7 +66,7 @@ function getHomeHref(role: string | null | undefined): string {
     case "department-head":
       return "/department-head";
     case "executor":
-      return "/executor";
+      return "/executor/management";
     default:
       return "/client";
   }
@@ -140,6 +140,7 @@ export function getActiveTabFromPath(
     (role === "admin-worker" && path.startsWith("/admin-worker/management")) ||
     (role === "department-head" && path.startsWith("/department-head/management")) ||
     (role === "manager" && path.startsWith("/manager/cabinet")) ||
+    (role === "executor" && path.startsWith("/executor/management")) ||
     path.startsWith("/client/news") ||
     path.startsWith("/client/statistics") ||
     path.startsWith("/client/smart-home") ||

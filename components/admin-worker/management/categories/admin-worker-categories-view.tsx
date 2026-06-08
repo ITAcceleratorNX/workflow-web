@@ -1,14 +1,11 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerCategoriesDesktop } from "./admin-worker-categories-desktop";
 import { AdminWorkerCategoriesMobile } from "./admin-worker-categories-mobile";
 
 export function AdminWorkerCategoriesView() {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerCategoriesDesktop />;
   return <AdminWorkerCategoriesMobile />;
 }

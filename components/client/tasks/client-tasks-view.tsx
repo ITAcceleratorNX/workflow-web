@@ -1,23 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useClientTasksPage } from "@/hooks/use-client-tasks-page";
+import { ClientTasksDesktopView } from "./client-tasks-desktop-view";
 import { ClientTasksMobileView } from "./client-tasks-mobile-view";
 
 export function ClientTasksView() {
-  const router = useRouter();
   const isDesktop = useIsDesktop();
   const state = useClientTasksPage();
 
-  useEffect(() => {
-    if (isDesktop) {
-      router.replace("/client");
-    }
-  }, [isDesktop, router]);
-
-  if (isDesktop) return null;
+  if (isDesktop) {
+    return <ClientTasksDesktopView {...state} />;
+  }
 
   return <ClientTasksMobileView {...state} />;
 }

@@ -55,7 +55,7 @@ export function ProfileDesktopSection() {
     handleVerifyEmail,
   } = profile;
 
-  const showLogsTab = ["admin-worker", "manager"].includes(user?.role || "");
+  const showLogsTab = ["admin-worker", "manager", "department-head"].includes(user?.role || "");
 
   if (!user) return null;
 

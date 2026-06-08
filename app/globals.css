@@ -583,6 +583,33 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .client-desktop-content .text-primary {
     color: var(--client-accent) !important;
   }
+
+  /*
+   * Desktop shell: mobile views reuse bg-background / text-foreground tokens.
+   * MobileThemeProvider removes html.dark on ≥768px — force shell-consistent colors.
+   */
+  .desktop-main-content .bg-background {
+    background-color: transparent !important;
+  }
+  .desktop-main-content .min-h-screen.bg-background,
+  .desktop-main-content .h-screen.bg-background,
+  .desktop-main-content .flex.flex-col.h-screen.bg-background {
+    min-height: 0 !important;
+    height: auto !important;
+    background-color: transparent !important;
+  }
+  .desktop-main-content .client-desktop-content .text-foreground,
+  .desktop-main-content .client-desktop-dark .text-foreground {
+    color: #ffffff !important;
+  }
+  .desktop-main-content .client-desktop-content .bg-card,
+  .desktop-main-content .client-desktop-dark .bg-card {
+    background-color: hsl(var(--desktop-surface-card)) !important;
+  }
+  .desktop-main-content .client-desktop-content .border-border,
+  .desktop-main-content .client-desktop-dark .border-border {
+    border-color: hsl(var(--desktop-border)) !important;
+  }
 }
 
 /* Клиент мобильный: тёмная оранжевая тема для Умный дом / Activity трекер */

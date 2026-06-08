@@ -26,8 +26,11 @@ import {
 } from "@/stores/sleep-store";
 import { usePedometerStore } from "@/stores/usePedometerStore";
 import { useWaterStore, WATER_PORTIONS } from "@/stores/water-store";
+import { cn } from "@/lib/utils";
 
 type HealthyTab = "today" | "insight" | "settings";
+
+export type ClientHealthViewLayout = "mobile" | "desktop";
 
 const TABS: { key: HealthyTab; label: string }[] = [
   { key: "today", label: "Сегодня" },
@@ -196,7 +199,12 @@ function WaterNormaModal({ open, onClose }: { open: boolean; onClose: () => void
   );
 }
 
-export function ClientHealthMobileView() {
+type ClientHealthMobileViewProps = {
+  layout?: ClientHealthViewLayout;
+};
+
+export function ClientHealthMobileView({ layout = "mobile" }: ClientHealthMobileViewProps) {
+  const isDesktopLayout = layout === "desktop";
   const router = useRouter();
   const [tab, setTab] = useState<HealthyTab>("today");
   const [waterAddOpen, setWaterAddOpen] = useState(false);
@@ -233,26 +241,29 @@ export function ClientHealthMobileView() {
     await new Promise((r) => setTimeout(r, 500));
   }, []);
 
-  return (
-    <>
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div
-          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          
-        >
-          <header className="flex items-center gap-2 mb-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="p-1 -ml-1 text-white"
-              aria-label="Назад"
-            >
-              <ChevronLeft className="w-7 h-7" />
-            </button>
-            <h1 className="text-xl font-bold text-foreground flex-1 text-center pr-8">Healthy</h1>
-          </header>
+  const body = (
+    <div
+      className={cn(
+        isDesktopLayout
+          ? "pb-2"
+          : "min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]",
+      )}
+    >
+      {!isDesktopLayout && (
+        <header className="flex items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="p-1 -ml-1 text-white"
+            aria-label="Назад"
+          >
+            <ChevronLeft className="w-7 h-7" />
+          </button>
+          <h1 className="text-xl font-bold text-foreground flex-1 text-center pr-8">Healthy</h1>
+        </header>
+      )}
 
-          <div className="flex gap-1 mb-4 p-1 rounded-xl bg-[#2C2C2E]">
+      <div className="flex gap-1 mb-4 p-1 rounded-xl bg-[#2C2C2E]">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -399,9 +410,12 @@ export function ClientHealthMobileView() {
               })}
             </div>
           )}
-        </div>
-      </PullToRefresh>
+    </div>
+  );
 
+  return (
+    <>
+      {isDesktopLayout ? body : <PullToRefresh onRefresh={handleRefresh}>{body}</PullToRefresh>}
       <WaterAddModal open={waterAddOpen} onClose={() => setWaterAddOpen(false)} />
       <WaterNormaModal open={waterNormaOpen} onClose={() => setWaterNormaOpen(false)} />
     </>

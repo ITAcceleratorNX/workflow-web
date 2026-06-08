@@ -1,14 +1,11 @@
 "use client";
 
-import { useDepartmentHeadManagementCrudPage } from "@/hooks/use-department-head-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { DepartmentHeadCompaniesDesktop } from "./department-head-companies-desktop";
 import { DepartmentHeadCompaniesMobile } from "./department-head-companies-mobile";
 
 export function DepartmentHeadCompaniesView() {
-  const { isDesktop } = useDepartmentHeadManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <DepartmentHeadCompaniesDesktop />;
   return <DepartmentHeadCompaniesMobile />;
 }

@@ -1,14 +1,11 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerLocationCatalogDesktop } from "./admin-worker-location-catalog-desktop";
 import { AdminWorkerLocationCatalogMobile } from "./admin-worker-location-catalog-mobile";
 
 export function AdminWorkerLocationCatalogView() {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerLocationCatalogDesktop />;
   return <AdminWorkerLocationCatalogMobile />;
 }

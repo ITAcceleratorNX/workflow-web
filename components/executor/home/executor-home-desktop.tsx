@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequestCard } from "@/components/RequestCard";
+import { TasksSection } from "@/components/tasks/tasks-section";
 import { ExecutorRoomsRequestsView } from "@/components/meeting-rooms/ExecutorRoomsRequestsView";
 import { useExecutorRequestCardHeader } from "@/components/executor/requests/executor-request-card-header";
 import { sortAssignedTasksByType } from "@/components/executor/requests/executor-requests-constants";
@@ -86,7 +87,20 @@ export function ExecutorHomeDesktop({
               </div>
             </div>
           </div>
-          <section className="client-desktop-dark">
+          <div className="mb-6 flex flex-wrap gap-3">
+            <Link href="/executor/management">
+              <Button className="bg-[#E85D2B] hover:bg-[#D94F15] text-white">
+                Мой кабинет
+              </Button>
+            </Link>
+            <Link href="/executor/management/scan-qr">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                QR сканер
+              </Button>
+            </Link>
+          </div>
+          <TasksSection layout="embedded" />
+          <section className="client-desktop-dark mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Текущие задачи</h2>
               <Link href="/executor/requests">

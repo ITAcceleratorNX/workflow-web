@@ -1,14 +1,11 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerMeetingRoomsDesktop } from "./admin-worker-meeting-rooms-desktop";
 import { AdminWorkerMeetingRoomsMobile } from "./admin-worker-meeting-rooms-mobile";
 
 export function AdminWorkerMeetingRoomsView() {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerMeetingRoomsDesktop />;
   return <AdminWorkerMeetingRoomsMobile />;
 }

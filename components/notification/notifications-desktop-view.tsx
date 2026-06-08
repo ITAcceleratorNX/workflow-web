@@ -41,7 +41,7 @@ function getNotificationBgColor(title: string, isRead: boolean) {
   return "bg-gradient-to-r from-[#114A65]/15 via-[#B8400E]/10 to-[#114A65]/15 border-[#114A65]/30 backdrop-blur-md";
 }
 
-function NotificationsDesktopList({
+export function NotificationsDesktopList({
   notifications,
   isLoading,
   hasMore,

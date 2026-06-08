@@ -2,9 +2,12 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
   CalendarDays,
+  CheckSquare,
+  Heart,
   House,
   LayoutGrid,
   MessageCircle,
+  Newspaper,
   Settings,
   User,
   Wrench,
@@ -27,6 +30,9 @@ export interface DesktopNavItemConfig {
 
 export const CLIENT_DESKTOP_NAV: DesktopNavItemConfig[] = [
   { key: 'cabinet', label: 'Мой кабинет', href: '/client', icon: House },
+  { key: 'news', label: 'Новости', href: '/client/news', icon: Newspaper },
+  { key: 'tasks', label: 'Задачи', href: '/client/tasks', icon: CheckSquare },
+  { key: 'wellness', label: 'Wellness', href: '/client/health', icon: Heart },
   { key: 'booking', label: 'Бронь', href: '/client?tab=meeting-rooms', icon: LayoutGrid },
   { key: 'requests', label: 'Заявки', href: '/client/requests', icon: Wrench },
   { key: 'statistics', label: 'Статистика', href: '/client/statistics', icon: BarChart3 },
@@ -36,6 +42,7 @@ export const CLIENT_DESKTOP_NAV: DesktopNavItemConfig[] = [
 
 export const EXECUTOR_DESKTOP_NAV: DesktopNavItemConfig[] = [
   { key: 'main', label: 'Главная', href: '/executor', icon: House },
+  { key: 'management', label: 'Кабинет', href: '/executor/management', icon: LayoutGrid },
   { key: 'requests', label: 'Заявки', href: '/executor/requests', icon: Wrench },
   { key: 'booking', label: 'Бронирование', href: '/executor?tab=booking', icon: CalendarDays },
   { key: 'statistics', label: 'Статистика', href: '/executor/statistics', icon: BarChart3 },
@@ -112,6 +119,16 @@ export function isClientDesktopNavActive(
   switch (item.key) {
     case 'cabinet':
       return path === '/client' && (!tab || tab === 'cabinet');
+    case 'news':
+      return path.startsWith('/client/news');
+    case 'tasks':
+      return path.startsWith('/client/tasks') || path.startsWith('/client/teams');
+    case 'wellness':
+      return (
+        path.startsWith('/client/health') ||
+        path.startsWith('/client/sleep') ||
+        path.startsWith('/client/steps')
+      );
     case 'booking':
       return path === '/client' && tab === 'meeting-rooms';
     case 'requests':
@@ -138,6 +155,8 @@ export function isExecutorDesktopNavActive(
   switch (item.key) {
     case 'main':
       return path === '/executor' && (!tab || tab === 'main');
+    case 'management':
+      return path.startsWith('/executor/management');
     case 'requests':
       return path.startsWith('/executor/requests');
     case 'booking':

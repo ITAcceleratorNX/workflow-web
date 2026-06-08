@@ -5,7 +5,7 @@ import { MessageCircle, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeetingRoomsCatalog } from "@/components/meeting-rooms/MeetingRoomsCatalog";
 import { DeskHeightCalculator } from "@/components/meeting-rooms/DeskHeightCalculator";
-import { ClientSmartHomeControl } from "@/components/yandex-smart-home/ClientSmartHomeControl";
+import { ClientHomeDesktopCabinet } from "@/components/client/home/client-home-desktop-cabinet";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
 
 type ClientHomeDesktopProps = UseClientHomeResult;
@@ -22,9 +22,7 @@ export function ClientHomeDesktop({
   if (activeTab === "cabinet") {
     return (
       <>
-        <div className="max-w-4xl mx-auto py-8 client-desktop-dark space-y-8">
-          <ClientSmartHomeControl />
-        </div>
+        <ClientHomeDesktopCabinet />
         <Link
           href="/chat-bot"
           className="fixed bottom-4 right-4 z-50 flex items-center justify-center w-14 h-14 bg-[#114A65]/10 text-[#114A65] rounded-full shadow-lg hover:bg-[#114A65]/20 transition"

@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useIsDesktop } from "@/hooks/use-media-query";
-import { useRouter } from "next/navigation";
 import { Html5Qrcode } from "html5-qrcode";
 import { scanBookingQRCode } from "@/lib/api";
 import { parseBookingIdFromQrPayload } from "@/lib/booking-qr";
@@ -11,18 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 export type ExecutorScanQrPermissionState = "loading" | "denied" | "granted";
 
 export function useExecutorScanQr() {
-  const router = useRouter();
-  const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const [permissionState, setPermissionState] = useState<ExecutorScanQrPermissionState>("loading");
   const [scanned, setScanned] = useState(false);
   const processingRef = useRef(false);
-
-  useEffect(() => {
-    if (isDesktop) {
-      router.replace("/executor/management");
-    }
-  }, [isDesktop, router]);
 
   const probeCameraPermission = useCallback(async () => {
     setPermissionState("loading");
@@ -43,9 +33,8 @@ export function useExecutorScanQr() {
   }, []);
 
   useEffect(() => {
-    if (isDesktop) return;
     probeCameraPermission();
-  }, [isDesktop, probeCameraPermission]);
+  }, [probeCameraPermission]);
 
   const handleScanPayload = useCallback(
     async (payload: string) => {
@@ -95,7 +84,6 @@ export function useExecutorScanQr() {
   }, [probeCameraPermission]);
 
   return {
-    isDesktop,
     permissionState,
     scanned,
     handleScanPayload,

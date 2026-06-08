@@ -1,14 +1,21 @@
 "use client";
 
-import { useDepartmentHeadManagementCrudPage } from "@/hooks/use-department-head-management-crud-page";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { DepartmentHeadManagementHub } from "./department-head-management-hub";
 
 export function DepartmentHeadManagementView() {
-  const { isDesktop } = useDepartmentHeadManagementCrudPage();
+  const isDesktop = useIsDesktop();
+  const router = useRouter();
 
-  if (isDesktop) {
-    return null;
-  }
+  useEffect(() => {
+    if (isDesktop) {
+      router.replace("/department-head");
+    }
+  }, [isDesktop, router]);
+
+  if (isDesktop) return null;
 
   return <DepartmentHeadManagementHub />;
 }

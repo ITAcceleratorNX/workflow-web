@@ -1,6 +1,7 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerOfficesDesktop } from "./admin-worker-offices-desktop";
 import { AdminWorkerOfficesMobile } from "./admin-worker-offices-mobile";
 
 interface AdminWorkerOfficesViewProps {
@@ -8,11 +9,7 @@ interface AdminWorkerOfficesViewProps {
 }
 
 export function AdminWorkerOfficesView({ title = "Офисы" }: AdminWorkerOfficesViewProps) {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerOfficesDesktop title={title} />;
   return <AdminWorkerOfficesMobile title={title} />;
 }

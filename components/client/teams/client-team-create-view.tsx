@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { TeamFormScreen } from "@/components/teams/team-form-screen";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { TeamFormScreen } from "@/components/teams/team-form-screen";
+import { ClientTeamCreateDesktopView } from "./client-team-create-desktop-view";
 
 export function ClientTeamCreateView() {
-  const router = useRouter();
   const isDesktop = useIsDesktop();
 
-  useEffect(() => {
-    if (isDesktop) router.replace("/client");
-  }, [isDesktop, router]);
-
-  if (isDesktop) return null;
+  if (isDesktop) {
+    return <ClientTeamCreateDesktopView />;
+  }
 
   return <TeamFormScreen />;
 }

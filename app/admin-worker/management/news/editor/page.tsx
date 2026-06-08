@@ -1,14 +1,11 @@
 "use client";
 
-import { useAdminWorkerManagementCrudPage } from "@/hooks/use-admin-worker-management-crud-page";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { AdminWorkerNewsEditorDesktop } from "@/components/admin-worker/management/news/admin-worker-news-editor-desktop";
 import { AdminWorkerNewsEditorMobile } from "@/components/admin-worker/management/news/admin-worker-news-editor-mobile";
 
 export default function AdminWorkerManagementNewsEditorPage() {
-  const { isDesktop } = useAdminWorkerManagementCrudPage();
-
-  if (isDesktop) {
-    return null;
-  }
-
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return <AdminWorkerNewsEditorDesktop />;
   return <AdminWorkerNewsEditorMobile />;
 }

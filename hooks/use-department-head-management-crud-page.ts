@@ -1,23 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useIsDesktop } from "@/hooks/use-media-query";
-
+/** Back link target for department-head management CRUD pages. */
 export const DEPARTMENT_HEAD_MANAGEMENT_BACK_HREF = "/department-head";
 
-/** Desktop: CRUD в dashboard на `/department-head`. */
+/** @deprecated Redirect removed — views branch on isDesktop. */
 export function useDepartmentHeadManagementCrudPage() {
-  const router = useRouter();
-  const isDesktop = useIsDesktop();
-
-  useEffect(() => {
-    if (isDesktop) {
-      router.replace("/department-head");
-    }
-  }, [isDesktop, router]);
-
-  return { isDesktop };
+  return { isDesktop: false };
 }
 
 export type UseDepartmentHeadManagementCrudPageResult = ReturnType<
