@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import {
   mobileRequestsFilterContent,
+  mobileRequestsFilterItem,
   mobileRequestsFilterTrigger,
 } from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
@@ -46,6 +47,7 @@ export function AdminWorkerRequestsFilters({
   const isDesktop = variant === "desktop";
   const triggerClass = mobileRequestsFilterTrigger(variant);
   const contentClass = mobileRequestsFilterContent(variant);
+  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <div className={cn("space-y-2", isDesktop ? "flex flex-wrap gap-2 space-y-0" : undefined)}>
@@ -56,7 +58,7 @@ export function AdminWorkerRequestsFilters({
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {statusFilterOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem key={option.value} value={option.value} className={itemClass}>
                 {option.label}
               </SelectItem>
             ))}
@@ -68,7 +70,7 @@ export function AdminWorkerRequestsFilters({
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem key={option.value} value={option.value} className={itemClass}>
                 {option.label}
               </SelectItem>
             ))}
@@ -81,11 +83,11 @@ export function AdminWorkerRequestsFilters({
             <SelectValue placeholder="Офис" />
           </SelectTrigger>
           <SelectContent className={contentClass}>
-            <SelectItem value="all">
+            <SelectItem value="all" className={itemClass}>
               Все офисы
             </SelectItem>
             {offices.map((office) => (
-              <SelectItem key={office.id} value={String(office.id)}>
+              <SelectItem key={office.id} value={String(office.id)} className={itemClass}>
                 {office.name}
               </SelectItem>
             ))}

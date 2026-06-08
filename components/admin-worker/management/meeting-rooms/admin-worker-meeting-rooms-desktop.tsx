@@ -7,7 +7,7 @@ import { ADMIN_WORKER_MANAGEMENT_BACK_HREF } from "@/hooks/use-admin-worker-mana
 export function AdminWorkerMeetingRoomsDesktop() {
   return (
     <DesktopManagementPage title="Переговорные" backHref={ADMIN_WORKER_MANAGEMENT_BACK_HREF}>
-      <MeetingRoomsAdmin />
+      <MeetingRoomsAdmin variant="dark" />
     </DesktopManagementPage>
   );
 }

@@ -50,7 +50,12 @@ interface RegistrationRequestsManagerProps {
 }
 
 export default function RegistrationRequestsManager({ variant = 'light' }: RegistrationRequestsManagerProps) {
-    const {role} = useAuthStore();
+    const { role, user } = useAuthStore();
+    const isDepartmentHead = role === 'department-head';
+    const departmentHeadOfficeId =
+        isDepartmentHead && user?.office_id != null && user.office_id > 0
+            ? String(user.office_id)
+            : null;
     const isMobile = useIsMobile();
     const isDark = variant === 'dark';
     const [requests, setRequests] = useState<RegistrationRequest[]>([]);
@@ -74,9 +79,11 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
     const canEditOfficeCompany = role === 'admin-worker' || role === 'admin' || role === 'manager';
 
     useEffect(() => {
-        loadOffices();
-        loadRequests();
-    }, [filters]);
+        if (role === 'manager') {
+            void loadOffices();
+        }
+        void loadRequests();
+    }, [filters, role, departmentHeadOfficeId]);
 
     const loadOffices = async () => {
         try {
@@ -94,6 +101,9 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
             Object.entries(filters).forEach(([key, value]) => {
                 if (value) params.append(key, value);
             });
+            if (departmentHeadOfficeId) {
+                params.set('office_id', departmentHeadOfficeId);
+            }
 
             const response = await api.get(`/registration-requests?${params.toString()}`);
             setRequests(response.data.data);
@@ -269,7 +279,9 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                 <CardHeader>
                     <CardTitle className={`text-lg md:text-xl ${titleCl}`}>Управление запросами на регистрацию</CardTitle>
                     <p className={`text-xs md:text-sm ${mutedCl}`}>
-                        Внимание: отклоненные и одобренные заявки автоматически удаляются каждые 7 дней
+                        {isDepartmentHead
+                            ? 'Показаны запросы только вашего офиса.'
+                            : 'Внимание: отклоненные и одобренные заявки автоматически удаляются каждые 7 дней'}
                     </p>
                 </CardHeader>
                 <CardContent>

@@ -15,6 +15,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertTriangle, Loader2, X, XCircle } from "lucide-react";
 import { getSubRequestDisplayId } from "@/lib/subRequestUtils";
 import { RequestModalShell } from "./request-modal-shell";
+import { MANAGEMENT_MODAL_DARK_CLASS } from "@/constants/management-modal-ui";
+import {
+  REQUESTS_DESKTOP_OUTLINE_BTN,
+  REQUESTS_DESKTOP_SELECT_CONTENT,
+  REQUESTS_DESKTOP_SELECT_ITEM,
+  REQUESTS_DESKTOP_SELECT_TRIGGER,
+} from "@/constants/mobile-requests-ui";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
 
 const EXECUTOR_REJECT_REASONS = [
   "Занят",
@@ -172,7 +181,8 @@ function SubRequestRejectForm({
   request,
   isSubmitting,
   error = null,
-}: Omit<SubRequestRejectFormModalProps, "isOpen" | "variant">) {
+  dark = false,
+}: Omit<SubRequestRejectFormModalProps, "isOpen" | "variant"> & { dark?: boolean }) {
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
 
@@ -192,16 +202,28 @@ function SubRequestRejectForm({
   };
 
   return (
-    <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <Card
+      className={cn(
+        "w-full max-w-md",
+        dark && "bg-[#1C1C1E] border-[#3A3A3C] text-white",
+        dark && MANAGEMENT_MODAL_DARK_CLASS,
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center",
+                dark ? "bg-red-500/20" : "bg-red-100",
+              )}
+            >
+              <AlertTriangle className={cn("w-5 h-5", dark ? "text-red-400" : "text-red-600")} />
             </div>
             <div>
-              <CardTitle className="text-lg">Отклонить заявку</CardTitle>
-              <CardDescription>
+              <CardTitle className={cn("text-lg", dark && "text-white")}>Отклонить заявку</CardTitle>
+              <CardDescription className={dark ? "text-[#8E8E93]" : undefined}>
                 Подзаявка № {getSubRequestDisplayId(request, request.request_group_id)}
               </CardDescription>
             </div>
@@ -213,28 +235,45 @@ function SubRequestRejectForm({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-          <h4 className="font-medium text-gray-900">{request.title}</h4>
-          <p className="text-sm text-gray-600 line-clamp-2">{request.description}</p>
+        <div
+          className={cn(
+            "rounded-lg p-4 space-y-2",
+            dark ? "bg-[#2C2C2E]" : "bg-gray-50",
+          )}
+        >
+          <h4 className={cn("font-medium", dark ? "text-white" : "text-gray-900")}>{request.title}</h4>
+          <p className={cn("text-sm line-clamp-2", dark ? "text-[#8E8E93]" : "text-gray-600")}>
+            {request.description}
+          </p>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Категория:</span>
-            <span className="text-xs font-medium text-gray-700">
+            <span className={cn("text-xs", dark ? "text-[#8E8E93]" : "text-gray-500")}>Категория:</span>
+            <span className={cn("text-xs font-medium", dark ? "text-white" : "text-gray-700")}>
               {request.category?.name || "Не указана"}
             </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="reason" className="text-sm font-medium">
+          <Label
+            htmlFor="reason"
+            className={cn("text-sm font-medium", dark && "text-white")}
+          >
             Причина отклонения *
           </Label>
           <Select value={selectedReason} onValueChange={setSelectedReason}>
-            <SelectTrigger id="reason">
+            <SelectTrigger
+              id="reason"
+              className={dark ? REQUESTS_DESKTOP_SELECT_TRIGGER : undefined}
+            >
               <SelectValue placeholder="Выберите причину отклонения" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={dark ? REQUESTS_DESKTOP_SELECT_CONTENT : undefined}>
               {SUB_REQUEST_REJECT_REASONS.map((reason) => (
-                <SelectItem key={reason.value} value={reason.value}>
+                <SelectItem
+                  key={reason.value}
+                  value={reason.value}
+                  className={dark ? REQUESTS_DESKTOP_SELECT_ITEM : undefined}
+                >
                   {reason.label}
                 </SelectItem>
               ))}
@@ -244,7 +283,10 @@ function SubRequestRejectForm({
 
         {selectedReason === "other" && (
           <div className="space-y-2">
-            <Label htmlFor="customReason" className="text-sm font-medium">
+            <Label
+              htmlFor="customReason"
+              className={cn("text-sm font-medium", dark && "text-white")}
+            >
               Укажите причину *
             </Label>
             <Textarea
@@ -252,26 +294,43 @@ function SubRequestRejectForm({
               placeholder="Опишите причину отклонения..."
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
-              className="min-h-[100px] resize-none"
+              className={cn(
+                "min-h-[100px] resize-none",
+                dark && "bg-[#2C2C2E] border-[#3A3A3C] text-white placeholder:text-[#8E8E93]",
+              )}
               maxLength={500}
             />
-            <p className="text-xs text-gray-500 text-right">{customReason.length}/500</p>
+            <p className={cn("text-xs text-right", dark ? "text-[#8E8E93]" : "text-gray-500")}>
+              {customReason.length}/500
+            </p>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div
+            className={cn(
+              "rounded-lg p-3 border",
+              dark ? "bg-red-500/10 border-red-500/30" : "bg-red-50 border-red-200",
+            )}
+          >
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-600" />
-              <p className="text-sm text-red-700">{error}</p>
+              <AlertTriangle className={cn("w-4 h-4", dark ? "text-red-400" : "text-red-600")} />
+              <p className={cn("text-sm", dark ? "text-red-300" : "text-red-700")}>{error}</p>
             </div>
           </div>
         )}
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <div
+          className={cn(
+            "rounded-lg p-3 border",
+            dark ? "bg-amber-500/10 border-amber-500/30" : "bg-amber-50 border-amber-200",
+          )}
+        >
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
-            <div className="text-sm text-amber-800">
+            <AlertTriangle
+              className={cn("w-4 h-4 mt-0.5", dark ? "text-amber-400" : "text-amber-600")}
+            />
+            <div className={cn("text-sm", dark ? "text-amber-200" : "text-amber-800")}>
               <p className="font-medium mb-1">Внимание!</p>
               <p>
                 После отклонения заявка будет возвращена в очередь назначения и может быть
@@ -282,7 +341,12 @@ function SubRequestRejectForm({
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button variant="outline" onClick={handleClose} className="flex-1" disabled={isSubmitting}>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className={cn("flex-1", dark && REQUESTS_DESKTOP_OUTLINE_BTN)}
+            disabled={isSubmitting}
+          >
             Отмена
           </Button>
           <Button
@@ -314,6 +378,7 @@ function SubRequestRejectForm({
 
 export function RejectFormModal(props: RejectFormModalProps) {
   const { isOpen, onClose, variant } = props;
+  const isDesktop = useIsDesktop();
 
   if (variant === "subRequest" && (!isOpen || !props.request)) {
     return null;
@@ -345,6 +410,7 @@ export function RejectFormModal(props: RejectFormModalProps) {
           request={props.request}
           isSubmitting={props.isSubmitting}
           error={props.error ?? null}
+          dark={isDesktop}
         />
       )}
     </RequestModalShell>

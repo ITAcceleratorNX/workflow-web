@@ -12,6 +12,9 @@ import {
   type SleepRating,
   useSleepStore,
 } from "@/stores/sleep-store";
+import { cn } from "@/lib/utils";
+
+export type ClientSleepViewLayout = "mobile" | "desktop";
 
 function pad2(n: number) {
   return n.toString().padStart(2, "0");
@@ -69,7 +72,12 @@ function SleepSurveyModal({
   );
 }
 
-export function ClientSleepMobileView() {
+type ClientSleepMobileViewProps = {
+  layout?: ClientSleepViewLayout;
+};
+
+export function ClientSleepMobileView({ layout = "mobile" }: ClientSleepMobileViewProps) {
+  const isDesktopLayout = layout === "desktop";
   const router = useRouter();
   const todayKey = useMemo(() => formatDateForApi(new Date()), []);
   const settings = useSleepStore((s) => s.settings);
@@ -122,13 +130,16 @@ export function ClientSleepMobileView() {
     await new Promise((r) => setTimeout(r, 500));
   };
 
-  return (
-    <>
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div
-          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          
-        >
+  const body = (
+    <div
+      className={cn(
+        isDesktopLayout
+          ? "pb-2"
+          : "min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]",
+      )}
+    >
+      {!isDesktopLayout && (
+        <>
           <header className="flex items-center gap-2 mb-4">
             <button
               type="button"
@@ -139,10 +150,11 @@ export function ClientSleepMobileView() {
               <span>Назад</span>
             </button>
           </header>
-
           <h1 className="text-2xl font-bold text-foreground mb-6">Сон</h1>
+        </>
+      )}
 
-          {recommendations.length > 0 && (
+      {recommendations.length > 0 && (
             <div className="rounded-2xl bg-[#2C2C2E] border border-[#3A3A3C] p-5 mb-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-[#E85D2B] flex items-center justify-center">
@@ -275,8 +287,12 @@ export function ClientSleepMobileView() {
               Изменить оценку сна
             </button>
           )}
-        </div>
-      </PullToRefresh>
+    </div>
+  );
+
+  return (
+    <>
+      {isDesktopLayout ? body : <PullToRefresh onRefresh={handleRefresh}>{body}</PullToRefresh>}
 
       {showDetailModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">

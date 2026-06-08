@@ -1,12 +1,17 @@
 "use client";
 
-import { DesktopContentPage } from "@/components/layout/desktop-content-page";
+import { DesktopManagementPage } from "@/components/layout/desktop-management-page";
 import { ClientStepsMobileView } from "./client-steps-mobile-view";
 
 export function ClientStepsDesktopView() {
   return (
-    <DesktopContentPage title="Шаги" description="Активность и цели (ручной ввод на desktop)" dark>
-      <ClientStepsMobileView />
-    </DesktopContentPage>
+    <DesktopManagementPage
+      title="Шаги"
+      description="Активность и цели"
+      backHref="/client/health"
+      backLabel="К Health трекеру"
+    >
+      <ClientStepsMobileView layout="desktop" />
+    </DesktopManagementPage>
   );
 }

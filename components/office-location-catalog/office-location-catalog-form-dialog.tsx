@@ -11,6 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DESKTOP_MANAGEMENT_DIALOG_CONTENT_CLASS,
+  MANAGEMENT_MODAL_DARK_CLASS,
+} from "@/constants/management-modal-ui";
+import { useIsDesktop } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
 
 export type OfficeLocationCatalogFormValues = {
   block: string;
@@ -44,6 +50,7 @@ export function OfficeLocationCatalogFormDialog({
   onClose,
   onSubmit,
 }: OfficeLocationCatalogFormDialogProps) {
+  const isDesktop = useIsDesktop();
   const [block, setBlock] = useState("");
   const [floorZone, setFloorZone] = useState("");
   const [room, setRoom] = useState("");
@@ -76,8 +83,15 @@ export function OfficeLocationCatalogFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !loading && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          "max-w-md",
+          isDesktop && DESKTOP_MANAGEMENT_DIALOG_CONTENT_CLASS,
+          isDesktop && MANAGEMENT_MODAL_DARK_CLASS,
+          isDesktop && "p-6 gap-4",
+        )}
+      >
+        <DialogHeader className={isDesktop ? "text-left space-y-1" : undefined}>
           <DialogTitle>{mode === "create" ? "Новый шаблон" : "Редактирование"}</DialogTitle>
         </DialogHeader>
 

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { REQUESTS_DESKTOP_DARK_CLASS } from "@/constants/management-modal-ui";
 import { Plus, X } from "lucide-react";
 
 export interface AdminManagerRequestsDesktopFrameProps {
@@ -40,7 +41,9 @@ export function AdminManagerRequestsDesktopFrame({
               </Button>
             </Link>
           </div>
-          <div className="p-4 flex gap-2 flex-wrap">{filtersSlot}</div>
+          <div className={`p-4 flex gap-2 flex-wrap ${REQUESTS_DESKTOP_DARK_CLASS}`}>
+            {filtersSlot}
+          </div>
           {tabsSlot && (
             <div className="px-4 py-2 flex gap-2 border-b border-white/5 shrink-0">
               {tabsSlot}

@@ -24,13 +24,16 @@ import {
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
+import { ManagementModalShell } from "@/components/layout/management-modal-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
   createOfficeLocationCatalogRow,
   deleteOfficeLocationCatalogRow,
@@ -149,6 +153,7 @@ export function OfficeLocationCatalogManagementScreen({
   const userOfficeId = useAuthStore((s) => s.user?.office_id);
 
   const isAdmin = variant === "admin-worker";
+  const isDesktop = useIsDesktop();
 
   const [offices, setOffices] = useState<{ id: number; name: string }[]>([]);
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>(
@@ -414,135 +419,12 @@ export function OfficeLocationCatalogManagementScreen({
   const needsPickOffice = isAdmin && manageOfficeId == null;
   const noOfficeAccount = !isAdmin && manageOfficeId == null;
 
-  const filterSheetOverlay =
-    filterSheetOpen && portalReady ? (
-      <div className="fixed inset-0 z-[200] flex flex-col justify-end">
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/45"
-          onClick={() => setFilterSheetOpen(false)}
-          aria-label="Закрыть"
-        />
-        <div className="relative max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
-          <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-            <button
-              type="button"
-              onClick={() => setFilterSheetOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <p className="text-base font-bold text-foreground">Фильтры</p>
-            <button
-              type="button"
-              onClick={applyFilterSheet}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F35713] text-white"
-            >
-              <span className="sr-only">Применить</span>✓
-            </button>
-          </div>
-
-          <p className="mb-2 mt-3 text-xs font-semibold uppercase text-muted-foreground">Статус</p>
-          <div className="flex flex-wrap gap-2">
-            {VISIBILITY_FILTERS.map((opt) => {
-              const count =
-                opt.value === "all"
-                  ? stats.total
-                  : opt.value === "active"
-                    ? stats.active
-                    : stats.hidden;
-              return (
-                <FilterPill
-                  key={opt.value}
-                  active={draftVisibility === opt.value}
-                  label={`${opt.label} (${count})`}
-                  onClick={() => setDraftVisibility(opt.value)}
-                />
-              );
-            })}
-          </div>
-
-          {blockOptions.length > 0 ? (
-            <>
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
-                Блок
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <FilterPill
-                  active={draftBlockKey === null}
-                  label="Все"
-                  onClick={() => {
-                    setDraftBlockKey(null);
-                    setDraftFloorKey(null);
-                  }}
-                />
-                {blockOptions.map((opt) => (
-                  <FilterPill
-                    key={opt.key || "__empty__"}
-                    active={draftBlockKey === opt.key}
-                    label={`${opt.label} (${opt.count})`}
-                    onClick={() => {
-                      setDraftBlockKey(opt.key);
-                      setDraftFloorKey(null);
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {draftBlockKey != null && draftFloorOptions.length > 0 ? (
-            <>
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
-                Этаж / зона
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <FilterPill
-                  active={draftFloorKey === null}
-                  label="Все"
-                  onClick={() => setDraftFloorKey(null)}
-                />
-                {draftFloorOptions.map((opt) => (
-                  <FilterPill
-                    key={opt.key || "__empty_floor__"}
-                    active={draftFloorKey === opt.key}
-                    label={`${opt.label} (${opt.count})`}
-                    onClick={() => setDraftFloorKey(opt.key)}
-                  />
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
-            Сортировка
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {SORT_OPTIONS.map((opt) => (
-              <FilterPill
-                key={opt.value}
-                active={draftSortBy === opt.value}
-                label={opt.label}
-                onClick={() => setDraftSortBy(opt.value)}
-              />
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setDraftVisibility("all");
-              setDraftBlockKey(null);
-              setDraftFloorKey(null);
-              setDraftSortBy("order");
-            }}
-            className="mt-6 w-full py-3 text-center text-sm font-semibold text-[#F35713]"
-          >
-            Сбросить фильтры
-          </button>
-        </div>
-      </div>
-    ) : null;
+  const resetDraftFilters = () => {
+    setDraftVisibility("all");
+    setDraftBlockKey(null);
+    setDraftFloorKey(null);
+    setDraftSortBy("order");
+  };
 
   const fabButton =
     !needsPickOffice && !noOfficeAccount && !loading && portalReady ? (
@@ -751,9 +633,140 @@ export function OfficeLocationCatalogManagementScreen({
         onSubmit={handleModalSubmit}
       />
 
-      {portalReady && filterSheetOverlay
-        ? createPortal(filterSheetOverlay, document.body)
-        : null}
+      <ManagementModalShell
+        open={filterSheetOpen}
+        onClose={() => setFilterSheetOpen(false)}
+        title="Фильтры"
+        maxWidthClass="max-w-md"
+        sheetMaxHeightClass="max-h-[min(85vh,720px)]"
+        bodyClassName="overflow-y-auto"
+      >
+        {!isDesktop ? (
+          <div className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between border-b border-border bg-card px-4 pb-3">
+            <button
+              type="button"
+              onClick={() => setFilterSheetOpen(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="text-base font-bold text-foreground">Фильтры</p>
+            <button
+              type="button"
+              onClick={applyFilterSheet}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F35713] text-white"
+            >
+              <span className="sr-only">Применить</span>✓
+            </button>
+          </div>
+        ) : null}
+
+        <p className="mb-2 mt-3 text-xs font-semibold uppercase text-muted-foreground">Статус</p>
+        <div className="flex flex-wrap gap-2">
+          {VISIBILITY_FILTERS.map((opt) => {
+            const count =
+              opt.value === "all"
+                ? stats.total
+                : opt.value === "active"
+                  ? stats.active
+                  : stats.hidden;
+            return (
+              <FilterPill
+                key={opt.value}
+                active={draftVisibility === opt.value}
+                label={`${opt.label} (${count})`}
+                onClick={() => setDraftVisibility(opt.value)}
+              />
+            );
+          })}
+        </div>
+
+        {blockOptions.length > 0 ? (
+          <>
+            <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
+              Блок
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <FilterPill
+                active={draftBlockKey === null}
+                label="Все"
+                onClick={() => {
+                  setDraftBlockKey(null);
+                  setDraftFloorKey(null);
+                }}
+              />
+              {blockOptions.map((opt) => (
+                <FilterPill
+                  key={opt.key || "__empty__"}
+                  active={draftBlockKey === opt.key}
+                  label={`${opt.label} (${opt.count})`}
+                  onClick={() => {
+                    setDraftBlockKey(opt.key);
+                    setDraftFloorKey(null);
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        {draftBlockKey != null && draftFloorOptions.length > 0 ? (
+          <>
+            <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
+              Этаж / зона
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <FilterPill
+                active={draftFloorKey === null}
+                label="Все"
+                onClick={() => setDraftFloorKey(null)}
+              />
+              {draftFloorOptions.map((opt) => (
+                <FilterPill
+                  key={opt.key || "__empty_floor__"}
+                  active={draftFloorKey === opt.key}
+                  label={`${opt.label} (${opt.count})`}
+                  onClick={() => setDraftFloorKey(opt.key)}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">
+          Сортировка
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SORT_OPTIONS.map((opt) => (
+            <FilterPill
+              key={opt.value}
+              active={draftSortBy === opt.value}
+              label={opt.label}
+              onClick={() => setDraftSortBy(opt.value)}
+            />
+          ))}
+        </div>
+
+        {isDesktop ? (
+          <div className="mt-6 flex gap-3 border-t border-[#3A3A3C] pt-4">
+            <Button type="button" variant="outline" className="flex-1" onClick={resetDraftFilters}>
+              Сбросить
+            </Button>
+            <Button type="button" className="flex-1" onClick={applyFilterSheet}>
+              Применить
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={resetDraftFilters}
+            className="mt-6 w-full py-3 text-center text-sm font-semibold text-[#F35713]"
+          >
+            Сбросить фильтры
+          </button>
+        )}
+      </ManagementModalShell>
+
       {portalReady && fabButton ? createPortal(fabButton, document.body) : null}
 
       <AlertDialog
@@ -762,13 +775,15 @@ export function OfficeLocationCatalogManagementScreen({
           if (!open && !isDeleting) setDeleteId(null);
         }}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить шаблон?</AlertDialogTitle>
-            <AlertDialogDescription>Действие нельзя отменить.</AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить шаблон?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
+              Действие нельзя отменить.
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel disabled={isDeleting}>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
@@ -780,7 +795,7 @@ export function OfficeLocationCatalogManagementScreen({
               {isDeleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

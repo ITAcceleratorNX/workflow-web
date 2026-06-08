@@ -45,6 +45,7 @@ import { getServiceCategories } from "@/lib/service-categories-api";
 import type { RequestUserRole } from "@/lib/request-action-config";
 import { getStatusLabel, getTypeLabel } from "@/constants/requests";
 import { getRoleBasePath } from "@/constants/roles";
+import { useIsDesktop } from "@/hooks/use-media-query";
 
 const getTypeBadgeClass = (type: string) => {
   switch (type) {
@@ -134,6 +135,8 @@ export function RequestDetails({
   onDelete: onDeleteProp,
   embedInPanel = false,
 }: RequestDetailsProps) {
+  const isDesktop = useIsDesktop();
+  const actionMenuVariant = isDesktop ? "dialog" : "sheet";
   const basePath = fullModeRedirectBase ?? getRoleBasePath(userRoleProp);
   const router = useRouter();
   const { toast } = useToast();
@@ -536,6 +539,7 @@ export function RequestDetails({
         request={selectedRequest}
         subRequest={subRequest}
         userRole={userRoleProp as RequestUserRole}
+        variant={actionMenuVariant}
         userId={user?.id}
         userServiceCategoryId={user?.service_category_id}
         isExecutorLeader={isExecutorLeader}
@@ -1108,8 +1112,8 @@ export function RequestDetails({
         onClose={() => setShowComments(null)}
         requestId={showComments}
         currentUserId={user?.id ?? null}
-        isDesktop={embedInPanel}
-        variant="admin"
+        isDesktop={isDesktop}
+        variant={isDesktop ? "admin" : "default"}
       />
 
       {showIconInfo && (

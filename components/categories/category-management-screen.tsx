@@ -13,13 +13,15 @@ import { EditableCatalogRow } from "@/components/categories/editable-catalog-row
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -561,14 +563,14 @@ export function CategoryManagementScreen({
           if (!open && !isDeleting) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <ManagementAlertDialogTitle>
               {deleteTarget?.type === "category"
                 ? "Удалить категорию?"
                 : "Удалить подкатегорию?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            </ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               {deleteTarget?.type === "category" ? (
                 <>
                   {deleteTarget.item.name}
@@ -580,10 +582,10 @@ export function CategoryManagementScreen({
               ) : (
                 deleteTarget?.name
               )}
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel disabled={isDeleting}>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
@@ -595,7 +597,7 @@ export function CategoryManagementScreen({
               {isDeleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

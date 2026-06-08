@@ -30,11 +30,14 @@ import {
   TaskExecutorPickerOverlay,
   TaskTeamPickerOverlay,
 } from "@/components/tasks/task-assignment-pickers";
+import { TaskOptionPicker } from "@/components/tasks/task-option-picker";
+import type { TaskPickerVariant } from "@/components/tasks/task-picker-shell";
 import { TaskScheduleSheet } from "@/components/tasks/task-schedule-sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useTeams } from "@/hooks/use-teams";
 import { useTodoList } from "@/hooks/use-todo-list";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { MOBILE_COLORS } from "@/constants/mobile-theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   formatRequestDate,
   formatTaskTime,
@@ -60,6 +63,7 @@ import {
 import type { Team } from "@/lib/teams-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
+import { cn } from "@/lib/utils";
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "low", label: "Низкий" },
@@ -108,24 +112,42 @@ function buildRemindTimingSelectOptions(t: UserTask): { value: string; label: st
   return opts;
 }
 
+export type ClientTaskDetailViewLayout = "mobile" | "desktop";
+
 type ClientTaskDetailMobileViewProps = {
   taskId: number;
+  layout?: ClientTaskDetailViewLayout;
 };
 
-export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileViewProps) {
+export function ClientTaskDetailMobileView({
+  taskId,
+  layout = "mobile",
+}: ClientTaskDetailMobileViewProps) {
+  const isDesktopLayout = layout === "desktop";
+  const pickerVariant: TaskPickerVariant = isDesktopLayout ? "dialog" : "sheet";
   const router = useRouter();
+
+  const navigateBack = useCallback(() => {
+    if (isDesktopLayout) {
+      router.push("/client/tasks");
+      return;
+    }
+    router.back();
+  }, [isDesktopLayout, router]);
   const { toast } = useToast();
   const currentUserId = useAuthStore((s) => s.user?.id ?? null);
   const isGuest = useAuthStore((s) => s.isGuest);
   const { teams, loading: teamsLoading } = useTeams();
   const tasksInvalidateVersion = useUserTasksInvalidateStore((s) => s.version);
 
-  const background = useThemeColor("background");
-  const text = useThemeColor("text");
-  const textMuted = useThemeColor("textMuted");
-  const primary = useThemeColor("primary");
-  const cardBg = useThemeColor("cardBackground");
-  const border = useThemeColor("border");
+  const colorScheme = useColorScheme();
+  const theme = MOBILE_COLORS[isDesktopLayout ? "dark" : colorScheme];
+  const background = theme.background;
+  const text = theme.text;
+  const textMuted = theme.textMuted;
+  const primary = theme.primary;
+  const cardBg = theme.cardBackground;
+  const border = theme.border;
 
   const { tasks, updateTask, removeTask, toggleComplete } = useTodoList({
     filter: "all",
@@ -157,14 +179,14 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
       if (res.ok) setFetchedTask(res.data);
       else {
         toast({ title: "Ошибка", description: res.error, variant: "destructive" });
-        router.back();
+        navigateBack();
       }
       setLoadingTask(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [taskId, isGuest, tasks, tasksInvalidateVersion, router, toast]);
+  }, [taskId, isGuest, tasks, tasksInvalidateVersion, navigateBack, toast]);
 
   const canEditDetails = !!task && canEditUserTaskDetails(task, currentUserId);
 
@@ -503,11 +525,18 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
 
   if (!task) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: background }}>
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
-        </div>
-        <Header title="Подробно" text={text} />
+      <div
+        className={cn(isDesktopLayout ? "pb-2" : "min-h-screen")}
+        style={isDesktopLayout ? undefined : { backgroundColor: background }}
+      >
+        {!isDesktopLayout && (
+          <>
+            <div className="flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
+            </div>
+            <Header title="Подробно" text={text} />
+          </>
+        )}
         <div className="flex justify-center py-16">
           {loadingTask ? (
             <Loader2 className="h-10 w-10 animate-spin" style={{ color: primary }} />
@@ -520,15 +549,30 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
   }
 
   return (
-    <div className="min-h-screen pb-8" style={{ backgroundColor: background }}>
-      <div className="flex justify-center pt-2 pb-1">
-        <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
-      </div>
-      <Header title="Подробно" text={text} onBack={() => router.back()} />
+    <div
+      className={cn(isDesktopLayout ? "pb-2" : "min-h-screen pb-8")}
+      style={isDesktopLayout ? undefined : { backgroundColor: background }}
+    >
+      {!isDesktopLayout && (
+        <>
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
+          </div>
+          <Header title="Подробно" text={text} onBack={navigateBack} />
+        </>
+      )}
 
-      <div className="px-4 space-y-4">
+      <div
+        className={cn(
+          "space-y-4",
+          isDesktopLayout ? "max-w-3xl" : "px-4",
+        )}
+      >
         <div
-          className="rounded-2xl border p-4"
+          className={cn(
+            "rounded-2xl border p-4",
+            isDesktopLayout && "lg:p-5",
+          )}
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <textarea
@@ -549,8 +593,8 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           />
         </div>
 
-        <SectionLabel text={textMuted}>Вложения</SectionLabel>
-        <Card border={border} cardBg={cardBg}>
+        <SectionLabel text={textMuted} desktop={isDesktopLayout}>Вложения</SectionLabel>
+        <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
           {canEditDetails ? (
             <div className="flex gap-2 p-3 border-b" style={{ borderColor: border }}>
               <input
@@ -662,8 +706,8 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           )}
         </Card>
 
-        <SectionLabel text={textMuted}>Срок</SectionLabel>
-        <Card border={border} cardBg={cardBg}>
+        <SectionLabel text={textMuted} desktop={isDesktopLayout}>Срок</SectionLabel>
+        <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
           <div className="flex items-center">
             <button
               type="button"
@@ -671,7 +715,10 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
                 if (!canEditDetails) notifyCreatorOnly();
                 else openScheduleModal();
               }}
-              className="flex-1 flex items-center gap-3 p-3 min-h-11 text-left"
+              className={cn(
+                "flex-1 flex items-center gap-3 p-3 min-h-11 text-left transition-colors",
+                isDesktopLayout && canEditDetails && "rounded-lg hover:bg-white/[0.04]",
+              )}
               style={{ opacity: canEditDetails ? 1 : 0.75 }}
             >
               <Calendar className="h-5 w-5 shrink-0" style={{ color: textMuted }} />
@@ -707,8 +754,8 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
 
         {!isGuest ? (
           <>
-            <SectionLabel text={textMuted}>Организация</SectionLabel>
-            <Card border={border} cardBg={cardBg}>
+            <SectionLabel text={textMuted} desktop={isDesktopLayout}>Организация</SectionLabel>
+            <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
               <RowButton
                 icon={<Users className="h-5 w-5" style={{ color: textMuted }} />}
                 label="Команда"
@@ -720,6 +767,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
                 canEdit={canEditDetails}
                 text={text}
                 textMuted={textMuted}
+                desktop={isDesktopLayout}
               />
               <Divider border={border} />
               <RowButton
@@ -737,6 +785,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
                 canEdit={canEditDetails}
                 text={text}
                 textMuted={textMuted}
+                desktop={isDesktopLayout}
               />
               {task.team_id && task.completed && completedByName ? (
                 <>
@@ -754,8 +803,8 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           </>
         ) : null}
 
-        <SectionLabel text={textMuted}>Приоритет</SectionLabel>
-        <Card border={border} cardBg={cardBg}>
+        <SectionLabel text={textMuted} desktop={isDesktopLayout}>Приоритет</SectionLabel>
+        <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
           <RowButton
             icon={<Flag className="h-5 w-5" style={{ color: textMuted }} />}
             label="Уровень"
@@ -771,11 +820,12 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
             text={text}
             textMuted={textMuted}
             underline
+            desktop={isDesktopLayout}
           />
         </Card>
 
-        <SectionLabel text={textMuted}>Напоминания</SectionLabel>
-        <Card border={border} cardBg={cardBg}>
+        <SectionLabel text={textMuted} desktop={isDesktopLayout}>Напоминания</SectionLabel>
+        <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
           <div className="flex items-center p-3">
             <div className="flex items-center gap-3 flex-1">
               <Bell className="h-5 w-5" style={{ color: textMuted }} />
@@ -810,6 +860,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
             text={text}
             textMuted={textMuted}
             underline
+            desktop={isDesktopLayout}
           />
           <div className="px-3 py-2 border-t" style={{ borderColor: border }}>
             <p className="text-xs" style={{ color: textMuted }}>
@@ -820,7 +871,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           </div>
         </Card>
 
-        <Card border={border} cardBg={cardBg}>
+        <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
           <div className="flex items-center p-3">
             <div className="flex items-center gap-3 flex-1">
               <Check className="h-5 w-5" style={{ color: textMuted }} />
@@ -837,9 +888,12 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
             onClick={async () => {
               if (!canEditDetails) return;
               await removeTask(task);
-              router.back();
+              navigateBack();
             }}
-            className="w-full flex items-center gap-3 p-3 min-h-11"
+            className={cn(
+              "w-full flex items-center gap-3 p-3 min-h-11 transition-colors",
+              isDesktopLayout && "rounded-lg hover:bg-red-500/10",
+            )}
             style={{ opacity: canEditDetails ? 1 : 0.45 }}
           >
             <Trash2 className="h-5 w-5 text-red-400" />
@@ -852,6 +906,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
         open={scheduleModalOpen}
         onClose={() => setScheduleModalOpen(false)}
         onConfirm={() => void applyScheduleModal()}
+        variant={pickerVariant}
         todayKey={todayKey}
         tomorrowKey={tomorrowKey}
         scheduledDate={scheduleDraftDate}
@@ -871,6 +926,7 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
         loading={teamsLoading}
         selectedTeamId={task.team_id ?? null}
         onSelect={(id) => void applyTeam(id)}
+        variant={pickerVariant}
       />
 
       <TaskExecutorPickerOverlay
@@ -881,9 +937,10 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
         teamLoading={teamsLoading}
         selectedExecutor={executorDraft}
         onSelect={handleExecutorSelect}
+        variant={pickerVariant}
       />
 
-      <OptionPickerSheet
+      <TaskOptionPicker
         open={priorityPickerOpen}
         title="Приоритет"
         options={PRIORITY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -894,9 +951,11 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           setPriorityPickerOpen(false);
           await applyPriorityFromPicker(priorityPickerDraft);
         }}
+        onApply={(v) => applyPriorityFromPicker(v as TaskPriority)}
+        variant={pickerVariant}
       />
 
-      <OptionPickerSheet
+      <TaskOptionPicker
         open={remindTimingPickerOpen}
         title="Когда напомнить"
         options={remindTimingSelectOptions}
@@ -907,6 +966,8 @@ export function ClientTaskDetailMobileView({ taskId }: ClientTaskDetailMobileVie
           setRemindTimingPickerOpen(false);
           void applyReminderTimingFromPicker(remindTimingPickerDraft);
         }}
+        onApply={(v) => applyReminderTimingFromPicker(v)}
+        variant={pickerVariant}
       />
     </div>
   );
@@ -939,9 +1000,23 @@ function Header({
   );
 }
 
-function SectionLabel({ children, text }: { children: React.ReactNode; text: string }) {
+function SectionLabel({
+  children,
+  text,
+  desktop = false,
+}: {
+  children: React.ReactNode;
+  text: string;
+  desktop?: boolean;
+}) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-wide px-1" style={{ color: text }}>
+    <p
+      className={cn(
+        "font-semibold px-1",
+        desktop ? "text-sm text-[#8E8E93] mb-0.5" : "text-xs uppercase tracking-wide",
+      )}
+      style={desktop ? undefined : { color: text }}
+    >
       {children}
     </p>
   );
@@ -951,13 +1026,21 @@ function Card({
   children,
   border,
   cardBg,
+  desktop = false,
 }: {
   children: React.ReactNode;
   border: string;
   cardBg: string;
+  desktop?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: cardBg, borderColor: border }}>
+    <div
+      className={cn(
+        "rounded-2xl border overflow-hidden",
+        desktop && "border-[#3A3A3C] shadow-sm",
+      )}
+      style={{ backgroundColor: desktop ? "#2C2C2E" : cardBg, borderColor: border }}
+    >
       {children}
     </div>
   );
@@ -976,6 +1059,7 @@ function RowButton({
   text,
   textMuted,
   underline,
+  desktop = false,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -985,12 +1069,16 @@ function RowButton({
   text: string;
   textMuted: string;
   underline?: boolean;
+  desktop?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 min-h-11"
+      className={cn(
+        "w-full flex items-center gap-3 p-3 min-h-11 transition-colors",
+        desktop && canEdit && "rounded-lg hover:bg-white/[0.04]",
+      )}
       style={{ opacity: canEdit ? 1 : 0.55 }}
     >
       {icon}
@@ -1037,60 +1125,3 @@ function RowStatic({
   );
 }
 
-function OptionPickerSheet({
-  open,
-  title,
-  options,
-  selected,
-  onSelect,
-  onClose,
-  onConfirm,
-}: {
-  open: boolean;
-  title: string;
-  options: { value: string; label: string }[];
-  selected: string;
-  onSelect: (v: string) => void;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  const background = useThemeColor("background");
-  const text = useThemeColor("text");
-  const primary = useThemeColor("primary");
-  const border = useThemeColor("border");
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
-      <button type="button" className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Закрыть" />
-      <div className="relative rounded-t-2xl max-h-[70vh] flex flex-col" style={{ backgroundColor: background }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: border }}>
-          <button type="button" onClick={onClose} className="p-2 min-h-11">
-            <ChevronLeft className="h-6 w-6" style={{ color: text }} />
-          </button>
-          <span className="text-lg font-semibold" style={{ color: text }}>
-            {title}
-          </span>
-          <button type="button" onClick={onConfirm} className="p-2 min-h-11">
-            <Check className="h-6 w-6" style={{ color: primary }} />
-          </button>
-        </div>
-        <div className="overflow-y-auto px-4 pb-8">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onSelect(opt.value)}
-              className="w-full flex items-center justify-between py-3 border-b min-h-11"
-              style={{ borderColor: border }}
-            >
-              <span style={{ color: text }}>{opt.label}</span>
-              {selected === opt.value ? <Check className="h-5 w-5" style={{ color: primary }} /> : null}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}

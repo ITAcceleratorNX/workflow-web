@@ -1,12 +1,17 @@
 "use client";
 
-import { DesktopContentPage } from "@/components/layout/desktop-content-page";
+import { DesktopManagementPage } from "@/components/layout/desktop-management-page";
 import { ClientSleepMobileView } from "./client-sleep-mobile-view";
 
 export function ClientSleepDesktopView() {
   return (
-    <DesktopContentPage title="Сон" description="Расписание сна и утренний опрос" dark>
-      <ClientSleepMobileView />
-    </DesktopContentPage>
+    <DesktopManagementPage
+      title="Сон"
+      description="Расписание сна и утренний опрос"
+      backHref="/client/health"
+      backLabel="К Health трекеру"
+    >
+      <ClientSleepMobileView layout="desktop" />
+    </DesktopManagementPage>
   );
 }

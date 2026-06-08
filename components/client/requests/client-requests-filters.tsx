@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import {
   mobileRequestsFilterContent,
+  mobileRequestsFilterItem,
   mobileRequestsFilterTrigger,
 } from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
@@ -36,6 +37,7 @@ export function ClientRequestsFilters({
   variant = "mobile",
 }: ClientRequestsFiltersProps) {
   const isDesktop = variant === "desktop";
+  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <>
@@ -48,7 +50,7 @@ export function ClientRequestsFilters({
             <SelectItem
               key={option.value}
               value={option.value}
-              className={!isDesktop ? "text-white" : undefined}
+              className={itemClass ?? "text-white"}
             >
               {option.label}
             </SelectItem>
@@ -64,7 +66,7 @@ export function ClientRequestsFilters({
             <SelectItem
               key={option.value}
               value={option.value}
-              className={!isDesktop ? "text-white" : undefined}
+              className={itemClass ?? "text-white"}
             >
               {option.label}
             </SelectItem>

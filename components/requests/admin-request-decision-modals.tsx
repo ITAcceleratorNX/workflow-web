@@ -13,6 +13,14 @@ import {
   SLA_OPTIONS,
 } from "@/constants/requests";
 import type { RequestGroup } from "@/lib/types/request";
+import { MANAGEMENT_MODAL_DARK_CLASS } from "@/constants/management-modal-ui";
+import {
+  REQUESTS_DESKTOP_OUTLINE_BTN,
+  REQUESTS_DESKTOP_SELECT_CONTENT,
+  REQUESTS_DESKTOP_SELECT_ITEM,
+  REQUESTS_DESKTOP_SELECT_TRIGGER,
+} from "@/constants/mobile-requests-ui";
+import { cn } from "@/lib/utils";
 
 export type AdminAcceptRequestPayload = {
   request_type: string;
@@ -110,7 +118,10 @@ export function AdminAcceptRequestModal({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl"
+        className={cn(
+          "w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl",
+          MANAGEMENT_MODAL_DARK_CLASS,
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700">
@@ -121,12 +132,12 @@ export function AdminAcceptRequestModal({
           <div>
             <Label className="text-xs text-gray-400">Тип заявки</Label>
             <Select value={requestType} onValueChange={setRequestType}>
-              <SelectTrigger className="bg-[#262626] border-[#3A3A3C] text-white h-9 mt-1">
+              <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9 mt-1")}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[120] bg-[#2C2C2E] border-[#3A3A3C]">
+              <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
                 {REQUEST_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} className="text-white">
+                  <SelectItem key={opt.value} value={opt.value} className={REQUESTS_DESKTOP_SELECT_ITEM}>
                     {opt.label}
                   </SelectItem>
                 ))}
@@ -136,12 +147,12 @@ export function AdminAcceptRequestModal({
           <div>
             <Label className="text-xs text-gray-400">Офис</Label>
             <Select value={officeId} onValueChange={setOfficeId}>
-              <SelectTrigger className="bg-[#262626] border-[#3A3A3C] text-white h-9 mt-1">
+              <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9 mt-1")}>
                 <SelectValue placeholder="Выберите офис" />
               </SelectTrigger>
-              <SelectContent className="z-[120] bg-[#2C2C2E] border-[#3A3A3C]">
+              <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
                 {offices.map((office) => (
-                  <SelectItem key={office.id} value={String(office.id)} className="text-white">
+                  <SelectItem key={office.id} value={String(office.id)} className={REQUESTS_DESKTOP_SELECT_ITEM}>
                     {office.name}
                   </SelectItem>
                 ))}
@@ -165,12 +176,12 @@ export function AdminAcceptRequestModal({
                         }))
                       }
                     >
-                      <SelectTrigger className="bg-[#1C1C1E] border-[#3A3A3C] text-white h-9">
+                      <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9")}>
                         <SelectValue placeholder="Время" />
                       </SelectTrigger>
-                      <SelectContent className="z-[120] bg-[#2C2C2E]">
+                      <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
                         {SLA_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="text-white">
+                          <SelectItem key={opt.value} value={opt.value} className={REQUESTS_DESKTOP_SELECT_ITEM}>
                             {opt.label}
                           </SelectItem>
                         ))}
@@ -185,12 +196,12 @@ export function AdminAcceptRequestModal({
                         }))
                       }
                     >
-                      <SelectTrigger className="bg-[#1C1C1E] border-[#3A3A3C] text-white h-9">
+                      <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9")}>
                         <SelectValue placeholder="Сложность" />
                       </SelectTrigger>
-                      <SelectContent className="z-[120] bg-[#2C2C2E]">
+                      <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
                         {COMPLEXITY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="text-white">
+                          <SelectItem key={opt.value} value={opt.value} className={REQUESTS_DESKTOP_SELECT_ITEM}>
                             {opt.label}
                           </SelectItem>
                         ))}
@@ -206,7 +217,12 @@ export function AdminAcceptRequestModal({
           )}
         </div>
         <div className="p-4 border-t border-gray-700 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            className={cn("flex-1", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            onClick={onClose}
+            disabled={loading}
+          >
             Отмена
           </Button>
           <Button
@@ -253,7 +269,10 @@ export function AdminRejectRequestModal({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl"
+        className={cn(
+          "w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl",
+          MANAGEMENT_MODAL_DARK_CLASS,
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700">
@@ -270,7 +289,12 @@ export function AdminRejectRequestModal({
           {error && <p className="text-[#F35713] text-sm">{error}</p>}
         </div>
         <div className="p-4 border-t border-gray-700 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            className={cn("flex-1", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            onClick={onClose}
+            disabled={loading}
+          >
             Отмена
           </Button>
           <Button
@@ -321,7 +345,10 @@ export function StaffCompleteModal({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl"
+        className={cn(
+          "w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl",
+          MANAGEMENT_MODAL_DARK_CLASS,
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700">
@@ -342,7 +369,12 @@ export function StaffCompleteModal({
           {error && <p className="text-[#F35713] text-sm">{error}</p>}
         </div>
         <div className="p-4 border-t border-gray-700 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            className={cn("flex-1", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            onClick={onClose}
+            disabled={loading}
+          >
             Отмена
           </Button>
           <Button

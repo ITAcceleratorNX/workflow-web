@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import {
   mobileRequestsFilterContent,
+  mobileRequestsFilterItem,
   mobileRequestsFilterTrigger,
 } from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
@@ -57,6 +58,7 @@ export function ManagerRequestsFilters({
   );
   const filterTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
   const contentClass = mobileRequestsFilterContent(variant);
+  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <>
@@ -65,11 +67,11 @@ export function ManagerRequestsFilters({
           <SelectValue placeholder="Офис" />
         </SelectTrigger>
         <SelectContent className={contentClass}>
-          <SelectItem value="all">
+          <SelectItem value="all" className={itemClass}>
             Все офисы
           </SelectItem>
           {offices.map((o) => (
-            <SelectItem key={o.id} value={String(o.id)}>
+            <SelectItem key={o.id} value={String(o.id)} className={itemClass}>
               {o.name}
             </SelectItem>
           ))}
@@ -81,7 +83,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {MANAGER_PERIOD_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className={itemClass}>
               {option.label}
             </SelectItem>
           ))}
@@ -93,7 +95,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {statusFilterOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className={itemClass}>
               {option.label}
             </SelectItem>
           ))}
@@ -105,7 +107,7 @@ export function ManagerRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className={itemClass}>
               {option.label}
             </SelectItem>
           ))}

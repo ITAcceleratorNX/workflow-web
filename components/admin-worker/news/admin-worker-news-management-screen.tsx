@@ -17,13 +17,15 @@ import {
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { useToast } from "@/hooks/use-toast";
 import { formatNewsScheduleDateTime } from "@/lib/dateTimeUtils";
@@ -359,15 +361,15 @@ export function AdminWorkerNewsManagementScreen({
       )}
 
       <AlertDialog open={deleteTarget != null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить новость?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить новость?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               «{deleteTarget?.title}» будет удалена безвозвратно.
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={confirmDelete}
@@ -375,7 +377,7 @@ export function AdminWorkerNewsManagementScreen({
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

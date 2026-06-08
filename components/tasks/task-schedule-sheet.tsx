@@ -13,7 +13,8 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { TaskPickerShell, type TaskPickerVariant } from "@/components/tasks/task-picker-shell";
+import { useTaskPickerTheme } from "@/hooks/use-task-picker-theme";
 import {
   customPayload,
   defaultRecurrenceNone,
@@ -41,6 +42,7 @@ function monthStartFromApiDateKey(dateKey: string): Date {
 
 export type TaskScheduleSheetContentProps = {
   active: boolean;
+  variant?: TaskPickerVariant;
   todayKey: string;
   tomorrowKey: string;
   scheduledDate: string | null;
@@ -57,6 +59,7 @@ export type TaskScheduleSheetContentProps = {
 
 export function TaskScheduleSheetContent({
   active,
+  variant = "sheet",
   todayKey,
   tomorrowKey,
   scheduledDate,
@@ -70,12 +73,8 @@ export function TaskScheduleSheetContent({
   recurrence,
   onRecurrenceChange,
 }: TaskScheduleSheetContentProps) {
-  const background = useThemeColor("background");
-  const cardBg = useThemeColor("cardBackground");
-  const text = useThemeColor("text");
-  const textMuted = useThemeColor("textMuted");
-  const primary = useThemeColor("primary");
-  const border = useThemeColor("border");
+  const { background, cardBg, text, textMuted, primary, border } = useTaskPickerTheme(variant);
+  const isDialog = variant === "dialog";
 
   const [repeatMenuOpen, setRepeatMenuOpen] = useState(false);
   const [customRepeatOpen, setCustomRepeatOpen] = useState(false);
@@ -163,6 +162,7 @@ export function TaskScheduleSheetContent({
   if (customRepeatOpen) {
     return (
       <div className="flex flex-col max-h-[80vh]">
+        {!isDialog && (
         <div className="flex items-center justify-between px-4 py-2 shrink-0">
           <button
             type="button"
@@ -181,9 +181,10 @@ export function TaskScheduleSheetContent({
             <Check className="h-6 w-6" style={{ color: primary }} />
           </button>
         </div>
+        )}
 
         <div
-          className="mx-4 mb-3 rounded-xl border px-4 py-3 text-center"
+          className={`rounded-xl border px-4 py-3 text-center ${isDialog ? "mx-6 mt-4 mb-3" : "mx-4 mb-3"}`}
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <span className="text-sm" style={{ color: textMuted }}>
@@ -194,12 +195,12 @@ export function TaskScheduleSheetContent({
           </span>
         </div>
 
-        <div className="overflow-y-auto px-4 pb-6 space-y-4">
+        <div className={isDialog ? "overflow-y-auto px-6 pb-4 space-y-4" : "overflow-y-auto px-4 pb-6 space-y-4"}>
           <div className="flex gap-3">
             <select
               value={customInterval}
               onChange={(e) => setCustomInterval(Number(e.target.value))}
-              className="flex-1 rounded-xl border px-3 py-3 text-base min-h-11"
+              className="flex-1 rounded-xl border px-3 py-3 text-base min-h-11 [color-scheme:dark]"
               style={{ backgroundColor: cardBg, borderColor: border, color: text }}
             >
               {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
@@ -211,7 +212,7 @@ export function TaskScheduleSheetContent({
             <select
               value={customUnit}
               onChange={(e) => setCustomUnit(e.target.value as RecurrenceCustomUnit)}
-              className="flex-1 rounded-xl border px-3 py-3 text-base min-h-11"
+              className="flex-1 rounded-xl border px-3 py-3 text-base min-h-11 [color-scheme:dark]"
               style={{ backgroundColor: cardBg, borderColor: border, color: text }}
             >
               <option value="day">Дней</option>
@@ -249,32 +250,56 @@ export function TaskScheduleSheetContent({
             </div>
           ) : null}
         </div>
+
+        {isDialog ? (
+          <div className="shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-[#3A3A3C]">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomRepeatOpen(false);
+                setRepeatMenuOpen(true);
+              }}
+              className="rounded-xl px-4 py-2.5 text-sm font-medium text-[#8E8E93] hover:text-white transition-colors"
+            >
+              Назад
+            </button>
+            <button
+              type="button"
+              onClick={applyCustomRepeat}
+              className="rounded-xl bg-[#E25B21] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#F35713] transition-colors"
+            >
+              Применить
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
-        <button type="button" onClick={onClosePress} className="p-2 min-h-11 min-w-11">
-          <X className="h-6 w-6" style={{ color: text }} />
-        </button>
-        <span className="text-lg font-semibold" style={{ color: text }}>
-          Срок
-        </span>
-        <button type="button" onClick={onConfirmPress} className="p-2 min-h-11 min-w-11">
-          <Check className="h-6 w-6" style={{ color: primary }} />
-        </button>
-      </div>
+      {!isDialog && (
+        <div className="flex items-center justify-between px-4 py-2 shrink-0">
+          <button type="button" onClick={onClosePress} className="p-2 min-h-11 min-w-11">
+            <X className="h-6 w-6" style={{ color: text }} />
+          </button>
+          <span className="text-lg font-semibold" style={{ color: text }}>
+            Срок
+          </span>
+          <button type="button" onClick={onConfirmPress} className="p-2 min-h-11 min-w-11">
+            <Check className="h-6 w-6" style={{ color: primary }} />
+          </button>
+        </div>
+      )}
 
       <div
-        className="mx-4 mb-3 rounded-xl border px-4 py-3 text-center font-medium"
+        className={`rounded-xl border px-4 py-3 text-center font-medium ${isDialog ? "mx-6 mt-4 mb-3" : "mx-4 mb-3"}`}
         style={{ backgroundColor: cardBg, borderColor: border, color: text }}
       >
         {formatDateLabelRu(scheduledDate)}
       </div>
 
-      <div className="overflow-y-auto px-4 pb-6 flex-1">
+      <div className={isDialog ? "overflow-y-auto px-6 pb-4 flex-1 min-h-0" : "overflow-y-auto px-4 pb-6 flex-1"}>
         <ShortcutRow
           icon={<Sun className="h-5 w-5 text-[#F9A825]" />}
           label="Завтра"
@@ -417,8 +442,33 @@ export function TaskScheduleSheetContent({
         </button>
       </div>
 
+      {isDialog ? (
+        <div className="shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-[#3A3A3C]">
+          <button
+            type="button"
+            onClick={onClosePress}
+            className="rounded-xl px-4 py-2.5 text-sm font-medium text-[#8E8E93] hover:text-white transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={onConfirmPress}
+            className="rounded-xl bg-[#E25B21] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#F35713] transition-colors"
+          >
+            Сохранить
+          </button>
+        </div>
+      ) : null}
+
       {repeatMenuOpen ? (
-        <div className="fixed inset-0 z-[70] flex flex-col justify-end">
+        <div
+          className={
+            isDialog
+              ? "fixed inset-0 z-[80] flex items-center justify-center p-4"
+              : "fixed inset-0 z-[70] flex flex-col justify-end"
+          }
+        >
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
@@ -426,8 +476,12 @@ export function TaskScheduleSheetContent({
             aria-label="Закрыть"
           />
           <div
-            className="relative rounded-t-2xl px-4 pt-4 pb-8"
-            style={{ backgroundColor: background }}
+            className={
+              isDialog
+                ? "relative w-full max-w-sm rounded-2xl border border-[#3A3A3C] px-4 pt-4 pb-6"
+                : "relative rounded-t-2xl px-4 pt-4 pb-8"
+            }
+            style={{ backgroundColor: isDialog ? "#1C1C1E" : background }}
           >
             <p className="text-lg font-semibold mb-3" style={{ color: text }}>
               Повтор
@@ -491,6 +545,7 @@ function ShortcutRow({ icon, label, hint, onClick, border, text, textMuted }: Sh
 type TaskScheduleSheetProps = {
   open: boolean;
   onClose: () => void;
+  variant?: TaskPickerVariant;
 } & Omit<TaskScheduleSheetContentProps, "active" | "onClosePress" | "onConfirmPress"> & {
     onConfirm: () => void;
   };
@@ -499,30 +554,25 @@ export function TaskScheduleSheet({
   open,
   onClose,
   onConfirm,
+  variant = "sheet",
   ...contentProps
 }: TaskScheduleSheetProps) {
-  const background = useThemeColor("background");
-  const primary = useThemeColor("primary");
-
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[55] flex flex-col justify-end">
-      <button type="button" className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Закрыть" />
-      <div
-        className="relative rounded-t-2xl max-h-[90vh] flex flex-col"
-        style={{ backgroundColor: background }}
-      >
-        <div className="flex justify-center pt-2 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
-        </div>
-        <TaskScheduleSheetContent
-          {...contentProps}
-          active={open}
-          onClosePress={onClose}
-          onConfirmPress={onConfirm}
-        />
-      </div>
-    </div>
+    <TaskPickerShell
+      open={open}
+      onClose={onClose}
+      variant={variant}
+      title={variant === "dialog" ? "Срок" : undefined}
+      maxWidthClass="max-w-xl"
+      zIndexClass="z-[55]"
+    >
+      <TaskScheduleSheetContent
+        {...contentProps}
+        variant={variant}
+        active={open}
+        onClosePress={onClose}
+        onConfirmPress={onConfirm}
+      />
+    </TaskPickerShell>
   );
 }

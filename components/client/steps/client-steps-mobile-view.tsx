@@ -8,8 +8,11 @@ import { SmartDeskCalculatorCompact } from "@/components/yandex-smart-home/smart
 import { useToast } from "@/hooks/use-toast";
 import { requestMotionAndOrientationPermission } from "@/lib/utils";
 import { usePedometerStore, stepsToKm } from "@/stores/usePedometerStore";
+import { cn } from "@/lib/utils";
 
 type StepsTab = "today" | "history" | "settings";
+
+export type ClientStepsViewLayout = "mobile" | "desktop";
 
 function parseStepsTab(raw: string | null): StepsTab {
   if (raw === "settings" || raw === "history" || raw === "today") return raw;
@@ -57,7 +60,12 @@ function StepsProgressRing({
   );
 }
 
-export function ClientStepsMobileView() {
+type ClientStepsMobileViewProps = {
+  layout?: ClientStepsViewLayout;
+};
+
+export function ClientStepsMobileView({ layout = "mobile" }: ClientStepsMobileViewProps) {
+  const isDesktopLayout = layout === "desktop";
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -128,26 +136,29 @@ export function ClientStepsMobileView() {
     await new Promise((r) => setTimeout(r, 500));
   };
 
-  return (
-    <>
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div
-          className="min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          
-        >
-          <header className="flex items-center gap-2 mb-4 pb-3 border-b border-[#3A3A3C]">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="p-1 -ml-1 text-white"
-              aria-label="Назад"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-bold text-foreground">Шаги</h1>
-          </header>
+  const body = (
+    <div
+      className={cn(
+        isDesktopLayout
+          ? "pb-2"
+          : "min-h-screen bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))]",
+      )}
+    >
+      {!isDesktopLayout && (
+        <header className="flex items-center gap-2 mb-4 pb-3 border-b border-[#3A3A3C]">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="p-1 -ml-1 text-white"
+            aria-label="Назад"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold text-foreground">Шаги</h1>
+        </header>
+      )}
 
-          <div className="flex gap-1 mb-6 p-1 rounded-xl bg-[#2C2C2E]">
+      <div className="flex gap-1 mb-6 p-1 rounded-xl bg-[#2C2C2E]">
             {(
               [
                 { key: "today" as const, label: "Сегодня" },
@@ -191,7 +202,7 @@ export function ClientStepsMobileView() {
                   <p className="text-center text-[#8E8E93] text-sm">
                     ~{stepsToKm(stepsToday, heightCm).toFixed(2)} км сегодня
                   </p>
-                  <SmartDeskCalculatorCompact />
+                  {!isDesktopLayout && <SmartDeskCalculatorCompact />}
                 </div>
               )}
 
@@ -311,8 +322,12 @@ export function ClientStepsMobileView() {
               )}
             </>
           )}
-        </div>
-      </PullToRefresh>
+    </div>
+  );
+
+  return (
+    <>
+      {isDesktopLayout ? body : <PullToRefresh onRefresh={handleRefresh}>{body}</PullToRefresh>}
     </>
   );
 }

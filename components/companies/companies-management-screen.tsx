@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -9,18 +8,21 @@ import {
   Loader2,
   Plus,
   Trash2,
-  X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
+import { ManagementModalShell } from "@/components/layout/management-modal-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import {
   createOfficeCompany,
   deleteOfficeCompany,
@@ -92,11 +95,7 @@ export function CompaniesManagementScreen({
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -221,66 +220,7 @@ export function CompaniesManagementScreen({
   const needsPickOffice = isAdmin && manageOfficeId == null;
   const noOfficeAccount = !isAdmin && manageOfficeId == null;
 
-  const formSheet =
-    modalOpen && portalReady ? (
-      <div className="fixed inset-0 z-[200] flex flex-col justify-end">
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/45"
-          onClick={() => !saving && closeModal()}
-          aria-label="Закрыть"
-        />
-        <div className="relative rounded-t-2xl border-t border-border bg-card px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-4">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-base font-bold text-foreground">
-              {editingId == null ? "Новая компания" : "Редактировать компанию"}
-            </p>
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={saving}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted disabled:opacity-50"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Название</Label>
-              <Input
-                id="company-name"
-                placeholder="Например, TOO TMK Limited"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                maxLength={255}
-                disabled={saving}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && formName.trim()) void handleSubmit();
-                }}
-              />
-            </div>
-            {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
-            <Button
-              className="w-full"
-              onClick={() => void handleSubmit()}
-              disabled={saving || !formName.trim()}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Сохранение...
-                </>
-              ) : editingId == null ? (
-                "Создать"
-              ) : (
-                "Сохранить"
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    ) : null;
+  const formTitle = editingId == null ? "Новая компания" : "Редактировать компанию";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col pb-6">
@@ -365,7 +305,84 @@ export function CompaniesManagementScreen({
         </div>
       )}
 
-      {portalReady && formSheet ? createPortal(formSheet, document.body) : null}
+      <ManagementModalShell
+        open={modalOpen}
+        onClose={() => !saving && closeModal()}
+        title={formTitle}
+        sheetMaxHeightClass="max-h-[min(88vh,640px)]"
+        bodyClassName={!isDesktop ? "flex min-h-0 flex-col" : undefined}
+      >
+        {!isDesktop ? (
+          <p className="mb-4 shrink-0 text-lg font-bold text-foreground">{formTitle}</p>
+        ) : null}
+
+        <div className={cn("space-y-4", !isDesktop && "min-h-0 flex-1 overflow-y-auto")}>
+          <div className="space-y-2">
+            <Label htmlFor="company-name">Название</Label>
+            <Input
+              id="company-name"
+              placeholder="Например, TOO TMK Limited"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              maxLength={255}
+              disabled={saving}
+              autoFocus={!isDesktop}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && formName.trim()) void handleSubmit();
+              }}
+            />
+          </div>
+          {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
+          {isDesktop ? (
+            <Button
+              className="w-full"
+              onClick={() => void handleSubmit()}
+              disabled={saving || !formName.trim()}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Сохранение...
+                </>
+              ) : editingId == null ? (
+                "Создать"
+              ) : (
+                "Сохранить"
+              )}
+            </Button>
+          ) : null}
+        </div>
+
+        {!isDesktop ? (
+          <div className="mt-4 flex shrink-0 gap-2 border-t border-border pt-4">
+            <Button
+              className="flex-1"
+              onClick={() => void handleSubmit()}
+              disabled={saving || !formName.trim()}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Сохранение...
+                </>
+              ) : editingId == null ? (
+                "Создать"
+              ) : (
+                "Сохранить"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={closeModal}
+              disabled={saving}
+            >
+              Отмена
+            </Button>
+          </div>
+        ) : null}
+      </ManagementModalShell>
 
       <AlertDialog
         open={deleteTarget != null}
@@ -373,15 +390,15 @@ export function CompaniesManagementScreen({
           if (!open && !isDeleting) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить компанию?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить компанию?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               Все клиенты, привязанные к «{deleteTarget?.name}», увидят значение «Не указана».
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel disabled={isDeleting}>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
@@ -393,7 +410,7 @@ export function CompaniesManagementScreen({
               {isDeleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

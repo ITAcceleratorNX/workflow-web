@@ -5,13 +5,15 @@ import { ChevronDown, Edit, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
 import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import { useToast } from "@/hooks/use-toast";
 import { formatRequestDate } from "@/lib/dateTimeUtils";
@@ -416,15 +418,15 @@ export function AdminRegistrationRequestsTab({
         open={deleteConfirmId != null}
         onOpenChange={(open) => !open && setDeleteConfirmId(null)}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить запрос?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить запрос?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               Запись об отклонённой заявке будет удалена безвозвратно.
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteConfirmId != null && handleDeleteRejected(deleteConfirmId)}
@@ -432,7 +434,7 @@ export function AdminRegistrationRequestsTab({
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

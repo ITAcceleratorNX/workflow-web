@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   Building2,
   ChevronDown,
@@ -14,8 +13,10 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { ManagementModalShell } from "@/components/layout/management-modal-shell";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { formatPhone } from "@/lib/phone-utils";
 import type { Company } from "@/lib/companies-api";
 import { getOfficeCompanies } from "@/lib/companies-api";
@@ -159,11 +160,7 @@ export function AdminUserManagementTab({
   const [isChangingHead, setIsChangingHead] = useState(false);
   const [changeHeadError, setChangeHeadError] = useState<string | null>(null);
   const [showCategoryHeadPanel, setShowCategoryHeadPanel] = useState(false);
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(typeof document !== "undefined");
-  }, []);
+  const isDesktop = useIsDesktop();
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -622,209 +619,9 @@ export function AdminUserManagementTab({
     return Number.isFinite(oid) ? (companiesByOfficeId[oid] ?? []) : [];
   })();
 
-  const editModal =
-    editUser && portalReady
-      ? createPortal(
-          <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center">
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/50"
-              aria-label="Закрыть"
-              onClick={() => !saving && closeEdit()}
-            />
-            <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-t border-border bg-background px-4 pb-8 pt-4 sm:rounded-2xl sm:border">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-semibold text-foreground">{editUser.full_name}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {ROLE_LABELS[editUser.role]} · {editUser.phone}
-                    {editUser.office?.name ? ` · ${editUser.office.name}` : ""}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => !saving && closeEdit()}
-                  className="rounded-lg p-2 active:opacity-70"
-                  aria-label="Закрыть"
-                >
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                    Новый пароль
-                  </p>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Оставьте пустым, если не меняете"
-                  />
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Подтверждение пароля"
-                    className="mt-2"
-                  />
-                  {passwordError ? (
-                    <p className="mt-1 text-sm text-destructive">{passwordError}</p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Роль</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(ROLE_LABELS).map(([id, label]) => (
-                      <FilterPill
-                        key={id}
-                        active={newRole === id}
-                        label={label}
-                        onClick={() => selectRole(id)}
-                      />
-                    ))}
-                  </div>
-                  {roleError ? <p className="mt-1 text-sm text-destructive">{roleError}</p> : null}
-                </div>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Офис</p>
-                  {["department-head", "manager", "admin-worker"].includes(editUser.role) ? (
-                    <p className="text-sm text-muted-foreground">
-                      Для пользователей с этой ролью смена офиса здесь недоступна.
-                    </p>
-                  ) : sortedOffices.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Список офисов недоступен — обновите экран
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {sortedOffices.map((o) => (
-                        <FilterPill
-                          key={o.id}
-                          active={draftOfficeId === String(o.id)}
-                          label={o.name}
-                          onClick={() => selectDraftOffice(String(o.id))}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {newRole === "client"
-                  ? (() => {
-                      const oidNum = draftOfficeId
-                        ? Number(draftOfficeId)
-                        : editUser.office_id != null
-                          ? Number(editUser.office_id)
-                          : NaN;
-                      const list = Number.isFinite(oidNum)
-                        ? (companiesByOfficeId[oidNum] ?? [])
-                        : [];
-                      return (
-                        <div>
-                          <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                            Компания
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <FilterPill
-                              active={draftCompanyId === ""}
-                              label="Не указана"
-                              onClick={() => setDraftCompanyId("")}
-                            />
-                            {list.map((c) => (
-                              <FilterPill
-                                key={c.id}
-                                active={draftCompanyId === String(c.id)}
-                                label={c.name}
-                                onClick={() => setDraftCompanyId(String(c.id))}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()
-                  : null}
-
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Иванов Иван"
-                />
-                <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                    Телефон
-                  </p>
-                  <Input
-                    value={phone}
-                    onChange={(e) => setPhone(formatPhone(e.target.value))}
-                    placeholder="+7 XXX XXX XX XX"
-                    maxLength={19}
-                  />
-                </div>
-
-                {isExecutorForm ? (
-                  <>
-                    <div>
-                      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                        Специальность
-                      </p>
-                      <Input
-                        value={specialty}
-                        onChange={(e) => setSpecialty(e.target.value)}
-                        placeholder="Например: электрик"
-                      />
-                    </div>
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                        Категории услуг
-                      </p>
-                      {modalCategories.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          Нет категорий для офиса пользователя
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {modalCategories.map((c) => (
-                            <FilterPill
-                              key={c.id}
-                              active={selectedCategoryIds.includes(c.id)}
-                              label={c.name}
-                              onClick={() => toggleCategory(c.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : null}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeEdit}
-                    disabled={saving}
-                    className="flex-1 rounded-xl border border-border py-3 text-foreground disabled:opacity-50"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveUser}
-                    disabled={saving}
-                    className="flex flex-1 items-center justify-center rounded-xl bg-[#F35713] py-3 font-semibold text-white disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )
-      : null;
+  const editUserSubtitle = editUser
+    ? `${ROLE_LABELS[editUser.role]} · ${editUser.phone}${editUser.office?.name ? ` · ${editUser.office.name}` : ""}`
+    : "";
 
   return (
     <div className="space-y-3">
@@ -1102,7 +899,206 @@ export function AdminUserManagementTab({
         </div>
       ) : null}
 
-      {editModal}
+      <ManagementModalShell
+        open={editUser != null}
+        onClose={() => !saving && closeEdit()}
+        title={editUser?.full_name ?? "Пользователь"}
+        maxWidthClass="max-w-lg"
+        bodyClassName="max-h-[min(85vh,720px)]"
+      >
+        {editUser ? (
+          <>
+            {!isDesktop ? (
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-semibold text-foreground">{editUser.full_name}</h2>
+                  <p className="text-sm text-muted-foreground">{editUserSubtitle}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !saving && closeEdit()}
+                  className="rounded-lg p-2 active:opacity-70"
+                  aria-label="Закрыть"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+            ) : (
+              <p className="mb-4 text-sm text-muted-foreground">{editUserSubtitle}</p>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                  Новый пароль
+                </p>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Оставьте пустым, если не меняете"
+                />
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Подтверждение пароля"
+                  className="mt-2"
+                />
+                {passwordError ? (
+                  <p className="mt-1 text-sm text-destructive">{passwordError}</p>
+                ) : null}
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Роль</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(ROLE_LABELS).map(([id, label]) => (
+                    <FilterPill
+                      key={id}
+                      active={newRole === id}
+                      label={label}
+                      onClick={() => selectRole(id)}
+                    />
+                  ))}
+                </div>
+                {roleError ? <p className="mt-1 text-sm text-destructive">{roleError}</p> : null}
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Офис</p>
+                {["department-head", "manager", "admin-worker"].includes(editUser.role) ? (
+                  <p className="text-sm text-muted-foreground">
+                    Для пользователей с этой ролью смена офиса здесь недоступна.
+                  </p>
+                ) : sortedOffices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Список офисов недоступен — обновите экран
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {sortedOffices.map((o) => (
+                      <FilterPill
+                        key={o.id}
+                        active={draftOfficeId === String(o.id)}
+                        label={o.name}
+                        onClick={() => selectDraftOffice(String(o.id))}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {newRole === "client"
+                ? (() => {
+                    const oidNum = draftOfficeId
+                      ? Number(draftOfficeId)
+                      : editUser.office_id != null
+                        ? Number(editUser.office_id)
+                        : NaN;
+                    const list = Number.isFinite(oidNum)
+                      ? (companiesByOfficeId[oidNum] ?? [])
+                      : [];
+                    return (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                          Компания
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <FilterPill
+                            active={draftCompanyId === ""}
+                            label="Не указана"
+                            onClick={() => setDraftCompanyId("")}
+                          />
+                          {list.map((c) => (
+                            <FilterPill
+                              key={c.id}
+                              active={draftCompanyId === String(c.id)}
+                              label={c.name}
+                              onClick={() => setDraftCompanyId(String(c.id))}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()
+                : null}
+
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Иванов Иван"
+              />
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                  Телефон
+                </p>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  placeholder="+7 XXX XXX XX XX"
+                  maxLength={19}
+                />
+              </div>
+
+              {isExecutorForm ? (
+                <>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Специальность
+                    </p>
+                    <Input
+                      value={specialty}
+                      onChange={(e) => setSpecialty(e.target.value)}
+                      placeholder="Например: электрик"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                      Категории услуг
+                    </p>
+                    {modalCategories.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Нет категорий для офиса пользователя
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {modalCategories.map((c) => (
+                          <FilterPill
+                            key={c.id}
+                            active={selectedCategoryIds.includes(c.id)}
+                            label={c.name}
+                            onClick={() => toggleCategory(c.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  disabled={saving}
+                  className="flex-1 rounded-xl border border-border py-3 text-foreground disabled:opacity-50"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveUser}
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center rounded-xl bg-[#F35713] py-3 font-semibold text-white disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </ManagementModalShell>
     </div>
   );
 }

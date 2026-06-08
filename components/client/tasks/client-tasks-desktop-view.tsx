@@ -10,7 +10,7 @@ type ClientTasksDesktopViewProps = UseClientTasksPageResult;
 export function ClientTasksDesktopView(props: ClientTasksDesktopViewProps) {
   return (
     <DesktopContentPage title="Задачи" description="Inbox, сегодня, календарь и команды" dark>
-      <ClientTasksMobileView {...props} />
+      <ClientTasksMobileView {...props} layout="desktop" />
     </DesktopContentPage>
   );
 }

@@ -10,21 +10,41 @@ export const MOBILE_REQUESTS_PAGE_CLASS = "min-h-screen bg-[#040404]";
 export const MOBILE_REQUESTS_FILTER_TRIGGER =
   "h-12 px-4 rounded-lg border border-border bg-transparent text-foreground";
 
+/** Desktop requests filters / modals — explicit hex (portaled Select, no theme tokens). */
+export const REQUESTS_DESKTOP_SELECT_TRIGGER =
+  "h-10 rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] text-white shadow-none focus:ring-2 focus:ring-[#F35713]/30";
+
+export const REQUESTS_DESKTOP_SELECT_CONTENT =
+  "z-[120] bg-[#2C2C2E] border border-[#3A3A3C] text-white";
+
+export const REQUESTS_DESKTOP_SELECT_ITEM =
+  "text-white focus:bg-[#3A3A3C] focus:text-white data-[highlighted]:bg-[#3A3A3C] data-[highlighted]:text-white";
+
+export const REQUESTS_DESKTOP_OUTLINE_BTN =
+  "border-[#3A3A3C] bg-transparent text-white hover:bg-white/10 hover:text-white";
+
 export function mobileRequestsFilterTrigger(
   variant: "mobile" | "desktop",
   extraClass?: string,
 ) {
   if (variant === "desktop") {
-    return cn(extraClass ?? "w-[140px]", "bg-desktop-card border-white/10 text-white");
+    return cn(extraClass ?? "w-[140px]", REQUESTS_DESKTOP_SELECT_TRIGGER);
   }
   return cn("flex-1 min-w-0", MOBILE_REQUESTS_FILTER_TRIGGER, extraClass);
 }
 
 export function mobileRequestsFilterContent(variant: "mobile" | "desktop") {
   if (variant === "desktop") {
-    return "bg-desktop-card border-white/10";
+    return REQUESTS_DESKTOP_SELECT_CONTENT;
   }
   return "z-[110] bg-[#040404] border border-border text-foreground";
+}
+
+export function mobileRequestsFilterItem(variant: "mobile" | "desktop") {
+  if (variant === "desktop") {
+    return REQUESTS_DESKTOP_SELECT_ITEM;
+  }
+  return undefined;
 }
 
 /** RN requests tab row */

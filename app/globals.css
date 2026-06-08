@@ -573,6 +573,15 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .client-desktop-content textarea::placeholder {
     color: #8E8E93 !important;
   }
+  /* Radix Select trigger — not covered by input/select rules above */
+  .desktop-main-content .client-desktop-content [role="combobox"] {
+    border-color: var(--client-border, #3A3A3C) !important;
+    background-color: var(--client-bg-muted, #1C1C1E) !important;
+    color: #ffffff !important;
+  }
+  .desktop-main-content .client-desktop-content [role="combobox"] span[data-placeholder] {
+    color: #8E8E93 !important;
+  }
   .client-desktop-content label {
     color: #ffffff !important;
   }
@@ -609,6 +618,71 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .desktop-main-content .client-desktop-content .border-border,
   .desktop-main-content .client-desktop-dark .border-border {
     border-color: hsl(var(--desktop-border)) !important;
+  }
+  /* Switch thumb uses bg-background — overridden to transparent above */
+  .desktop-main-content [role="switch"][data-state="checked"] {
+    background-color: #e85d2b !important;
+    background-image: none !important;
+  }
+  .desktop-main-content [role="switch"][data-state="unchecked"] {
+    background-color: #3a3a3c !important;
+  }
+  .desktop-main-content [role="switch"] > span {
+    background-color: #ffffff !important;
+  }
+}
+
+/*
+ * Portaled management modals (Dialog / AlertDialog) — same tokens as client-desktop-content.
+ * Renders on document.body outside .desktop-main-content.
+ */
+@media (min-width: 768px) {
+  .management-modal-dark {
+    color: #ffffff;
+  }
+  .management-modal-dark .text-foreground,
+  .management-modal-dark .text-card-foreground,
+  .management-modal-dark h2,
+  .management-modal-dark label {
+    color: #ffffff !important;
+  }
+  .management-modal-dark .text-muted-foreground {
+    color: #8e8e93 !important;
+  }
+  .management-modal-dark input,
+  .management-modal-dark textarea,
+  .management-modal-dark select,
+  .management-modal-dark [role="combobox"] {
+    border-color: #3a3a3c !important;
+    background-color: #2c2c2e !important;
+    color: #ffffff !important;
+  }
+  .management-modal-dark input::placeholder,
+  .management-modal-dark textarea::placeholder {
+    color: #8e8e93 !important;
+  }
+  .management-modal-dark [role="combobox"] span[data-placeholder] {
+    color: #8e8e93 !important;
+  }
+  .management-modal-dark .border-border,
+  .management-modal-dark .border-input,
+  .management-modal-dark .border {
+    border-color: #3a3a3c !important;
+  }
+  .management-modal-dark .bg-card,
+  .management-modal-dark .bg-muted,
+  .management-modal-dark .bg-background {
+    background-color: #2c2c2e !important;
+  }
+  .management-modal-dark .text-primary {
+    color: #f35713 !important;
+  }
+  .management-modal-dark .text-destructive {
+    color: hsl(var(--destructive)) !important;
+  }
+  .management-modal-dark .bg-primary {
+    background-color: #f35713 !important;
+    color: #ffffff !important;
   }
 }
 

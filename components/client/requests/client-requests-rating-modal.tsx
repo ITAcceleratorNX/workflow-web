@@ -1,6 +1,7 @@
 "use client";
 
 import { RatingModal } from "@/components/RatingModal";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import type { SubRequest } from "@/stores/useRequestStore";
 
 interface ClientRequestsRatingModalProps {
@@ -26,6 +27,8 @@ export function ClientRequestsRatingModal({
   onSubmit,
   userRatings,
 }: ClientRequestsRatingModalProps) {
+  const isDesktop = useIsDesktop();
+
   return (
     <RatingModal
       isOpen={isOpen && !!requestToRate}
@@ -36,6 +39,7 @@ export function ClientRequestsRatingModal({
       currentRating={requestToRate ? userRatings[requestToRate.id]?.rating : undefined}
       comment={ratingComment}
       onCommentChange={onCommentChange}
+      variant={isDesktop ? "dark" : "default"}
     />
   );
 }

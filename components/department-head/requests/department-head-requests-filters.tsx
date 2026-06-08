@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import {
   mobileRequestsFilterContent,
+  mobileRequestsFilterItem,
   mobileRequestsFilterTrigger,
 } from "@/constants/mobile-requests-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
@@ -37,6 +38,7 @@ export function DepartmentHeadRequestsFilters({
 }: DepartmentHeadRequestsFiltersProps) {
   const triggerClass = mobileRequestsFilterTrigger(variant);
   const contentClass = mobileRequestsFilterContent(variant);
+  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <>
@@ -46,7 +48,7 @@ export function DepartmentHeadRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {statusFilterOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className={itemClass}>
               {option.label}
             </SelectItem>
           ))}
@@ -58,7 +60,7 @@ export function DepartmentHeadRequestsFilters({
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className={itemClass}>
               {option.label}
             </SelectItem>
           ))}

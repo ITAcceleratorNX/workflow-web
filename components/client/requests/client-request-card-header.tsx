@@ -4,8 +4,9 @@ import { useCallback } from "react";
 import { CardHeader } from "@/components/ui/card";
 import { CheckCircle, Clock, User, XCircle } from "lucide-react";
 import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
-import { RoleBasedActionMenu } from "@/components/requests";
+import { RequestActionMenu } from "@/components/requests";
 import { getTypeLabel } from "@/constants/requests";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const getStatusIcon = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -41,6 +42,10 @@ export function ClientRequestCardHeader({
   onRateRequest,
   onDelete,
 }: ClientRequestCardHeaderProps) {
+  const userId = useAuthStore((s) => s.user?.id);
+  const primarySub =
+    requestGroup.requests?.length === 1 ? requestGroup.requests[0] : null;
+
   return (
     <CardHeader className="pb-3 px-5 pt-5">
       <div className="flex items-start justify-between gap-3">
@@ -62,14 +67,15 @@ export function ClientRequestCardHeader({
         </div>
         <div className="flex gap-1 items-center">
           {getStatusIcon(requestGroup.status)}
-          <RoleBasedActionMenu
+          <RequestActionMenu
             request={requestGroup}
-            isDesktop={isDesktop}
+            subRequest={primarySub}
             userRole="client"
-            isSubRequest={false}
-            onViewDetails={onViewDetails}
+            userId={userId}
+            variant={isDesktop ? "dialog" : "sheet"}
             onRateRequest={onRateRequest}
             onDelete={onDelete}
+            onOpenComments={() => onViewDetails(requestGroup)}
           />
         </div>
       </div>
@@ -93,6 +99,6 @@ export function useClientRequestCardHeader({
         onDelete={onDelete}
       />
     ),
-    [isDesktop, onViewDetails, onRateRequest, onDelete]
+    [isDesktop, onViewDetails, onRateRequest, onDelete],
   );
 }

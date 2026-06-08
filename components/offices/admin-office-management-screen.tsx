@@ -15,13 +15,15 @@ import {
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ManagementAlertDialogCancel,
+  ManagementAlertDialogContent,
+  ManagementAlertDialogDescription,
+  ManagementAlertDialogTitle,
+} from "@/components/layout/management-alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -849,16 +851,16 @@ export function AdminOfficeManagementScreen({
         open={deleteOfficeTarget != null}
         onOpenChange={(open) => !open && setDeleteOfficeTarget(null)}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить офис?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить офис?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               Офис «{deleteOfficeTarget?.name}» будет удалён. Переговорные и привязки тоже могут быть
               затронуты.
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={confirmDeleteOffice}
@@ -866,22 +868,22 @@ export function AdminOfficeManagementScreen({
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
 
       <AlertDialog
         open={deleteRoomTarget != null}
         onOpenChange={(open) => !open && setDeleteRoomTarget(null)}
       >
-        <AlertDialogContent>
+        <ManagementAlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить переговорную?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <ManagementAlertDialogTitle>Удалить переговорную?</ManagementAlertDialogTitle>
+            <ManagementAlertDialogDescription>
               Комната «{deleteRoomTarget?.room.name}» будет удалена.
-            </AlertDialogDescription>
+            </ManagementAlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <ManagementAlertDialogCancel>Отмена</ManagementAlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={confirmDeleteRoom}
@@ -889,7 +891,7 @@ export function AdminOfficeManagementScreen({
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </ManagementAlertDialogContent>
       </AlertDialog>
     </div>
   );

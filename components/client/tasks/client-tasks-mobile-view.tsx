@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
@@ -21,15 +21,24 @@ import { UserTaskRow } from "@/components/tasks/user-task-row";
 import { TeamsInboxPanel } from "@/components/teams/teams-inbox-panel";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import type { UseClientTasksPageResult } from "@/hooks/use-client-tasks-page";
+import { scrollTaskStripToIndex, taskStripVisibleIndex } from "@/lib/task-calendar-strip";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-type ClientTasksMobileViewProps = UseClientTasksPageResult;
+export type ClientTasksViewLayout = "mobile" | "desktop";
+
+type ClientTasksMobileViewProps = UseClientTasksPageResult & {
+  layout?: ClientTasksViewLayout;
+};
 
 /** Mobile client tasks — parity с workflow-mobile app/client/tasks.tsx. */
-export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
+export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTasksMobileViewProps) {
+  const isDesktopLayout = layout === "desktop";
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.user?.id ?? null);
   const [teamsPanelOpen, setTeamsPanelOpen] = useState(false);
+  const upcomingScrollRef = useRef<HTMLDivElement>(null);
+  const completedScrollRef = useRef<HTMLDivElement>(null);
 
   const {
     viewTabs,
@@ -64,6 +73,27 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
     openTaskStats,
   } = props;
 
+  useEffect(() => {
+    if (mainView !== "upcoming") return;
+    const activeKey = upcomingDate ?? tomorrowKey;
+    const idx = upcomingStripDays.findIndex((d) => d.key === activeKey);
+    if (idx < 0) return;
+    const el = upcomingScrollRef.current;
+    if (!el) return;
+    scrollTaskStripToIndex(el, idx, upcomingStripDays.length);
+    setUpcomingVisibleDateKey(activeKey);
+  }, [mainView, upcomingDate, tomorrowKey, upcomingStripDays, setUpcomingVisibleDateKey]);
+
+  useEffect(() => {
+    if (mainView !== "completed") return;
+    const idx = completedStripDays.findIndex((d) => d.key === completedDateKey);
+    if (idx < 0) return;
+    const el = completedScrollRef.current;
+    if (!el) return;
+    scrollTaskStripToIndex(el, idx, completedStripDays.length);
+    setCompletedVisibleDateKey(completedDateKey);
+  }, [mainView, completedDateKey, completedStripDays, setCompletedVisibleDateKey]);
+
   const headerRight = (
     <button
       type="button"
@@ -78,8 +108,10 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
   return (
     <>
       <div
-        className="min-h-screen bg-background flex flex-col"
-        
+        className={cn(
+          "flex flex-col",
+          isDesktopLayout ? "min-h-0" : "min-h-screen bg-background",
+        )}
       >
         <ScreenHeader title="Задачи" rightSlot={headerRight} />
 
@@ -106,15 +138,13 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
               <div className="mt-2.5">
                 <p className="text-base font-bold text-white capitalize mb-2">{upcomingMonthLabel}</p>
                 <div
+                  ref={upcomingScrollRef}
                   className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
                   onScroll={(e) => {
                     const el = e.currentTarget;
-                    const idx = Math.max(
-                      0,
-                      Math.min(
-                        upcomingStripDays.length - 1,
-                        Math.round(el.scrollLeft / 50),
-                      ),
+                    const idx = Math.min(
+                      upcomingStripDays.length - 1,
+                      taskStripVisibleIndex(el.scrollLeft, el.clientWidth),
                     );
                     const visibleKey = upcomingStripDays[idx]?.key ?? null;
                     if (visibleKey) setUpcomingVisibleDateKey(visibleKey);
@@ -154,15 +184,13 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
               <div className="mt-2.5">
                 <p className="text-base font-bold text-white capitalize mb-2">{completedMonthLabel}</p>
                 <div
+                  ref={completedScrollRef}
                   className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
                   onScroll={(e) => {
                     const el = e.currentTarget;
-                    const idx = Math.max(
-                      0,
-                      Math.min(
-                        completedStripDays.length - 1,
-                        Math.round(el.scrollLeft / 50),
-                      ),
+                    const idx = Math.min(
+                      completedStripDays.length - 1,
+                      taskStripVisibleIndex(el.scrollLeft, el.clientWidth),
                     );
                     const visibleKey = completedStripDays[idx]?.key ?? null;
                     if (visibleKey) setCompletedVisibleDateKey(visibleKey);
@@ -263,7 +291,12 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
               type="button"
               onClick={() => setAddSheetOpen(true)}
               aria-label="Добавить задачу"
-              className="fixed right-4 bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px)+8px)] w-14 h-14 rounded-full bg-[#E25B21] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform z-10"
+              className={cn(
+                "w-14 h-14 rounded-full bg-[#E25B21] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform z-10",
+                isDesktopLayout
+                  ? "absolute right-0 bottom-4"
+                  : "fixed right-4 bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px)+8px)]",
+              )}
             >
               <Plus className="h-7 w-7" />
             </button>
@@ -384,6 +417,7 @@ export function ClientTasksMobileView(props: ClientTasksMobileViewProps) {
         tomorrowKey={tomorrowKey}
         defaultDateKey={mainView === "upcoming" ? upcomingDate : null}
         addTask={addTask}
+        variant={isDesktopLayout ? "dialog" : "sheet"}
       />
 
       {teamsPanelOpen ? <TeamsInboxPanel onClose={() => setTeamsPanelOpen(false)} /> : null}
