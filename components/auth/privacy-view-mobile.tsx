@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PRIVACY_CONTENT, type PrivacyLanguage } from "@/constants/privacy-content";
@@ -9,55 +9,69 @@ import { PRIVACY_CONTENT, type PrivacyLanguage } from "@/constants/privacy-conte
 export function PrivacyViewMobile() {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sectionOffsetsRef = useRef<number[]>([]);
   const [lang, setLang] = useState<PrivacyLanguage>("ru");
-  const [sectionOffsets, setSectionOffsets] = useState<number[]>([]);
   const [activeSection, setActiveSection] = useState(0);
 
   const content = PRIVACY_CONTENT[lang];
 
+  const measureSections = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const containerTop = scrollEl.getBoundingClientRect().top;
+    sectionOffsetsRef.current = sectionRefs.current.map((node) => {
+      if (!node) return 0;
+      return node.getBoundingClientRect().top - containerTop + scrollEl.scrollTop;
+    });
+  }, []);
+
   useEffect(() => {
-    setSectionOffsets([]);
     setActiveSection(0);
+    sectionRefs.current = [];
+    sectionOffsetsRef.current = [];
     scrollRef.current?.scrollTo({ top: 0 });
   }, [lang]);
 
-  const handleSectionLayout = useCallback(
-    (index: number) => (node: HTMLDivElement | null) => {
-      if (!node || !scrollRef.current) return;
-      const containerTop = scrollRef.current.getBoundingClientRect().top;
-      const y = node.getBoundingClientRect().top - containerTop + scrollRef.current.scrollTop;
-      setSectionOffsets((prev) => {
-        const next = [...prev];
-        next[index] = y;
-        return next;
-      });
-    },
-    []
-  );
+  useLayoutEffect(() => {
+    measureSections();
+  }, [lang, content.sections.length, measureSections]);
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const observer = new ResizeObserver(() => {
+      measureSections();
+    });
+    observer.observe(scrollEl);
+    return () => observer.disconnect();
+  }, [lang, measureSections]);
 
   const scrollToSection = useCallback(
     (index: number) => {
-      const y = sectionOffsets[index];
+      measureSections();
+      const y = sectionOffsetsRef.current[index];
       if (y !== undefined && scrollRef.current) {
         scrollRef.current.scrollTo({ top: y - 16, behavior: "smooth" });
         setActiveSection(index);
       }
     },
-    [sectionOffsets]
+    [measureSections]
   );
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el || sectionOffsets.length === 0) return;
+    const offsets = sectionOffsetsRef.current;
+    if (!el || offsets.length === 0) return;
     const offsetY = el.scrollTop;
     let idx = 0;
-    for (let i = 0; i < sectionOffsets.length; i++) {
-      if (sectionOffsets[i] != null && offsetY >= sectionOffsets[i] - 32) {
+    for (let i = 0; i < offsets.length; i++) {
+      if (offsets[i] != null && offsetY >= offsets[i] - 32) {
         idx = i;
       }
     }
-    setActiveSection(idx);
-  }, [sectionOffsets]);
+    setActiveSection((prev) => (prev === idx ? prev : idx));
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background safe-area-top safe-area-bottom">
@@ -127,7 +141,9 @@ export function PrivacyViewMobile() {
             {content.sections.map((section, index) => (
               <div
                 key={section.heading}
-                ref={handleSectionLayout(index)}
+                ref={(node) => {
+                  sectionRefs.current[index] = node;
+                }}
                 className="mb-6 flex flex-col gap-2.5 last:mb-0"
               >
                 <h2 className="text-[17px] font-bold leading-6 text-white">
