@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-const EXPORT_BASE_URL = "https://workflow-back-zpk4.onrender.com/api/analytics/export";
+const EXPORT_BASE_URL = "http://localhost:3001/api/analytics/export";
 
 export async function exportManagerAnalytics(
   token: string | null,

@@ -133,7 +133,7 @@ export function generateVerificationCode(length: number = 6): string {
 export async function sendVerificationCode(phone: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<{ success: boolean; message?: string }> {
   try {
     // Отправляем запрос на бэкенд, который сгенерирует код, сохранит в БД и отправит SMS
-    const response = await fetch('https://workflow-back-zpk4.onrender.com/api/auth/send-verification-code', {
+    const response = await fetch('http://localhost:3001/api/auth/send-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export async function sendVerificationCode(phone: string, purpose: 'registration
 // Функция для проверки кода верификации
 export async function verifyCode(phone: string, code: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await fetch('https://workflow-back-zpk4.onrender.com/api/auth/verify-code', {
+    const response = await fetch('http://localhost:3001/api/auth/verify-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

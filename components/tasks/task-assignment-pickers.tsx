@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Search, UserX, Users } from "lucide-react";
+import { AssignUserSearchFilters } from "@/components/tasks/assign-user-search-filters";
 import { TaskPickerShell, type TaskPickerVariant } from "@/components/tasks/task-picker-shell";
+import { useAssignUserSearchScope } from "@/hooks/use-assign-user-search-scope";
 import { useTaskPickerTheme } from "@/hooks/use-task-picker-theme";
+import { formatUserSearchLabel } from "@/lib/user-search-display";
 import { searchUsersForAssign, type UserSearchItem } from "@/lib/user-search";
 import type { Team } from "@/lib/teams-api";
 import { cn } from "@/lib/utils";
@@ -151,6 +154,7 @@ export function TaskExecutorPickerOverlay({
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<UserSearchItem[]>([]);
+  const assignSearch = useAssignUserSearchScope();
 
   const teamMode = teamScope && team != null;
   const teamPending = teamScope && team == null && teamLoading;
@@ -168,19 +172,19 @@ export function TaskExecutorPickerOverlay({
   useEffect(() => {
     if (!visible || teamMode) return;
     const q = search.trim();
-    if (q.length < 1) {
+    if (q.length < 2) {
       setResults([]);
       return;
     }
     const t = setTimeout(async () => {
       setSearching(true);
-      const res = await searchUsersForAssign(q);
+      const res = await searchUsersForAssign(q, assignSearch.searchOptions);
       setSearching(false);
       if (res.ok) setResults(res.data);
       else setResults([]);
     }, 300);
     return () => clearTimeout(t);
-  }, [search, visible, teamMode]);
+  }, [search, visible, teamMode, assignSearch.searchOptions]);
 
   const pick = useCallback(
     (executor: { id: number; full_name: string } | null) => {
@@ -235,6 +239,7 @@ export function TaskExecutorPickerOverlay({
         )
       ) : (
         <>
+          <AssignUserSearchFilters filters={assignSearch} variant={variant} />
           <div
             className={cn(
               "flex items-center gap-2 rounded-xl border px-3 py-2 my-2",
@@ -246,7 +251,7 @@ export function TaskExecutorPickerOverlay({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Имя или телефон"
+              placeholder="Имя или телефон (от 2 символов)"
               className="flex-1 bg-transparent outline-none text-base min-h-10"
               style={{ color: text }}
             />
@@ -265,10 +270,11 @@ export function TaskExecutorPickerOverlay({
               primary={primary}
               selected={selectedExecutor?.id === u.id}
               onClick={() => pick({ id: u.id, full_name: u.full_name })}
-              label={u.full_name}
+              label={formatUserSearchLabel(u)}
+              multiline
             />
           ))}
-          {search.trim().length >= 1 && !searching && results.length === 0 ? (
+          {search.trim().length >= 2 && !searching && results.length === 0 ? (
             <p className="text-sm py-2 px-2" style={{ color: textMuted }}>
               Никого не найдено
             </p>
@@ -318,6 +324,7 @@ function PickerRow({
   onClick,
   icon,
   label,
+  multiline = false,
 }: {
   isDialog: boolean;
   border: string;
@@ -327,6 +334,7 @@ function PickerRow({
   onClick: () => void;
   icon?: React.ReactNode;
   label: string;
+  multiline?: boolean;
 }) {
   return (
     <button
@@ -342,7 +350,10 @@ function PickerRow({
       style={isDialog ? undefined : { borderColor: border }}
     >
       {icon}
-      <span className="flex-1 truncate" style={{ color: text }}>
+      <span
+        className={cn("flex-1", multiline ? "line-clamp-2 whitespace-normal" : "truncate")}
+        style={{ color: text }}
+      >
         {label}
       </span>
       {selected ? <Check className="h-5 w-5 shrink-0" style={{ color: primary }} /> : null}

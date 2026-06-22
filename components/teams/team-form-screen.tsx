@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Lock, Star, Trash2, X } from "lucide-react";
 import { ScreenHeader } from "@/components/ui/screen-header";
+import { AssignUserSearchFilters } from "@/components/tasks/assign-user-search-filters";
+import { useAssignUserSearchScope } from "@/hooks/use-assign-user-search-scope";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserSearchLabel } from "@/lib/user-search-display";
 import {
   normalizeUserSearchItem,
   searchUsersForAssign,
@@ -46,6 +49,8 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
   const [memberSearch, setMemberSearch] = useState("");
   const [memberResults, setMemberResults] = useState<UserSearchItem[]>([]);
   const [memberSearching, setMemberSearching] = useState(false);
+
+  const assignSearch = useAssignUserSearchScope();
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -92,12 +97,12 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
     }
     const t = setTimeout(async () => {
       setLeaderSearching(true);
-      const res = await searchUsersForAssign(q);
+      const res = await searchUsersForAssign(q, assignSearch.searchOptions);
       setLeaderSearching(false);
       if (res.ok) setLeaderResults(res.data);
     }, 300);
     return () => clearTimeout(t);
-  }, [leaderSearch]);
+  }, [leaderSearch, assignSearch.searchOptions]);
 
   useEffect(() => {
     const q = memberSearch.trim();
@@ -107,12 +112,12 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
     }
     const t = setTimeout(async () => {
       setMemberSearching(true);
-      const res = await searchUsersForAssign(q);
+      const res = await searchUsersForAssign(q, assignSearch.searchOptions);
       setMemberSearching(false);
       if (res.ok) setMemberResults(res.data);
     }, 300);
     return () => clearTimeout(t);
-  }, [memberSearch]);
+  }, [memberSearch, assignSearch.searchOptions]);
 
   const memberIdsForSubmit = useMemo(() => {
     const ids = new Set<number>();
@@ -310,6 +315,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
           <p className="text-[13px] font-bold uppercase tracking-wide text-[#8E8E93] mt-5 mb-2">
             Руководитель
           </p>
+          <AssignUserSearchFilters filters={assignSearch} className="mt-1" />
           <div className="rounded-[14px] border border-[#3A3A3C] bg-[#2C2C2E] p-3.5 space-y-2.5">
             <input
               value={leaderSearch}
@@ -329,7 +335,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
                     onClick={() => pickLeader(u)}
                     className="w-full px-3 py-3 text-left text-white border-b border-[#3A3A3C]/60 last:border-0 hover:bg-white/5 disabled:opacity-50"
                   >
-                    {u.full_name}
+                    {formatUserSearchLabel(u)}
                   </button>
                 ))}
               </div>
@@ -376,7 +382,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
                       onClick={() => addMember(u)}
                       className="w-full px-3 py-3 text-left text-white border-b border-[#3A3A3C]/60 last:border-0 hover:bg-white/5"
                     >
-                      {u.full_name}
+                      {formatUserSearchLabel(u)}
                     </button>
                   ))}
               </div>
