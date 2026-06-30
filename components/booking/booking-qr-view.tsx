@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BottomNav } from "@/components/BottomNav";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { formatDateOnly, formatTimeOnly } from "@/lib/dateTimeUtils";
+import { getBookingConfirmationWebUrl } from "@/lib/booking-web-url";
 import { useBookingQrPage } from "@/hooks/use-booking-qr-page";
 
 /** QR confirmation — parity с workflow-mobile `booking/[id].tsx`. */
@@ -26,11 +27,13 @@ export function BookingQrView() {
   const { toast } = useToast();
   const { booking, loading, error } = useBookingQrPage();
 
-  const bookingUrl = typeof window !== "undefined" ? window.location.href : "";
+  const confirmationWebUrl =
+    booking && booking.id > 0 ? getBookingConfirmationWebUrl(booking.id) : "";
+  const shareUrl = confirmationWebUrl || (typeof window !== "undefined" ? window.location.href : "");
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(bookingUrl);
+      await navigator.clipboard.writeText(shareUrl);
       toast({
         title: "Скопировано!",
         description: "Ссылка скопирована в буфер обмена",
@@ -50,7 +53,7 @@ export function BookingQrView() {
         await navigator.share({
           title: "Бронирование переговорной комнаты",
           text: `Бронирование: ${booking?.meetingRoom?.name || booking?.meeting_room?.name || "Комната"}`,
-          url: bookingUrl,
+          url: shareUrl,
         });
       } catch (err: unknown) {
         if ((err as { name?: string }).name !== "AbortError") {
@@ -85,11 +88,14 @@ export function BookingQrView() {
 
   const office = booking.office || booking.meetingRoom?.office || booking.meeting_room?.office;
   const room = booking.meetingRoom || booking.meeting_room;
-  const qrData = JSON.stringify({
-    bookingId: booking.id,
-    roomId: booking.meeting_room_id,
-    tablesRemaining: booking.tables_remaining || room?.capacity || 0,
-  });
+  const qrData =
+    booking.id > 0
+      ? getBookingConfirmationWebUrl(booking.id)
+      : JSON.stringify({
+          bookingId: booking.id,
+          roomId: booking.meeting_room_id,
+          tablesRemaining: booking.tables_remaining || room?.capacity || 0,
+        });
 
   return (
     <div
@@ -171,7 +177,7 @@ export function BookingQrView() {
               <QRCodeSVG value={qrData} size={256} level="H" includeMargin={true} />
             </div>
             <p className="text-sm text-center text-white/60 max-w-xs">
-              Покажите этот QR код исполнителю для сканирования
+              Покажите этот QR-код на охране или ресепшене для подтверждения брони.
             </p>
           </div>
 

@@ -335,6 +335,7 @@ export interface MeetingRoomBooking {
         name: string;
         floor: number;
         capacity: number;
+        photos?: string[];
         office_id?: number | null;
         office?: {
             id: number;
@@ -348,6 +349,7 @@ export interface MeetingRoomBooking {
         name: string;
         floor: number;
         capacity: number;
+        photos?: string[];
         office_id?: number | null;
         office?: {
             id: number;
@@ -361,6 +363,11 @@ export interface MeetingRoomBooking {
         name: string;
         city: string;
         address: string;
+    };
+    client?: {
+        id: number;
+        full_name?: string | null;
+        phone?: string | null;
     };
 }
 
