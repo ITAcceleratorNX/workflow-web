@@ -1,7 +1,9 @@
 import axios from 'axios';
 import {useAuthStore} from "@/stores/useAuthStore";
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL =
+    (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    'https://workflow-back-zpk4.onrender.com/api';
 
 export { API_BASE_URL };
 

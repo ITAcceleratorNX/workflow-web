@@ -50,9 +50,12 @@ function ConfirmPageContent() {
         setBooking(response.data);
       } catch (err: unknown) {
         console.error("Ошибка загрузки бронирования:", err);
+        const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+        const apiMessage = axiosErr.response?.data?.message;
         const message =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          "Не удалось загрузить информацию о бронировании";
+          axiosErr.response?.status === 404
+            ? "Бронирование не найдено"
+            : apiMessage || "Не удалось загрузить информацию о бронировании";
         setError(message);
       } finally {
         setLoading(false);
