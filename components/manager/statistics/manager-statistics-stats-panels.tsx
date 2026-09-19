@@ -96,7 +96,7 @@ export function ManagerStatisticsStatsPanels({
           >
             <CardContent className="flex flex-col gap-3 p-4">
               <div className={`flex gap-3 ${!isDesktop ? "flex-col" : "flex-row"}`}>
-                {user?.role === "manager" ? (
+                {user?.role === "manager" || user?.role === "admin-worker" ? (
                   <div className="flex-1">
                     <Select value={office} onValueChange={setOffice}>
                       <SelectTrigger

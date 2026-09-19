@@ -90,6 +90,9 @@ export interface RequestGroup {
   planned_date?: string;
   created_date: string;
   client?: RequestClient;
+  /** Администратор, взявший заявку в работу (офис-менеджеру она не передаётся). */
+  taken_by_admin_id?: number | null;
+  takenByAdmin?: RequestUser & { role?: string } | null;
   office?: RequestOffice;
   photos?: RequestPhoto[];
   requests: SubRequest[];

@@ -5,8 +5,10 @@ import {
   formatServiceCategoryDisplayName,
   getStatusLabel,
   getTypeLabel,
+  isAdministrativeRequestGroup,
   isLongTermRequestGroup,
 } from "@/constants/requests";
+import { Eye } from "lucide-react";
 import { LongTermBadge } from "./long-term-badge";
 import { RequestDetailPhotoGrid } from "./request-detail-photo-grid";
 
@@ -76,6 +78,8 @@ function getExecutorNames(sub: SubRequest): string[] {
 type RequestDetailMobileBodyProps = {
   request: RequestGroup;
   onPhotoClick: (photo: { url: string; created_at?: string }) => void;
+  /** Роль смотрящего: администратору показываем пояснение по админ-заявке. */
+  userRole?: string;
 };
 
 /**
@@ -85,10 +89,13 @@ type RequestDetailMobileBodyProps = {
 export function RequestDetailMobileBody({
   request,
   onPhotoClick,
+  userRole,
 }: RequestDetailMobileBodyProps) {
   const subRequests = request.requests ?? [];
   const allPhotos = collectAllPhotos(request);
   const isLongTerm = isLongTermRequestGroup(request);
+  const showAdminObserverNotice =
+    userRole === "admin-worker" && isAdministrativeRequestGroup(request);
 
   return (
     <div className="space-y-5">
@@ -101,6 +108,16 @@ export function RequestDetailMobileBody({
         </span>
         {isLongTerm ? <LongTermBadge detail /> : null}
       </div>
+
+      {showAdminObserverNotice ? (
+        <div className="flex items-start gap-3 rounded-xl border border-[#114A65]/40 bg-[#114A65]/15 p-3">
+          <Eye className="mt-0.5 h-4 w-4 shrink-0 text-[#4A8FB0]" />
+          <p className="text-sm text-muted-foreground">
+            Административная заявка. Её ведёт офис-менеджер офиса — вы видите её для
+            контроля статуса и истории.
+          </p>
+        </div>
+      ) : null}
 
       {request.request_type === "planned" && request.planned_date ? (
         <DetailBlock label="Запланировано на">
@@ -159,6 +176,10 @@ export function RequestDetailMobileBody({
 
       {request.location_detail ? (
         <DetailBlock label="Локация в офисе">{request.location_detail}</DetailBlock>
+      ) : null}
+
+      {request.takenByAdmin?.full_name ? (
+        <DetailBlock label="Ответственный">{request.takenByAdmin.full_name}</DetailBlock>
       ) : null}
 
       <DetailBlock label="Офис">{request.office?.name || "—"}</DetailBlock>

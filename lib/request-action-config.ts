@@ -1,6 +1,7 @@
 /**
  * Действия по заявке — parity с workflow-mobile/components/requests/request-action-config.ts
  */
+import { isAdministrativeRequestGroup } from "@/constants/requests";
 import type { RequestGroup, SubRequest } from "@/lib/types/request";
 
 export type RequestUserRole =
@@ -57,19 +58,55 @@ export interface GetActionsParams {
   onAdminCompleteGroup?: () => void;
   onAdminAcceptGroup?: () => void;
   onAdminRejectGroup?: () => void;
+  onStaffStartGroup?: (subReq: SubRequest) => void;
+  /** «Взять в работу» — администратор закрепляет КТО/Клининг заявку за собой. */
+  onAdminTakeGroup?: () => void;
   onEditRequestGroup?: () => void;
   onOpenComments?: () => void;
 }
 
 const STAFF_COMPLETE_SUB_STATUSES = ["in_progress", "awaiting_assignment", "assigned"];
 
+/** Статусы, из которых офис-менеджер может взять подзаявку в работу без исполнителя. */
+const STAFF_START_SUB_STATUSES = ["in_progress", "awaiting_assignment"];
+
+/** У подзаявки есть назначенные исполнители. */
+function hasAssignedExecutors(subRequest: SubRequest): boolean {
+  return (subRequest.executors?.length ?? 0) > 0 || !!subRequest.executor;
+}
+
+/**
+ * Подзаявку закрывает сотрудник (админ / офис-менеджер). Из «Исполнения» — только
+ * когда исполнитель не назначен: такую заявку ведёт сам сотрудник, закрыть её
+ * больше некому.
+ */
+export function isStaffCompletableSubRequest(subRequest: SubRequest): boolean {
+  if (STAFF_COMPLETE_SUB_STATUSES.includes(subRequest.status)) return true;
+  return subRequest.status === "execution" && !hasAssignedExecutors(subRequest);
+}
+
+/**
+ * КТО/Клининг заявка ждёт решения администратора: взять в работу или передать
+ * офис-менеджеру. До этого решения других действий по обработке у него нет.
+ */
+function isAwaitingAdminRouting(
+  request: RequestGroup,
+  userRole: RequestUserRole,
+  isAdministrative: boolean,
+): boolean {
+  return (
+    userRole === "admin-worker" &&
+    !isAdministrative &&
+    request.status === "in_progress" &&
+    !request.taken_by_admin_id
+  );
+}
+
 function canStaffCompleteWithoutAssignment(request: RequestGroup): boolean {
   if (["completed", "rejected", "cancelled"].includes(request.status)) {
     return false;
   }
-  return (request.requests ?? []).some((sr) =>
-    STAFF_COMPLETE_SUB_STATUSES.includes(sr.status),
-  );
+  return (request.requests ?? []).some(isStaffCompletableSubRequest);
 }
 
 export function getRequestActions(params: GetActionsParams): ActionItem[] {
@@ -91,6 +128,8 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
     onAdminCompleteGroup,
     onAdminAcceptGroup,
     onAdminRejectGroup,
+    onStaffStartGroup,
+    onAdminTakeGroup,
     onEditRequestGroup,
     onOpenComments,
     isExecutorLeader,
@@ -98,6 +137,9 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
 
   const actions: ActionItem[] = [];
   const isSub = !!subRequest;
+  /** Административную заявку ведёт офис-менеджер; администратор только наблюдает. */
+  const isAdministrative = isAdministrativeRequestGroup(request);
+  const awaitingAdminRouting = isAwaitingAdminRouting(request, userRole, isAdministrative);
 
   const shareRoles: RequestUserRole[] = [
     "client",
@@ -230,15 +272,28 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
   }
 
   if (userRole === "department-head" && isSub && subRequest) {
+    if (
+      isAdministrative &&
+      onStaffStartGroup &&
+      STAFF_START_SUB_STATUSES.includes(subRequest.status)
+    ) {
+      actions.push({
+        icon: "play-arrow",
+        label: "Взять в работу",
+        onClick: () => onStaffStartGroup(subRequest),
+        variant: "primary",
+      });
+    }
     if (onAdminCompleteGroup && canStaffCompleteWithoutAssignment(request)) {
       actions.push({
         icon: "done-all",
-        label: "Завершить без назначения",
+        label: isAdministrative ? "Завершить заявку" : "Завершить без назначения",
         onClick: onAdminCompleteGroup,
         variant: "primary",
       });
     }
-    if (subRequest.status === "awaiting_assignment" && onAssignExecutor) {
+    // Административную заявку офис-менеджер ведёт сам, исполнитель не назначается.
+    if (!isAdministrative && subRequest.status === "awaiting_assignment" && onAssignExecutor) {
       actions.push({
         icon: "person-add",
         label: "Назначить исполнителей",
@@ -247,6 +302,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
       });
     }
     if (
+      !isAdministrative &&
       subRequest.status !== "in_progress" &&
       subRequest.status !== "awaiting_assignment" &&
       subRequest.status !== "completed" &&
@@ -270,12 +326,22 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
   }
 
   if (userRole === "admin-worker" && isSub && subRequest) {
-    const canProcessGroup = request.status === "in_progress";
+    // Административную заявку администратор не подтверждает, не отклоняет,
+    // не завершает и не редактирует — она закреплена за офис-менеджером.
+    const canProcessGroup = request.status === "in_progress" && !isAdministrative;
 
-    if (onAdminAcceptGroup && canProcessGroup) {
+    if (onAdminTakeGroup && canProcessGroup && !request.taken_by_admin_id) {
+      actions.push({
+        icon: "play-arrow",
+        label: "Взять в работу",
+        onClick: onAdminTakeGroup,
+        variant: "primary",
+      });
+    }
+    if (onAdminAcceptGroup && canProcessGroup && !request.taken_by_admin_id) {
       actions.push({
         icon: "playlist-add-check",
-        label: "Принять заявку",
+        label: "Передать Офис-менеджеру",
         onClick: onAdminAcceptGroup,
         variant: "primary",
       });
@@ -288,7 +354,12 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "destructive",
       });
     }
-    if (onAdminCompleteGroup && canStaffCompleteWithoutAssignment(request)) {
+    if (
+      !isAdministrative &&
+      !awaitingAdminRouting &&
+      onAdminCompleteGroup &&
+      canStaffCompleteWithoutAssignment(request)
+    ) {
       actions.push({
         icon: "done-all",
         label: "Завершить без назначения",
@@ -321,7 +392,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "default",
       });
     }
-    if (onDelete) {
+    if (!isAdministrative && onDelete) {
       actions.push({
         icon: "delete",
         label: "Удалить заявку",
@@ -329,7 +400,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "destructive",
       });
     }
-    if (request.status !== "completed" && onEditRequestGroup) {
+    if (!isAdministrative && request.status !== "completed" && onEditRequestGroup) {
       actions.push({
         icon: "edit",
         label: "Редактировать заявку",
@@ -347,7 +418,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
       });
     }
     const deleteTarget = request.requests?.[0];
-    if (onDelete && deleteTarget) {
+    if (!isAdministrative && onDelete && deleteTarget) {
       actions.push({
         icon: "delete",
         label: "Удалить",

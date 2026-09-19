@@ -6,7 +6,12 @@ import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight, Clock
 import { RequestGroup } from "@/stores/useRequestStore"
 import { getThumbnailUrl } from "@/lib/imageOptimization"
 import { formatCardDateShort, formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
-import { getStatusLabel, getTypeLabel } from "@/constants/requests"
+import {
+  formatServiceCategoryDisplayName,
+  getStatusLabel,
+  getTypeLabel,
+} from "@/constants/requests"
+import { getPrimarySubRequest } from "@/lib/request-utils"
 
 interface RequestCardProps {
   request: RequestGroup
@@ -95,6 +100,15 @@ function RequestCardComponent({
     [request.status]
   )
 
+  /** Направление и офис заявки: администратор работает по всем офисам (как в mobile). */
+  const serviceAndOffice = useMemo(() => {
+    const serviceName = formatServiceCategoryDisplayName(
+      getPrimarySubRequest(request)?.category?.name
+    )
+    const officeName = request.office?.name?.trim() || "—"
+    return `${serviceName} · ${officeName}`
+  }, [request])
+
   const cardClassName = useMemo(() => {
     return `hover:shadow-xl transition-all duration-300 border-0 shadow-md relative overflow-hidden cursor-pointer will-change-transform backdrop-blur-sm ${
       request.is_long_term && request.request_type !== 'recurring'
@@ -146,6 +160,9 @@ function RequestCardComponent({
               {statusLabel}
             </span>
           </div>
+
+          {/* Направление · офис */}
+          <p className="text-gray-400 text-sm mb-1 truncate">{serviceAndOffice}</p>
 
           {/* Локация */}
           <p className="text-gray-400 text-sm mb-2 truncate">
@@ -307,6 +324,7 @@ export const RequestCard = React.memo(RequestCardComponent, (prevProps, nextProp
     prevProps.request.id !== nextProps.request.id ||
     prevProps.request.status !== nextProps.request.status ||
     prevProps.request.created_date !== nextProps.request.created_date ||
+    prevProps.request.office_id !== nextProps.request.office_id ||
     prevProps.isLast !== nextProps.isLast ||
     prevProps.userRole !== nextProps.userRole
   ) {

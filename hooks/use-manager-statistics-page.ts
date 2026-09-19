@@ -34,8 +34,6 @@ export function useManagerStatisticsPage() {
   const [offices, setOffices] = useState<OfficeType[]>([]);
 
   const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
-  const effectiveOffice =
-    user?.role === "admin-worker" && user?.office_id ? String(user.office_id) : office;
 
   const fetchOffices = useCallback(async () => {
     if (offices.length !== 0) return;
@@ -50,7 +48,8 @@ export function useManagerStatisticsPage() {
   useEffect(() => {
     if (token && (user?.role === "manager" || user?.role === "admin-worker")) {
       fetchStats("manager");
-      if (user?.role === "manager") fetchOffices();
+      // Администратор работает по всем офисам — селект офиса нужен и ему.
+      fetchOffices();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
@@ -59,9 +58,9 @@ export function useManagerStatisticsPage() {
     if (!managerStats || managerStats.length === 0) return [];
 
     const subset =
-      effectiveOffice === "all"
+      office === "all"
         ? managerStats
-        : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
+        : managerStats.filter((s) => s.officeId === Number(office));
 
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split("T")[0];
@@ -100,15 +99,15 @@ export function useManagerStatisticsPage() {
     return Object.entries(map)
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [office, period, startDate, endDate, managerStats, effectiveOffice]);
+  }, [office, period, startDate, endDate, managerStats]);
 
   const distribution = useMemo(() => {
     if (!managerStats || managerStats.length === 0) return;
 
     const subset =
-      effectiveOffice === "all"
+      office === "all"
         ? managerStats
-        : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
+        : managerStats.filter((s) => s.officeId === Number(office));
 
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split("T")[0];
@@ -175,7 +174,7 @@ export function useManagerStatisticsPage() {
       urgentPercent: pct(urgent),
       plannedPercent: pct(planned),
     };
-  }, [effectiveOffice, period, startDate, endDate, managerStats]);
+  }, [office, period, startDate, endDate, managerStats]);
 
   const summary = useMemo(() => {
     if (!managerStats || managerStats.length === 0) {
@@ -192,9 +191,9 @@ export function useManagerStatisticsPage() {
     }
 
     const subset =
-      effectiveOffice === "all"
+      office === "all"
         ? managerStats
-        : managerStats.filter((s) => s.officeId === Number(effectiveOffice));
+        : managerStats.filter((s) => s.officeId === Number(office));
 
     if (startDate && endDate) {
       const startDateStr = startDate.toISOString().split("T")[0];
@@ -259,7 +258,7 @@ export function useManagerStatisticsPage() {
     const overdueRate = total > 0 ? Math.round((overdue / total) * 100) : 0;
     const avgPerDay = Math.round(total / days);
     return { total, completed, overdue, inWork, newRequests, completionRate, overdueRate, avgPerDay };
-  }, [managerStats, effectiveOffice, period, startDate, endDate]);
+  }, [managerStats, office, period, startDate, endDate]);
 
   const handleRefresh = useCallback(async () => {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   COMPLEXITY_OPTIONS,
+  formatServiceCategoryDisplayName,
+  matchServiceCategoryInOffice,
   REQUEST_TYPE_OPTIONS,
   SLA_OPTIONS,
+  type OfficeServiceCategory,
 } from "@/constants/requests";
 import type { RequestGroup } from "@/lib/types/request";
+import { getSubRequestCategoryId } from "@/lib/request-utils";
 import { MANAGEMENT_MODAL_DARK_CLASS } from "@/constants/management-modal-ui";
 import {
   REQUESTS_DESKTOP_OUTLINE_BTN,
@@ -40,9 +44,14 @@ interface AdminAcceptRequestModalProps {
   isOpen: boolean;
   request: RequestGroup | null;
   offices: OfficeOption[];
+  /** Категории выбранного офиса: грузятся родителем по onOfficeChange. */
+  categories: OfficeServiceCategory[];
+  categoriesLoading?: boolean;
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
+  /** Офис, выбранный в модалке (null — не выбран): родитель грузит его категории. */
+  onOfficeChange: (officeId: number | null) => void;
   onAccept: (payload: AdminAcceptRequestPayload) => Promise<void>;
 }
 
@@ -50,9 +59,12 @@ export function AdminAcceptRequestModal({
   isOpen,
   request,
   offices,
+  categories,
+  categoriesLoading = false,
   loading = false,
   error,
   onClose,
+  onOfficeChange,
   onAccept,
 }: AdminAcceptRequestModalProps) {
   const [requestType, setRequestType] = useState("normal");
@@ -61,7 +73,41 @@ export function AdminAcceptRequestModal({
   const [subSettings, setSubSettings] = useState<
     Record<number, { sla: string; complexity: string }>
   >({});
+  /** category_id подзаявки в выбранном офисе (строка — значение Select). */
+  const [subCategoryIds, setSubCategoryIds] = useState<Record<number, string>>({});
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const subRequests = useMemo(() => request?.requests ?? [], [request]);
+
+  const keepsOriginalOffice =
+    request != null && parseInt(officeId, 10) === Number(request.office_id);
+
+  /**
+   * Категории выбранного офиса. Для родного офиса заявки добавляем её текущую
+   * категорию, даже если её нет в справочнике (переименована / удалена), —
+   * иначе принять заявку без смены офиса стало бы невозможно.
+   */
+  const availableCategories = useMemo(() => {
+    const byId = new Map(categories.map((c) => [c.id, { id: c.id, name: c.name }]));
+    if (keepsOriginalOffice) {
+      subRequests.forEach((sr) => {
+        const id = getSubRequestCategoryId(sr);
+        if (id != null && !byId.has(id)) {
+          byId.set(id, { id, name: sr.category?.name ?? `Категория #${id}` });
+        }
+      });
+    }
+    return [...byId.values()];
+  }, [categories, keepsOriginalOffice, subRequests]);
+
+  const categoryOptions = useMemo(
+    () =>
+      availableCategories.map((c) => ({
+        value: String(c.id),
+        label: formatServiceCategoryDisplayName(c.name),
+      })),
+    [availableCategories],
+  );
 
   useEffect(() => {
     if (!isOpen || !request) return;
@@ -73,8 +119,41 @@ export function AdminAcceptRequestModal({
       next[sr.id] = { sla: sr.sla || "", complexity: sr.complexity || "" };
     });
     setSubSettings(next);
+    setSubCategoryIds({});
     setLocalError(null);
   }, [isOpen, request]);
+
+  /** Родитель грузит категории выбранного офиса: они нужны для подзаявок. */
+  useEffect(() => {
+    if (!isOpen) return;
+    const parsed = parseInt(officeId, 10);
+    onOfficeChange(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+  }, [isOpen, officeId, onOfficeChange]);
+
+  /**
+   * Категории принадлежат офису, поэтому при смене офиса подбираем категорию
+   * нового офиса по направлению заявки; своя категория офиса остаётся как есть.
+   */
+  useEffect(() => {
+    if (!isOpen || categoriesLoading) return;
+    setSubCategoryIds(() => {
+      const next: Record<number, string> = {};
+      subRequests.forEach((sr) => {
+        const currentId = getSubRequestCategoryId(sr);
+        const keepsCurrent =
+          currentId != null && availableCategories.some((c) => c.id === currentId);
+        const matchedId = keepsCurrent
+          ? currentId
+          : matchServiceCategoryInOffice(sr.category?.name, availableCategories);
+        next[sr.id] = matchedId != null ? String(matchedId) : "";
+      });
+      return next;
+    });
+  }, [isOpen, availableCategories, categoriesLoading, subRequests]);
+
+  const setSubCategory = useCallback((subRequestId: number, value: string) => {
+    setSubCategoryIds((prev) => ({ ...prev, [subRequestId]: value }));
+  }, []);
 
   if (!isOpen || !request) return null;
 
@@ -83,6 +162,10 @@ export function AdminAcceptRequestModal({
     const officeNumeric = parseInt(officeId, 10);
     if (!Number.isFinite(officeNumeric)) {
       setLocalError("Выберите офис");
+      return;
+    }
+    if (categoriesLoading) {
+      setLocalError("Категории офиса ещё загружаются");
       return;
     }
     if (requestType !== "planned") {
@@ -95,13 +178,22 @@ export function AdminAcceptRequestModal({
         return;
       }
     }
+    // Категория чужого офиса оставит заявку на исполнителях прежнего офиса.
+    const allHaveCategory = (request.requests ?? []).every((sr) => {
+      const picked = Number(subCategoryIds[sr.id]);
+      return Number.isInteger(picked) && availableCategories.some((c) => c.id === picked);
+    });
+    if (!allHaveCategory) {
+      setLocalError("Выберите категорию выбранного офиса для всех подзаявок");
+      return;
+    }
     const sub_requests = (request.requests ?? []).map((sr) => {
       const s = subSettings[sr.id];
       return {
         id: sr.id,
         sla: requestType === "planned" ? null : s?.sla ?? null,
         complexity: requestType === "planned" ? null : s?.complexity ?? null,
-        category_id: sr.category_id,
+        category_id: Number(subCategoryIds[sr.id]),
       };
     });
     await onAccept({
@@ -125,7 +217,7 @@ export function AdminAcceptRequestModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700">
-          <h2 className="text-lg font-semibold text-white">Принять заявку</h2>
+          <h2 className="text-lg font-semibold text-white">Передать Офис-менеджеру</h2>
           <p className="text-sm text-gray-400 mt-1">Заявка #{request.id}</p>
         </div>
         <div className="p-4 space-y-4">
@@ -159,13 +251,39 @@ export function AdminAcceptRequestModal({
               </SelectContent>
             </Select>
           </div>
-          {requestType !== "planned" && (
-            <div className="space-y-3">
-              {(request.requests ?? []).map((sr) => (
-                <div key={sr.id} className="space-y-2 p-3 rounded-lg bg-[#262626]">
-                  <p className="text-white text-sm font-medium">
-                    {sr.title || `Подзаявка #${sr.id}`}
-                  </p>
+          {!categoriesLoading && categoryOptions.length === 0 && (
+            <p className="text-[#F35713] text-sm">
+              В выбранном офисе нет категорий услуг — заявку нельзя направить в этот офис.
+            </p>
+          )}
+          <div className="space-y-3">
+            {(request.requests ?? []).map((sr) => (
+              <div key={sr.id} className="space-y-2 p-3 rounded-lg bg-[#262626]">
+                <p className="text-white text-sm font-medium">
+                  {sr.title || `Подзаявка #${sr.id}`}
+                </p>
+                <div>
+                  <Label className="text-xs text-gray-400">Категория</Label>
+                  <Select
+                    value={subCategoryIds[sr.id] || ""}
+                    onValueChange={(v) => setSubCategory(sr.id, v)}
+                    disabled={categoriesLoading || categoryOptions.length === 0}
+                  >
+                    <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9 mt-1")}>
+                      <SelectValue
+                        placeholder={categoriesLoading ? "Загрузка..." : "Выберите категорию"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
+                      {categoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className={REQUESTS_DESKTOP_SELECT_ITEM}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {requestType !== "planned" && (
                   <div className="grid grid-cols-2 gap-2">
                     <Select
                       value={subSettings[sr.id]?.sla || ""}
@@ -208,10 +326,10 @@ export function AdminAcceptRequestModal({
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            ))}
+          </div>
           {(localError || error) && (
             <p className="text-[#F35713] text-sm">{localError || error}</p>
           )}
@@ -230,7 +348,7 @@ export function AdminAcceptRequestModal({
             onClick={handleAccept}
             disabled={loading}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Принять"}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Передать"}
           </Button>
         </div>
       </div>

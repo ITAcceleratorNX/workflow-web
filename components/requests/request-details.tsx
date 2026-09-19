@@ -6,9 +6,12 @@ import {
   ArrowLeft,
   CheckCircle,
   Clock,
+  Eye,
   Loader2,
   MapPin,
   MessageCircle,
+  Play,
+  Send,
   User,
   XCircle,
   Zap,
@@ -42,8 +45,15 @@ import api, { getOffices } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getServiceCategories } from "@/lib/service-categories-api";
-import type { RequestUserRole } from "@/lib/request-action-config";
-import { getStatusLabel, getTypeLabel } from "@/constants/requests";
+import {
+  isStaffCompletableSubRequest,
+  type RequestUserRole,
+} from "@/lib/request-action-config";
+import {
+  getStatusLabel,
+  getTypeLabel,
+  isAdministrativeRequestGroup,
+} from "@/constants/requests";
 import { getRoleBasePath } from "@/constants/roles";
 import { useIsDesktop } from "@/hooks/use-media-query";
 
@@ -153,9 +163,6 @@ export function RequestDetails({
     value: string;
   } | null>(null);
 
-  const [subRequestSettings, setSubRequestSettings] = useState<Record<number, { sla: string; complexity: string; category_id?: number }>>({});
-  const [editableRequestType, setEditableRequestType] = useState<string>("");
-  const [editableLocationDetail, setEditableLocationDetail] = useState<string>("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string | null>(null);
@@ -176,13 +183,10 @@ export function RequestDetails({
   const [adminModalError, setAdminModalError] = useState<string | null>(null);
   const [offices, setOffices] = useState<{ id: number; name: string }[]>([]);
   const [editCategories, setEditCategories] = useState<{ id: number; name: string }[]>([]);
-
-  useEffect(() => {
-    if (selectedRequest) {
-      setEditableRequestType(selectedRequest.request_type || "normal");
-      setEditableLocationDetail(selectedRequest.location_detail || "");
-    }
-  }, [selectedRequest]);
+  /** Офис, выбранный в модалке принятия: категории грузятся под него. */
+  const [acceptOfficeId, setAcceptOfficeId] = useState<number | null>(null);
+  const [acceptCategories, setAcceptCategories] = useState<{ id: number; name: string }[]>([]);
+  const [acceptCategoriesLoading, setAcceptCategoriesLoading] = useState(false);
 
   useEffect(() => {
     if (!showEditModal || !selectedRequest) {
@@ -215,71 +219,68 @@ export function RequestDetails({
       .catch(() => setOffices([]));
   }, [userRoleProp, showAcceptGroupModal]);
 
-  const handleAcceptRequestGroup = async () => {
-    try {
-      setIsSubmitting(true);
-      setFormErrors(null);
-      if (editableRequestType !== "planned") {
-        const allHave = selectedRequest.requests.every((sr: SubRequest) => {
-          const s = subRequestSettings[sr.id];
-          return s?.sla && s?.complexity;
-        });
-        if (!allHave) {
-          setFormErrors("Укажите время выполнения и сложность для всех подзаявок");
-          return;
-        }
+  /** Категории привязаны к офису: перезагружаем их при смене офиса в модалке принятия. */
+  useEffect(() => {
+    if (!showAcceptGroupModal || acceptOfficeId == null) {
+      if (!showAcceptGroupModal) {
+        setAcceptCategories([]);
+        setAcceptCategoriesLoading(false);
       }
-      const sub_requests = selectedRequest.requests.map((sr: SubRequest) => {
-        const s = subRequestSettings[sr.id];
-        return {
-          id: sr.id,
-          sla: editableRequestType === "planned" ? null : s?.sla,
-          complexity: editableRequestType === "planned" ? null : s?.complexity,
-          category_id: s?.category_id || sr.category_id,
-        };
-      });
-      await api.patch(`/request-groups/${selectedRequest.id}`, {
-        patch_code: 1,
-        sub_requests,
-        request_type: editableRequestType,
-        location_detail: editableLocationDetail,
-      });
-      toast({ title: "Заявка принята в работу" });
-      onRequestUpdated?.();
-      onClose();
-    } catch (err) {
-      setFormErrors("Ошибка при принятии заявки");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRejectRequestGroup = async () => {
-    if (!rejectionReason.trim()) {
-      setFormErrors("Укажите причину отклонения");
       return;
     }
-    try {
-      setIsSubmitting(true);
-      setFormErrors(null);
-      await api.patch(`/request-groups/${selectedRequest.id}`, {
-        patch_code: 2,
-        rejection_reason: rejectionReason,
-      });
-      toast({ title: "Заявка отклонена" });
-      onRequestUpdated?.();
-      onClose();
-    } catch (err) {
-      setFormErrors("Ошибка при отклонении заявки");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    let cancelled = false;
+    setAcceptCategoriesLoading(true);
+    void getServiceCategories(acceptOfficeId).then((res) => {
+      if (cancelled) return;
+      setAcceptCategories(res.ok ? res.data.map((c) => ({ id: c.id, name: c.name })) : []);
+      setAcceptCategoriesLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showAcceptGroupModal, acceptOfficeId]);
+
+  /** Административную заявку ведёт офис-менеджер; администратор только наблюдает. */
+  const isAdministrative = isAdministrativeRequestGroup(selectedRequest);
 
   const staffCompleteDefaultComment =
     userRoleProp === "department-head"
       ? "Завершено офис-менеджером"
       : "Завершено администратором";
+
+  /** «Взять в работу»: администратор закрепляет КТО/Клининг заявку за собой. */
+  const handleAdminTakeGroup = async () => {
+    try {
+      setIsSubmitting(true);
+      setFormErrors(null);
+      await api.patch(`/request-groups/${selectedRequest.id}/take`);
+      toast({ title: "Заявка закреплена за вами" });
+      onRequestUpdated?.();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Ошибка при взятии заявки в работу";
+      setFormErrors(msg);
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /** Взять административную заявку в работу без назначения исполнителя. */
+  const handleStaffStartRequest = async (subReq: SubRequest) => {
+    try {
+      setIsSubmitting(true);
+      setFormErrors(null);
+      await api.patch(`/requests/${subReq.id}/admin-start`);
+      toast({ title: "Заявка взята в работу" });
+      onRequestUpdated?.();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Ошибка при изменении статуса";
+      setFormErrors(msg);
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleAdminCompleteRequest = async (comment?: string) => {
     try {
@@ -287,9 +288,7 @@ export function RequestDetails({
       setFormErrors(null);
       setAdminModalError(null);
       const completionComment = comment?.trim() || rejectionReason || staffCompleteDefaultComment;
-      const targets = selectedRequest.requests.filter((subReq) =>
-        ["in_progress", "awaiting_assignment", "assigned"].includes(subReq.status),
-      );
+      const targets = selectedRequest.requests.filter(isStaffCompletableSubRequest);
       if (!targets.length) {
         const msg = "Нет подзаявок для завершения";
         setFormErrors(msg);
@@ -330,7 +329,7 @@ export function RequestDetails({
         location_detail: payload.location_detail,
         office_id: payload.office_id,
       });
-      toast({ title: "Заявка принята в работу" });
+      toast({ title: "Заявка передана офис-менеджеру" });
       setShowAcceptGroupModal(false);
       onRequestUpdated?.();
       onClose();
@@ -376,9 +375,7 @@ export function RequestDetails({
   };
 
   const openStaffCompleteModal = () => {
-    const targets = selectedRequest.requests.filter((sr) =>
-      ["in_progress", "awaiting_assignment", "assigned"].includes(sr.status),
-    );
+    const targets = selectedRequest.requests.filter(isStaffCompletableSubRequest);
     if (!targets.length) {
       toast({ title: "Нет подзаявок для завершения", variant: "destructive" });
       return;
@@ -480,17 +477,23 @@ export function RequestDetails({
     onClose();
   };
 
-  const isAdminOrDepartmentHead = userRoleProp === "admin-worker" || userRoleProp === "department-head";
+  // КТО/Клининг ждёт решения администратора: взять в работу или передать офис-менеджеру.
+  // Административную заявку он не обрабатывает — её ведёт офис-менеджер.
   const showAcceptReject =
     embedInPanel &&
-    isAdminOrDepartmentHead &&
+    userRoleProp === "admin-worker" &&
+    !isAdministrative &&
+    !selectedRequest.taken_by_admin_id &&
     selectedRequest.status === "in_progress" &&
     hideFullModeButton;
 
+  // Заявку, взятую администратором в работу, он же и закрывает — из «Исполнения».
   const showAdminComplete =
     embedInPanel &&
     userRoleProp === "admin-worker" &&
-    ["awaiting_assignment", "assigned"].includes(selectedRequest.status) &&
+    !isAdministrative &&
+    (["awaiting_assignment", "assigned"].includes(selectedRequest.status) ||
+      (selectedRequest.status === "execution" && !!selectedRequest.taken_by_admin_id)) &&
     hideFullModeButton;
 
   if (!hideFullModeButton) {
@@ -608,6 +611,14 @@ export function RequestDetails({
             ? openStaffCompleteModal
             : undefined
         }
+        onStaffStartGroup={
+          userRoleProp === "department-head"
+            ? (sr) => void handleStaffStartRequest(sr)
+            : undefined
+        }
+        onAdminTakeGroup={
+          userRoleProp === "admin-worker" ? () => void handleAdminTakeGroup() : undefined
+        }
         onEditRequestGroup={
           (userRoleProp === "admin-worker" || userRoleProp === "manager") &&
           selectedRequest.status !== "completed"
@@ -665,6 +676,7 @@ export function RequestDetails({
               <RequestDetailMobileBody
                 request={selectedRequest}
                 onPhotoClick={(photo) => setSelectedPhoto(photo)}
+                userRole={userRoleProp}
               />
             ) : (
             <div className="space-y-4">
@@ -783,6 +795,33 @@ export function RequestDetails({
               </div>
             )}
 
+            {isAdministrative && userRoleProp === "admin-worker" && (
+              <div className="bg-[#114A65]/20 border border-[#114A65]/40 rounded-xl p-4 flex items-start gap-3">
+                <Eye className="w-4 h-4 mt-0.5 shrink-0 text-[#8AB4C8]" />
+                <p className="text-sm text-[#CDE3EE]">
+                  Административная заявка. Её ведёт офис-менеджер офиса — вы видите её
+                  для контроля статуса и истории.
+                </p>
+              </div>
+            )}
+
+            {selectedRequest.takenByAdmin?.full_name && (
+              <div className="bg-[#1C1C1E] rounded-xl p-4">
+                <p className="text-gray-400 text-sm mb-1">Ответственный</p>
+                <p className="text-white">{selectedRequest.takenByAdmin.full_name}</p>
+              </div>
+            )}
+
+            {selectedRequest.office?.name && (
+              <div className="bg-[#1C1C1E] rounded-xl p-4">
+                <p className="text-gray-400 text-sm mb-1">Офис</p>
+                <p className="text-white">{selectedRequest.office.name}</p>
+                {selectedRequest.office.address && (
+                  <p className="text-gray-400 text-sm mt-1">{selectedRequest.office.address}</p>
+                )}
+              </div>
+            )}
+
             {selectedRequest.location_detail && (
               <div className="bg-[#1C1C1E] rounded-xl p-4">
                 <p className="text-gray-400 text-sm mb-1">Локация в офисе</p>
@@ -834,101 +873,16 @@ export function RequestDetails({
             </div>
 
             {showAcceptReject && (
-              <div className="bg-[#1C1C1E] rounded-xl p-4 space-y-4 border border-[#3A3A3C]">
+              <div className="bg-[#1C1C1E] rounded-xl p-4 space-y-3 border border-[#3A3A3C]">
                 <h3 className="text-white font-medium">Действия по заявке</h3>
-                <div>
-                  <Label className="text-xs text-gray-400">Тип заявки</Label>
-                  <Select value={editableRequestType} onValueChange={setEditableRequestType}>
-                    <SelectTrigger className="bg-[#262626] border-[#3A3A3C] text-white h-9 mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                      <SelectItem value="normal" className="text-white">Обычная</SelectItem>
-                      <SelectItem value="urgent" className="text-white">Экстренная</SelectItem>
-                      <SelectItem value="planned" className="text-white">Плановая</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {editableRequestType !== "planned" && (
-                  <div className="space-y-3">
-                    <p className="text-gray-400 text-sm">Укажите время выполнения и сложность для каждой подзаявки</p>
-                    {selectedRequest.requests.map((sr: SubRequest) => (
-                      <div key={sr.id} className="space-y-2 p-3 rounded-lg bg-[#262626]">
-                        <p className="text-white text-sm font-medium">
-                          {sr.title || `Подзаявка #${sr.id}`}
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs text-gray-400">Время</Label>
-                            <Select
-                              value={subRequestSettings[sr.id]?.sla || ""}
-                              onValueChange={(v) =>
-                                setSubRequestSettings((prev) => ({
-                                  ...prev,
-                                  [sr.id]: {
-                                    sla: v,
-                                    complexity: prev[sr.id]?.complexity || "",
-                                  },
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="bg-[#1C1C1E] border-[#3A3A3C] text-white h-9">
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                              <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                                <SelectItem value="1h" className="text-white">1 час</SelectItem>
-                                <SelectItem value="4h" className="text-white">4 часа</SelectItem>
-                                <SelectItem value="8h" className="text-white">8 часов</SelectItem>
-                                <SelectItem value="1d" className="text-white">1 день</SelectItem>
-                                <SelectItem value="3d" className="text-white">3 дня</SelectItem>
-                                <SelectItem value="1w" className="text-white">1 неделя</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-400">Сложность</Label>
-                            <Select
-                              value={subRequestSettings[sr.id]?.complexity || ""}
-                              onValueChange={(v) =>
-                                setSubRequestSettings((prev) => ({
-                                  ...prev,
-                                  [sr.id]: {
-                                    sla: prev[sr.id]?.sla || "",
-                                    complexity: v,
-                                  },
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="bg-[#1C1C1E] border-[#3A3A3C] text-white h-9">
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                              <SelectContent className="z-[110] bg-[#2C2C2E] border-[#3A3A3C]">
-                                <SelectItem value="simple" className="text-white">Простая</SelectItem>
-                                <SelectItem value="medium" className="text-white">Средняя</SelectItem>
-                                <SelectItem value="complex" className="text-white">Сложная</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div>
-                  <Label className="text-xs text-gray-400">Причина отклонения (если необходимо)</Label>
-                  <Textarea
-                    placeholder="Укажите причину отклонения..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    className="mt-1 bg-[#1C1C1E] border-[#3A3A3C] text-white placeholder:text-gray-500 min-h-[80px]"
-                  />
-                </div>
-                {formErrors && (
-                  <p className="text-[#F35713] text-sm">{formErrors}</p>
-                )}
-                <div className="flex gap-3">
+                <p className="text-gray-400 text-sm">
+                  Возьмите заявку в работу и ведите её сами или передайте
+                  офис-менеджеру офиса заявки.
+                </p>
+                {formErrors && <p className="text-[#F35713] text-sm">{formErrors}</p>}
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <Button
-                    onClick={handleAcceptRequestGroup}
+                    onClick={() => void handleAdminTakeGroup()}
                     disabled={isSubmitting}
                     className="flex-1 bg-[#22C55E] hover:bg-[#16A34A] text-white"
                   >
@@ -936,49 +890,36 @@ export function RequestDetails({
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Принять
+                        <Play className="w-4 h-4 mr-2" />
+                        Взять в работу
                       </>
                     )}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleRejectRequestGroup}
+                    onClick={() => {
+                      setAdminModalError(null);
+                      setShowAcceptGroupModal(true);
+                    }}
                     disabled={isSubmitting}
-                    className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/20"
+                    className="flex-1 border-white/20 text-white hover:bg-white/10"
                   >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Отклонить
-                      </>
-                    )}
+                    <Send className="w-4 h-4 mr-2" />
+                    Передать Офис-менеджеру
                   </Button>
                 </div>
-                {/* Кнопка завершения задачи администратором напрямую */}
-                {userRoleProp === "admin-worker" && (
-                  <div className="pt-2 border-t border-gray-700">
-                    <Button
-                      onClick={() => void handleAdminCompleteRequest()}
-                      disabled={isSubmitting}
-                      className="w-full bg-[#114A65] hover:bg-[#0d3a4f] text-white"
-                    >
-                      {isSubmitting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Завершить задачу (без исполнителя)
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-gray-500 text-xs mt-2 text-center">
-                      Нажмите, чтобы завершить задачу сразу без назначения исполнителя
-                    </p>
-                  </div>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAdminModalError(null);
+                    setShowRejectGroupModal(true);
+                  }}
+                  disabled={isSubmitting}
+                  className="w-full border-red-500/50 text-red-400 hover:bg-red-500/20"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Отклонить заявку
+                </Button>
               </div>
             )}
 
@@ -1179,12 +1120,16 @@ export function RequestDetails({
         isOpen={showAcceptGroupModal}
         request={selectedRequest}
         offices={offices}
+        categories={acceptCategories}
+        categoriesLoading={acceptCategoriesLoading}
         loading={isSubmitting}
         error={adminModalError}
         onClose={() => {
           setShowAcceptGroupModal(false);
           setAdminModalError(null);
+          setAcceptOfficeId(null);
         }}
+        onOfficeChange={setAcceptOfficeId}
         onAccept={handleAdminAcceptFromModal}
       />
 
