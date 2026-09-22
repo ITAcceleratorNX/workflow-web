@@ -233,6 +233,24 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
         }
     };
 
+    const handleDeleteRejected = async (requestId: number) => {
+        if (!globalThis.confirm?.('Удалить отклонённый запрос безвозвратно?')) return;
+        try {
+            await api.delete(`/registration-requests/${requestId}`);
+            toast({
+                title: 'Успешно',
+                description: 'Запрос удалён',
+            });
+            loadRequests();
+        } catch (error: any) {
+            toast({
+                title: 'Ошибка',
+                description: error.response?.data?.message || 'Не удалось удалить запрос',
+                variant: 'destructive'
+            });
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         const statusLabels: Record<'pending' | 'approved' | 'rejected', string> = {
             pending: 'Ожидает',
@@ -420,6 +438,20 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                                                         Отклонить
                                                     </Button>
                                                 </div>
+                                            )}
+                                            {request.status === 'rejected' && (
+                                                <Button
+                                                    onClick={() => handleDeleteRejected(request.id)}
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className={
+                                                        isDark
+                                                            ? 'text-xs md:text-sm border-red-500/40 text-red-400 hover:bg-red-500/10'
+                                                            : 'text-xs md:text-sm text-destructive border-destructive/40 hover:bg-destructive/10'
+                                                    }
+                                                >
+                                                    Удалить
+                                                </Button>
                                             )}
                                         </div>
                                     </CardContent>
