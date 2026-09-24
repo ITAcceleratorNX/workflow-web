@@ -131,8 +131,12 @@ export function useProfilePage() {
   const handleSaveProfile = useCallback(async (): Promise<boolean> => {
     setProfileError("");
     setProfileSuccess("");
-    if (!user?.full_name || !user.phone) {
+    if (!user?.full_name?.trim() || !user.phone) {
       setProfileError("ФИО и Номер обязательны.");
+      return false;
+    }
+    if (!/^\+7 \d{3} \d{3} \d{2} \d{2}$/.test(user.phone)) {
+      setProfileError("Введите номер полностью: +7 XXX XXX XX XX.");
       return false;
     }
 
@@ -143,9 +147,10 @@ export function useProfilePage() {
     }
 
     setIsSavingProfile(true);
-    const result = await updateProfile(user.id, {
-      full_name: user.full_name,
+    const result = await updateProfile({
+      full_name: user.full_name.trim(),
       phone: user.phone,
+      position: user.position?.trim() || null,
     });
     setIsSavingProfile(false);
 
