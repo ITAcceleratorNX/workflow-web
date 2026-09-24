@@ -154,6 +154,18 @@ export function ProfileMobileView({
                 />
               </div>
               <div className="space-y-2">
+                <Label className={labelClass}>Должность</Label>
+                <Input
+                  value={user.position ?? ""}
+                  onChange={(e) =>
+                    updateUser((prev) => (prev ? { ...prev, position: e.target.value } : null))
+                  }
+                  className={inputClass}
+                  placeholder="Например, менеджер по продажам"
+                  maxLength={255}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label className={labelClass}>Номер телефона</Label>
                 <Input
                   type="tel"

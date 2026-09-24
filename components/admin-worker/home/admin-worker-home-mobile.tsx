@@ -6,7 +6,7 @@ import { TasksSection } from "@/components/tasks/tasks-section";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UseAdminWorkerHomeResult } from "@/hooks/use-admin-worker-home";
-import { ADMIN_WORKER_HOME_CARDS } from "./admin-worker-home-constants";
+import { adminWorkerHomeCardsFor } from "./admin-worker-home-constants";
 
 type AdminWorkerHomeMobileProps = UseAdminWorkerHomeResult;
 
@@ -30,7 +30,7 @@ export function AdminWorkerHomeMobile({ handleRefresh }: AdminWorkerHomeMobilePr
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {ADMIN_WORKER_HOME_CARDS.map((card) => {
+          {adminWorkerHomeCardsFor("mobile").map((card) => {
             const Icon = card.icon;
             return (
               <Link

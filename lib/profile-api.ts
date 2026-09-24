@@ -14,12 +14,14 @@ function getErrorMessage(error: unknown, fallback: string): string {
   );
 }
 
-export async function updateProfile(
-  userId: number,
-  data: { full_name: string; phone: string },
-): Promise<ProfileApiResult> {
+/** Свой профиль (любая роль): ФИО, телефон, должность. */
+export async function updateProfile(data: {
+  full_name: string;
+  phone: string;
+  position: string | null;
+}): Promise<ProfileApiResult> {
   try {
-    await api.put(`/users/${userId}`, data);
+    await api.put("/users/me/profile", data);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: getErrorMessage(error, "Ошибка при сохранении профиля") };
