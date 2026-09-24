@@ -28,6 +28,8 @@ interface User {
     /** company_id заполнен только у клиентов; null/undefined — компания «Не указана». */
     company_id?: number | null;
     company?: Company | null;
+    /** Должность — информационный текст, пользователь заполняет сам. */
+    position?: string | null;
 }
 
 interface AuthState {

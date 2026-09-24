@@ -111,6 +111,21 @@ export function ProfileDesktopSection() {
                     />
                   </div>
                   <div>
+                    <Label className={sectionCl}>Должность</Label>
+                    <Input
+                      value={user.position ?? ""}
+                      onChange={(e) =>
+                        updateUser((prev) => (prev ? { ...prev, position: e.target.value } : null))
+                      }
+                      className={fieldCl}
+                      placeholder="Например, менеджер по продажам"
+                      maxLength={255}
+                    />
+                    <p className="mt-1 text-xs text-white/50">
+                      Отображается в структуре компании и не влияет на права доступа.
+                    </p>
+                  </div>
+                  <div>
                     <Label className={sectionCl}>Телефон</Label>
                     <Input
                       type="tel"

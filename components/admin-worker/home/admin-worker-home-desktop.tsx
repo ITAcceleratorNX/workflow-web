@@ -5,11 +5,11 @@ import { Bell } from "lucide-react";
 import { TasksSection } from "@/components/tasks/tasks-section";
 import { DesktopContentPage } from "@/components/layout/desktop-content-page";
 import { DesktopHubCards } from "@/components/layout/desktop-hub-cards";
-import { ADMIN_WORKER_HOME_CARDS } from "./admin-worker-home-constants";
+import { adminWorkerHomeCardsFor } from "./admin-worker-home-constants";
 
 /** Desktop home — card hub + tasks (parity mobile). */
 export function AdminWorkerHomeDesktop() {
-  const cards = ADMIN_WORKER_HOME_CARDS.map((c) => ({
+  const cards = adminWorkerHomeCardsFor("desktop").map((c) => ({
     key: c.key,
     title: c.title,
     subtitle: c.subtitle,

@@ -6,6 +6,7 @@ import {
   FolderTree,
   Home,
   MapPin,
+  Network,
   Newspaper,
   Users,
 } from "lucide-react";
@@ -14,6 +15,8 @@ export type AdminWorkerHomeCardKey =
   | "categories"
   | "location-templates"
   | "companies"
+  | "structure"
+  | "interaction-groups"
   | "users"
   | "office"
   | "smart-home"
@@ -26,10 +29,12 @@ export interface AdminWorkerHomeCard {
   subtitle: string;
   icon: LucideIcon;
   href: string;
+  /** Показывать только на одной платформе (оргструктура — только Desktop/Admin panel). */
+  platform?: "desktop" | "mobile";
 }
 
 /** Parity с workflow-mobile ADMIN_MANAGEMENT_CARDS; href — web routes. */
-export const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
+const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
   {
     key: "categories",
     title: "Управление категориями",
@@ -50,6 +55,23 @@ export const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
     subtitle: "Арендаторы внутри офиса",
     icon: Briefcase,
     href: "/admin-worker/management/companies",
+    platform: "mobile",
+  },
+  {
+    key: "structure",
+    title: "Структура",
+    subtitle: "Компании, отделы, сотрудники и руководители офиса",
+    icon: Briefcase,
+    href: "/admin-worker/management/structure",
+    platform: "desktop",
+  },
+  {
+    key: "interaction-groups",
+    title: "Группы взаимодействия",
+    subtitle: "Межкомпанейская постановка задач: кто с кем связан",
+    icon: Network,
+    href: "/admin-worker/management/interaction-groups",
+    platform: "desktop",
   },
   {
     key: "users",
@@ -87,3 +109,7 @@ export const ADMIN_WORKER_HOME_CARDS: AdminWorkerHomeCard[] = [
     href: "/admin-worker/management/news",
   },
 ];
+
+export function adminWorkerHomeCardsFor(platform: "desktop" | "mobile"): AdminWorkerHomeCard[] {
+  return ADMIN_WORKER_HOME_CARDS.filter((c) => !c.platform || c.platform === platform);
+}
