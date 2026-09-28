@@ -287,7 +287,7 @@ function CreateCompanyModal({
                 load={(q) => searchOfficeFreeUsers(officeId, q)}
                 getKey={(u) => u.id}
                 onSelect={setHead}
-                placeholder="Поиск по имени или телефону"
+                placeholder="Поиск по ФИО, должности или телефону"
                 renderItem={(u) => <PersonOption name={u.full_name} secondary={u.position ?? u.phone} />}
                 disabled={saving}
               />

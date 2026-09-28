@@ -320,7 +320,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
             <input
               value={leaderSearch}
               onChange={(e) => setLeaderSearch(e.target.value)}
-              placeholder="Поиск по имени (от 2 символов)"
+              placeholder="ФИО или должность (от 2 символов)"
               disabled={!canEditTeamMeta}
               className="w-full bg-transparent text-base text-white placeholder:text-[#8E8E93] outline-none min-h-10 disabled:opacity-60"
             />

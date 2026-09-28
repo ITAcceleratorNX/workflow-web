@@ -24,6 +24,7 @@ import {
 } from "@/components/org-structure/org-ui";
 import { PersonOption, SearchPicker } from "@/components/org-structure/search-picker";
 import { useToast } from "@/hooks/use-toast";
+import { employeeSubtitle, matchesEveryWord } from "@/lib/employee-display";
 import { cn } from "@/lib/utils";
 import { fetchOffices } from "@/lib/companies-api";
 import {
@@ -56,6 +57,8 @@ type DraftMember = {
   companyId: number | null;
   label: string;
   context: string;
+  /** Должность выбранного сотрудника — только для отображения. */
+  position?: string | null;
   isActive: boolean;
 };
 
@@ -76,6 +79,7 @@ function draftFromGroup(group: InteractionGroup): DraftMember[] {
       companyId: m.company?.id ?? null,
       label: m.label,
       context,
+      position: m.type === "user" ? m.position ?? null : null,
       isActive: m.is_active,
     };
   });
@@ -140,7 +144,7 @@ export function InteractionGroupEditor({
       const map = new Map<number, Person>();
       for (const m of members) {
         if (m.type === "user") {
-          map.set(m.id, { id: m.id, full_name: m.label, company: m.context.split(" · ")[0] || null });
+          map.set(m.id, { id: m.id, full_name: m.label, position: m.position, company: m.context.split(" · ")[0] || null });
           continue;
         }
         const list = m.companyId != null ? employeesCache.current.get(m.companyId) ?? [] : [];
@@ -242,7 +246,9 @@ export function InteractionGroupEditor({
                       <Tag>{MEMBER_TYPE_LABEL[m.type]}</Tag>
                       {!m.isActive ? <Tag>Неактивен — прав не даёт</Tag> : null}
                     </div>
-                    {m.context ? <p className="truncate text-xs text-muted-foreground">{m.context}</p> : null}
+                    {m.context || m.position ? (
+                      <p className="truncate text-xs text-muted-foreground">{employeeSubtitle([m.context, m.position])}</p>
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -321,10 +327,7 @@ export function InteractionGroupEditor({
                 </p>
               ) : null}
               <SearchPicker<Person>
-                load={async (q) => {
-                  const s = q.toLowerCase();
-                  return effective.filter((p) => p.full_name.toLowerCase().includes(s)).slice(0, 30);
-                }}
+                load={async (q) => effective.filter((p) => matchesEveryWord(q, [p.full_name, p.position])).slice(0, 30)}
                 getKey={(p) => p.id}
                 onSelect={(p) => setCreators((prev) => (prev.some((c) => c.id === p.id) ? prev : [...prev, p]))}
                 isItemDisabled={(p) => creators.some((c) => c.id === p.id)}
@@ -608,10 +611,11 @@ function AddMemberPanel({
                   companyId: company.id,
                   label: u.full_name,
                   context: context(true),
+                  position: u.position ?? null,
                   isActive: true,
                 })
               }
-              placeholder="Поиск сотрудника по имени"
+              placeholder="Поиск сотрудника по ФИО или должности"
               renderItem={(u) => (
                 <PersonOption name={u.full_name} secondary={[u.position, u.department?.name ?? "Без отдела"].filter(Boolean).join(" · ")} />
               )}

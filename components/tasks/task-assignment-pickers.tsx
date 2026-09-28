@@ -251,7 +251,7 @@ export function TaskExecutorPickerOverlay({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Имя или телефон (от 2 символов)"
+              placeholder="ФИО, должность или телефон (от 2 символов)"
               className="flex-1 bg-transparent outline-none text-base min-h-10"
               style={{ color: text }}
             />

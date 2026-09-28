@@ -6,6 +6,9 @@ export interface UserSearchItem {
   phone?: string;
   company_id?: number | null;
   company?: { id: number; name: string } | null;
+  department?: { id: number; name: string } | null;
+  /** Должность; null — не указана. Сервер ищет и по ней. */
+  position?: string | null;
 }
 
 export type AssignUserSearchScope = "company" | "office";
@@ -14,6 +17,15 @@ export interface SearchUsersForAssignOptions {
   scope?: AssignUserSearchScope;
   officeId?: number;
   companyId?: number;
+}
+
+/** Компания или отдел в ответе поиска: { id, name } либо null. */
+function namedRef(raw: unknown): { id: number; name: string } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = Number(r.id);
+  const name = typeof r.name === "string" ? r.name.trim() : "";
+  return Number.isFinite(id) && name ? { id, name } : null;
 }
 
 export function normalizeUserSearchItem(raw: unknown): UserSearchItem {
@@ -32,16 +44,6 @@ export function normalizeUserSearchItem(raw: unknown): UserSearchItem {
     combined ||
     "";
   const safeId = Number.isFinite(id) ? id : 0;
-  const companyRaw = o.company;
-  let company: UserSearchItem["company"];
-  if (companyRaw && typeof companyRaw === "object") {
-    const c = companyRaw as Record<string, unknown>;
-    const cid = Number(c.id);
-    const cname = typeof c.name === "string" ? c.name.trim() : "";
-    if (Number.isFinite(cid) && cname) {
-      company = { id: cid, name: cname };
-    }
-  }
   const companyIdRaw = o.company_id;
   const company_id =
     companyIdRaw === null
@@ -54,7 +56,9 @@ export function normalizeUserSearchItem(raw: unknown): UserSearchItem {
     full_name: name || (safeId > 0 ? `Пользователь #${safeId}` : "Пользователь"),
     phone: typeof o.phone === "string" ? o.phone : undefined,
     company_id,
-    company: company ?? null,
+    company: namedRef(o.company),
+    department: namedRef(o.department),
+    position: typeof o.position === "string" ? o.position.trim() || null : null,
   };
 }
 

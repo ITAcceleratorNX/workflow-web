@@ -39,6 +39,7 @@ import {
   type RecipientAccess,
 } from "@/lib/task-interaction-groups-api";
 import { searchUsersForAssign, type UserSearchItem } from "@/lib/user-search";
+import { formatUserSearchSubtitle } from "@/lib/user-search-display";
 import { MemberIcon, memberSubtitle } from "./member-display";
 
 export const INTERACTION_GROUPS_HREF = "/admin-worker/management/interaction-groups";
@@ -184,7 +185,7 @@ export function InteractionGroupsListScreen({
             {person ? (
               <SelectedChip
                 label={person.full_name}
-                secondary={person.company?.name}
+                secondary={formatUserSearchSubtitle(person)}
                 onClear={() => setPerson(null)}
               />
             ) : (
@@ -193,8 +194,8 @@ export function InteractionGroupsListScreen({
                 getKey={(u) => u.id}
                 onSelect={setPerson}
                 minChars={2}
-                placeholder="Поиск сотрудника по имени"
-                renderItem={(u) => <PersonOption name={u.full_name} secondary={u.company?.name} />}
+                placeholder="Поиск сотрудника по ФИО или должности"
+                renderItem={(u) => <PersonOption name={u.full_name} secondary={formatUserSearchSubtitle(u)} />}
               />
             )}
           </div>
@@ -372,15 +373,15 @@ function AccessCheckDialog({ open, onClose }: { open: boolean; onClose: () => vo
           Сотрудники своей компании доступны всегда и здесь не перечислены.
         </p>
         {user ? (
-          <SelectedChip label={user.full_name} secondary={user.company?.name} onClear={() => setUser(null)} />
+          <SelectedChip label={user.full_name} secondary={formatUserSearchSubtitle(user)} onClear={() => setUser(null)} />
         ) : (
           <SearchPicker<UserSearchItem>
             load={searchStructureUsers}
             getKey={(u) => u.id}
             onSelect={setUser}
             minChars={2}
-            placeholder="Поиск сотрудника по имени"
-            renderItem={(u) => <PersonOption name={u.full_name} secondary={u.company?.name} />}
+            placeholder="Поиск сотрудника по ФИО или должности"
+            renderItem={(u) => <PersonOption name={u.full_name} secondary={formatUserSearchSubtitle(u)} />}
             autoFocus
           />
         )}

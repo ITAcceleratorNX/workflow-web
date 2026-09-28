@@ -393,7 +393,7 @@ export function StructureCompanyScreen({
             <Input
               value={employeeQuery}
               onChange={(e) => setEmployeeQuery(e.target.value)}
-              placeholder="Поиск сотрудника по имени или телефону"
+              placeholder="Поиск сотрудника по ФИО, должности или телефону"
               className="pl-9"
             />
           </div>
@@ -737,7 +737,7 @@ function HeadDialog({
             getKey={(u) => u.id}
             onSelect={(u) => void save(u.id)}
             isItemDisabled={(u) => u.id === current?.id}
-            placeholder="Поиск сотрудника компании по имени"
+            placeholder="Поиск сотрудника компании по ФИО или должности"
             renderItem={(u) => (
               <PersonOption name={u.full_name} secondary={[u.position, u.department?.name ?? "Без отдела"].filter(Boolean).join(" · ")} />
             )}
@@ -853,7 +853,7 @@ function AddEmployeeDialog({
               getKey={(u) => u.id}
               onSelect={setUser}
               isItemDisabled={(u) => u.company_id != null}
-              placeholder="Поиск по имени или телефону"
+              placeholder="Поиск по ФИО, должности или телефону"
               renderItem={(u) => (
                 <PersonOption
                   name={u.full_name}
