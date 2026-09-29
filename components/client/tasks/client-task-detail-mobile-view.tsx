@@ -24,12 +24,15 @@ import {
   User,
   Users,
   CheckCircle2,
+  Eye,
+  Forward,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import {
-  TaskExecutorPickerOverlay,
-  TaskTeamPickerOverlay,
-} from "@/components/tasks/task-assignment-pickers";
+import { TaskTeamPickerOverlay } from "@/components/tasks/task-assignment-pickers";
+import { GroupTaskDetails } from "@/components/tasks/group-task-details";
+import { TaskHistorySection } from "@/components/tasks/task-history-section";
+import { TaskRecipientPicker } from "@/components/tasks/task-recipient-picker";
+import { TaskCommentsSection } from "@/components/task-comments/task-comments-section";
 import { TaskOptionPicker } from "@/components/tasks/task-option-picker";
 import type { TaskPickerVariant } from "@/components/tasks/task-picker-shell";
 import { TaskScheduleSheet } from "@/components/tasks/task-schedule-sheet";
@@ -55,12 +58,19 @@ import {
   deleteUserTaskAttachment,
   getUserTask,
   getUserTaskAttachments,
+  transferUserTask,
   uploadUserTaskAttachments,
   type TaskPriority,
   type UserTask,
   type UserTaskAttachment,
 } from "@/lib/user-tasks-api";
-import type { Team } from "@/lib/teams-api";
+import {
+  confirmTaskTransfer,
+  isGroupTask,
+  isReadOnlyTask,
+  taskToggleBlockedReason,
+} from "@/lib/group-task-completion";
+import { toTransferInput, transferRecipientLabel, type RecipientSelection } from "@/lib/task-recipients-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 import { cn } from "@/lib/utils";
@@ -139,6 +149,7 @@ export function ClientTaskDetailMobileView({
   const isGuest = useAuthStore((s) => s.isGuest);
   const { teams, loading: teamsLoading } = useTeams();
   const tasksInvalidateVersion = useUserTasksInvalidateStore((s) => s.version);
+  const bumpTasks = useUserTasksInvalidateStore((s) => s.bump);
 
   const colorScheme = useColorScheme();
   const theme = MOBILE_COLORS[isDesktopLayout ? "dark" : colorScheme];
@@ -222,8 +233,8 @@ export function ClientTaskDetailMobileView({
   const [remindTimingPickerOpen, setRemindTimingPickerOpen] = useState(false);
   const [remindTimingPickerDraft, setRemindTimingPickerDraft] = useState("default");
 
-  const [pickerSheet, setPickerSheet] = useState<"team" | "executor" | null>(null);
-  const [executorDraft, setExecutorDraft] = useState<{ id: number; full_name: string } | null>(null);
+  const [pickerSheet, setPickerSheet] = useState<"team" | "transfer" | null>(null);
+  const [transferBusy, setTransferBusy] = useState(false);
 
   const [attachments, setAttachments] = useState<UserTaskAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -436,31 +447,51 @@ export function ClientTaskDetailMobileView({
     [task, canEditDetails, updateTask],
   );
 
-  const applyExecutor = useCallback(
-    async (next: { id: number; full_name: string } | null) => {
-      if (!task || !canEditDetails) return;
-      await updateTask(task, {
-        team_id: null,
-        executor_id: next?.id ?? null,
-        assignee_ids: next ? [next.id] : [],
-        assignees: next ? [next] : [],
-        executor: next ?? undefined,
-      });
+  const canTransfer = task?.task_permissions?.can_transfer === true;
+
+  /** «Передать задачу»: выбор, как в поле «Исполнитель», затем подтверждение нового получателя. */
+  const openTransfer = useCallback(() => {
+    if (!canTransfer || transferBusy) return;
+    setPickerSheet("transfer");
+  }, [canTransfer, transferBusy]);
+
+  const handleTransferSelect = useCallback(
+    async (selection: RecipientSelection | null) => {
+      setPickerSheet(null);
+      const t = taskRef.current;
+      if (!t || !selection) return;
+      const label = transferRecipientLabel(selection);
+      // «Отмена» — получатель и состояние задачи не меняются.
+      if (!(await confirmTaskTransfer(label))) return;
+      setTransferBusy(true);
+      const res = await transferUserTask(t.id, toTransferInput(selection));
+      setTransferBusy(false);
+      if (!res.ok) {
+        toast({ title: "Не удалось передать задачу", description: res.error, variant: "destructive", duration: 4000 });
+        return;
+      }
+      toast({ title: "Задача передана", description: label, duration: 2500 });
+      bumpTasks();
+      if (res.data) setFetchedTask(res.data);
+      else navigateBack();
     },
-    [task, canEditDetails, updateTask],
+    [bumpTasks, navigateBack, toast],
   );
 
-  const handleExecutorSelect = useCallback(
-    (user: { id: number; full_name: string } | null) => {
-      setExecutorDraft(user);
-      setPickerSheet(null);
-      if (!task || !canEditDetails) return;
-      const current = getExecutorFromTask(task);
-      if ((current?.id ?? null) === (user?.id ?? null)) return;
-      void applyExecutor(user);
-    },
-    [task, canEditDetails, applyExecutor],
-  );
+  /** Исполнитель меняется только передачей: с подтверждением и записью в историю. */
+  const onExecutorRowPress = useCallback(() => {
+    if (canTransfer) {
+      openTransfer();
+      return;
+    }
+    toast({
+      title: "Передача недоступна",
+      description: task?.completed
+        ? "Выполненную задачу сначала верните в работу."
+        : "Передать задачу может автор или текущий исполнитель.",
+      duration: 4000,
+    });
+  }, [canTransfer, openTransfer, toast, task?.completed]);
 
   const effectiveExecutor = useMemo(() => (task ? getExecutorFromTask(task) : null), [task]);
   const executorRowSummary = effectiveExecutor?.full_name ?? "—";
@@ -490,6 +521,11 @@ export function ClientTaskDetailMobileView({
     return PRIORITY_OPTIONS.find((o) => o.value === task.priority)?.label ?? "";
   }, [task]);
 
+  const groupTask = isGroupTask(task);
+  const readOnly = isReadOnlyTask(task);
+  const completeBlockedReason = task ? taskToggleBlockedReason(task) : null;
+  const detailColors = { text, textMuted, primary, cardBg, border };
+
   const todayKey = toAppDateKey(new Date());
   const tomorrowKey = toAppDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
@@ -504,24 +540,6 @@ export function ClientTaskDetailMobileView({
         })
       : "";
 
-  const resolvedTeam = useMemo((): Team | null => {
-    if (!task?.team_id) return null;
-    const fromList = teams.find((t) => t.id === task.team_id);
-    if (fromList) return fromList;
-    if (task.team) {
-      return {
-        id: task.team.id,
-        name: task.team.name,
-        leader_id: task.team.leader_id,
-        created_by: task.creator_id,
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-        leader: task.team.leader,
-        members: task.team.members,
-      };
-    }
-    return null;
-  }, [task, teams]);
 
   if (!task) {
     return (
@@ -588,10 +606,23 @@ export function ClientTaskDetailMobileView({
             readOnly={!canEditDetails}
             rows={3}
             placeholder="Название и описание"
-            className="w-full bg-transparent text-lg font-medium outline-none resize-none min-h-[4rem]"
+            className="task-title-input w-full bg-transparent text-lg font-medium outline-none resize-none min-h-[4rem]"
             style={{ color: canEditDetails ? text : textMuted }}
           />
         </div>
+
+        {readOnly ? (
+          <div
+            className="flex items-start gap-3 rounded-2xl border px-4 py-3"
+            style={{ backgroundColor: isDesktopLayout ? "#2C2C2E" : cardBg, borderColor: border }}
+          >
+            <Eye className="h-5 w-5 shrink-0 mt-0.5" style={{ color: textMuted }} />
+            <p className="text-sm leading-relaxed" style={{ color: textMuted }}>
+              Задача передана другому получателю. Вы видите её текущее состояние и историю, но не можете менять
+              статус.
+            </p>
+          </div>
+        ) : null}
 
         <SectionLabel text={textMuted} desktop={isDesktopLayout}>Вложения</SectionLabel>
         <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
@@ -752,7 +783,17 @@ export function ClientTaskDetailMobileView({
           </div>
         </Card>
 
-        {!isGuest ? (
+        {!isGuest && groupTask ? (
+          <GroupTaskDetails
+            task={task}
+            currentUserId={currentUserId}
+            colors={detailColors}
+            desktop={isDesktopLayout}
+            onChanged={bumpTasks}
+          />
+        ) : null}
+
+        {!isGuest && !groupTask ? (
           <>
             <SectionLabel text={textMuted} desktop={isDesktopLayout}>Организация</SectionLabel>
             <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
@@ -774,15 +815,8 @@ export function ClientTaskDetailMobileView({
                 icon={<User className="h-5 w-5" style={{ color: textMuted }} />}
                 label="Исполнитель"
                 value={executorRowSummary}
-                onClick={() => {
-                  if (!canEditDetails) notifyCreatorOnly();
-                  else {
-                    const initial = getExecutorFromTask(task);
-                    setExecutorDraft(initial);
-                    setPickerSheet("executor");
-                  }
-                }}
-                canEdit={canEditDetails}
+                onClick={onExecutorRowPress}
+                canEdit={canTransfer}
                 text={text}
                 textMuted={textMuted}
                 desktop={isDesktopLayout}
@@ -802,6 +836,8 @@ export function ClientTaskDetailMobileView({
             </Card>
           </>
         ) : null}
+
+        {!isGuest ? <TaskHistorySection task={task} colors={detailColors} desktop={isDesktopLayout} /> : null}
 
         <SectionLabel text={textMuted} desktop={isDesktopLayout}>Приоритет</SectionLabel>
         <Card border={border} cardBg={cardBg} desktop={isDesktopLayout}>
@@ -879,8 +915,39 @@ export function ClientTaskDetailMobileView({
                 Выполнено
               </span>
             </div>
-            <Switch checked={task.completed} onCheckedChange={() => void handleCompleteSwitch()} />
+            <Switch
+              checked={task.completed}
+              onCheckedChange={() => void handleCompleteSwitch()}
+              disabled={completeBlockedReason != null}
+            />
           </div>
+          {completeBlockedReason ? (
+            <div className="px-3 pb-2.5">
+              <p className="text-xs" style={{ color: textMuted }}>
+                {completeBlockedReason}
+              </p>
+            </div>
+          ) : null}
+          {canTransfer ? (
+            <>
+              <Divider border={border} />
+              <button
+                type="button"
+                disabled={transferBusy}
+                onClick={openTransfer}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 min-h-11 transition-colors",
+                  isDesktopLayout && "rounded-lg hover:bg-white/[0.04]",
+                )}
+              >
+                <Forward className="h-5 w-5" style={{ color: primary }} />
+                <span className="flex-1 text-left text-sm font-medium" style={{ color: primary }}>
+                  Передать задачу
+                </span>
+                {transferBusy ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: primary }} /> : null}
+              </button>
+            </>
+          ) : null}
           <Divider border={border} />
           <button
             type="button"
@@ -900,6 +967,8 @@ export function ClientTaskDetailMobileView({
             <span className="text-sm font-medium text-red-400">Удалить задачу</span>
           </button>
         </Card>
+
+        {!isGuest ? <TaskCommentsSection taskId={task.id} colors={detailColors} desktop={isDesktopLayout} /> : null}
       </div>
 
       <TaskScheduleSheet
@@ -929,14 +998,13 @@ export function ClientTaskDetailMobileView({
         variant={pickerVariant}
       />
 
-      <TaskExecutorPickerOverlay
-        visible={pickerSheet === "executor"}
+      <TaskRecipientPicker
+        visible={pickerSheet === "transfer"}
         onClose={() => setPickerSheet(null)}
-        teamScope={!!task.team_id}
-        team={resolvedTeam}
-        teamLoading={teamsLoading}
-        selectedExecutor={executorDraft}
-        onSelect={handleExecutorSelect}
+        currentUserId={currentUserId}
+        value={null}
+        title="Передать задачу"
+        onConfirm={(selection) => void handleTransferSelect(selection)}
         variant={pickerVariant}
       />
 

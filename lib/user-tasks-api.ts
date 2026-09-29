@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import type { TaskAssignmentInput, TaskTransferInput } from "@/lib/task-recipients-api";
 import { normalizeRecurrenceFromApi, type TaskRecurrencePayload } from "@/lib/task-recurrence";
 
 export type RecurrenceType = TaskRecurrencePayload["recurrence_type"];
@@ -19,7 +20,53 @@ export interface TaskExecutorRef {
   full_name: string;
 }
 
-export interface UserTask {
+/** Групповое назначение через оргструктуру; null — личная задача, исполнитель или команда. */
+export type TaskAssignmentType = "company" | "department" | "users";
+
+/** Права текущего пользователя в групповой задаче (приходят с API только для групповых). */
+export interface GroupTaskPermissions {
+  can_complete: boolean;
+  can_reopen: boolean;
+  can_manage_responsible: boolean;
+  can_take_responsibility: boolean;
+}
+
+/**
+ * Права текущего пользователя в любой задаче. read_only — бывший участник после передачи:
+ * задача остаётся там же, где была, но менять её нельзя.
+ */
+export interface TaskPermissions {
+  can_complete: boolean;
+  can_reopen: boolean;
+  /** Уже учитывает, что выполненную задачу сначала возвращают в работу. */
+  can_transfer: boolean;
+  can_view_history: boolean;
+  read_only: boolean;
+}
+
+/** Поля групповой задачи: получатель, ответственный и права. */
+export interface GroupTaskFields {
+  assignment_type?: TaskAssignmentType | null;
+  target_company_id?: number | null;
+  target_department_id?: number | null;
+  targetCompany?: { id: number; name: string } | null;
+  targetDepartment?: {
+    id: number;
+    name: string;
+    company_id: number;
+    company?: { id: number; name: string } | null;
+  } | null;
+  targetUsers?: TaskExecutorRef[];
+  responsible_id?: number | null;
+  responsible?: TaskExecutorRef | null;
+  group_permissions?: GroupTaskPermissions | null;
+  /** Права в любой задаче (не только групповой); у старого backend поля нет. */
+  task_permissions?: TaskPermissions | null;
+  /** Только в карточке задачи (GET /user-tasks/:id). */
+  participants_count?: number;
+}
+
+export interface UserTask extends GroupTaskFields {
   id: number;
   creator_id: number;
   title: string;
@@ -51,7 +98,7 @@ export interface UserTask {
   inbox: boolean;
 }
 
-export interface CalendarTask {
+export interface CalendarTask extends GroupTaskFields {
   id: number;
   title: string;
   scheduled_at: string;
@@ -99,10 +146,8 @@ function normalizeUserTaskRow(t: UserTask): UserTask {
 }
 
 function extractError(error: unknown): string {
-  return (
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-    "Ошибка запроса"
-  );
+  const data = (error as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+  return data?.message || data?.error || "Ошибка запроса";
 }
 
 export async function getUserTasks(params: {
@@ -202,6 +247,8 @@ export async function createUserTask(body: {
   recurrence_custom_unit?: RecurrenceCustomUnit | null;
   recurrence_weekdays?: number[] | null;
   inbox?: boolean;
+  /** Компания / отдел / сотрудники одной компании из поля «Исполнитель». */
+  assignment?: TaskAssignmentInput;
 }): Promise<{ ok: true; data: UserTask } | { ok: false; error: string }> {
   try {
     const res = await api.post<{ task: UserTask } | UserTask>("/user-tasks", body);
@@ -237,6 +284,22 @@ export async function updateUserTask(
   try {
     const res = await api.patch<{ task: UserTask } | UserTask>(`/user-tasks/${id}`, body);
     return { ok: true, data: unwrapTaskPayload(res.data) };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+/**
+ * «Передать задачу»: та же задача (ID, поля, вложения, история) получает нового получателя.
+ * data: null — после передачи задача пользователю больше не видна.
+ */
+export async function transferUserTask(
+  id: number,
+  body: TaskTransferInput,
+): Promise<{ ok: true; data: UserTask | null } | { ok: false; error: string }> {
+  try {
+    const res = await api.post<{ task: UserTask | null }>(`/user-tasks/${id}/transfer`, body);
+    return { ok: true, data: res.data?.task ? unwrapTaskPayload(res.data) : null };
   } catch (error) {
     return { ok: false, error: extractError(error) };
   }

@@ -573,6 +573,11 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .client-desktop-content textarea::placeholder {
     color: #8E8E93 !important;
   }
+  /* Название задачи — текст самой карточки, а не отдельное поле: без своего фона и рамки. */
+  .client-desktop-content textarea.task-title-input {
+    background-color: transparent !important;
+    border-color: transparent !important;
+  }
   /* Radix Select trigger — not covered by input/select rules above */
   .desktop-main-content .client-desktop-content [role="combobox"] {
     border-color: var(--client-border, #3A3A3C) !important;
