@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, ChevronRight, Clock, Flag, Users, User } from "lucide-react";
+import { Check, ChevronRight, Clock, Flag } from "lucide-react";
+import { TaskAssignmentBadges } from "@/components/tasks/task-assignment-badges";
+import { isReadOnlyTask } from "@/lib/group-task-completion";
 import { formatDateForApi, formatTimeOnly } from "@/lib/dateTimeUtils";
 import { formatSectionDateLabel } from "@/lib/task-views";
 import type { UserTask } from "@/lib/user-tasks-api";
@@ -43,50 +45,6 @@ function buildScheduleLine(
   return { text: dateLabel, showClock: false };
 }
 
-function TaskAssignmentBadges({
-  task,
-  currentUserId,
-  compact,
-}: {
-  task: UserTask;
-  currentUserId?: number | null;
-  compact?: boolean;
-}) {
-  const teamName = task.team_id && task.team?.name ? task.team.name : null;
-  const executorName =
-    !teamName && task.executor_id && task.executor?.full_name ? task.executor.full_name : null;
-  const legacyAssignee =
-    !teamName && !executorName && task.assignees?.[0]?.full_name
-      ? task.assignees[0].full_name
-      : null;
-  const personName = executorName ?? legacyAssignee;
-
-  if (!teamName && !personName) return null;
-
-  return (
-    <div className={`flex flex-wrap gap-1.5 items-center ${compact ? "mt-1" : "mt-1.5"}`}>
-      {teamName ? (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-[#E25B21] text-[11px] font-semibold text-[#E25B21] max-w-full">
-          <Users className="h-3 w-3 shrink-0" />
-          <span className="truncate">{teamName}</span>
-        </span>
-      ) : null}
-      {personName ? (
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-[#E25B21] text-[11px] font-semibold text-[#E25B21] max-w-full ${
-            currentUserId != null && task.executor_id === currentUserId ? "bg-[#E25B21]/10" : ""
-          }`}
-        >
-          <User className="h-3 w-3 shrink-0" />
-          <span className="truncate">
-            {currentUserId != null && task.executor_id === currentUserId ? "Вы" : personName}
-          </span>
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 /** Строка задачи — parity с workflow-mobile UserTaskRow. */
 export function UserTaskRow({
   item,
@@ -113,7 +71,7 @@ export function UserTaskRow({
         aria-label={item.completed ? "Отметить невыполненной" : "Отметить выполненной"}
         className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 flex items-center justify-center ${
           item.completed ? "bg-[#E25B21] border-[#E25B21]" : "border-[#3A3A3C]"
-        }`}
+        } ${isReadOnlyTask(item) ? "opacity-40" : ""}`}
       >
         {item.completed ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
       </button>
@@ -140,7 +98,7 @@ export function UserTaskRow({
               <span className="text-[13px] text-[#8E8E93] truncate">{schedule.text}</span>
             </div>
           ) : null}
-          <TaskAssignmentBadges task={item} currentUserId={currentUserId} compact />
+          <TaskAssignmentBadges task={item} primary="#E25B21" currentUserId={currentUserId} compact />
         </div>
         <ChevronRight className="h-[22px] w-[22px] text-[#8E8E93] shrink-0" />
       </button>

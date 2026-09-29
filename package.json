@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev -p 5173",
+    "dev:local": "NEXT_PUBLIC_API_BASE_URL=${LOCAL_API_URL:-http://localhost:3001/api} next dev -p 5173",
     "knip": "knip",
     "lint": "eslint . --max-warnings 9999",
     "start": "next start"

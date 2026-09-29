@@ -9,6 +9,7 @@ import {
   type TodayStats,
 } from "@/lib/user-tasks-api";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { confirmTaskToggle } from "@/lib/group-task-completion";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 
 export function useTodayTasks() {
@@ -76,6 +77,7 @@ export function useTodayTasks() {
 
   const toggleComplete = useCallback(
     async (task: UserTask) => {
+      if (!(await confirmTaskToggle(task))) return;
       const res = await updateUserTask(task.id, { completed: !task.completed });
       if (res.ok) {
         setTasks((prev) =>

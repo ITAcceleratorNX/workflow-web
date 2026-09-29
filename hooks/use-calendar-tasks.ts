@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { addDaysToDateKey, toAppDateKey } from "@/lib/dateTimeUtils";
 import { getUserTasksCalendar, updateUserTask, type CalendarTask } from "@/lib/user-tasks-api";
 import { useToast } from "@/hooks/use-toast";
+import { confirmTaskToggle } from "@/lib/group-task-completion";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 
@@ -80,6 +81,7 @@ export function useCalendarTasks(startDate: Date, endDate: Date) {
         });
         return;
       }
+      if (!(await confirmTaskToggle(task))) return;
 
       const before = tasksRef.current;
       const nextCompleted = !task.completed;

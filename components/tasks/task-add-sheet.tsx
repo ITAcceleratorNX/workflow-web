@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { ChevronRight, Loader2, User, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,14 @@ import {
 import type { TaskMainView } from "@/lib/task-views";
 import { toUtcIsoFromAppDateTime } from "@/lib/dateTimeUtils";
 import type { UseTodoListResult } from "@/hooks/use-todo-list";
+import { TaskRecipientPicker } from "@/components/tasks/task-recipient-picker";
+import { confirmMassAssignment } from "@/lib/group-task-completion";
+import {
+  massAssignmentConfirmText,
+  recipientSelectionLabel,
+  type RecipientSelection,
+} from "@/lib/task-recipients-api";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 type TaskAddSheetVariant = "sheet" | "dialog";
 
@@ -40,10 +48,16 @@ export function TaskAddSheet({
   const [title, setTitle] = useState("");
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [recipient, setRecipient] = useState<RecipientSelection | null>(null);
+  const [recipientPickerOpen, setRecipientPickerOpen] = useState(false);
+  const currentUserId = useAuthStore((s) => s.user?.id ?? null);
+  const isGuest = useAuthStore((s) => s.isGuest);
 
   useEffect(() => {
     if (!open) return;
     setTitle("");
+    setRecipient(null);
+    setRecipientPickerOpen(false);
     if (mainView === "inbox") {
       setScheduledDate("");
     } else if (mainView === "today") {
@@ -58,16 +72,18 @@ export function TaskAddSheet({
   const handleSave = async () => {
     const trimmed = title.trim();
     if (!trimmed) return;
+    // Вся компания или отдел — задача уйдёт всем её сотрудникам: сначала спросить.
+    if (!(await confirmMassAssignment(massAssignmentConfirmText(recipient)))) return;
     setSaving(true);
     try {
       const inbox = mainView === "inbox" && !scheduledDate;
       const scheduledAt = scheduledDate
         ? toUtcIsoFromAppDateTime(scheduledDate, "09:00")
         : null;
-      await addTask(trimmed, scheduledAt, false, null, undefined, "medium", undefined, {
+      const created = await addTask(trimmed, scheduledAt, false, null, recipient ? { recipient } : undefined, "medium", undefined, {
         inbox,
       });
-      onClose();
+      if (created) onClose();
     } finally {
       setSaving(false);
     }
@@ -98,6 +114,38 @@ export function TaskAddSheet({
         </div>
       )}
 
+      {!isGuest ? (
+        <div>
+          <label className="text-sm text-[#8E8E93] mb-1.5 block">Исполнитель (необязательно)</label>
+          <button
+            type="button"
+            onClick={() => setRecipientPickerOpen(true)}
+            className="w-full flex items-center gap-3 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] px-4 py-3 text-left hover:border-[#E25B21]"
+          >
+            <User className="h-5 w-5 shrink-0 text-[#8E8E93]" />
+            <span className={`flex-1 truncate ${recipient ? "text-white" : "text-[#8E8E93]"}`}>
+              {recipient ? recipientSelectionLabel(recipient) : "Себе — выбрать сотрудника, отдел или компанию"}
+            </span>
+            {recipient ? (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Убрать исполнителя"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRecipient(null);
+                }}
+                className="p-1 text-[#8E8E93] hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </span>
+            ) : (
+              <ChevronRight className="h-5 w-5 shrink-0 text-[#8E8E93]" />
+            )}
+          </button>
+        </div>
+      ) : null}
+
       <button
         type="button"
         disabled={saving || !title.trim()}
@@ -110,6 +158,20 @@ export function TaskAddSheet({
     </div>
   );
 
+  const picker = (
+    <TaskRecipientPicker
+      visible={recipientPickerOpen}
+      onClose={() => setRecipientPickerOpen(false)}
+      currentUserId={currentUserId}
+      value={recipient}
+      onConfirm={(selection) => {
+        setRecipient(selection);
+        setRecipientPickerOpen(false);
+      }}
+      variant={variant}
+    />
+  );
+
   if (variant === "dialog") {
     return (
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -119,6 +181,7 @@ export function TaskAddSheet({
           </DialogHeader>
           {form}
         </DialogContent>
+        {picker}
       </Dialog>
     );
   }
@@ -137,6 +200,7 @@ export function TaskAddSheet({
         </div>
         {form}
       </div>
+      {picker}
     </div>
   );
 }

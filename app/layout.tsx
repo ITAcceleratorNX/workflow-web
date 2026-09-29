@@ -9,6 +9,7 @@ import { MobileDeepLinkToApp } from "@/components/MobileDeepLinkToApp"
 import { AppProviders } from "@/components/theme/app-providers"
 import { ColorSchemeInitScript } from "@/components/theme/color-scheme-init-script"
 import { Toaster } from "@/components/ui/toaster"
+import { ConfirmDialogHost } from "@/components/confirm-dialog-host"
 
 export const metadata: Metadata = {
   title: "WorkFlow App - Internal Service Request Management",
@@ -40,6 +41,7 @@ export default function RootLayout({
           </Suspense>
           {children}
           <Toaster />
+          <ConfirmDialogHost />
         </AppProviders>
       </body>
     </html>
