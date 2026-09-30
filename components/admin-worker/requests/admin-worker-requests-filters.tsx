@@ -54,7 +54,7 @@ export function AdminWorkerRequestsFilters({
       <div className={cn("flex gap-2", isDesktop && "contents")}>
         <Select value={filterStatus} onValueChange={onFilterStatusChange}>
           <SelectTrigger className={triggerClass}>
-            <SelectValue placeholder="Статус" />
+            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {statusFilterOptions.map((option) => (
@@ -66,7 +66,7 @@ export function AdminWorkerRequestsFilters({
         </Select>
         <Select value={filterType} onValueChange={onFilterTypeChange}>
           <SelectTrigger className={triggerClass}>
-            <SelectValue placeholder="Тип" />
+            <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (

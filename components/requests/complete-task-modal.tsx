@@ -1,3 +1,4 @@
+import NextImage from "next/image";
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -142,7 +143,7 @@ export const CompleteTaskModal: React.FC<CompleteTaskModalProps> = ({
               <div className="flex flex-wrap gap-3 mt-2">
                 {photoPreviews.map((photo, index) => (
                   <div key={index} className="relative">
-                    <img
+                    <NextImage width={80} height={80} unoptimized
                       src={photo || "/placeholder.svg"}
                       alt={`Photo ${index + 1}`}
                       className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200"

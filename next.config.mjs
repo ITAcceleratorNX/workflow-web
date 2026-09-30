@@ -1,5 +1,10 @@
+import { fileURLToPath } from 'node:url'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: fileURLToPath(new URL('.', import.meta.url)),
+  },
   async redirects() {
     return [
       { source: '/home', destination: '/client', permanent: true },
@@ -15,9 +20,6 @@ const nextConfig = {
         permanent: true,
       },
     ]
-  },
-  typescript: {
-    ignoreBuildErrors: true,
   },
   images: {
     unoptimized: false,

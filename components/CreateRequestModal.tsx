@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,13 @@ import { getServiceCategoriesByOffice } from "@/lib/api";
 import { RequestTypeChips } from "@/components/create-request/request-type-chips";
 import { ServiceCategoryPicker } from "@/components/create-request/service-category-picker";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { MOBILE_COLORS } from "@/constants/mobile-theme";
+import { confirmAction } from "@/stores/confirm-dialog-store";
+import { RequestModalShell } from "@/components/requests/request-modal-shell";
+import {
+  clearCreateRequestDraft, createRequestDraftScope, createRequestSubmitGate,
+  readCreateRequestDraft, saveCreateRequestDraft, type CreateRequestDraft,
+} from "@/lib/create-request-draft";
 
 interface ServiceCategory {
   id: number;
@@ -74,7 +81,7 @@ interface CreateRequestModalProps {
   onClose: () => void;
   userRole: 'client' | 'admin-worker' | 'department-head' | 'executor' | 'manager';
   categories: ServiceCategory[];
-  onSubmit: (formData: FormData) => Promise<void>;
+  onSubmit: (formData: FormData) => Promise<boolean>;
   isSubmitting: boolean;
   formErrors: string | null;
   clientLocation?: string;
@@ -111,6 +118,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   isStandalonePage = false,
   onCreateRecurringTask,
 }) => {
+  const draftScope = useAuthStore(createRequestDraftScope);
+  const [hydratedDraftScope, setHydratedDraftScope] = useState<string | null>(null);
+  const [draftStorageState, setDraftStorageState] = useState<"session" | "memory" | "unavailable" | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [restoredAttachmentsMissing, setRestoredAttachmentsMissing] = useState(false);
+  const [submissionPending, setSubmissionPending] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const submitGate = useRef(createRequestSubmitGate());
+  const formGenerationRef = useRef(0);
+  const locationRequestRef = useRef(0);
+  const wasOpenRef = useRef(false);
   const [requestType, setRequestType] = useState("normal");
   const [locationDetails, setLocationDetails] = useState("");
   const [plannedDate, setPlannedDate] = useState<string>("");
@@ -155,13 +173,49 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriedLocationRef = useRef(false);
+  const closeConfirmationRef = useRef(false);
+
+  const hasDraft = Boolean(
+    selectedOfficeId || selectedCabinetRoom || selectedBlock || selectedLocation || selectedRoom ||
+    customLocation.trim() || customRoom.trim() || locationDetails.trim() || plannedDate ||
+    photos.length || afterPhotos.length || restoredAttachmentsMissing || completionComment.trim() || requestType !== "normal" || isRecurringTask || createMode !== "create" ||
+    subRequests.some((request) => request.title.trim() || request.description.trim() ||
+      request.category_id || request.subcategory_id || request.sla || request.complexity || request.executors?.length),
+  );
+
+  const requestClose = async () => {
+    if (isSubmitting || submitGate.current.isPending() || closeConfirmationRef.current) return;
+    closeConfirmationRef.current = true;
+    try {
+      if (hasDraft && !(await confirmAction({
+        title: "Удалить черновик и закрыть?",
+        message: "Черновик и добавленные фотографии будут удалены. При возврате они не восстановятся.",
+        confirmLabel: "Удалить и закрыть",
+        cancelLabel: "Продолжить заполнение",
+        destructive: true,
+      }))) return;
+      clearCreateRequestDraft(draftScope);
+      setHydratedDraftScope(null);
+      resetForm();
+      onClose();
+    } finally {
+      closeConfirmationRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !hasDraft || (draftStorageState === "session" && photos.length === 0 && afterPhotos.length === 0)) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isOpen, hasDraft, draftStorageState, photos.length, afterPhotos.length]);
 
   const isGuest = useAuthStore((s) => s.isGuest);
-  const primaryColor = useThemeColor("primary");
-  const textColor = useThemeColor("text");
-  const textMuted = useThemeColor("textMuted");
-  const borderColor = useThemeColor("border");
-  const onPrimaryColor = useThemeColor("onPrimary");
+  // This form deliberately uses a dark surface in both app themes.
+  const { actionBackground: primaryColor, text: textColor, textMuted, border: borderColor, onAction: onPrimaryColor } = MOBILE_COLORS.dark;
 
   const [officeCategories, setOfficeCategories] = useState<ServiceCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
@@ -199,8 +253,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     let cancelled = false;
     setCategoriesLoading(true);
     setOfficeCategories([]);
-    resetSubRequestCategory();
-
     if (isGuest) {
       const demo = categories.filter(
         (c) =>
@@ -231,15 +283,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [effectiveOfficeId, isGuest, categories, resetSubRequestCategory]);
-
-  // Сброс формы при закрытии
-  useEffect(() => {
-    if (!isOpen) {
-      resetForm();
-    }
-  }, [isOpen]);
-
+  }, [effectiveOfficeId, isGuest, categories]);
 
   // Сброс даты при изменении типа заявки
   useEffect(() => {
@@ -249,41 +293,40 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     }
   }, [requestType]);
 
-  // Сброс блока, местонахождения и помещения при изменении офиса
-  useEffect(() => {
+  // Reset dependent choices only for a user/geo selection, not when restoring a draft.
+  const changeOffice = useCallback((officeId: number | null) => {
+    locationRequestRef.current += 1;
+    setSelectedOfficeId(officeId);
     setSelectedBlock("");
     setSelectedLocation("");
     setSelectedRoom("");
     setCustomLocation("");
     setCustomRoom("");
-  }, [selectedOfficeId]);
+    resetSubRequestCategory();
+  }, [resetSubRequestCategory]);
 
-  // Сброс местонахождения и помещения при изменении блока
-  useEffect(() => {
+  const changeBlock = (block: string) => {
+    setSelectedBlock(block);
     setSelectedLocation("");
     setSelectedRoom("");
     setCustomLocation("");
     setCustomRoom("");
-    
-    // Если для блока нет местонахождений в справочнике, автоматически устанавливаем пустую строку
-    if (selectedBlock && selectedOfficeId) {
-      const currentOffice = offices.find(o => o.id === selectedOfficeId);
-      if (currentOffice) {
-        const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-        if (!hasLocations) {
-          setSelectedLocation(""); // Устанавливаем пустую строку для перехода к помещению
-        }
-      }
-    }
-  }, [selectedBlock, selectedOfficeId, offices]);
+  };
 
-  // Сброс помещения при изменении местонахождения
-  useEffect(() => {
+  const changeLocation = (location: string) => {
+    setSelectedLocation(location);
     setSelectedRoom("");
     setCustomRoom("");
-  }, [selectedLocation]);
+  };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
+    formGenerationRef.current += 1;
+    locationRequestRef.current += 1;
+    hasTriedLocationRef.current = false;
+    setDraftRestored(false);
+    setDraftStorageState(null);
+    setRestoredAttachmentsMissing(false);
+    setSubmissionError(null);
     setRequestType("normal");
     setLocationDetails("");
     setPlannedDate("");
@@ -312,7 +355,81 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     setRecurrenceStartDate(new Date());
     setIsGettingLocation(false);
     setCurrentStep(1);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      if (wasOpenRef.current) {
+        setHydratedDraftScope(null);
+        resetForm();
+      }
+      wasOpenRef.current = false;
+      return;
+    }
+    wasOpenRef.current = true;
+    if (!draftScope) {
+      if (hydratedDraftScope) {
+        setHydratedDraftScope(null);
+        resetForm();
+      }
+      return;
+    }
+    if (hydratedDraftScope === draftScope) return;
+    resetForm();
+    const draft = readCreateRequestDraft(draftScope);
+    if (draft) {
+      const cabinet = userCabinetRooms.find((room) => room.id === draft.selectedCabinetRoomId) ?? null;
+      const officeId = offices.some((office) => office.id === draft.selectedOfficeId) ? draft.selectedOfficeId : null;
+      setRequestType(draft.requestType);
+      setLocationDetails(draft.locationDetails);
+      setPlannedDate(draft.plannedDate);
+      setDate(draft.plannedDate ? new Date(`${draft.plannedDate}T12:00:00`) : undefined);
+      setSubRequests(draft.subRequests);
+      setIsRecurringTask(draft.isRecurringTask);
+      setCompletionComment(draft.completionComment);
+      setCompletionDate(new Date(draft.completionDate));
+      setSelectedOfficeId(officeId);
+      setLocationSource(cabinet ? draft.locationSource : "office");
+      setSelectedCabinetRoom(cabinet);
+      setSelectedBlock(draft.selectedBlock);
+      setSelectedLocation(draft.selectedLocation);
+      setSelectedRoom(draft.selectedRoom);
+      setCustomLocation(draft.customLocation);
+      setCustomRoom(draft.customRoom);
+      setCurrentStep(officeId || cabinet ? draft.currentStep : 1);
+      setRecurrenceType(draft.recurrenceType);
+      setRecurrenceInterval(draft.recurrenceInterval);
+      setRecurrenceStartDate(new Date(draft.recurrenceStartDate));
+      onModeChange?.(draft.createMode);
+      setRestoredAttachmentsMissing(draft.hadAttachments);
+      setDraftRestored(true);
+      hasTriedLocationRef.current = true;
+    }
+    setHydratedDraftScope(draftScope);
+  }, [isOpen, draftScope, hydratedDraftScope, offices, userCabinetRooms, onModeChange, resetForm]);
+
+  const draftSnapshot = useMemo<CreateRequestDraft>(() => ({
+    requestType: requestType as CreateRequestDraft["requestType"], locationDetails, plannedDate,
+    subRequests, isRecurringTask, completionComment, completionDate: completionDate.toISOString(),
+    selectedOfficeId, locationSource, selectedCabinetRoomId: selectedCabinetRoom?.id ?? null,
+    selectedBlock, selectedLocation, selectedRoom, customLocation, customRoom, currentStep,
+    recurrenceType, recurrenceInterval, recurrenceStartDate: recurrenceStartDate.toISOString(), createMode,
+    hadAttachments: restoredAttachmentsMissing || photos.length > 0 || afterPhotos.length > 0,
+  }), [requestType, locationDetails, plannedDate, subRequests, isRecurringTask, completionComment, completionDate,
+    selectedOfficeId, locationSource, selectedCabinetRoom, selectedBlock, selectedLocation, selectedRoom, customLocation,
+    customRoom, currentStep, recurrenceType, recurrenceInterval, recurrenceStartDate, createMode,
+    restoredAttachmentsMissing, photos.length, afterPhotos.length]);
+
+  useEffect(() => {
+    if (!isOpen || !draftScope || hydratedDraftScope !== draftScope) return;
+    if (createRequestDraftScope(useAuthStore.getState()) !== draftScope) return;
+    if (!hasDraft) {
+      clearCreateRequestDraft(draftScope);
+      setDraftStorageState(null);
+      return;
+    }
+    setDraftStorageState(saveCreateRequestDraft(draftScope, draftSnapshot));
+  }, [isOpen, draftScope, hydratedDraftScope, hasDraft, draftSnapshot]);
 
   // На iOS вызов input.click() должен быть в том же жесте пользователя — запрашиваем разрешение заранее при переходе на шаг с фото
   useEffect(() => {
@@ -348,8 +465,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
     // Создаем превью
     validFiles.forEach(file => {
+      const generation = formGenerationRef.current;
       const reader = new FileReader();
       reader.onload = (e) => {
+        if (generation !== formGenerationRef.current) return;
         setPhotoPreviews(prev => [...prev, e.target?.result as string]);
       };
       reader.readAsDataURL(file);
@@ -374,8 +493,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
     // Создаем превью
     validFiles.forEach(file => {
+      const generation = formGenerationRef.current;
       const reader = new FileReader();
       reader.onload = (e) => {
+        if (generation !== formGenerationRef.current) return;
         setAfterPhotoPreviews(prev => [...prev, e.target?.result as string]);
       };
       reader.readAsDataURL(file);
@@ -515,17 +636,8 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     setBasicFieldErrors(newBasicFieldErrors);
   }, [requestType, selectedBlock, selectedLocation, selectedRoom, customLocation, customRoom, photos, afterPhotos, completionComment, selectedOfficeId, selectedCabinetRoom, locationSource, userRole, createMode, hasAttemptedSubmit, offices]);
 
-  useEffect(() => {
-    if (isOpen && !hasTriedLocationRef.current) {
-      hasTriedLocationRef.current = true;
-      handleGetLocation();
-    }
-    if (!isOpen) {
-      hasTriedLocationRef.current = false;
-    }
-  }, [isOpen]);
-
-  const handleGetLocation = async () => {
+  const handleGetLocation = useCallback(async () => {
+    const requestId = ++locationRequestRef.current;
     // Показываем индикатор загрузки
     setIsGettingLocation(true);
 
@@ -549,6 +661,8 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       console.error('Ошибка при запросе разрешения на локацию:', e);
     }
 
+    if (requestId !== locationRequestRef.current) return;
+
     // Сначала пробуем геолокацию браузера
     if (navigator.geolocation) {
       const options = {
@@ -567,9 +681,9 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         // Ищем ближайший офис
         const nearestOfficeResult = findNearestOffice(latitude, longitude, offices);
         
-        if (nearestOfficeResult) {
+        if (nearestOfficeResult && requestId === locationRequestRef.current) {
           const { office, distance } = nearestOfficeResult;
-          setSelectedOfficeId(office.id);
+          changeOffice(office.id);
           
           // Показываем информацию о найденном офисе
           const distanceText = distance < 1 ? `${Math.round(distance * 1000)} м` : `${distance.toFixed(1)} км`;
@@ -582,7 +696,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         console.error("Ошибка геолокации:", error);
         
         // Детальная обработка ошибок
-        let errorMessage = "Не удалось определить местоположение";
+        const errorMessage = "Не удалось определить местоположение";
 
         console.log(errorMessage);
       } finally {
@@ -591,9 +705,21 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     } else {
       setIsGettingLocation(false);
     }
-  };
+  }, [offices, changeOffice]);
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    if (isOpen && hydratedDraftScope === draftScope && draftScope && !hasTriedLocationRef.current) {
+      hasTriedLocationRef.current = true;
+      void handleGetLocation();
+    }
+  }, [isOpen, draftScope, hydratedDraftScope, handleGetLocation]);
+
+
+  const handleSubmit = () => submitGate.current.run(async () => {
+    if (isSubmitting) return;
+    setSubmissionPending(true);
+    setSubmissionError(null);
+    try {
     // Устанавливаем флаг попытки отправки
     setHasAttemptedSubmit(true);
 
@@ -842,15 +968,20 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       formData.append('recurrence_interval', String(recurrenceInterval));
       formData.append('start_date', format(recurrenceStartDate, 'yyyy-MM-dd'));
       
-      // Отладочная информация
-      console.log('CreateRequestModal - FormData contents for recurring task:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
-      }
     }
 
-    await onSubmit(formData);
-  };
+    const submitted = await onSubmit(formData);
+    if (submitted) {
+      clearCreateRequestDraft(draftScope);
+      setHydratedDraftScope(null);
+      resetForm();
+    }
+    } catch {
+      setSubmissionError("Не удалось отправить заявку. Введённые данные остались в форме, попробуйте ещё раз.");
+    } finally {
+      setSubmissionPending(false);
+    }
+  });
 
   // Функции для валидации шагов
   const validateStep1 = (): boolean => {
@@ -942,10 +1073,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 onClick={() => {
                   setLocationSource("office");
                   setSelectedCabinetRoom(null);
-                  setSelectedOfficeId(null);
+                  changeOffice(null);
                 }}
                 className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  locationSource === "office" ? "bg-[#F35713] text-white" : "text-[#8E8E93] hover:text-white"
+                  locationSource === "office" ? "bg-[hsl(var(--action-background))] text-white" : "text-[#8E8E93] hover:text-white"
                 }`}
               >
                 <Building2 className="w-4 h-4" />
@@ -955,7 +1086,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 type="button"
                 onClick={() => {
                   setLocationSource("cabinet");
-                  setSelectedOfficeId(null);
+                  changeOffice(null);
                   setSelectedBlock("");
                   setSelectedLocation("");
                   setSelectedRoom("");
@@ -963,7 +1094,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   setCustomRoom("");
                 }}
                 className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  locationSource === "cabinet" ? "bg-[#F35713] text-white" : "text-[#8E8E93] hover:text-white"
+                  locationSource === "cabinet" ? "bg-[hsl(var(--action-background))] text-white" : "text-[#8E8E93] hover:text-white"
                 }`}
               >
                 <Home className="w-4 h-4" />
@@ -979,21 +1110,21 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <p className="text-sm text-[#8E8E93] mb-4">Кабинет, закреплённый за вами с умным домом</p>
             <div className="flex flex-wrap gap-2 sm:gap-3">
               {userCabinetRooms.map((room) => (
-                <div
+                <button type="button" aria-pressed={selectedCabinetRoom?.id === room.id}
                   key={room.id}
                   onClick={() => {
                     setSelectedCabinetRoom(room);
-                    setSelectedOfficeId(room.office_id);
+                    changeOffice(room.office_id);
                   }}
-                  className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl cursor-pointer transition-all border-2 inline-flex items-center gap-2 ${
+                  className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all border-2 inline-flex items-center gap-2 ${
                     selectedCabinetRoom?.id === room.id
-                      ? "bg-[#F35713] text-white border-[#F35713] shadow-md"
+                      ? "bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md"
                       : "bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]"
                   }`}
                 >
                   <Home className="w-4 h-4 shrink-0" />
                   {room.name}
-                </div>
+                </button>
               ))}
             </div>
             {hasAttemptedSubmit && !selectedCabinetRoom && (
@@ -1010,10 +1141,11 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               <button
                 key={office.id}
                 type="button"
-                onClick={() => setSelectedOfficeId(office.id)}
+                aria-pressed={selectedOfficeId === office.id}
+                onClick={() => changeOffice(office.id)}
                 className={`px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                   selectedOfficeId === office.id
-                    ? 'bg-[#F35713] text-white shadow-md'
+                    ? 'bg-[hsl(var(--action-background))] text-white shadow-md'
                     : 'bg-[#1E1E1E] text-white hover:bg-[#2A2A2A]'
                 }`}
               >
@@ -1025,10 +1157,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* Большие карточки офисов с изображениями */}
           <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
             {offices.map((office) => (
-              <div
+              <button type="button" aria-pressed={selectedOfficeId === office.id}
                 key={office.id}
-                onClick={() => setSelectedOfficeId(office.id)}
-                className={`relative flex flex-col rounded-[10px] cursor-pointer transition-all overflow-hidden ${
+                onClick={() => changeOffice(office.id)}
+                className={`relative flex flex-col rounded-[10px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all overflow-hidden ${
                   selectedOfficeId === office.id
                     ? 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(243,87,19,0.25),inset_0px_2px_4px_0px_rgba(243,87,19,1),inset_0px_-2px_4px_0px_rgba(243,87,19,0.2)]'
                     : 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25),inset_0px_2px_4px_0px_rgba(255,255,255,0.4),inset_0px_-2px_4px_0px_rgba(0,0,0,0.2)] hover:shadow-lg'
@@ -1038,7 +1170,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 {/* Изображение офиса */}
                 <div className="w-full flex-[3] bg-gray-700 rounded-t-[10px] overflow-hidden flex-shrink-0">
                   {office.photo ? (
-                    <img
+                    <Image unoptimized width={216} height={160}
                       src={office.photo}
                       alt={office.name}
                       className="w-full h-full object-cover"
@@ -1070,7 +1202,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -1128,17 +1260,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Выбрать блок</Label>
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {blocks.map((block) => (
-              <div
+              <button type="button" aria-pressed={selectedBlock === block}
                 key={block}
-                onClick={() => setSelectedBlock(block)}
-                className={`px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[16px] border-2 inline-flex items-center justify-center ${
+                onClick={() => changeBlock(block)}
+                className={`px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[16px] border-2 inline-flex items-center justify-center ${
                   selectedBlock === block
-                    ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                    ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                     : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                 }`}
               >
                           {block}
-              </div>
+              </button>
             ))}
           </div>
           {hasAttemptedSubmit && !selectedBlock && (
@@ -1152,28 +1284,28 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Местонахождение</Label>
             <div className="flex flex-wrap gap-2 sm:gap-3">
                         {locations.map((location) => (
-                <div
+                <button type="button" aria-pressed={selectedLocation === location}
                   key={location}
-                  onClick={() => setSelectedLocation(location)}
-                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                  onClick={() => changeLocation(location)}
+                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                     selectedLocation === location
-                      ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                      ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                       : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                   }`}
                 >
                             {location}
-                </div>
+                </button>
               ))}
-              <div
-                onClick={() => setSelectedLocation("Другое")}
-                className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+              <button type="button" aria-pressed={selectedLocation === "Другое"}
+                onClick={() => changeLocation("Другое")}
+                className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                   selectedLocation === "Другое"
-                    ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                    ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                     : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                 }`}
               >
                 Другое
-              </div>
+              </button>
             </div>
                     {selectedLocation === "Другое" && (
               <div className="mt-3">
@@ -1181,7 +1313,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                           placeholder="Введите местонахождение"
                           value={customLocation}
                           onChange={(e) => setCustomLocation(e.target.value)}
-                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${hasAttemptedSubmit && !customLocation.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !customLocation.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
                         />
                 {hasAttemptedSubmit && !customLocation.trim() && (
                           <p className="text-xs text-red-500 mt-1">Обязательное поле</p>
@@ -1202,28 +1334,28 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               <>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                         {rooms.map((room) => (
-                    <div
+                    <button type="button" aria-pressed={selectedRoom === room}
                       key={room}
                       onClick={() => setSelectedRoom(room)}
-                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                         selectedRoom === room
-                          ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                          ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                           : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                       }`}
                     >
                             {room}
-                    </div>
+                    </button>
                   ))}
-                  <div
+                  <button type="button" aria-pressed={selectedRoom === "Другое"}
                     onClick={() => setSelectedRoom("Другое")}
-                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                       selectedRoom === "Другое"
-                        ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                        ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                         : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                     }`}
                   >
                     Другое
-                  </div>
+                  </button>
                 </div>
                     {selectedRoom === "Другое" && (
                   <div className="mt-3">
@@ -1231,7 +1363,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                           placeholder="Введите помещение"
                           value={customRoom}
                           onChange={(e) => setCustomRoom(e.target.value)}
-                      className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+                      className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
                         />
                     {hasAttemptedSubmit && !customRoom.trim() && (
                           <p className="text-xs text-red-500 mt-1">Обязательное поле</p>
@@ -1245,7 +1377,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       placeholder="Введите помещение"
                       value={customRoom}
                       onChange={(e) => setCustomRoom(e.target.value)}
-                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
                     />
                 {hasAttemptedSubmit && !customRoom.trim() && (
                       <p className="text-xs text-red-500 mt-1">Обязательное поле</p>
@@ -1286,6 +1418,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             Тип заявки
           </Label>
           <RequestTypeChips
+            themeOverride="dark"
             userRole={userRole}
             value={requestType}
             onChange={(val) => {
@@ -1304,12 +1437,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Планируемая дата</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <div
-                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]`}
+                    <button type="button"
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]`}
                     >
                       <CalendarLucid className="mr-2 h-4 w-4" />
                       {date ? format(date, "PPP", { locale: ru }) : <span>Выберите дату</span>}
-                    </div>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-[#040404] border-[#1E1E1E]">
                     <Calendar
@@ -1342,17 +1475,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     { value: 'monthly', label: 'Ежемесячно' },
                     { value: 'yearly', label: 'Ежегодно' }
                   ].map((type) => (
-                    <div
+                    <button type="button" aria-pressed={recurrenceType === type.value}
                       key={type.value}
                       onClick={() => setRecurrenceType(type.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
-                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                         recurrenceType === type.value
-                          ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                          ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                           : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                       }`}
                     >
                       {type.label}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1361,17 +1494,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Интервал</Label>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {[1, 2, 3, 4, 6, 12].map((interval) => (
-                    <div
+                    <button type="button" aria-pressed={recurrenceInterval === interval}
                       key={interval}
                       onClick={() => setRecurrenceInterval(interval)}
-                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                         recurrenceInterval === interval
-                          ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                          ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                           : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                       }`}
                     >
                       Каждые {interval}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1380,12 +1513,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Дата начала повторения</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <div
-                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]`}
+                    <button type="button"
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]`}
                     >
                       <CalendarLucid className="mr-2 h-4 w-4" />
                       {format(recurrenceStartDate, "PPP", { locale: ru })}
-                    </div>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-[#040404] border-[#1E1E1E]">
                     <Calendar
@@ -1413,6 +1546,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             Категория заявки
           </Label>
           <ServiceCategoryPicker
+            themeOverride="dark"
             categories={officeCategories}
             selectedId={subRequest.category_id}
             loading={categoriesLoading}
@@ -1493,7 +1627,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 className={
                   isFullScreen
                     ? "bg-background border rounded-lg min-h-11"
-                    : "bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] border-[#1E1E1E]"
+                    : "bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] border-[#1E1E1E]"
                 }
                 style={isFullScreen ? { borderColor, color: textColor } : undefined}
               />
@@ -1517,7 +1651,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Описание заявки</Label>
           <Textarea
             placeholder="Опишите заявку подробно..."
-            className={`min-h-[100px] bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] border-[#1E1E1E] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${hasAttemptedSubmit && !subRequest.description.trim() ? 'border-red-500' : ''}`}
+            className={`min-h-[100px] bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] border-[#1E1E1E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !subRequest.description.trim() ? 'border-red-500' : ''}`}
             value={subRequest.description}
             onChange={(e) => updateSubRequest(0, 'description', e.target.value)}
           />
@@ -1534,9 +1668,9 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             }`}>
               {photoPreviews.map((photo, index) => (
                 <div key={index} className="relative">
-                  <img
+                  <Image unoptimized width={80} height={80}
                     src={photo || "/placeholder.svg"}
-                    alt={`Photo ${index + 1}`}
+                    alt={`Фото заявки ${index + 1}`}
                     className="w-20 h-20 object-cover rounded-lg"
                   />
                   <button
@@ -1561,7 +1695,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     onChange={handleFileChange}
                     className="sr-only"
                   />
-                  <Camera className="w-6 h-6 text-[#6E6E6E]" />
+                  <Camera className="w-6 h-6 text-[#AEAEB2]" />
                 </label>
               )}
             </div>
@@ -1581,9 +1715,9 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
-                      className={`w-full max-w-xs justify-start text-left font-normal h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] text-white hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg ${!completionDate && "text-[#6E6E6E]"}`}
+                      className={`w-full max-w-xs justify-start text-left font-normal h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] text-white hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg ${!completionDate && "text-[#AEAEB2]"}`}
                     >
-                      <CalendarLucid className="mr-2 h-4 w-4" style={{ color: '#6E6E6E' }} />
+                      <CalendarLucid className="mr-2 h-4 w-4" style={{ color: '#AEAEB2' }} />
                       {completionDate ? format(completionDate, "PPP", { locale: ru }) : <span>Выберите дату</span>}
                     </Button>
                   </PopoverTrigger>
@@ -1611,7 +1745,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   placeholder="Опишите выполненную работу, использованные материалы, время выполнения и т.д."
                   value={completionComment}
                   onChange={(e) => setCompletionComment(e.target.value)}
-                  className={`min-h-[100px] resize-none bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#6E6E6E] border-[#1E1E1E] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
+                  className={`min-h-[100px] resize-none bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] border-[#1E1E1E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${
                     hasAttemptedSubmit && !completionComment.trim() ? 'border-red-500' : ''
                   }`}
                 />
@@ -1629,9 +1763,9 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 }`}>
                   {afterPhotoPreviews.map((photo, index) => (
                     <div key={index} className="relative">
-                      <img
+                      <Image unoptimized width={640} height={320}
                         src={photo || "/placeholder.svg"}
-                        alt={`After Photo ${index + 1}`}
+                        alt={`Фото результата ${index + 1}`}
                         className="w-full h-32 sm:h-40 object-cover rounded-lg"
                       />
                       <button
@@ -1655,7 +1789,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                         onChange={handleAfterPhotoUpload}
                         className="sr-only"
                       />
-                      <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-[#6E6E6E]" />
+                      <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-[#AEAEB2]" />
                     </label>
                   )}
                 </div>
@@ -1677,17 +1811,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   { value: 'medium', label: 'Средняя' },
                   { value: 'complex', label: 'Сложная' }
                 ].map((complexity) => (
-                  <div
+                  <button type="button" aria-pressed={subRequest.complexity === complexity.value}
                     key={complexity.value}
                     onClick={() => updateSubRequest(0, 'complexity', complexity.value as 'simple' | 'medium' | 'complex')}
-                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                       subRequest.complexity === complexity.value
-                        ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                        ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                         : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                     }`}
                   >
                     {complexity.label}
-                  </div>
+                  </button>
                 ))}
               </div>
               {hasAttemptedSubmit && !subRequest.complexity && (
@@ -1706,17 +1840,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   { value: '3d', label: '3 дня' },
                   { value: '1w', label: '1 неделя' }
                 ].map((sla) => (
-                  <div
+                  <button type="button" aria-pressed={subRequest.sla === sla.value}
                     key={sla.value}
                     onClick={() => updateSubRequest(0, 'sla', sla.value)}
-                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
+                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center ${
                       subRequest.sla === sla.value
-                        ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                        ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                         : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                     }`}
                   >
                     {sla.label}
-                  </div>
+                  </button>
                 ))}
               </div>
               {hasAttemptedSubmit && !subRequest.sla && (
@@ -1854,18 +1988,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   if (!isOpen) return null;
 
   const overlayClass = isStandalonePage && isFullScreen
-    ? "fixed inset-0 bg-transparent flex items-center justify-center z-[100]"
-    : `fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] ${isFullScreen ? "p-0" : "p-4"}`;
+    ? "bg-transparent p-0"
+    : `bg-black/50 ${isFullScreen ? "p-0" : "p-4"}`;
 
   return (
-    <div
-      className={overlayClass}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-        resetForm();
-      }}
+    <RequestModalShell
+      isOpen={isOpen}
+      onClose={() => void requestClose()}
+      title="Создать заявку"
+      layer={100}
+      overlayClassName={overlayClass}
+      contentProps={{ className: "dark" }}
     >
       <Card className={`w-full overflow-y-auto bg-[#040404] border-[#040404] ${
         isFullScreen 
@@ -1885,14 +2018,27 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   if (currentStep > 1) {
                     handleBack();
                   } else {
-                    onClose();
-                    resetForm();
+                    void requestClose();
                   }
                 }}
+                disabled={isSubmitting || submissionPending}
+                aria-label={currentStep > 1 ? "Предыдущий шаг" : "Закрыть создание заявки"}
                 className={`absolute left-0 hover:bg-transparent !p-0 ${isStandalonePage ? "text-[#E25B21] hover:text-[#E25B21]" : "text-white"}`}
                 style={{ padding: 'clamp(4px, 0.5vh, 6px)' }}
               >
                 <ChevronLeft className="!w-6 !h-6 sm:!w-8 sm:!h-8" style={{ width: 'clamp(24px, 4vw, 30px)', height: 'clamp(24px, 4vw, 30px)' }} />
+              </Button>
+            )}
+            {!isFullScreen && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void requestClose()}
+                disabled={isSubmitting || submissionPending}
+                className="absolute right-0 h-11 w-11 p-0 text-white hover:bg-white/10"
+                aria-label="Закрыть создание заявки"
+              >
+                <span aria-hidden="true" className="text-2xl">×</span>
               </Button>
             )}
             
@@ -1906,9 +2052,19 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-10 sm:space-y-6 pb-16 sm:pb-20 bg-[#040404] text-white" style={{ paddingLeft: 'clamp(20px, 5.33vw, 24px)', paddingRight: 'clamp(20px, 5.33vw, 24px)', paddingTop: 'clamp(12px, 12.8vh, 16px)' }}>
+          {hasDraft && draftStorageState && hydratedDraftScope === draftScope ? (
+            <p role="status" className="text-sm text-[#AEAEB2]">
+              {draftStorageState === "session"
+                ? draftRestored ? "Черновик восстановлен и сохраняется в этой вкладке." : "Черновик сохраняется в этой вкладке."
+                : draftStorageState === "memory"
+                  ? "Черновик сохранён на время работы. Перед перезагрузкой отправьте заявку: хранилище браузера недоступно."
+                  : "Не удалось сохранить черновик в браузере. Не закрывайте страницу до отправки."}
+              {restoredAttachmentsMissing ? " Фотографии не восстановлены — добавьте их заново." : photos.length || afterPhotos.length ? " После перезагрузки фотографии нужно добавить заново." : ""}
+            </p>
+          ) : null}
           {/* Описание выбранного офиса (для шага 2) */}
           {currentStep === 2 && selectedOfficeId && (
-            <CardDescription className="text-left text-xs sm:text-sm -mb-8 sm:-mb-3" style={{ color: '#6E6E6E' }}>
+            <CardDescription className="text-left text-xs sm:text-sm -mb-8 sm:-mb-3" style={{ color: '#AEAEB2' }}>
               Выбрано офис: {offices.find(o => o.id === selectedOfficeId)?.name || ''}
             </CardDescription>
           )}
@@ -1917,12 +2073,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <div>
               <Label className="flex items-center gap-1 mb-3 text-white">Режим создания</Label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button
+                <button aria-pressed={createMode === 'create'}
                   type="button"
                   onClick={() => onModeChange('create')}
-                  className={`flex-1 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center gap-2 ${
+                  className={`flex-1 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center gap-2 ${
                     createMode === 'create'
-                      ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                      ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                       : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                   }`}
                 >
@@ -1930,12 +2086,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   <span className="hidden sm:inline">Создать заявку</span>
                   <span className="sm:hidden">Обычная</span>
                 </button>
-                <button
+                <button aria-pressed={createMode === 'createAndComplete'}
                   type="button"
                   onClick={() => onModeChange('createAndComplete')}
-                  className={`flex-1 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center gap-2 ${
+                  className={`flex-1 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all text-center font-medium text-[12px] sm:text-[14px] border-2 inline-flex items-center justify-center gap-2 ${
                     createMode === 'createAndComplete'
-                      ? 'bg-[#F35713] text-white border-[#F35713] shadow-md'
+                      ? 'bg-[hsl(var(--action-background))] text-white border-[#F35713] shadow-md'
                       : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                   }`}
                 >
@@ -1958,7 +2114,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
 
-          {formErrors && <p className="text-sm text-red-500">{formErrors}</p>}
+          {(formErrors || submissionError) && <p role="alert" className="text-sm text-red-400">{formErrors || submissionError}</p>}
 
           {/* Навигационные кнопки */}
           <div className={`flex gap-3 mt-6 ${currentStep === 1 ? 'justify-end' : ''}`}>
@@ -1969,15 +2125,15 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     variant="outline"
                     onClick={handleBack}
                     className="flex-1 h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg flex items-center justify-center gap-1.5"
-                    style={{ color: '#6E6E6E' }}
+                    style={{ color: '#AEAEB2' }}
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" style={{ color: '#6E6E6E' }} />
+                    <ArrowLeft className="w-3.5 h-3.5" style={{ color: '#AEAEB2' }} />
                     <span>Назад</span>
                   </Button>
                 )}
                 <Button
                   onClick={handleNext}
-                  className={`${currentStep === 1 ? 'w-[160px]' : 'flex-1'} h-[42px] bg-[#F35713] hover:bg-[#E04F0F] text-white rounded-lg px-2.5 py-2.5 flex items-center justify-center gap-1.5`}
+                  className={`${currentStep === 1 ? 'w-[160px]' : 'flex-1'} h-[42px] bg-[hsl(var(--action-background))] hover:bg-[hsl(var(--action-background))]/90 text-white rounded-lg px-2.5 py-2.5 flex items-center justify-center gap-1.5`}
                 >
                   <span className="text-xs font-medium">Дальше</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1987,10 +2143,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                                     <div className="grid grid-cols-2 gap-3 w-full">
             <Button
               onClick={handleSubmit}
-              className="col-span-2 h-[42px] bg-[#F35713] hover:bg-[#E04F0F]"
-              disabled={isSubmitting}
+              className="col-span-2 h-auto min-h-11 min-w-0 whitespace-normal bg-[hsl(var(--action-background))] text-[hsl(var(--action-foreground))] hover:bg-[hsl(var(--action-background))]/90"
+              disabled={isSubmitting || submissionPending}
             >
-              {isSubmitting ? (
+              {isSubmitting || submissionPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {userRole === 'executor' && createMode === 'createAndComplete' ? 'Создание с завершением...' :
@@ -2004,10 +2160,11 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
              <Button
                  variant="outline"
                  onClick={handleBack}
+                 disabled={isSubmitting || submissionPending}
                  className="h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg flex items-center justify-center gap-1.5"
-                 style={{ color: '#6E6E6E' }}
+                 style={{ color: '#AEAEB2' }}
                >
-                 <ArrowLeft className="w-3.5 h-3.5" style={{ color: '#6E6E6E' }} />
+                 <ArrowLeft className="w-3.5 h-3.5" style={{ color: '#AEAEB2' }} />
                  <span>Назад</span>
             </Button>
             <Button
@@ -2015,11 +2172,11 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onClose();
-                resetForm();
+                void requestClose();
               }}
+              disabled={isSubmitting || submissionPending}
               className="h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg flex items-center justify-center gap-1.5"
-                 style={{ color: '#6E6E6E' }}
+                 style={{ color: '#AEAEB2' }}
             >
               Отмена
             </Button>
@@ -2040,6 +2197,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         userRole={userRole as 'admin-worker' | 'department-head'}
         isFullScreen={isFullScreen}
       />
-    </div>
+    </RequestModalShell>
   );
 };

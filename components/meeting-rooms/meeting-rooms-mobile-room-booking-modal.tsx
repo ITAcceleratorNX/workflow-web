@@ -30,6 +30,8 @@ interface MeetingRoomsMobileRoomBookingModalProps {
     | "isBooking"
     | "bookedSlots"
     | "loadingAvailability"
+    | "availabilityError"
+    | "retryAvailability"
     | "currentMonth"
     | "setCurrentMonth"
     | "showCalendar"
@@ -59,6 +61,8 @@ export function MeetingRoomsMobileRoomBookingModal({
     isBooking,
     bookedSlots,
     loadingAvailability,
+    availabilityError,
+    retryAvailability,
     currentMonth,
     setCurrentMonth,
     showCalendar,
@@ -181,11 +185,16 @@ export function MeetingRoomsMobileRoomBookingModal({
 
           {selectedDate && (
             <div>
-              <label className="text-base font-medium text-white mb-2 block">Время</label>
+              <label className="text-base font-medium text-white mb-2 block">Время Алматы</label>
               {loadingAvailability ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span className="ml-2 text-sm text-white/60">Загрузка...</span>
+                </div>
+              ) : availabilityError ? (
+                <div role="alert" className="rounded-xl border border-white/30 p-4 text-white">
+                  <p>{availabilityError}</p>
+                  <button type="button" onClick={retryAvailability} className="mt-2 min-h-11 underline">Повторить загрузку</button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1">
@@ -248,7 +257,7 @@ export function MeetingRoomsMobileRoomBookingModal({
           <button
             type="button"
             onClick={handleBookRoom}
-            disabled={!selectedDate || !selectedTimeSlot || isBooking}
+            disabled={!selectedDate || !selectedTimeSlot || isBooking || isSlotDisabled(MEETING_ROOM_TIME_SLOTS.find((slot) => slot.label === selectedTimeSlot)?.start ?? "")}
             className="w-full bg-[#F35713] text-white py-4 rounded-[10px] font-medium text-base disabled:opacity-50"
           >
             {isBooking ? "Бронирование..." : "Забронировать"}

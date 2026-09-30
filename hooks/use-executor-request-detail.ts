@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
 import type { RequestGroup } from "@/stores/useRequestStore";
@@ -12,6 +13,7 @@ import { useCategoryStore } from "@/stores/useCategoryStore";
 export function useExecutorRequestDetail() {
   const router = useRouter();
   const params = useParams();
+  const currentSearch = useSearchParams().toString();
   const id = params?.id as string;
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
@@ -37,9 +39,9 @@ export function useExecutorRequestDetail() {
 
   useEffect(() => {
     if (isDesktop && id) {
-      router.replace(`/executor/requests?requestId=${id}`);
+      router.replace(buildRequestsUrlWithId("/executor/requests", id, currentSearch));
     }
-  }, [isDesktop, router, id]);
+  }, [isDesktop, router, id, currentSearch]);
 
   useEffect(() => {
     if (token && !isDesktop) fetchCategories(token);
@@ -72,12 +74,12 @@ export function useExecutorRequestDetail() {
   }, [id]);
 
   const handleClose = useCallback(() => {
-    router.push("/executor/requests");
-  }, [router]);
+    router.push(buildRequestsListPath("/executor/requests", currentSearch));
+  }, [router, currentSearch]);
 
   const handleRequestUpdated = useCallback(() => {
-    router.push("/executor/requests");
-  }, [router]);
+    router.push(buildRequestsListPath("/executor/requests", currentSearch));
+  }, [router, currentSearch]);
 
   const handleStartTask = useCallback(
     async (taskId: string) => {

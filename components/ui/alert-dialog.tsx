@@ -4,6 +4,7 @@ import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
+import { OverlayLayerProvider, useOverlayLayer, useDialogFocusReturn } from "@/components/ui/overlay-layer"
 import { buttonVariants } from "@/components/ui/button"
 
 const AlertDialog = AlertDialogPrimitive.Root
@@ -18,7 +19,7 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[var(--overlay-dialog-z,50)] bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -29,20 +30,37 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        className
-      )}
-      {...props}
-    />
-  </AlertDialogPortal>
-))
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { layer?: number }
+>(({ className, layer, style, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  const resolvedLayer = useOverlayLayer(layer)
+  const focusReturn = useDialogFocusReturn()
+  const overlayStyle = { "--overlay-dialog-z": resolvedLayer } as React.CSSProperties
+  const contentStyle = { ...overlayStyle, ...style }
+  return (
+    <OverlayLayerProvider level={resolvedLayer}>
+      <AlertDialogPortal>
+        <AlertDialogOverlay style={overlayStyle} />
+        <AlertDialogPrimitive.Content
+          ref={ref}
+          style={contentStyle}
+          onOpenAutoFocus={(event) => {
+            focusReturn.onOpenAutoFocus()
+            onOpenAutoFocus?.(event)
+          }}
+          onCloseAutoFocus={(event) => {
+            onCloseAutoFocus?.(event)
+            focusReturn.onCloseAutoFocus(event)
+          }}
+          className={cn(
+            "fixed left-[50%] top-[50%] z-[var(--overlay-dialog-z,50)] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+            className
+          )}
+          {...props}
+        />
+      </AlertDialogPortal>
+    </OverlayLayerProvider>
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

@@ -1,12 +1,12 @@
 "use client";
 
+import { RequestListFeedback, type RequestListFeedbackProps } from "@/components/requests/request-list-feedback";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
-import { MOBILE_REQUESTS_EMPTY_TEXT } from "@/constants/mobile-requests-ui";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { EXECUTOR_EMPTY_MESSAGES, type ExecutorRequestsTab } from "./executor-requests-constants";
 
-interface ExecutorRequestsListContentProps {
+interface ExecutorRequestsListContentProps extends RequestListFeedbackProps {
   loading: boolean;
   requests: RequestGroup[];
   activeTab: ExecutorRequestsTab;
@@ -14,47 +14,27 @@ interface ExecutorRequestsListContentProps {
   onCardClick: (request: RequestGroup) => void;
   renderCardHeader: (request: RequestGroup) => React.ReactNode;
   variant?: "mobile" | "desktop";
+  hasMore: boolean;
+  onLoadMore: () => void;
 }
 
 export function ExecutorRequestsListContent({
   loading,
+  error,
+  isFiltered,
+  onRetry,
+  onResetFilters,
   requests,
   activeTab,
   clientRatings,
   onCardClick,
   renderCardHeader,
-  variant = "mobile",
+  hasMore,
+  onLoadMore,
 }: ExecutorRequestsListContentProps) {
-  const isDesktop = variant === "desktop";
-
-  if (loading) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        Загрузка...
-      </div>
-    );
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        {EXECUTOR_EMPTY_MESSAGES[activeTab]}
-      </div>
-    );
-  }
-
   return (
     <>
+      <RequestListFeedback loading={loading} error={error} isFiltered={isFiltered} onRetry={onRetry} onResetFilters={onResetFilters} count={requests.length} emptyMessage={EXECUTOR_EMPTY_MESSAGES[activeTab]} />
       {requests.map((request, index) => (
         <RequestCard
           key={request.id || index}
@@ -66,6 +46,7 @@ export function ExecutorRequestsListContent({
           variant="compact"
         />
       ))}
+      {hasMore && <div className="flex justify-center py-4"><Button variant="outline" disabled={loading} onClick={onLoadMore}>Показать ещё</Button></div>}
     </>
   );
 }

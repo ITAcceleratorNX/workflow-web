@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { clearCreateRequestDrafts, createRequestDraftScope } from "@/lib/create-request-draft";
 
 interface Office {
     name: string;
@@ -45,21 +46,26 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             token: null,
             role: null,
             user: null,
             isGuest: false,
 
-            setAuth: (token, role, user) =>
+            setAuth: (token, role, user) => {
+                if (createRequestDraftScope(get()) !== createRequestDraftScope({ token, role, user, isGuest: false })) {
+                    clearCreateRequestDrafts();
+                }
                 set({
                     token,
                     role,
                     user,
                     isGuest: false,
-                }),
+                });
+            },
 
-            setGuestAuth: () =>
+            setGuestAuth: () => {
+                clearCreateRequestDrafts();
                 set({
                     token: "guest-demo",
                     role: "client",
@@ -78,15 +84,18 @@ export const useAuthStore = create<AuthState>()(
                         push_notifications: false,
                     },
                     isGuest: true,
-                }),
+                });
+            },
 
-            clearAuth: () =>
+            clearAuth: () => {
+                clearCreateRequestDrafts();
                 set({
                     token: null,
                     role: null,
                     user: null,
                     isGuest: false,
-                }),
+                });
+            },
             updateUser: (updater) =>
                 set((state) => {
                     if (typeof updater === "function") {

@@ -1,8 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { collectRequestPages, listLoadError } from "@/lib/request-list-loading";
+import { useRequestListWindow } from "@/hooks/use-request-list-window";
+import { buildRequestsUrlWithoutFilters } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import api, { deleteRecurringTask, getOffices } from "@/lib/api";
+import api, { deleteRecurringTask } from "@/lib/api";
+import type { RequestGroup } from "@/stores/useRequestStore";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +22,10 @@ import type { AdminWorkerRequestsTab } from "@/components/admin-worker/requests/
 export type AdminWorkerOffice = { id: number; name: string };
 
 export function useAdminWorkerRequestsList() {
+  const pathname = usePathname();
+  const router = useRouter();
   const isDesktop = useIsDesktop();
+  const searchParams = useSearchParams();
   const { token } = useAuthStore();
   const { toast } = useToast();
   const { incomingRequests, setIncomingRequests, myRequests, setMyRequests } = useRequestStore();
@@ -30,88 +38,73 @@ export function useAdminWorkerRequestsList() {
 
   const [activeTab, setActiveTab] = useState<AdminWorkerRequestsTab>("incoming");
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const fetchVersion = useRef(0);
+  const officesVersion = useRef(0);
+  const [error, setError] = useState<string | null>(null);
+  const [officesError, setOfficesError] = useState<string | null>(null);
   const lastElementRef = useRef<HTMLDivElement>(null);
 
   const statusFilterOptions = useMemo(() => getStatusOptionsForRole("admin-worker"), []);
+  const queryStatus = searchParams.get("status");
+  const queryType = searchParams.get("priority");
+  const queryOffice = searchParams.get("office_id");
+  useEffect(() => {
+    setFilterStatus(statusFilterOptions.some((option) => option.value === queryStatus) && queryStatus ? queryStatus : "all");
+    setFilterType(queryType && ["normal", "urgent", "planned"].includes(queryType) ? queryType : "all");
+    setFilterOffice(queryOffice && /^\d+$/.test(queryOffice) ? queryOffice : "all");
+  }, [queryStatus, queryType, queryOffice, statusFilterOptions]);
 
   const fetchOffices = useCallback(async () => {
+    const version = ++officesVersion.current;
+    if (!token) return;
+    setOfficesError(null);
     try {
-      const res = await getOffices();
-      setOffices(res.data || []);
-    } catch (error) {
-      console.error("Ошибка загрузки офисов:", error);
+      const { data } = await api.get<AdminWorkerOffice[]>("/offices");
+      if (!Array.isArray(data)) throw new Error("Invalid office list");
+      if (version === officesVersion.current) setOffices(data);
+    } catch (failure) {
+      if (version === officesVersion.current) setOfficesError(`Не удалось загрузить список офисов. ${listLoadError(failure)}`);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    fetchOffices();
+    void fetchOffices();
+    return () => { officesVersion.current += 1; };
   }, [fetchOffices]);
 
-  const fetchRequests = useCallback(
-    async (currentPage = 1) => {
-      if (!token) return;
-      const isFirstPage = currentPage === 1;
-      if (isFirstPage) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const params = new URLSearchParams({
-          page: currentPage.toString(),
-          pageSize: "10",
-        });
-
-        if (filterStatus !== "all" && filterStatus !== "long_term") {
-          params.append("status", filterStatus);
-        }
-        if (filterType !== "all") {
-          params.append("priority", filterType);
-        }
-        if (filterOffice !== "all") {
-          params.append("office_id", filterOffice);
-        }
-
-        const response = await api.get(`/request-groups?${params.toString()}`);
-        const sortedIncoming = sortRequestGroupsByCreatedDate(
-          response.data.otherRequests || [],
-        );
-        const sortedMy = sortRequestGroupsByCreatedDate(response.data.myRequests || []);
-
-        setIncomingRequests((prev) =>
-          currentPage === 1
-            ? sortedIncoming
-            : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))],
-        );
-        setMyRequests((prev) =>
-          currentPage === 1
-            ? sortedMy
-            : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))],
-        );
-        setHasMore(
-          (response.data.otherRequests?.length || 0) + (response.data.myRequests?.length || 0) >=
-            10,
-        );
-        setPage(currentPage);
-      } catch (error) {
-        console.error("Ошибка при загрузке заявок:", error);
-      } finally {
-        if (isFirstPage) setLoading(false);
-        else setLoadingMore(false);
-      }
-    },
-    [
-      token,
-      filterStatus,
-      filterType,
-      filterOffice,
-      setIncomingRequests,
-      setMyRequests,
-    ],
-  );
+  const fetchRequests = useCallback(async () => {
+    const version = ++fetchVersion.current;
+    if (!token) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      // Filter a complete snapshot, so matches are not hidden on later server pages.
+      type Item = { id: number; group: RequestGroup; bucket: "incoming" | "my" };
+      const list = await collectRequestPages<Item>(async (page) => {
+        if (version !== fetchVersion.current) throw new Error("Superseded request");
+        const { data } = await api.get<{ otherRequests: RequestGroup[]; myRequests: RequestGroup[]; total: number; pageSize: number }>("/request-groups", { params: { page, pageSize: 50 } });
+        if (!Array.isArray(data.otherRequests) || !Array.isArray(data.myRequests)) throw new Error("Invalid request lists");
+        return {
+          requests: [
+            ...data.otherRequests.map((group): Item => ({ id: group.id, group, bucket: "incoming" })),
+            ...data.myRequests.map((group): Item => ({ id: group.id, group, bucket: "my" })),
+          ],
+          totalPages: Math.ceil(data.total / data.pageSize),
+        };
+      });
+      if (version !== fetchVersion.current) return;
+      setIncomingRequests(sortRequestGroupsByCreatedDate(list.filter((item) => item.bucket === "incoming").map((item) => item.group)));
+      setMyRequests(sortRequestGroupsByCreatedDate(list.filter((item) => item.bucket === "my").map((item) => item.group)));
+    } catch (failure) {
+      if (version === fetchVersion.current) setError(listLoadError(failure));
+    } finally {
+      if (version === fetchVersion.current) setLoading(false);
+    }
+  }, [token, setIncomingRequests, setMyRequests]);
 
   useEffect(() => {
-    fetchRequests(1);
+    void fetchRequests();
+    return () => { fetchVersion.current += 1; };
   }, [fetchRequests]);
 
   const applyFilters = useCallback(
@@ -142,6 +135,15 @@ export function useAdminWorkerRequestsList() {
     return [];
   }, [activeTab, filteredIncomingRequests, filteredMyRequests]);
 
+  const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
+    activeList, `${activeTab}:${filterStatus}:${filterType}:${filterOffice}`,
+  );
+  const isFiltered = filterStatus !== "all" || filterType !== "all" || filterOffice !== "all";
+  const resetFilters = () => {
+    setFilterStatus("all"); setFilterType("all"); setFilterOffice("all");
+    router.replace(buildRequestsUrlWithoutFilters(pathname, searchParams.toString()), { scroll: false });
+  };
+
   const {
     displayRequest,
     selectRequest: handleCardClick,
@@ -156,17 +158,11 @@ export function useAdminWorkerRequestsList() {
   });
 
   const handleRefresh = useCallback(async () => {
-    await fetchRequests(1);
-  }, [fetchRequests]);
-
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchRequests(page + 1);
-    }
-  }, [loadingMore, hasMore, page, fetchRequests]);
+    await Promise.all([fetchRequests(), fetchOffices()]);
+  }, [fetchRequests, fetchOffices]);
 
   const handleRequestUpdated = useCallback(() => {
-    fetchRequests(1);
+    void fetchRequests();
     clearAfterUpdate();
   }, [fetchRequests, clearAfterUpdate]);
 
@@ -197,7 +193,10 @@ export function useAdminWorkerRequestsList() {
     loading,
     loadingMore,
     hasMore,
-    activeList,
+    activeList: visibleRequests,
+    error: error ?? officesError,
+    isFiltered,
+    resetFilters,
     filteredIncomingRequests,
     filteredMyRequests,
     handleRefresh,

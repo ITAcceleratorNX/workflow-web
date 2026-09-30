@@ -27,7 +27,8 @@ export interface RequestExecutorAssignment {
 }
 
 export interface SubRequestRating {
-  rating: number;
+  /** The API emits null when the request has no ratings yet. */
+  rating: number | null;
   comment?: string;
   comments?: string[];
 }
@@ -72,6 +73,9 @@ export interface ClientRating {
   rating: number;
   comment?: string;
   created_at?: string;
+  /** Included for executor/admin lists; client lists include the rater instead. */
+  ratedClient?: Pick<RequestUser, 'id' | 'full_name'> | null;
+  ratedByUser?: Pick<RequestUser, 'id' | 'full_name'> | null;
 }
 
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -115,3 +119,9 @@ export type RequestGroupsBackendResponse =
   | { assignedRequests: RequestGroup[]; completedRequests: RequestGroup[]; myRequests: RequestGroup[] };
 
 export type RequestGroupsSegments = Record<string, RequestGroup[]>;
+
+export interface ExecutorRequestGroupsResponse {
+  assignedRequests: RequestGroup[];
+  completedRequests: RequestGroup[];
+  myRequests: RequestGroup[];
+}

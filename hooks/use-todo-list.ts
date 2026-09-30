@@ -370,7 +370,7 @@ export function useTodoList(queryInput: UseTodoListQuery | TaskFilter = { filter
           variant: "destructive",
           duration: 4000,
         });
-        return;
+        return false;
       }
       const before = tasksRef.current;
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
@@ -378,7 +378,7 @@ export function useTodoList(queryInput: UseTodoListQuery | TaskFilter = { filter
       const res = await deleteUserTask(task.id);
       if (res.ok) {
         bump();
-        return;
+        return true;
       }
       setTasks(before);
       toast({
@@ -387,6 +387,7 @@ export function useTodoList(queryInput: UseTodoListQuery | TaskFilter = { filter
         variant: "destructive",
         duration: 4000,
       });
+      return false;
     },
     [token, isGuest, bump, toast],
   );

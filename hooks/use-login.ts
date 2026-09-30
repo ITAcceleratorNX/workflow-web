@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser, loginWithPhone } from '@/lib/auth';
 import { formatPhone, PHONE_REGEX } from '@/lib/phone-utils';
@@ -41,6 +41,7 @@ export function useLogin(): UseLoginResult {
   const [passwordError, setPasswordError] = useState('');
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+  const loginPending = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -87,8 +88,9 @@ export function useLogin(): UseLoginResult {
   }, []);
 
   const handleLogin = useCallback(async () => {
-    if (!validate()) return;
+    if (loginPending.current || !validate()) return;
 
+    loginPending.current = true;
     setLoading(true);
     setFormError('');
 
@@ -119,6 +121,7 @@ export function useLogin(): UseLoginResult {
         err instanceof Error ? err.message : 'Произошла ошибка при входе. Попробуйте позже.';
       setFormError(message);
     } finally {
+      loginPending.current = false;
       setLoading(false);
     }
   }, [phone, password, validate, router, isDesktop]);

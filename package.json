@@ -7,7 +7,9 @@
     "dev": "next dev -p 5173",
     "dev:local": "NEXT_PUBLIC_API_BASE_URL=${LOCAL_API_URL:-http://localhost:3001/api} next dev -p 5173",
     "knip": "knip",
-    "lint": "eslint . --max-warnings 9999",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "start": "next start"
   },
   "dependencies": {

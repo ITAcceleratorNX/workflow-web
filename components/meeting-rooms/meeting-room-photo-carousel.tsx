@@ -7,6 +7,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,8 +64,11 @@ export function MeetingRoomPhotoCarousel({
         {photos.map((photo, index) => (
           <CarouselItem key={index} className="pl-0 basis-full">
             <div className="relative w-full h-full">
-              <img
+              <Image
                 src={photo}
+                fill
+                sizes={isHero ? "(max-width: 768px) 100vw, 720px" : "160px"}
+                unoptimized={photo.startsWith("http:") || photo.startsWith("blob:") || photo.startsWith("data:")}
                 alt={`${altPrefix} — фото ${index + 1}`}
                 className={imageClassName}
               />

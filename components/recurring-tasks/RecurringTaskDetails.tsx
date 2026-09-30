@@ -1,5 +1,7 @@
 'use client';
 
+import NextImage from "next/image";
+import PhotoModal from "@/components/photo/PhotoModal";
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,7 +78,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
   // Обработка клавиши Escape для закрытия модального окна
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented && !selectedPhoto && !showInstances && !showAssignExecutorsModal && !showDeleteConfirm && !(externalShowComments ?? internalShowComments)) {
         onClose();
       }
     };
@@ -85,7 +87,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, selectedPhoto, showInstances, showAssignExecutorsModal, showDeleteConfirm, externalShowComments, internalShowComments]);
   
   // Используем внешние состояния, если они переданы, иначе внутренние
   const showComments = externalShowComments !== undefined ? externalShowComments : internalShowComments;
@@ -368,7 +370,8 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                 {task.photos
                   .filter((photo: any) => photo.type === 'before')
                   .map((photo: any, index: number) => (
-                    <img
+                    <NextImage
+                      width={96} height={96} unoptimized
                       key={index}
                       src={photo.photo_url || "/placeholder.svg"}
                       alt={`Фото ${index + 1}`}
@@ -393,7 +396,8 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                 {task.photos
                   .filter((photo: any) => photo.type === 'after')
                   .map((photo: any, index: number) => (
-                    <img
+                    <NextImage
+                      width={96} height={96} unoptimized
                       key={index}
                       src={photo.photo_url || "/placeholder.svg"}
                       alt={`Фото ${index + 1}`}
@@ -410,32 +414,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
             </div>
           )}
 
-          {/* Модальное окно для просмотра фото */}
-          {selectedPhoto && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
-              onClick={() => {setSelectedPhoto(null);}}
-            >
-              <div className="relative max-w-full max-h-full">
-                <img
-                  src={selectedPhoto.url}
-                  alt="Увеличенное фото"
-                  className="max-w-full max-h-full rounded-lg"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {selectedPhoto.created_at && (
-                  <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-3 py-2 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <CalendarLucid className="w-4 h-4" />
-                      <span>
-                        {formatDateTime(selectedPhoto.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <PhotoModal selectedPhoto={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
 
           {/* Подзаявки */}
           <div>

@@ -15,6 +15,8 @@ export interface AuthTextFieldProps {
   error?: string;
   maxLength?: number;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: React.InputHTMLAttributes<HTMLInputElement>["autoComplete"];
+  name?: string;
   className?: string;
 }
 
@@ -29,6 +31,8 @@ export function AuthTextField({
   error,
   maxLength,
   inputMode,
+  autoComplete,
+  name,
   className,
 }: AuthTextFieldProps) {
   const isPassword = type === "password";
@@ -38,21 +42,27 @@ export function AuthTextField({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       {label && !hideLabel ? (
-        <label htmlFor={id} className="text-base font-medium leading-6 text-white">
+        <label htmlFor={id} className="text-base font-medium leading-6 text-foreground">
           {label}
         </label>
       ) : null}
       <div className="relative">
         <input
           id={id}
+          name={name ?? id}
           type={inputType}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
           maxLength={maxLength}
           inputMode={inputMode}
+          autoComplete={autoComplete ?? (type === "tel" ? "tel" : undefined)}
+          aria-label={hideLabel ? label : undefined}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
           className={cn(
-            "h-12 w-full rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white outline-none",
+            "h-12 w-full rounded-lg border border-input bg-background px-4 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            error && "border-red-700 dark:border-red-400",
             isPassword && "pr-12",
             isPassword && !showPassword && "tracking-widest"
           )}
@@ -61,18 +71,19 @@ export function AuthTextField({
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-4 top-1/2 -translate-y-1/2"
+            className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+            aria-pressed={showPassword}
           >
             {showPassword ? (
-              <EyeOff className="h-6 w-6 text-[#6E6E6E]" />
+              <EyeOff className="h-6 w-6" aria-hidden />
             ) : (
-              <Eye className="h-6 w-6 text-[#6E6E6E]" />
+              <Eye className="h-6 w-6" aria-hidden />
             )}
           </button>
         ) : null}
       </div>
-      {error ? <p className="text-xs text-[#F35713]">{error}</p> : null}
+      {error ? <p id={`${id}-error`} role="alert" className="text-xs text-red-700 dark:text-red-400">{error}</p> : null}
     </div>
   );
 }

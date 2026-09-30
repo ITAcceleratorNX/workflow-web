@@ -5,6 +5,7 @@ import { Building2, FileText, ChevronDown, ChevronRight } from "lucide-react"
 import { RequestGroup } from "@/stores/useRequestStore"
 import { Office } from "@/lib/api"
 import Image from "next/image"
+import { requestMatchesOffice } from "@/lib/request-office"
 
 interface ExecutorRoomsRequestsViewProps {
   offices: Office[]
@@ -12,24 +13,6 @@ interface ExecutorRoomsRequestsViewProps {
   assignedRequests: RequestGroup[]
   completedRequests: RequestGroup[]
   onRequestClick: (request: RequestGroup) => void
-}
-
-// Проверяет, связана ли заявка с офисом (по office_id или location_detail)
-function requestMatchesOffice(req: RequestGroup, office: Office): boolean {
-  if (req.office_id === office.id || req.office?.id === office.id) return true
-  const location = (req.location_detail || req.location || "").toLowerCase()
-  const officeName = (office.name || "").toLowerCase()
-  const officeCity = (office.city || "").toLowerCase()
-  return (
-    location.includes(officeName) ||
-    location.includes(officeCity) ||
-    req.requests?.some(
-      (sr) => {
-        const srLoc = (sr.location_detail || sr.location || "").toLowerCase()
-        return srLoc.includes(officeName) || srLoc.includes(officeCity)
-      }
-    )
-  )
 }
 
 export function ExecutorRoomsRequestsView({
@@ -41,7 +24,7 @@ export function ExecutorRoomsRequestsView({
 }: ExecutorRoomsRequestsViewProps) {
   const [expandedOfficeId, setExpandedOfficeId] = useState<number | null>(null)
   const allRequests = useMemo(
-    () => [...myRequests, ...assignedRequests, ...completedRequests],
+    () => [...new Map([...myRequests, ...assignedRequests, ...completedRequests].map((request) => [request.id, request])).values()],
     [myRequests, assignedRequests, completedRequests]
   )
 
@@ -49,7 +32,7 @@ export function ExecutorRoomsRequestsView({
     () =>
       offices.map((office) => ({
         office,
-        requests: allRequests.filter((r) => requestMatchesOffice(r, office)),
+        requests: allRequests.filter((r) => requestMatchesOffice(r, office.id)),
       })),
     [offices, allRequests]
   )

@@ -21,7 +21,7 @@ type LoginFormDesktopProps = Pick<
   | "handleGuestLogin"
 >;
 
-/** Desktop login form — pixel-parity с прежним app/login/page.tsx (≥768px). */
+/** Desktop login form (≥768px), with native form submission and field semantics. */
 export function LoginFormDesktop({
   phone,
   password,
@@ -48,6 +48,7 @@ export function LoginFormDesktop({
       >
         <div className="flex flex-col" style={{ gap: "12px" }}>
           <h1
+            id="login-desktop-heading"
             className="text-white"
             style={{
               fontFamily: "'SF Pro Text', sans-serif",
@@ -71,12 +72,22 @@ export function LoginFormDesktop({
           </p>
         </div>
 
-        <div className="flex flex-col items-center" style={{ gap: "16px" }}>
+        <form
+          aria-labelledby="login-desktop-heading"
+          aria-busy={loading}
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!loading) void handleLogin();
+          }}
+          className="flex flex-col items-center pb-8"
+          style={{ gap: "16px" }}
+        >
           <div className="flex flex-col w-full" style={{ gap: "24px" }}>
             <div className="flex flex-col w-full" style={{ gap: "16px" }}>
               <div className="flex flex-col" style={{ gap: "8px" }}>
                 <label
-                  htmlFor="phone"
+                  htmlFor="login-desktop-phone"
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     fontWeight: 500,
@@ -88,13 +99,18 @@ export function LoginFormDesktop({
                   Номер телефона
                 </label>
                 <input
-                  id="phone"
+                  id="login-desktop-phone"
+                  name="phone"
+                  autoComplete="username"
+                  inputMode="tel"
+                  aria-invalid={Boolean(phoneError)}
+                  aria-describedby={phoneError ? "login-desktop-phone-error" : undefined}
                   type="tel"
                   placeholder="+7 XXX XXX XX XX"
                   value={phone}
                   onChange={handlePhoneChange}
                   maxLength={19}
-                  className="w-full outline-none"
+                  className="w-full placeholder:text-[#A0A0A5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E25B21]"
                   style={{
                     height: "48px",
                     padding: "12px 16px",
@@ -109,7 +125,7 @@ export function LoginFormDesktop({
                   }}
                 />
                 {phoneError && (
-                  <p style={{ color: "#F35713", fontSize: "12px", fontFamily: "'Inter', sans-serif" }}>
+                  <p id="login-desktop-phone-error" role="alert" style={{ color: "#F87171", fontSize: "12px", fontFamily: "'Inter', sans-serif" }}>
                     {phoneError}
                   </p>
                 )}
@@ -118,7 +134,7 @@ export function LoginFormDesktop({
               <div className="flex flex-col" style={{ gap: "8px" }}>
                 <div className="flex justify-between items-center">
                   <label
-                    htmlFor="password"
+                    htmlFor="login-desktop-password"
                     style={{
                       fontFamily: "'Inter', sans-serif",
                       fontWeight: 500,
@@ -145,15 +161,19 @@ export function LoginFormDesktop({
                 </div>
                 <div className="relative">
                   <input
-                    id="password"
+                    id="login-desktop-password"
+                    name="password"
+                    autoComplete="current-password"
+                    aria-invalid={Boolean(passwordError)}
+                    aria-describedby={passwordError ? "login-desktop-password-error" : undefined}
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={handlePasswordChange}
                     placeholder="••••••••"
-                    className="w-full outline-none pr-12"
+                    className="w-full placeholder:text-[#A0A0A5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E25B21]"
                     style={{
                       height: "48px",
-                      padding: "12px 16px",
+                      padding: "12px 48px 12px 16px",
                       border: "1px solid #212121",
                       borderRadius: "8px",
                       background: "transparent",
@@ -168,17 +188,19 @@ export function LoginFormDesktop({
                   <button
                     type="button"
                     onClick={toggleShowPassword}
-                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                    className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E25B21]"
+                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-6 h-6" style={{ color: "#6E6E6E" }} />
+                      <EyeOff className="w-6 h-6" style={{ color: "#A0A0A5" }} aria-hidden />
                     ) : (
-                      <Eye className="w-6 h-6" style={{ color: "#6E6E6E" }} />
+                      <Eye className="w-6 h-6" style={{ color: "#A0A0A5" }} aria-hidden />
                     )}
                   </button>
                 </div>
                 {passwordError && (
-                  <p style={{ color: "#F35713", fontSize: "12px", fontFamily: "'Inter', sans-serif" }}>
+                  <p id="login-desktop-password-error" role="alert" style={{ color: "#F87171", fontSize: "12px", fontFamily: "'Inter', sans-serif" }}>
                     {passwordError}
                   </p>
                 )}
@@ -187,14 +209,13 @@ export function LoginFormDesktop({
 
             <div className="flex flex-col w-full" style={{ gap: "16px" }}>
               <button
-                type="button"
-                onClick={handleLogin}
+                type="submit"
                 disabled={loading}
-                className="w-full flex justify-center items-center disabled:opacity-50"
+                className="w-full flex justify-center items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50"
                 style={{
-                  height: "48px",
+                  minHeight: "48px",
                   padding: "16px 12px",
-                  background: "#F35713",
+                  background: "hsl(var(--action-background))",
                   borderRadius: "8px",
                 }}
               >
@@ -215,23 +236,23 @@ export function LoginFormDesktop({
               <button
                 type="button"
                 onClick={handleRegister}
-                className="w-full flex justify-center items-center"
+                className="w-full flex justify-center items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 style={{
-                  height: "48px",
-                  padding: "12px 54px",
+                  minHeight: "48px",
+                  padding: "12px 24px",
                   gap: "16px",
                   background: "#212121",
                   borderRadius: "8px",
                 }}
               >
-                <UserPlus className="w-6 h-6" style={{ color: "#6E6E6E" }} />
+                <UserPlus className="w-6 h-6 shrink-0" style={{ color: "#A0A0A5" }} aria-hidden />
                 <span
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     fontWeight: 400,
                     fontSize: "16px",
                     lineHeight: "24px",
-                    color: "#6E6E6E",
+                    color: "#A0A0A5",
                     textAlign: "center",
                   }}
                 >
@@ -242,24 +263,24 @@ export function LoginFormDesktop({
               <button
                 type="button"
                 onClick={handleGuestLogin}
-                className="w-full flex justify-center items-center"
+                className="w-full flex justify-center items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 style={{
-                  height: "48px",
-                  padding: "12px 54px",
+                  minHeight: "48px",
+                  padding: "12px 24px",
                   gap: "16px",
                   background: "transparent",
                   border: "1px solid #3A3A3C",
                   borderRadius: "8px",
                 }}
               >
-                <User className="w-6 h-6" style={{ color: "#7F7F7F" }} />
+                <User className="w-6 h-6 shrink-0" style={{ color: "#A0A0A5" }} aria-hidden />
                 <span
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     fontWeight: 400,
                     fontSize: "16px",
                     lineHeight: "24px",
-                    color: "#7F7F7F",
+                    color: "#A0A0A5",
                     textAlign: "center",
                   }}
                 >
@@ -269,13 +290,13 @@ export function LoginFormDesktop({
 
               <Link
                 href="/privacy"
-                className="w-full flex justify-center items-center py-2 text-center hover:opacity-80 transition-opacity"
+                className="w-full flex justify-center items-center py-2 rounded-sm text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E25B21]"
                 style={{
                   fontFamily: "'Inter', sans-serif",
                   fontWeight: 400,
                   fontSize: "16px",
                   lineHeight: "24px",
-                  color: "#6E6E6E",
+                  color: "#A0A0A5",
                   textDecoration: "none",
                 }}
               >
@@ -294,9 +315,10 @@ export function LoginFormDesktop({
               }}
             >
               <p
+                role="alert"
                 className="text-center"
                 style={{
-                  color: "#F35713",
+                  color: "#F87171",
                   fontSize: "14px",
                   fontFamily: "'Inter', sans-serif",
                 }}
@@ -305,7 +327,7 @@ export function LoginFormDesktop({
               </p>
             </div>
           )}
-        </div>
+        </form>
       </div>
     </div>
   );

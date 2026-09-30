@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
 
 /** Ответ /analytics/stats/manager: по офисам и датам */
 export interface ManagerStatsRawItem {
@@ -34,11 +35,10 @@ export async function getManagerStats(): Promise<
 > {
   try {
     const res = await api.get<ManagerStatsRawItem[]>("/analytics/stats/manager");
-    return { ok: true, data: res.data ?? [] };
+    if (!Array.isArray(res.data)) throw new Error("Invalid statistics response");
+    return { ok: true, data: res.data };
   } catch (error: unknown) {
-    const message =
-      (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-      "Не удалось загрузить статистику";
+    const message = listLoadError(error);
     return { ok: false, error: message };
   }
 }

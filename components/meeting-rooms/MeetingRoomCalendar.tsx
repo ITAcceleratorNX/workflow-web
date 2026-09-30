@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import {
   DailyCalendarData,
   WeeklyCalendarData,
 } from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -35,11 +36,10 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
   const [weeklyData, setWeeklyData] = useState<WeeklyCalendarData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCalendarData();
-  }, [mode, selectedDate]);
+  const fetchVersion = useRef(0);
 
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = useCallback(async () => {
+    const version = ++fetchVersion.current;
     try {
       setLoading(true);
       setError(null);
@@ -47,27 +47,33 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
       if (mode === "day") {
         const dateStr = format(selectedDate, "yyyy-MM-dd");
         const response = await getMeetingRoomDailyCalendar(dateStr);
-        setDailyData(response.data);
+        if (version === fetchVersion.current) setDailyData(response.data);
       } else {
         const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
         const weekEnd = addDays(weekStart, 6);
         const startStr = format(weekStart, "yyyy-MM-dd");
         const endStr = format(weekEnd, "yyyy-MM-dd");
         const response = await getMeetingRoomWeeklyCalendar(startStr, endStr);
-        setWeeklyData(response.data);
+        if (version === fetchVersion.current) setWeeklyData(response.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (version !== fetchVersion.current) return;
       console.error("Ошибка загрузки календаря:", err);
-      setError(err.response?.data?.message || "Не удалось загрузить календарь");
+      setError(listLoadError(err));
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить календарь",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (version === fetchVersion.current) setLoading(false);
     }
-  };
+  }, [mode, selectedDate, toast]);
+
+  useEffect(() => {
+    void fetchCalendarData();
+    return () => { fetchVersion.current += 1; };
+  }, [fetchCalendarData]);
 
   const getOccupancyColor = (percentage: number) => {
     if (percentage >= 70) return "bg-destructive"; // Красный - высокая загрузка
@@ -96,7 +102,7 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
   }
 
   if (error) {
-    return <MeetingRoomsErrorState error={error} />;
+    return <MeetingRoomsErrorState error={error} onRetry={fetchCalendarData} />;
   }
 
   const cardClass = isDark ? "rounded-xl bg-[#2C2C2E] border-[#3A3A3C]" : "";

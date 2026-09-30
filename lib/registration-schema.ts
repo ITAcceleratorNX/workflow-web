@@ -2,11 +2,13 @@ import { z } from 'zod';
 import { COMPANY_OTHER_VALUE } from '@/constants/registration';
 import { PHONE_REGEX } from '@/lib/phone-utils';
 
+export const registerPhoneSchema = z
+  .string()
+  .regex(PHONE_REGEX, 'Введите корректный номер телефона в формате +7 XXX XXX XX XX');
+
 export const registerStep1Schema = z
   .object({
-    phone: z
-      .string()
-      .regex(PHONE_REGEX, 'Введите корректный номер телефона в формате +7 XXX XXX XX XX'),
+    phone: registerPhoneSchema,
     full_name: z.string().trim().min(1, 'Введите ФИО'),
     office_id: z.string().min(1, 'Выберите офис'),
     role: z.enum(['client', 'executor'], { message: 'Выберите роль' }),

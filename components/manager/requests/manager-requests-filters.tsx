@@ -91,7 +91,7 @@ export function ManagerRequestsFilters({
       </Select>
       <Select value={filterStatus} onValueChange={onFilterStatusChange}>
         <SelectTrigger className={filterTriggerClass}>
-          <SelectValue placeholder="Статус" />
+          <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {statusFilterOptions.map((option) => (
@@ -103,7 +103,7 @@ export function ManagerRequestsFilters({
       </Select>
       <Select value={filterType} onValueChange={onFilterTypeChange}>
         <SelectTrigger className={filterTriggerClass}>
-          <SelectValue placeholder="Тип" />
+          <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
         </SelectTrigger>
         <SelectContent className={contentClass}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (

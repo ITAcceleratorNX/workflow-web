@@ -3,18 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import { getOffices } from "@/lib/api";
+import { getOffices, type Office } from "@/lib/api";
 import { getRequestNavigationUrl } from "@/lib/requestNavigation";
 
 export type ClientHomeTab = "cabinet" | "meeting-rooms";
 
-export interface ClientOffice {
-  id: number;
-  name: string;
-  city?: string;
-  address?: string;
-  photo?: string | null;
-}
+export type ClientOffice = Office;
 
 export function useClientHome() {
   const router = useRouter();

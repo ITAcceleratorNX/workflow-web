@@ -250,7 +250,7 @@ export function AdminUserManagementTab({
     return () => {
       cancelled = true;
     };
-  }, [editUser?.id, editUser?.role, newRole]);
+  }, [editUser, newRole, executorByUserId]);
 
   useEffect(() => {
     if (!isActive) return;

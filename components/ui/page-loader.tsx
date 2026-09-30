@@ -45,6 +45,7 @@ export function PageLoader({
           alt=""
           width={size}
           height={size}
+          style={{ width: size, height: size }}
           className={cn("object-contain", ghostOpacity)}
           aria-hidden
           priority
@@ -58,6 +59,7 @@ export function PageLoader({
             alt=""
             width={size}
             height={size}
+            style={{ width: size, height: size }}
             className={cn("object-contain", fillClass)}
             aria-hidden
             priority

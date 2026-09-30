@@ -35,8 +35,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
     loading,
     loadingMore,
     hasMore,
-    filteredIncomingRequests,
-    filteredMyRequests,
+    activeList,
     handleRefresh,
     handleCardClick,
     handleLoadMore,
@@ -45,13 +44,6 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
   } = props;
 
   const renderCardHeader = useAdminWorkerRequestCardHeader();
-
-  const tabRequests =
-    activeTab === "incoming"
-      ? filteredIncomingRequests
-      : activeTab === "my-requests"
-        ? filteredMyRequests
-        : [];
 
   const tabTitle =
     activeTab === "recurring"
@@ -83,7 +75,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
 
         <div className="mt-4 space-y-4">
           <Link href="/create-request" className="block">
-            <Button className="w-full h-12 bg-[#F35713] hover:bg-[#E04A0A] text-white font-semibold rounded-2xl">
+            <Button className="w-full h-12 font-semibold rounded-2xl">
               <Plus className="h-4 w-4 mr-2" />
               Создать
             </Button>
@@ -102,10 +94,14 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
               <h2 className="text-lg font-bold text-foreground">{tabTitle}</h2>
               <AdminWorkerRequestsListContent
                 variant="mobile"
+                error={props.error}
+                isFiltered={props.isFiltered}
+                onRetry={props.handleRefresh}
+                onResetFilters={props.resetFilters}
                 loading={loading}
                 loadingMore={loadingMore}
                 hasMore={hasMore}
-                requests={tabRequests}
+                requests={activeList}
                 activeTab={activeTab}
                 onCardClick={handleCardClick}
                 renderCardHeader={renderCardHeader}

@@ -21,7 +21,7 @@ export function ChangePasswordFormDesktop(props: UseChangePasswordResult) {
   } = props;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1A1A1A] p-4">
+    <div className="dark min-h-screen flex items-center justify-center bg-[#1A1A1A] p-4">
       <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#2C2C2E] p-6 flex flex-col gap-4">
         <h1 className="text-xl font-semibold text-white">Смена пароля</h1>
         <p className="text-sm text-white/60">
@@ -33,6 +33,7 @@ export function ChangePasswordFormDesktop(props: UseChangePasswordResult) {
         </p>
         <AuthTextField
           id="old-password-desktop"
+          autoComplete="current-password"
           label="Старый пароль"
           type="password"
           value={oldPassword}
@@ -43,6 +44,7 @@ export function ChangePasswordFormDesktop(props: UseChangePasswordResult) {
         />
         <AuthTextField
           id="new-password-desktop"
+          autoComplete="new-password"
           label="Новый пароль"
           type="password"
           value={newPassword}
@@ -53,6 +55,7 @@ export function ChangePasswordFormDesktop(props: UseChangePasswordResult) {
         />
         <AuthTextField
           id="confirm-password-desktop"
+          autoComplete="new-password"
           label="Подтверждение"
           type="password"
           value={confirmPassword}

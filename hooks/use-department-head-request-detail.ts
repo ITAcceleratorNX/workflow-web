@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -17,6 +18,7 @@ import { getExecutorsForSubRequestAssignment } from "@/lib/users-management-api"
 export function useDepartmentHeadRequestDetail() {
   const router = useRouter();
   const params = useParams();
+  const currentSearch = useSearchParams().toString();
   const id = params?.id as string;
   const isDesktop = useIsDesktop();
   const { user, token } = useAuthStore();
@@ -40,9 +42,9 @@ export function useDepartmentHeadRequestDetail() {
 
   useEffect(() => {
     if (isDesktop && id) {
-      router.replace(`/department-head?tab=incoming&requestId=${id}`);
+      router.replace(buildRequestsUrlWithId("/department-head/requests", id, currentSearch));
     }
-  }, [isDesktop, router, id]);
+  }, [isDesktop, router, id, currentSearch]);
 
   const fetchRequest = useCallback(async () => {
     if (!id) return;
@@ -97,8 +99,8 @@ export function useDepartmentHeadRequestDetail() {
   }, [isDesktop, subForExecutorList, request?.office_id, request?.office?.id]);
 
   const handleClose = useCallback(() => {
-    router.push("/department-head/requests");
-  }, [router]);
+    router.push(buildRequestsListPath("/department-head/requests", currentSearch));
+  }, [router, currentSearch]);
 
   const handleRequestUpdated = useCallback(() => {
     fetchRequest();

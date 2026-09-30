@@ -36,14 +36,13 @@ export function ClientRequestsFilters({
   statusFilterOptions,
   variant = "mobile",
 }: ClientRequestsFiltersProps) {
-  const isDesktop = variant === "desktop";
   const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <>
       <Select value={filterStatus} onValueChange={onFilterStatusChange}>
         <SelectTrigger className={mobileRequestsFilterTrigger(variant)}>
-          <SelectValue placeholder="Статус" />
+          <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
         </SelectTrigger>
         <SelectContent className={mobileRequestsFilterContent(variant)}>
           {statusFilterOptions.map((option) => (
@@ -59,7 +58,7 @@ export function ClientRequestsFilters({
       </Select>
       <Select value={filterType} onValueChange={onFilterTypeChange}>
         <SelectTrigger className={mobileRequestsFilterTrigger(variant)}>
-          <SelectValue placeholder={isDesktop ? "Тип заявки" : "Тип"} />
+          <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
         </SelectTrigger>
         <SelectContent className={mobileRequestsFilterContent(variant)}>
           {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (

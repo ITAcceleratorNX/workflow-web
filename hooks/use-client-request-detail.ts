@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
 import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export function useClientRequestDetail() {
   const router = useRouter();
   const params = useParams();
+  const currentSearch = useSearchParams().toString();
   const id = params?.id as string;
   const isDesktop = useIsDesktop();
   const [request, setRequest] = useState<RequestGroup | null>(null);
@@ -24,9 +26,9 @@ export function useClientRequestDetail() {
 
   useEffect(() => {
     if (isDesktop && id) {
-      router.replace(`/client/requests?requestId=${id}`);
+      router.replace(buildRequestsUrlWithId("/client/requests", id, currentSearch));
     }
-  }, [isDesktop, router, id]);
+  }, [isDesktop, router, id, currentSearch]);
 
   useEffect(() => {
     if (!id || isDesktop) return;
@@ -57,7 +59,7 @@ export function useClientRequestDetail() {
     fetchRequest();
   }, [id, isDesktop, requests]);
 
-  const getBackUrl = useCallback(() => "/client/requests", []);
+  const getBackUrl = useCallback(() => buildRequestsListPath("/client/requests", currentSearch), [currentSearch]);
 
   const handleClose = useCallback(() => {
     router.push(getBackUrl());
@@ -71,7 +73,7 @@ export function useClientRequestDetail() {
     async (subRequest: SubRequest) => {
       if (isGuest && request) {
         removeRequest(request.id);
-        router.push("/client/requests");
+        router.push(getBackUrl());
         return;
       }
       try {

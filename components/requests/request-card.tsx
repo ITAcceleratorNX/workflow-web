@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useMemo, useCallback, useState, useRef, useEffect } from "react"
+import React, { useMemo, useCallback, useState, useRef, useEffect, useId } from "react"
+import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight, Clock } from "lucide-react"
 import { RequestGroup } from "@/stores/useRequestStore"
@@ -18,7 +19,7 @@ interface RequestCardProps {
   onCardClick: (request: RequestGroup) => void
   renderCardHeader: (request: RequestGroup) => React.ReactNode
   isLast?: boolean
-  lastElementRef?: ((node: HTMLDivElement | null) => void) | React.RefObject<HTMLDivElement> | null
+  lastElementRef?: ((node: HTMLDivElement | null) => void) | React.RefObject<HTMLDivElement | null> | null
   clientRating?: any
   userRole?: string
   variant?: 'default' | 'compact' // Новый пропс для выбора стиля карточки
@@ -51,10 +52,13 @@ function LazyImage({ src, alt, className }: { src: string; alt: string; classNam
   }, [])
 
   return (
-    <img
+    <Image
       ref={imgRef}
       src={isInView ? src : '/placeholder.svg'}
       alt={alt}
+      width={640}
+      height={480}
+      unoptimized
       className={className}
       loading="lazy"
       decoding="async"
@@ -77,7 +81,7 @@ function RequestCardComponent({
   userRole,
   variant = 'default'
 }: RequestCardProps) {
-
+  const descriptionId = useId()
   const formattedDateShort = useMemo(
     () => formatCardDateShort(request.created_date),
     [request.created_date]
@@ -88,6 +92,13 @@ function RequestCardComponent({
   )
   
   const handleClick = useCallback(() => onCardClick(request), [onCardClick, request])
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleClick()
+    }
+  }
   
   // Получаем тип заявки и статус для compact варианта
   const requestTypeLabel = useMemo(
@@ -118,6 +129,12 @@ function RequestCardComponent({
   }, [request.is_long_term, request.request_type])
 
   const headerContent = useMemo(() => renderCardHeader(request), [renderCardHeader, request])
+  const accessibleDescription = (
+    <span id={descriptionId} className="sr-only">
+      Статус: {statusLabel}. Тип: {requestTypeLabel}. Направление и офис: {serviceAndOffice}.
+      {` Местоположение: ${request.location_detail || 'не указано'}. Дата создания: ${formattedDate}.`}
+    </span>
+  )
 
   // Compact вариант карточки (как на скриншотах)
   if (variant === 'compact') {
@@ -126,9 +143,15 @@ function RequestCardComponent({
     return (
       <div
         ref={isLast ? lastElementRef : null}
-        className="flex items-center gap-4 bg-transparent cursor-pointer"
+        className="flex items-center gap-4 rounded-lg bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`Открыть заявку №${request.id}${getPrimarySubRequest(request)?.title ? `: ${getPrimarySubRequest(request)?.title}` : ""}`}
+        aria-describedby={descriptionId}
+        onKeyDown={handleKeyDown}
       >
+        {accessibleDescription}
         {/* Фото слева */}
         <div className="w-[140px] h-[100px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
           {firstPhoto ? (
@@ -147,12 +170,12 @@ function RequestCardComponent({
         {/* Контент справа */}
         <div className="flex-1 min-w-0">
           {/* Заголовок */}
-          <h3 className="text-white font-semibold text-lg mb-2">
+          <h3 className="text-foreground font-semibold text-lg mb-2">
             Заявка #{request.id}
           </h3>
 
           {/* Бейджи */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#2A5A4A] text-white">
               {requestTypeLabel}
             </span>
@@ -162,15 +185,15 @@ function RequestCardComponent({
           </div>
 
           {/* Направление · офис */}
-          <p className="text-gray-400 text-sm mb-1 truncate">{serviceAndOffice}</p>
+          <p className="text-muted-foreground text-sm mb-1 truncate">{serviceAndOffice}</p>
 
           {/* Локация */}
-          <p className="text-gray-400 text-sm mb-2 truncate">
+          <p className="text-muted-foreground text-sm mb-2 truncate">
             {request.location_detail || 'Местоположение не указано'}
           </p>
 
           {/* Дата */}
-          <div className="flex items-center gap-2 text-gray-400 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Clock className="w-4 h-4" />
             <span>{formattedDateShort}</span>
           </div>
@@ -186,10 +209,16 @@ function RequestCardComponent({
   return (
     <Card
       ref={isLast ? lastElementRef : null}
-      className={cardClassName}
+      className={`${cardClassName} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
       onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`Открыть заявку №${request.id}${getPrimarySubRequest(request)?.title ? `: ${getPrimarySubRequest(request)?.title}` : ""}`}
+      aria-describedby={descriptionId}
+      onKeyDown={handleKeyDown}
       style={{ contentVisibility: 'auto' }}
     >
+      {accessibleDescription}
       {headerContent}
 
       <CardContent className="px-5 pb-5 pt-0 space-y-3">
@@ -273,7 +302,7 @@ function RequestCardComponent({
                   </div>
                   {clientRating[0].comment && (
                     <p className="text-xs text-[#040404] break-words line-clamp-2">
-                      "{clientRating[0].comment}"
+                      &quot;{clientRating[0].comment}&quot;
                     </p>
                   )}
                   {clientRating.length > 1 && (
@@ -287,7 +316,7 @@ function RequestCardComponent({
               // Обратная совместимость для старого формата
               clientRating.comment && (
                 <p className="text-xs text-[#040404] break-words line-clamp-2">
-                  "{clientRating.comment}"
+                  &quot;{clientRating.comment}&quot;
                 </p>
               )
             )}

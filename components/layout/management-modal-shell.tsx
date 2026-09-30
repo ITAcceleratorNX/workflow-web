@@ -44,7 +44,7 @@ export function ManagementModalShell({
       title={resolvedVariant === "dialog" ? title : undefined}
       maxWidthClass={maxWidthClass}
       maxHeightClass={sheetMaxHeightClass}
-      zIndexClass="z-[200]"
+      layer={200}
     >
       <div
         className={cn(

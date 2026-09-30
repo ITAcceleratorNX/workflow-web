@@ -32,6 +32,7 @@ export interface MeetingRoom {
   isActive: boolean;
   description?: string;
   office_id?: number | null;
+  office?: ApiMeetingRoom["office"];
 }
 
 interface MeetingRoomsState {
@@ -49,8 +50,7 @@ interface MeetingRoomsState {
 
 function getPhotosFromRoom(apiRoom: ApiMeetingRoom): string[] {
   if (Array.isArray(apiRoom.photos)) return apiRoom.photos;
-  const one = (apiRoom as { photo?: string }).photo;
-  return typeof one === "string" && one.trim() ? [one] : [];
+  return apiRoom.roomPhotos?.map((photo) => photo.photo_url) ?? [];
 }
 
 export function mapApiMeetingRoomToStore(apiRoom: ApiMeetingRoom): MeetingRoom {
@@ -59,13 +59,14 @@ export function mapApiMeetingRoomToStore(apiRoom: ApiMeetingRoom): MeetingRoom {
     name: apiRoom.name,
     floor: apiRoom.floor,
     capacity: apiRoom.capacity,
-    room_type: (apiRoom.room_type as MeetingRoomType) || "meeting",
+    room_type: apiRoom.room_type ?? "meeting",
     photos: getPhotosFromRoom(apiRoom),
-    roomPhotos: (apiRoom as { roomPhotos?: { id: number; photo_url: string }[] }).roomPhotos,
-    status: apiRoom.status as MeetingRoomStatus,
+    roomPhotos: apiRoom.roomPhotos,
+    status: apiRoom.status,
     isActive: apiRoom.isActive,
     description: apiRoom.description || undefined,
-    office_id: apiRoom.office_id || null,
+    office_id: apiRoom.office_id ?? apiRoom.office?.id ?? null,
+    office: apiRoom.office,
   };
 }
 
@@ -214,4 +215,3 @@ export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
 
 export const MEETING_ROOM_CAPACITIES = [2, 4, 6, 8, 10, 12] as const;
 export const MEETING_ROOM_FLOORS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-

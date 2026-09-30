@@ -46,16 +46,18 @@ function Stat({
   onClick?: () => void;
   isDesktop: boolean;
 }) {
+  const Container = onClick ? "button" : "div";
   return (
-    <div
-      className={`rounded-xl border p-4 ${isDesktop ? "bg-[#2C2C2E] border-white/10" : "bg-[#2C2C2E] border-[#3A3A3C]"} ${onClick ? "cursor-pointer transition-colors " + (isDesktop ? "hover:bg-white/5" : "hover:bg-[#353538] active:scale-[0.99]") : ""}`}
+    <Container
+      type={onClick ? "button" : undefined}
+      className={`text-left rounded-xl border p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isDesktop ? "bg-[#2C2C2E] border-white/10" : "bg-[#2C2C2E] border-[#3A3A3C]"} ${onClick ? "cursor-pointer transition-colors " + (isDesktop ? "hover:bg-white/5" : "hover:bg-[#353538] active:scale-[0.99]") : ""}`}
       onClick={onClick}
     >
       <div className={`text-xs font-medium ${isDesktop ? "text-white/60" : "text-[#8E8E93]"}`}>
         {label}
       </div>
       <div className="mt-1.5 text-2xl font-semibold tracking-tight text-white">{value}</div>
-    </div>
+    </Container>
   );
 }
 
@@ -76,6 +78,9 @@ export function ManagerStatisticsStatsPanels({
   summary,
   resetDateFilters,
   handleExport,
+  exporting,
+  exportError,
+  canExport,
   handleTotalRequestsClick,
   handleNewRequestsClick,
   handleInWorkRequestsClick,
@@ -330,11 +335,15 @@ export function ManagerStatisticsStatsPanels({
                 className={`mt-4 pt-4 border-t ${isDesktop ? "border-white/10" : "border-[#3A3A3C]"}`}
               >
                 <div className="text-sm font-medium mb-3 text-white">Экспорт данных</div>
+                {!canExport && <p className="mb-3 text-sm text-muted-foreground">Экспорт доступен руководителю.</p>}
+                {exporting && <p role="status" className="mb-3 text-sm text-muted-foreground">Подготовка файла…</p>}
+                {exportError && <p role="alert" className="mb-3 text-sm text-destructive">{exportError}</p>}
                 <div className={`flex gap-2 ${isDesktop ? "flex-row" : "flex-col"}`}>
                   <Button
                     variant="outline"
                     size="sm"
                     className={`flex-1 w-full ${isDesktop ? "bg-transparent border-white/10 text-white hover:bg-[#E85D2B] hover:border-[#E85D2B]" : "border-[#3A3A3C] text-white hover:bg-white/10"}`}
+                    disabled={exporting || !canExport}
                     onClick={() => handleExport("xlsx")}
                   >
                     <Download className="w-4 h-4 mr-2" />
@@ -344,10 +353,11 @@ export function ManagerStatisticsStatsPanels({
                     variant="outline"
                     size="sm"
                     className={`flex-1 w-full ${isDesktop ? "bg-transparent  border-white/10 text-white hover:bg-[#E85D2B] hover:border-[#E85D2B]" : "border-[#3A3A3C] text-white hover:bg-white/10"}`}
+                    disabled={exporting || !canExport}
                     onClick={() => handleExport("pbix")}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Power BI
+                    Шаблон Power BI
                   </Button>
                 </div>
               </div>
@@ -410,18 +420,19 @@ export function ManagerStatisticsStatsPanels({
                     },
                   ].map((row) => (
                     <div key={row.key} className="space-y-2">
-                      <div
-                        className={`flex items-center justify-between text-sm cursor-pointer rounded-lg p-2 transition-colors ${isDesktop ? "hover:bg-white/5" : "hover:bg-white/10 active:scale-[0.99]"}`}
+                      <button
+                        type="button"
+                        className={`w-full flex items-center justify-between text-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg p-2 transition-colors ${isDesktop ? "hover:bg-white/5" : "hover:bg-white/10 active:scale-[0.99]"}`}
                         onClick={row.onClick}
                       >
-                        <div className="flex items-center gap-2 text-white">
+                        <span className="flex items-center gap-2 text-white">
                           {row.icon}
                           <span>{row.label}</span>
-                        </div>
+                        </span>
                         <span className="font-medium text-white">
                           {distribution[row.key]} ({distribution[row.pctKey]}%)
                         </span>
-                      </div>
+                      </button>
                       <div
                         className={`h-2 w-full overflow-hidden rounded ${isDesktop ? "bg-white/10" : "bg-[#3A3A3C]"}`}
                       >

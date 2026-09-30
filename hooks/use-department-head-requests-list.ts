@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buildRequestsUrlWithoutFilters } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api, { deleteRecurringTask } from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
+import { useRequestListWindow } from "@/hooks/use-request-list-window";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
@@ -19,6 +22,8 @@ import {
 import { getExecutorsForSubRequestAssignment } from "@/lib/users-management-api";
 
 export function useDepartmentHeadRequestsList() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const isDesktop = useIsDesktop();
   const { token, user } = useAuthStore();
@@ -32,9 +37,8 @@ export function useDepartmentHeadRequestsList() {
   const [filterIncomingType, setFilterIncomingType] = useState("all");
   const [activeTab, setActiveTab] = useState<DepartmentHeadRequestsTab>("incoming");
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const fetchVersion = useRef(0);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
 
   const [showAssignExecutorsModal, setShowAssignExecutorsModal] = useState(false);
@@ -51,49 +55,27 @@ export function useDepartmentHeadRequestsList() {
   const statusFilterOptions = useMemo(() => getStatusOptionsForRole("department-head"), []);
 
   const fetchRequests = useCallback(
-    async (currentPage = 1) => {
-      if (!token) return;
-      const isFirstPage = currentPage === 1;
-      if (isFirstPage) setLoading(true);
-      else setLoadingMore(true);
+    async (_page = 1) => {
+      const version = ++fetchVersion.current;
+      if (!token) { setLoading(false); return; }
+      setLoading(true);
+      setError(null);
       try {
-        const params = new URLSearchParams({
-          page: currentPage.toString(),
-          pageSize: "10",
-        });
-        if (filterIncomingStatus !== "all" && filterIncomingStatus !== "long_term") {
-          params.append("status", filterIncomingStatus);
+        // Department endpoint returns the full snapshot. Each tab filters independently.
+        const { data } = await api.get("/request-groups");
+        if (!Array.isArray(data.otherRequests) || !Array.isArray(data.myRequests)) {
+          throw new Error("Invalid request lists");
         }
-        if (filterIncomingType !== "all") {
-          params.append("priority", filterIncomingType);
-        }
-
-        const response = await api.get(`/request-groups?${params.toString()}`);
-        const sortedIncoming = sortRequestGroupsByPriority(response.data.otherRequests || []);
-        const sortedMy = sortRequestGroupsByPriority(response.data.myRequests || []);
-
-        setIncomingRequests((prev) =>
-          isFirstPage
-            ? sortedIncoming
-            : [...prev, ...sortedIncoming.filter((i) => !prev.some((p) => p.id === i.id))]
-        );
-        setMyRequests((prev) =>
-          isFirstPage
-            ? sortedMy
-            : [...prev, ...sortedMy.filter((i) => !prev.some((p) => p.id === i.id))]
-        );
-        const otherLen = response.data.otherRequests?.length ?? 0;
-        const myLen = response.data.myRequests?.length ?? 0;
-        setHasMore(otherLen >= 10 || myLen >= 10);
-        setPage(currentPage);
-      } catch (error) {
-        console.error("Ошибка при загрузке заявок:", error);
+        if (version !== fetchVersion.current) return;
+        setIncomingRequests(sortRequestGroupsByPriority(data.otherRequests));
+        setMyRequests(sortRequestGroupsByPriority(data.myRequests));
+      } catch (failure) {
+        if (version === fetchVersion.current) setError(listLoadError(failure));
       } finally {
-        if (isFirstPage) setLoading(false);
-        else setLoadingMore(false);
+        if (version === fetchVersion.current) setLoading(false);
       }
     },
-    [token, filterIncomingStatus, filterIncomingType, setIncomingRequests, setMyRequests]
+    [token, setIncomingRequests, setMyRequests]
   );
 
   const subForExecutorList =
@@ -104,7 +86,8 @@ export function useDepartmentHeadRequestsList() {
         : null;
 
   useEffect(() => {
-    fetchRequests(1);
+    void fetchRequests();
+    return () => { fetchVersion.current += 1; };
   }, [fetchRequests]);
 
   useEffect(() => {
@@ -162,6 +145,18 @@ export function useDepartmentHeadRequestsList() {
     return [];
   }, [activeTab, filteredIncomingRequests, filteredMyRequests]);
 
+  const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
+    activeList, `${activeTab}:${filterMyStatus}:${filterMyType}:${filterIncomingStatus}:${filterIncomingType}`,
+  );
+  const isFiltered = activeTab === "my-requests"
+    ? filterMyStatus !== "all" || filterMyType !== "all"
+    : filterIncomingStatus !== "all" || filterIncomingType !== "all";
+  const resetFilters = () => {
+    if (activeTab === "my-requests") { setFilterMyStatus("all"); setFilterMyType("all"); }
+    else { setFilterIncomingStatus("all"); setFilterIncomingType("all"); }
+    router.replace(buildRequestsUrlWithoutFilters(pathname, searchParams.toString()), { scroll: false });
+  };
+
   const {
     displayRequest,
     selectRequest: handleCardClick,
@@ -178,12 +173,6 @@ export function useDepartmentHeadRequestsList() {
   const handleRefresh = useCallback(async () => {
     await fetchRequests(1);
   }, [fetchRequests]);
-
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchRequests(page + 1);
-    }
-  }, [loadingMore, hasMore, page, fetchRequests]);
 
   const handleRequestUpdated = useCallback(() => {
     fetchRequests(1);
@@ -322,7 +311,10 @@ export function useDepartmentHeadRequestsList() {
     loading,
     loadingMore,
     hasMore,
-    activeList,
+    activeList: visibleRequests,
+    error,
+    isFiltered,
+    resetFilters,
     filteredIncomingRequests,
     filteredMyRequests,
     handleRefresh,

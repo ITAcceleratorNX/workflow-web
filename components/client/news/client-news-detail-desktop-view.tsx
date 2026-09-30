@@ -67,7 +67,7 @@ export function ClientNewsDetailDesktopView({ newsId }: ClientNewsDetailDesktopV
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">{item.title}</h2>
           <p className="text-white/90 text-base leading-relaxed whitespace-pre-wrap mb-6">
-            {item.content ?? item.desc}
+            {item.desc}
           </p>
           <NewsReactionsRow
             newsId={numericNewsId}

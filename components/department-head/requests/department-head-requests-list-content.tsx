@@ -2,16 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { RequestListFeedback, type RequestListFeedbackProps } from "@/components/requests/request-list-feedback";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
-import { MOBILE_REQUESTS_EMPTY_TEXT } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 import {
   DEPARTMENT_HEAD_EMPTY_MESSAGES,
   type DepartmentHeadRequestsTab,
 } from "./department-head-requests-constants";
 
-interface DepartmentHeadRequestsListContentProps {
+interface DepartmentHeadRequestsListContentProps extends RequestListFeedbackProps {
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -26,6 +26,10 @@ interface DepartmentHeadRequestsListContentProps {
 
 export function DepartmentHeadRequestsListContent({
   loading,
+  error,
+  isFiltered,
+  onRetry,
+  onResetFilters,
   loadingMore,
   hasMore,
   requests,
@@ -39,34 +43,9 @@ export function DepartmentHeadRequestsListContent({
   const isDesktop = variant === "desktop";
   const emptyMessage = DEPARTMENT_HEAD_EMPTY_MESSAGES[activeTab] ?? "Нет заявок";
 
-  if (loading) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        Загрузка...
-      </div>
-    );
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        {emptyMessage}
-      </div>
-    );
-  }
-
   return (
     <>
+      <RequestListFeedback loading={loading} error={error} isFiltered={isFiltered} onRetry={onRetry} onResetFilters={onResetFilters} count={requests.length} emptyMessage={emptyMessage} />
       {requests.map((request, index) => (
         <RequestCard
           key={request.id}
@@ -84,7 +63,7 @@ export function DepartmentHeadRequestsListContent({
           <Button
             variant="outline"
             onClick={onLoadMore}
-            disabled={loadingMore}
+            disabled={loading || loadingMore}
             className={
               isDesktop
                 ? "border-white/20 text-white hover:bg-white/10"
@@ -97,7 +76,7 @@ export function DepartmentHeadRequestsListContent({
                 Загрузка...
               </>
             ) : (
-              "Загрузить ещё"
+              "Показать ещё"
             )}
           </Button>
         </div>

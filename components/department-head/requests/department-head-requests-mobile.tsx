@@ -35,7 +35,15 @@ function MobileTabPanel({
   renderCardHeader,
   onLoadMore,
   lastElementRef,
+  error,
+  isFiltered,
+  onRetry,
+  onResetFilters,
 }: {
+  error: string | null;
+  isFiltered: boolean;
+  onRetry: () => void;
+  onResetFilters: () => void;
   activeTab: DepartmentHeadRequestsTab;
   title: string;
   filterStatus: string;
@@ -68,6 +76,10 @@ function MobileTabPanel({
       <div className="space-y-4 pb-40">
         <DepartmentHeadRequestsListContent
           variant="mobile"
+          error={error}
+          isFiltered={isFiltered}
+          onRetry={onRetry}
+          onResetFilters={onResetFilters}
           loading={loading}
           loadingMore={loadingMore}
           hasMore={hasMore}
@@ -100,8 +112,7 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
     loading,
     loadingMore,
     hasMore,
-    filteredIncomingRequests,
-    filteredMyRequests,
+    activeList,
     handleRefresh,
     handleCardClick,
     handleLoadMore,
@@ -121,7 +132,7 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
 
         <div className="mt-4 space-y-4">
           <Link href="/create-request" className="block">
-            <Button className="w-full h-12 bg-[#E25B21] hover:bg-[#D94F15] text-white font-semibold rounded-2xl">
+            <Button className="w-full h-12 font-semibold rounded-2xl">
               <Plus className="h-4 w-4 mr-2" />
               Создать
             </Button>
@@ -136,10 +147,14 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
               filterType={filterIncomingType}
               onFilterTypeChange={setFilterIncomingType}
               statusFilterOptions={statusFilterOptions}
+              error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.handleRefresh}
+              onResetFilters={props.resetFilters}
               loading={loading}
               loadingMore={loadingMore}
               hasMore={hasMore}
-              requests={filteredIncomingRequests}
+              requests={activeList}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}
               onLoadMore={handleLoadMore}
@@ -156,10 +171,14 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
               filterType={filterMyType}
               onFilterTypeChange={setFilterMyType}
               statusFilterOptions={statusFilterOptions}
+              error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.handleRefresh}
+              onResetFilters={props.resetFilters}
               loading={loading}
               loadingMore={loadingMore}
               hasMore={hasMore}
-              requests={filteredMyRequests}
+              requests={activeList}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}
               onLoadMore={handleLoadMore}

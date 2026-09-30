@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface MeetingRoomsLoadingStateProps {
@@ -29,14 +30,16 @@ export function MeetingRoomsLoadingState({
 
 interface MeetingRoomsErrorStateProps {
   error: string;
+  onRetry?: () => void;
   className?: string;
 }
 
-export function MeetingRoomsErrorState({ error, className }: MeetingRoomsErrorStateProps) {
+export function MeetingRoomsErrorState({ error, className, onRetry }: MeetingRoomsErrorStateProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center py-20", className)}>
       <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-      <p className="text-destructive text-center">{error}</p>
+      <p role="alert" className="text-destructive text-center">{error}</p>
+      {onRetry && <Button variant="outline" className="mt-4" onClick={onRetry}>Повторить загрузку</Button>}
     </div>
   );
 }

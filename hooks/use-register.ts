@@ -18,6 +18,7 @@ import {
   getZodErrorMessage,
   registerOtpSchema,
   registerPasswordSchema,
+  registerPhoneSchema,
   registerStep1Schema,
 } from '@/lib/registration-schema';
 import { sendVerificationCode, verifyCode } from '@/lib/mobizon';
@@ -114,7 +115,7 @@ export function useRegister() {
   }, []);
 
   const sendCode = useCallback(async (): Promise<boolean> => {
-    const phoneCheck = registerStep1Schema.shape.phone.safeParse(formData.phone);
+    const phoneCheck = registerPhoneSchema.safeParse(formData.phone);
     if (!phoneCheck.success) {
       setFormErrors(getZodErrorMessage(phoneCheck.error));
       return false;

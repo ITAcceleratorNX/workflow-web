@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsListScrollArea, TabsTrigger } from "@/components/ui/tabs"
-import { format } from "date-fns"
+import { format, endOfDay, startOfDay } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Calendar as CalendarIcon, Filter, RefreshCw, Eye, User, Clock, Activity, Star, Bell } from "lucide-react"
 import api from "@/lib/api"
+import { listLoadError } from "@/lib/request-list-loading"
 
 interface Log {
   id: number
@@ -21,20 +22,20 @@ interface Log {
   user_id: number
   action_type: string
   action_description: string
-  old_values: any
-  new_values: any
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
   created_at: string
   user: {
     id: number
     full_name: string
     phone: string
     role: string
-  }
+  } | null
   request: {
     id: number
-    title: string
+    location: string
     status: string
-  }
+  } | null
 }
 
 interface RatingLog {
@@ -44,8 +45,8 @@ interface RatingLog {
   user_id: number
   action_type: string
   action_description: string
-  old_values: any
-  new_values: any
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
   created_at: string
   user?: {
     id: number
@@ -156,13 +157,31 @@ const deliveryMethodLabels: Record<string, string> = {
   in_app: "В приложении",
 }
 
+function validateLogPage(page: { logs: unknown[]; total: number; totalPages: number }) {
+  if (!page || !Array.isArray(page.logs) || !Number.isFinite(page.total) || !Number.isFinite(page.totalPages)) {
+    throw new Error("Invalid log response")
+  }
+}
+
+function LogsLoadFeedback({ error, loading, hasData, onRetry }: {
+  error: string | null; loading: boolean; hasData: boolean; onRetry: () => void;
+}) {
+  if (error) return <div role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-foreground">
+    <p>{error}</p>
+    {hasData && <p className="mt-1 text-sm text-muted-foreground">Показаны предыдущие результаты. Они могут не соответствовать выбранным фильтрам.</p>}
+    <Button variant="outline" className="mt-3" disabled={loading} onClick={onRetry}>Повторить загрузку</Button>
+  </div>
+  if (loading && hasData) return <p role="status" className="mb-4 text-sm text-muted-foreground">Обновляем данные. Пока показаны предыдущие результаты.</p>
+  return null
+}
+
 export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProps) {
   const [activeTab, setActiveTab] = useState("requests")
   
   // Логи заявок
   const [logs, setLogs] = useState<Log[]>([])
   const [statistics, setStatistics] = useState<Statistics | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
@@ -170,14 +189,14 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
   
   // Логи рейтингов
   const [ratingLogs, setRatingLogs] = useState<RatingLog[]>([])
-  const [ratingLoading, setRatingLoading] = useState(false)
+  const [ratingLoading, setRatingLoading] = useState(true)
   const [ratingPage, setRatingPage] = useState(1)
   const [ratingTotal, setRatingTotal] = useState(0)
   const [ratingTotalPages, setRatingTotalPages] = useState(0)
   
   // Логи уведомлений
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([])
-  const [notificationLoading, setNotificationLoading] = useState(false)
+  const [notificationLoading, setNotificationLoading] = useState(true)
   const [notificationPage, setNotificationPage] = useState(1)
   const [notificationTotal, setNotificationTotal] = useState(0)
   const [notificationTotalPages, setNotificationTotalPages] = useState(0)
@@ -188,267 +207,169 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
   const [notificationStatus, setNotificationStatus] = useState<string>("all")
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
-  const [searchQuery, setSearchQuery] = useState<string>("")
+  const [logsError, setLogsError] = useState<string | null>(null)
+  const [statisticsError, setStatisticsError] = useState<string | null>(null)
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [notificationError, setNotificationError] = useState<string | null>(null)
+  const [statisticsLoading, setStatisticsLoading] = useState(true)
+  const [loadedPage, setLoadedPage] = useState(1)
+  const [loadedRatingPage, setLoadedRatingPage] = useState(1)
+  const [loadedNotificationPage, setLoadedNotificationPage] = useState(1)
+  const logsVersion = useRef(0)
+  const statisticsVersion = useRef(0)
+  const ratingVersion = useRef(0)
+  const notificationVersion = useRef(0)
+  const canFilterRequests = userRole === "manager" || userRole === "admin-worker"
+  const dateRangeError = startDate && endDate && startDate > endDate
+    ? "Дата окончания должна быть не раньше даты начала" : null
 
-  const fetchLogs = async () => {
+
+  const fetchLogs = useCallback(async () => {
+    const version = ++logsVersion.current
     setLoading(true)
+    setLogsError(null)
     try {
-      let url = ""
-      const params = new URLSearchParams()
-      
-      // Создаем объект фильтров согласно бэкенду
-      const filters: any = {}
-      
-      if (actionType !== "all") {
-        filters.action_type = actionType
+      if (canFilterRequests && dateRangeError) {
+        setLogsError(dateRangeError)
+        return
       }
-      // Фильтр по датам работает только при указании обеих дат
-      if (startDate && endDate) {
-        filters.start_date = format(startDate, "yyyy-MM-dd")
-        filters.end_date = format(endDate, "yyyy-MM-dd")
-      } else if (startDate || endDate) {
-        // Если указана только одна дата, показываем предупреждение
-        console.warn("Для фильтрации по датам необходимо указать обе даты")
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+      if (canFilterRequests) {
+        if (actionType !== "all") params.set("action_type", actionType)
+        if (startDate && endDate) {
+          params.set("start_date", startOfDay(startDate).toISOString())
+          params.set("end_date", endOfDay(endDate).toISOString())
+        }
       }
-      if (searchQuery) {
-        // Если есть поисковый запрос, можно добавить его как дополнительный фильтр
-        // или использовать для поиска по описанию
-        filters.search = searchQuery
-      }
-      
-      // Добавляем фильтры в URL параметры
-      if (Object.keys(filters).length > 0) {
-        params.append("filters", JSON.stringify(filters))
-      }
-      
-      params.append("page", page.toString())
-      params.append("pageSize", pageSize.toString())
-
-      // Для manager и admin-worker показываем все логи
-      if (userRole === "manager" || userRole === "admin-worker") {
-        url = `/request-logs/filtered?${params.toString()}`
-      } else {
-        // Для других ролей показываем только свои логи
-        url = `/request-logs/my?${params.toString()}`
-      }
-
-      const response = await api.get<LogsResponse>(url)
-      setLogs(response.data.logs)
-      setTotal(response.data.total)
-      setTotalPages(response.data.totalPages)
+      const endpoint = canFilterRequests ? "/request-logs/filtered" : "/request-logs/my"
+      const { data } = await api.get<LogsResponse>(`${endpoint}?${params}`)
+      validateLogPage(data)
+      if (version !== logsVersion.current) return
+      setLogs(data.logs)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
+      setLoadedPage(page)
     } catch (error) {
-      console.error("Ошибка при загрузке логов:", error)
-      // Устанавливаем пустые данные при ошибке
-      setLogs([])
-      setTotal(0)
-      setTotalPages(0)
+      if (version === logsVersion.current) setLogsError(listLoadError(error))
     } finally {
-      setLoading(false)
+      if (version === logsVersion.current) setLoading(false)
     }
-  }
+  }, [page, pageSize, actionType, startDate, endDate, canFilterRequests, dateRangeError])
 
-  const fetchStatistics = async () => {
+  const fetchStatistics = useCallback(async () => {
+    const version = ++statisticsVersion.current
+    setStatisticsError(null)
+    if (!canFilterRequests) {
+      // The API has no personal statistics route. Do not fabricate zero counters.
+      setStatisticsLoading(false)
+      setStatistics(null)
+      return
+    }
+    setStatisticsLoading(true)
     try {
-      // Для manager и admin-worker показываем общую статистику, для других - только свою
-      const url = (userRole === "manager" || userRole === "admin-worker") 
-        ? "/request-logs/statistics" 
-        : "/request-logs/statistics/my"
-      
-      const response = await api.get<Statistics>(url)
-      setStatistics(response.data)
+      const { data } = await api.get<Statistics>("/request-logs/statistics")
+      if (![data.totalLogs, data.todayLogs, data.thisWeekLogs].every(Number.isFinite) || !Array.isArray(data.actionTypeStats)) {
+        throw new Error("Invalid statistics response")
+      }
+      if (version === statisticsVersion.current) setStatistics(data)
     } catch (error) {
-      console.error("Ошибка при загрузке статистики:", error)
-      // Устанавливаем пустую статистику при ошибке
-      setStatistics({
-        totalLogs: 0,
-        todayLogs: 0,
-        thisWeekLogs: 0,
-        actionTypeStats: []
-      })
+      if (version === statisticsVersion.current) setStatisticsError(listLoadError(error))
+    } finally {
+      if (version === statisticsVersion.current) setStatisticsLoading(false)
     }
-  }
+  }, [canFilterRequests])
 
-  const fetchRatingLogs = async () => {
+  const fetchRatingLogs = useCallback(async () => {
+    const version = ++ratingVersion.current
     setRatingLoading(true)
+    setRatingError(null)
     try {
-      const params = new URLSearchParams()
-      params.append("page", ratingPage.toString())
-      params.append("pageSize", pageSize.toString())
-      
-      if (actionType !== "all") {
-        params.append("actionType", actionType)
-      }
-      if (startDate && endDate) {
-        params.append("startDate", format(startDate, "yyyy-MM-dd"))
-        params.append("endDate", format(endDate, "yyyy-MM-dd"))
-      }
-
-      let allLogs: RatingLog[] = []
-      let totalCount = 0
-      let totalPagesCount = 0
-
-      if (ratingType === "all") {
-        // Загружаем логи обоих типов рейтингов
-        const [requestRatingResponse, clientRatingResponse] = await Promise.all([
-          api.get<{success: boolean, data: RatingLogsResponse}>(`/rating-logs/type/request_rating?${params.toString()}`),
-          api.get<{success: boolean, data: RatingLogsResponse}>(`/rating-logs/type/client_rating?${params.toString()}`)
-        ])
-
-        console.log('Request rating response:', requestRatingResponse.data)
-        console.log('Client rating response:', clientRatingResponse.data)
-
-        const requestLogs = requestRatingResponse.data.success ? requestRatingResponse.data.data.logs : []
-        const clientLogs = clientRatingResponse.data.success ? clientRatingResponse.data.data.logs : []
-
-        console.log('Request logs count:', requestLogs.length)
-        console.log('Client logs count:', clientLogs.length)
-
-        // Объединяем логи и сортируем по дате создания
-        allLogs = [...requestLogs, ...clientLogs].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-
-        // Вычисляем общую статистику
-        totalCount = (requestRatingResponse.data.success ? requestRatingResponse.data.data.total : 0) + 
-                    (clientRatingResponse.data.success ? clientRatingResponse.data.data.total : 0)
-        totalPagesCount = Math.max(
-          requestRatingResponse.data.success ? requestRatingResponse.data.data.totalPages : 0,
-          clientRatingResponse.data.success ? clientRatingResponse.data.data.totalPages : 0
-        )
-      } else {
-        // Загружаем логи конкретного типа рейтинга
-        const response = await api.get<{success: boolean, data: RatingLogsResponse}>(`/rating-logs/type/${ratingType}?${params.toString()}`)
-        console.log(`Rating logs response for ${ratingType}:`, response.data)
-        if (response.data.success && response.data.data) {
-          allLogs = response.data.data.logs
-          totalCount = response.data.data.total
-          totalPagesCount = response.data.data.totalPages
-        }
-      }
-
-      setRatingLogs(allLogs)
-      setRatingTotal(totalCount)
-      setRatingTotalPages(totalPagesCount)
+      const params = new URLSearchParams({ page: String(ratingPage), pageSize: String(pageSize) })
+      if (actionType !== "all") params.set("actionType", actionType)
+      const types = ratingType === "all" ? ["request_rating", "client_rating"] : [ratingType]
+      const responses = await Promise.all(types.map((type) =>
+        api.get<{ success: boolean; data: RatingLogsResponse }>(`/rating-logs/type/${type}?${params}`)))
+      const pages = responses.map(({ data }) => {
+        if (!data.success) throw new Error("Rating logs are unavailable")
+        validateLogPage(data.data)
+        return data.data
+      })
+      if (version !== ratingVersion.current) return
+      setRatingLogs(pages.flatMap((result) => result.logs).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)))
+      setRatingTotal(pages.reduce((sum, result) => sum + result.total, 0))
+      setRatingTotalPages(Math.max(0, ...pages.map((result) => result.totalPages)))
+      setLoadedRatingPage(ratingPage)
     } catch (error) {
-      console.error("Ошибка при загрузке логов рейтингов:", error)
-      setRatingLogs([])
-      setRatingTotal(0)
-      setRatingTotalPages(0)
+      if (version === ratingVersion.current) setRatingError(listLoadError(error))
     } finally {
-      setRatingLoading(false)
+      if (version === ratingVersion.current) setRatingLoading(false)
     }
-  }
+  }, [ratingPage, pageSize, ratingType, actionType])
 
-  const fetchNotificationLogs = async () => {
+  const fetchNotificationLogs = useCallback(async () => {
+    const version = ++notificationVersion.current
     setNotificationLoading(true)
+    setNotificationError(null)
     try {
-      const params = new URLSearchParams()
-      params.append("page", notificationPage.toString())
-      params.append("pageSize", pageSize.toString())
-      
+      if (dateRangeError) {
+        setNotificationError(dateRangeError)
+        return
+      }
+      const params = new URLSearchParams({ page: String(notificationPage), pageSize: String(pageSize) })
       if (startDate && endDate) {
-        params.append("startDate", format(startDate, "yyyy-MM-dd"))
-        params.append("endDate", format(endDate, "yyyy-MM-dd"))
+        params.set("startDate", startOfDay(startDate).toISOString())
+        params.set("endDate", endOfDay(endDate).toISOString())
       }
-
-      let allLogs: NotificationLog[] = []
-      let totalCount = 0
-      let totalPagesCount = 0
-
-      if (notificationStatus === "all") {
-        // Загружаем логи всех статусов уведомлений
-        const [deliveredResponse, sentResponse, failedResponse, pendingResponse] = await Promise.all([
-          api.get<{success: boolean, data: NotificationLogsResponse}>(`/notification-logs/status/delivered?${params.toString()}`),
-          api.get<{success: boolean, data: NotificationLogsResponse}>(`/notification-logs/status/sent?${params.toString()}`),
-          api.get<{success: boolean, data: NotificationLogsResponse}>(`/notification-logs/status/failed?${params.toString()}`),
-          api.get<{success: boolean, data: NotificationLogsResponse}>(`/notification-logs/status/pending?${params.toString()}`)
-        ])
-
-        console.log('Delivered response:', deliveredResponse.data)
-        console.log('Sent response:', sentResponse.data)
-        console.log('Failed response:', failedResponse.data)
-        console.log('Pending response:', pendingResponse.data)
-
-        const deliveredLogs = deliveredResponse.data.success ? deliveredResponse.data.data.logs : []
-        const sentLogs = sentResponse.data.success ? sentResponse.data.data.logs : []
-        const failedLogs = failedResponse.data.success ? failedResponse.data.data.logs : []
-        const pendingLogs = pendingResponse.data.success ? pendingResponse.data.data.logs : []
-
-        console.log('Delivered logs count:', deliveredLogs.length)
-        console.log('Sent logs count:', sentLogs.length)
-        console.log('Failed logs count:', failedLogs.length)
-        console.log('Pending logs count:', pendingLogs.length)
-
-        // Объединяем логи и сортируем по дате создания
-        allLogs = [...deliveredLogs, ...sentLogs, ...failedLogs, ...pendingLogs].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-
-        // Вычисляем общую статистику
-        totalCount = (deliveredResponse.data.success ? deliveredResponse.data.data.total : 0) + 
-                    (sentResponse.data.success ? sentResponse.data.data.total : 0) +
-                    (failedResponse.data.success ? failedResponse.data.data.total : 0) +
-                    (pendingResponse.data.success ? pendingResponse.data.data.total : 0)
-        totalPagesCount = Math.max(
-          deliveredResponse.data.success ? deliveredResponse.data.data.totalPages : 0,
-          sentResponse.data.success ? sentResponse.data.data.totalPages : 0,
-          failedResponse.data.success ? failedResponse.data.data.totalPages : 0,
-          pendingResponse.data.success ? pendingResponse.data.data.totalPages : 0
-        )
-      } else {
-        // Загружаем логи конкретного статуса уведомления
-        const response = await api.get<{success: boolean, data: NotificationLogsResponse}>(`/notification-logs/status/${notificationStatus}?${params.toString()}`)
-        console.log(`Notification logs response for ${notificationStatus}:`, response.data)
-        if (response.data.success && response.data.data) {
-          allLogs = response.data.data.logs
-          totalCount = response.data.data.total
-          totalPagesCount = response.data.data.totalPages
-        }
-      }
-
-      setNotificationLogs(allLogs)
-      setNotificationTotal(totalCount)
-      setNotificationTotalPages(totalPagesCount)
+      const statuses = notificationStatus === "all" ? ["delivered", "sent", "failed", "pending"] : [notificationStatus]
+      const responses = await Promise.all(statuses.map((status) =>
+        api.get<{ success: boolean; data: NotificationLogsResponse }>(`/notification-logs/status/${status}?${params}`)))
+      const pages = responses.map(({ data }) => {
+        if (!data.success) throw new Error("Notification logs are unavailable")
+        validateLogPage(data.data)
+        return data.data
+      })
+      if (version !== notificationVersion.current) return
+      setNotificationLogs(pages.flatMap((result) => result.logs).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)))
+      setNotificationTotal(pages.reduce((sum, result) => sum + result.total, 0))
+      setNotificationTotalPages(Math.max(0, ...pages.map((result) => result.totalPages)))
+      setLoadedNotificationPage(notificationPage)
     } catch (error) {
-      console.error("Ошибка при загрузке логов уведомлений:", error)
-      setNotificationLogs([])
-      setNotificationTotal(0)
-      setNotificationTotalPages(0)
+      if (version === notificationVersion.current) setNotificationError(listLoadError(error))
     } finally {
-      setNotificationLoading(false)
+      if (version === notificationVersion.current) setNotificationLoading(false)
     }
-  }
+  }, [notificationPage, pageSize, notificationStatus, startDate, endDate, dateRangeError])
 
   useEffect(() => {
-    console.log('Fetching logs with params:', { page, actionType, startDate, endDate, searchQuery, userRole })
-    fetchLogs()
-    fetchStatistics()
-  }, [page, actionType, startDate, endDate, searchQuery, userRole])
+    if (activeTab === "requests") void fetchLogs()
+    return () => { logsVersion.current += 1 }
+  }, [activeTab, fetchLogs])
 
   useEffect(() => {
-    if (activeTab === "ratings") {
-      fetchRatingLogs()
-    }
-  }, [activeTab, ratingPage, ratingType, actionType, startDate, endDate, userRole])
+    void fetchStatistics()
+    return () => { statisticsVersion.current += 1 }
+  }, [fetchStatistics])
 
   useEffect(() => {
-    if (activeTab === "notifications") {
-      fetchNotificationLogs()
-    }
-  }, [activeTab, notificationPage, notificationStatus, startDate, endDate, userRole])
+    if (activeTab === "ratings") void fetchRatingLogs()
+    return () => { ratingVersion.current += 1 }
+  }, [activeTab, fetchRatingLogs])
 
-  const handleRefresh = () => {
+  useEffect(() => {
+    if (activeTab === "notifications") void fetchNotificationLogs()
+    return () => { notificationVersion.current += 1 }
+  }, [activeTab, fetchNotificationLogs])
+
+  const resetPages = () => {
     setPage(1)
     setRatingPage(1)
     setNotificationPage(1)
-    fetchLogs()
-    fetchStatistics()
-    if (activeTab === "ratings") {
-      fetchRatingLogs()
-    }
-    if (activeTab === "notifications") {
-      fetchNotificationLogs()
-    }
+  }
+
+  const handleRefresh = () => {
+    if (activeTab === "requests") { void fetchLogs(); void fetchStatistics() }
+    if (activeTab === "ratings") void fetchRatingLogs()
+    if (activeTab === "notifications") void fetchNotificationLogs()
   }
 
   const clearFilters = () => {
@@ -457,14 +378,14 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
     setNotificationStatus("all")
     setStartDate(undefined)
     setEndDate(undefined)
-    setSearchQuery("")
     setPage(1)
     setRatingPage(1)
     setNotificationPage(1)
   }
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd.MM.yyyy HH:mm", { locale: ru })
+    const date = new Date(dateString)
+    return Number.isNaN(date.getTime()) ? "Дата неизвестна" : format(date, "dd.MM.yyyy HH:mm", { locale: ru })
   }
 
   const getActionIcon = (actionType: string) => {
@@ -524,7 +445,9 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
 
         <TabsContent value="requests" className="space-y-6">
           {/* Статистика */}
-          {loading && !statistics ? (
+          {!canFilterRequests && <p className="text-sm text-muted-foreground">Статистика личного журнала пока недоступна.</p>}
+          <LogsLoadFeedback error={statisticsError} loading={statisticsLoading} hasData={statistics !== null} onRetry={fetchStatistics} />
+          {statisticsLoading && !statistics ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className={`w-full ${cardClasses}`}>
@@ -604,7 +527,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
           <div className="grid grid-cols-1 gap-4 w-full">
             <div>
               <Label htmlFor="actionType" className={labelClasses}>Тип действия</Label>
-              <Select value={actionType || "all"} onValueChange={setActionType}>
+              <Select disabled={!canFilterRequests} value={actionType || "all"} onValueChange={(value) => { setActionType(value); resetPages() }}>
                 <SelectTrigger className={selectTriggerClasses}>
                   <SelectValue placeholder="Все типы" />
                 </SelectTrigger>
@@ -621,7 +544,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               <Label className={labelClasses}>Дата начала</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={`w-full justify-start text-left font-normal ${dateBtnClasses}`}>
+                  <Button disabled={!canFilterRequests} variant="outline" className={`w-full justify-start text-left font-normal ${dateBtnClasses}`}>
                     {startDate ? format(startDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
                   </Button>
                 </PopoverTrigger>
@@ -629,7 +552,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={setStartDate}
+                    onSelect={(value) => { setStartDate(value); resetPages() }}
                     initialFocus
                     locale={ru}
                     className={dark ? "bg-[#2C2C2E] text-white [&_button]:text-white [&_button:hover]:bg-[#3A3A3C]" : ""}
@@ -642,7 +565,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               <Label className={labelClasses}>Дата окончания</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={`w-full justify-start text-left font-normal ${dateBtnClasses}`}>
+                  <Button disabled={!canFilterRequests} variant="outline" className={`w-full justify-start text-left font-normal ${dateBtnClasses}`}>
                     {endDate ? format(endDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
                   </Button>
                 </PopoverTrigger>
@@ -650,7 +573,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={setEndDate}
+                    onSelect={(value) => { setEndDate(value); resetPages() }}
                     initialFocus
                     locale={ru}
                     className={dark ? "bg-[#2C2C2E] text-white [&_button]:text-white [&_button:hover]:bg-[#3A3A3C]" : ""}
@@ -668,13 +591,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
 
             <div>
               <Label htmlFor="search" className={labelClasses}>Поиск</Label>
-              <Input
-                id="search"
-                placeholder="Поиск по описанию..."
-                value={searchQuery || ""}
-                onChange={(e) => setSearchQuery(e.target.value || "")}
-                className={inputClasses}
-              />
+              <Input id="search" disabled placeholder="Поиск по описанию пока недоступен" className={inputClasses} />
             </div>
           </div>
 
@@ -695,20 +612,21 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
         <CardHeader className="pb-3">
           <CardTitle className={`text-base md:text-lg ${cardTitleClasses}`}>Логи заявок</CardTitle>
           <CardDescription className={`text-sm ${cardDescClasses}`}>
-            Показано {logs.length} из {total} записей (loading: {loading.toString()})
+            Показано {logs.length} из {total} записей
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          <LogsLoadFeedback error={logsError} loading={loading} hasData={logs.length > 0} onRetry={fetchLogs} />
+          {loading && logs.length === 0 ? (
             <div className={`flex items-center justify-center py-8 ${logMutedClasses}`}>
               <RefreshCw className="w-6 h-6 animate-spin mr-2" />
               Загрузка логов...
             </div>
-          ) : logs.length === 0 ? (
+          ) : logs.length === 0 ? (!logsError && (
             <div className={`text-center py-8 ${logMutedClasses}`}>
               Логи не найдены
             </div>
-          ) : (
+          )) : (
             <div className="space-y-4 w-full">
               {logs.map((log) => (
                 <div key={log.id} className={`border rounded-lg p-3 md:p-4 transition-colors w-full break-words ${logItemClasses}`}>
@@ -732,10 +650,10 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                       <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs md:text-sm w-full ${logGrayClasses}`}>
                         <div className="flex items-center gap-1 min-w-0 flex-1">
                           <User className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-                          <span className="truncate">{log.user.full_name} ({log.user.role})</span>
+                          <span className="truncate">{log.user ? `${log.user.full_name} (${log.user.role})` : `Пользователь ID: ${log.user_id}`}</span>
                         </div>
                         <div className="flex items-center gap-1 min-w-0 flex-1">
-                          <span className="truncate">Заявка № {log.request.id}: {log.request.title}</span>
+                          <span className="truncate">Заявка № {log.request?.id ?? log.request_id}: {log.request?.location ?? "Удалена или недоступна"}</span>
                         </div>
                       </div>
 
@@ -760,14 +678,14 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 w-full">
               <div className={`text-sm text-center sm:text-left ${logMutedClasses}`}>
-                Страница {page} из {totalPages}
+                Страница {loadedPage} из {totalPages}
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
+                  disabled={loading || !!logsError || page <= 1}
                   className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                 >
                   Назад
@@ -776,7 +694,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
+                  disabled={loading || !!logsError || page >= totalPages}
                   className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                 >
                   Вперед
@@ -801,7 +719,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               <div className="grid grid-cols-1 gap-4 w-full">
                 <div>
                   <Label htmlFor="ratingType" className={labelClasses}>Тип рейтинга</Label>
-                  <Select value={ratingType || "all"} onValueChange={setRatingType}>
+                  <Select value={ratingType || "all"} onValueChange={(value) => { setRatingType(value); resetPages() }}>
                     <SelectTrigger className={selectTriggerClasses}>
                       <SelectValue placeholder="Все типы" />
                     </SelectTrigger>
@@ -816,7 +734,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
 
                 <div>
                   <Label htmlFor="actionType" className={labelClasses}>Тип действия</Label>
-                  <Select value={actionType || "all"} onValueChange={setActionType}>
+                  <Select value={actionType || "all"} onValueChange={(value) => { setActionType(value); resetPages() }}>
                     <SelectTrigger className={selectTriggerClasses}>
                       <SelectValue placeholder="Все действия" />
                     </SelectTrigger>
@@ -841,16 +759,17 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {ratingLoading ? (
+              <LogsLoadFeedback error={ratingError} loading={ratingLoading} hasData={ratingLogs.length > 0} onRetry={fetchRatingLogs} />
+          {ratingLoading && ratingLogs.length === 0 ? (
                 <div className={`flex items-center justify-center py-8 ${logMutedClasses}`}>
                   <RefreshCw className="w-6 h-6 animate-spin mr-2" />
                   Загрузка логов рейтингов...
                 </div>
-              ) : ratingLogs?.length === 0 ? (
+              ) : ratingLogs?.length === 0 ? (!ratingError && (
                 <div className={`text-center py-8 ${logMutedClasses}`}>
                   Логи рейтингов не найдены
                 </div>
-              ) : (
+              )) : (
                 <div className="space-y-4 w-full">
                   {ratingLogs?.map((log) => (
                     <div key={log.id} className={`border rounded-lg p-3 md:p-4 transition-colors w-full break-words ${logItemClasses}`}>
@@ -907,14 +826,14 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               {ratingTotalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 w-full">
                   <div className={`text-sm text-center sm:text-left ${logMutedClasses}`}>
-                    Страница {ratingPage} из {ratingTotalPages}
+                    Страница {loadedRatingPage} из {ratingTotalPages}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setRatingPage(ratingPage - 1)}
-                      disabled={ratingPage === 1}
+                      disabled={ratingLoading || !!ratingError || ratingPage <= 1}
                       className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                     >
                       Назад
@@ -923,7 +842,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                       variant="outline"
                       size="sm"
                       onClick={() => setRatingPage(ratingPage + 1)}
-                      disabled={ratingPage === ratingTotalPages}
+                      disabled={ratingLoading || !!ratingError || ratingPage >= ratingTotalPages}
                       className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                     >
                       Вперед
@@ -948,7 +867,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               <div className="grid grid-cols-1 gap-4 w-full">
                 <div>
                   <Label htmlFor="notificationStatus" className={labelClasses}>Статус уведомления</Label>
-                  <Select value={notificationStatus || "all"} onValueChange={setNotificationStatus}>
+                  <Select value={notificationStatus || "all"} onValueChange={(value) => { setNotificationStatus(value); resetPages() }}>
                     <SelectTrigger className={selectTriggerClasses}>
                       <SelectValue placeholder="Все статусы" />
                     </SelectTrigger>
@@ -973,16 +892,17 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {notificationLoading ? (
+              <LogsLoadFeedback error={notificationError} loading={notificationLoading} hasData={notificationLogs.length > 0} onRetry={fetchNotificationLogs} />
+          {notificationLoading && notificationLogs.length === 0 ? (
                 <div className={`flex items-center justify-center py-8 ${logMutedClasses}`}>
                   <RefreshCw className="w-6 h-6 animate-spin mr-2" />
                   Загрузка логов уведомлений...
                 </div>
-              ) : notificationLogs?.length === 0 ? (
+              ) : notificationLogs?.length === 0 ? (!notificationError && (
                 <div className={`text-center py-8 ${logMutedClasses}`}>
                   Логи уведомлений не найдены
                 </div>
-              ) : (
+              )) : (
                 <div className="space-y-4 w-full">
                   {notificationLogs?.map((log) => (
                     <div key={log.id} className={`border rounded-lg p-3 md:p-4 transition-colors w-full break-words ${logItemClasses}`}>
@@ -1048,14 +968,14 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
               {notificationTotalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 w-full">
                   <div className={`text-sm text-center sm:text-left ${logMutedClasses}`}>
-                    Страница {notificationPage} из {notificationTotalPages}
+                    Страница {loadedNotificationPage} из {notificationTotalPages}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setNotificationPage(notificationPage - 1)}
-                      disabled={notificationPage === 1}
+                      disabled={notificationLoading || !!notificationError || notificationPage <= 1}
                       className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                     >
                       Назад
@@ -1064,7 +984,7 @@ export function LogsViewer({ userRole, isDesktop, dark = false }: LogsViewerProp
                       variant="outline"
                       size="sm"
                       onClick={() => setNotificationPage(notificationPage + 1)}
-                      disabled={notificationPage === notificationTotalPages}
+                      disabled={notificationLoading || !!notificationError || notificationPage >= notificationTotalPages}
                       className={`px-3 py-1 text-xs ${outlineBtnClasses}`}
                     >
                       Вперед

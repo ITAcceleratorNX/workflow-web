@@ -427,7 +427,7 @@ export function OfficeLocationCatalogManagementScreen({
   };
 
   const fabButton =
-    !needsPickOffice && !noOfficeAccount && !loading && portalReady ? (
+    !needsPickOffice && !noOfficeAccount && !loading && portalReady && !modalOpen && deleteId == null && !filterSheetOpen ? (
       <button
         type="button"
         onClick={openAdd}

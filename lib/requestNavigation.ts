@@ -32,20 +32,47 @@ export function getRequestsBasePathForRole(role: string): string | null {
 
 export function buildRequestsUrlWithId(
   basePath: string,
-  requestId: string | number
+  requestId: string | number,
+  search = "",
 ): string {
   const id =
     typeof requestId === "number" ? requestId : parseRequestGroupId(requestId);
-  return `${basePath}?requestId=${id}`;
+  const params = new URLSearchParams(search);
+  params.set("requestId", String(id));
+  return `${basePath}?${params.toString()}`;
+}
+
+/** Closing a detail panel removes its selection and keeps the list's filters. */
+export function buildRequestsListPath(basePath: string, search = ""): string {
+  const params = new URLSearchParams(search);
+  params.delete("requestId");
+  const query = params.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
+/** Reset only list filters; keep selection, tabs and other independent URL state. */
+export function buildRequestsUrlWithoutFilters(basePath: string, search = ""): string {
+  const params = new URLSearchParams(search);
+  for (const key of ["status", "priority", "type", "office_id", "period"]) {
+    params.delete(key);
+  }
+  const query = params.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
+/** A URL without a period is an unfiltered list, including after reset/reload. */
+export function getRequestListPeriod(value: string | null): "all" | "week" | "month" | "year" {
+  return value === "week" || value === "month" || value === "year" ? value : "all";
 }
 
 export function buildMobileRequestDetailPath(
   basePath: string,
-  requestId: string | number
+  requestId: string | number,
+  search = "",
 ): string {
   const id =
     typeof requestId === "number" ? requestId : parseRequestGroupId(requestId);
-  return `${basePath}/${id}`;
+  return buildRequestsListPath(`${basePath}/${id}`, search);
 }
 
 export function getRequestNavigationUrl(options: {

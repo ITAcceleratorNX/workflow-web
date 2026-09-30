@@ -1,4 +1,6 @@
 import "@/lib/android-bridge";
+import api from "@/lib/api";
+import { validateAnalyticsDownload } from "@/lib/analytics-download-validation";
 
 declare global {
   interface Window {
@@ -16,89 +18,38 @@ declare global {
   }
 }
 
-const EXPORT_BASE_URL = "http://localhost:3001/api/analytics/export";
-
 export async function exportManagerAnalytics(
   token: string | null,
-  options: {
-    office?: string;
-    startDate?: Date;
-    endDate?: Date;
-    format: "xlsx" | "pbix";
-  },
+  options: { office?: string; startDate?: Date; endDate?: Date; format: "xlsx" | "pbix" },
 ): Promise<void> {
-  if (!token) {
-    alert("Не найден токен авторизации");
+  if (!token) throw new Error("Сессия истекла. Войдите в аккаунт снова");
+  const params: Record<string, string> = { format: options.format };
+  if (options.office && options.office !== "all") params.office_id = options.office;
+  if (options.startDate) params.from = options.startDate.toISOString().split("T")[0];
+  if (options.endDate) params.to = options.endDate.toISOString().split("T")[0];
+  const response = await api.get<Blob>("/analytics/export", { params, responseType: "blob" });
+  const blob = response.data;
+  const contentType = (response.headers["content-type"] || blob.type || "").toLowerCase();
+  validateAnalyticsDownload(response.status, blob.size, contentType);
+  const filename = options.format === "pbix" ? "analytics_template.pbix" : "analytics.xlsx";
+  if (window.androidApp || window.webkit?.messageHandlers?.saveFile) {
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Не удалось подготовить файл"));
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.readAsDataURL(blob);
+    });
+    if (window.androidApp) window.androidApp.saveFileBase64(filename, base64Data, contentType);
+    else window.webkit?.messageHandlers?.saveFile.postMessage({ filename, base64Data, mimeType: contentType });
     return;
   }
-
-  const params = new URLSearchParams();
-  if (options.office && options.office !== "all") {
-    params.append("office_id", String(options.office));
-  }
-  if (options.startDate) {
-    params.append("from", options.startDate.toISOString().split("T")[0]);
-  }
-  if (options.endDate) {
-    params.append("to", options.endDate.toISOString().split("T")[0]);
-  }
-  params.append("format", options.format);
-
-  const url = `${EXPORT_BASE_URL}?${params.toString()}`;
-
-  try {
-    if (window.androidApp) {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onloadend = function () {
-        const base64data = reader.result?.toString().split(",")[1] || "";
-        const mimeType =
-          blob.type ||
-          (options.format === "xlsx"
-            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            : "application/octet-stream");
-        window.androidApp?.saveFileBase64(`analytics.${options.format}`, base64data, mimeType);
-      };
-      reader.readAsDataURL(blob);
-    } else if (window.webkit?.messageHandlers?.saveFile) {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onloadend = function () {
-        const base64data = reader.result?.toString().split(",")[1] || "";
-        const mimeType =
-          blob.type ||
-          (options.format === "xlsx"
-            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            : "application/octet-stream");
-        window.webkit?.messageHandlers?.saveFile?.postMessage({
-          filename: `analytics.${options.format}`,
-          base64Data: base64data,
-          mimeType,
-        });
-      };
-      reader.readAsDataURL(blob);
-    } else {
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await res.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = `analytics.${options.format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(objectUrl);
-    }
-  } catch (error) {
-    console.error("Ошибка при экспорте файла:", error);
-    alert("Не удалось экспортировать файл");
-  }
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Keep the URL alive until the browser has consumed the download click.
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }

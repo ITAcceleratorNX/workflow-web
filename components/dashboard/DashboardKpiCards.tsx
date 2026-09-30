@@ -32,6 +32,7 @@ interface DashboardKpiCardsProps {
   createBookingHref?: string;
   statisticsHref: string;
   requestsHref: string;
+  requestHrefs?: Partial<Record<"new" | "inWork" | "completed" | "overdue", string>>;
   variant?: "admin" | "manager";
   /** Скрыть кнопки «Создать заявку», «Создать бронь», «Статистика» (для менеджера на десктопе) */
   hideActionButtons?: boolean;
@@ -44,6 +45,7 @@ export function DashboardKpiCards({
   createBookingHref = "/meeting-rooms",
   statisticsHref,
   requestsHref,
+  requestHrefs,
   variant = "admin",
   hideActionButtons = false,
 }: DashboardKpiCardsProps) {
@@ -56,6 +58,7 @@ export function DashboardKpiCards({
   const kpiCards = [
     {
       label: firstLabel,
+      href: requestHrefs?.new ?? requestsHref,
       value: newCount,
       icon: Clock,
       color: "bg-[#E85D2B]/20 text-[#E85D2B]",
@@ -63,6 +66,7 @@ export function DashboardKpiCards({
     },
     {
       label: "В работе",
+      href: requestHrefs?.inWork ?? requestsHref,
       value: inWorkCount,
       icon: Users,
       color: "bg-[#2A9D8F]/20 text-[#2A9D8F]",
@@ -70,6 +74,7 @@ export function DashboardKpiCards({
     },
     {
       label: "Завершено",
+      href: requestHrefs?.completed ?? requestsHref,
       value: completedCount,
       icon: CheckCircle,
       color: "bg-emerald-500/20 text-emerald-400",
@@ -77,6 +82,7 @@ export function DashboardKpiCards({
     },
     {
       label: "Просрочено",
+      href: requestHrefs?.overdue ?? requestsHref,
       value: overdueCount,
       icon: AlertTriangle,
       color: "bg-red-500/20 text-red-400",
@@ -90,7 +96,7 @@ export function DashboardKpiCards({
         {kpiCards.map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.label} href={requestsHref} className="min-w-0">
+            <Link key={item.label} href={item.href} className="min-w-0">
               <Card className={`bg-[#2C2C2E] border ${item.borderColor} hover:border-[#E85D2B]/50 transition-colors cursor-pointer`}>
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center gap-2 md:gap-3 min-w-0">

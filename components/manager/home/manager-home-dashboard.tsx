@@ -39,7 +39,6 @@ import {
   FolderOpen,
   ChevronRight,
 } from "lucide-react"
-import axios from "axios";
 import Header from "@/app/header/Header";
 import api, { createServiceCategory, deleteServiceCategory, getExecutorsByCategory, getOfficeUsers, changeUserPassword, changeCategoryHead, type Office as ApiOffice } from "@/lib/api";
 import {CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip as TooltipForTabs} from "recharts";
@@ -94,6 +93,10 @@ import RegistrationRequestsManager from "@/components/RegistrationRequestsManage
 import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeManagement";
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { getPreviewUrl } from "@/lib/imageOptimization";
+import type { ManagerStatsRawItem } from "@/lib/manager-stats-api";
+import { calculateManagerHomeKpi, managerKpiRequestHrefs } from "@/lib/manager-home-kpi";
+import { exportManagerAnalytics } from "@/lib/manager-stats-export";
+import { listLoadError } from "@/lib/request-list-loading";
 
 const roleTranslations: Record<string, string> = {
   client: "Клиент",
@@ -125,19 +128,7 @@ type User = {
   service_category_id: number
 }
 
-interface Stats {
-  officeId: number;
-  data: {
-    [date: string]: {
-      totalRequests: number;
-      completedRequests: number;
-      overdueRequests: number;
-      normalRequests: number,
-      urgentRequests: number,
-      plannedRequests: number
-    };
-  };
-}
+type Stats = ManagerStatsRawItem;
 
 interface ChartData {
   date: string;
@@ -190,6 +181,9 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const [isDeletingCategory, setIsDeletingCategory] = useState(false)
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [categoriesWithExecutors, setCategoriesWithExecutors] = useState<Set<number>>(new Set())
+  const [checkingCategoryExecutors, setCheckingCategoryExecutors] = useState(false)
+  const [categoryCheckError, setCategoryCheckError] = useState<string | null>(null)
+  const [categoryCheckAttempt, setCategoryCheckAttempt] = useState(0)
   // Состояния для управления подкатегориями (только для админа на десктопе)
   const [selectedCategoryForSubcategory, setSelectedCategoryForSubcategory] = useState<number | null>(null)
   const [newSubcategoryName, setNewSubcategoryName] = useState("")
@@ -201,6 +195,9 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const [isLoggedIn, setIsLoggedIn] = useState(true)
   const { notifications, setNotifications, setNotificationLoading, clearNotifications } = useNotificationStore()
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const exportLock = useRef(false)
   const [selectedNotification, setSelectedNotification] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [requestLocation, setRequestLocation] = useState("")
@@ -211,10 +208,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const requests = useRequestStore(state => state.requests)
   const setRequests = useRequestStore(state => state.setRequests)
   const clearRequests = useRequestStore(state => state.clearRequests)
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [filterType, setFilterType] = useState("all")
-  const [isInitialized, setIsInitialized] = useState(false)
-  const filtersInitializedFromURL = useRef(false) // Флаг, что фильтры были инициализированы из URL
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get("status") || "all")
+  const [filterType, setFilterType] = useState(() => searchParams.get("priority") || "all")
+  const requestLoadVersion = useRef(0)
+  const requestLoading = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<string | null>(null);
@@ -330,6 +327,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     category_id: 0,
   });
   const [searchInput, setSearchInput] = useState(''); // Отдельное состояние для input
+  const searchInputRef = useRef('');
   const [isSearching, setIsSearching] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   
@@ -364,6 +362,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     completed: 0,
     overdue: 0,
     emergency: 0,
+    inWork: 0,
   });
 
   const [modalStack, setModalStack] = useState<string[]>([]);
@@ -421,24 +420,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       return statusMatch && typeMatch && officeMatch && periodMatch;
     })
   }, [requests, period, filterStatus, office])
-
-  useEffect(() => {
-    if (loading) return;
-
-    if (observer.current) {
-      observer.current.disconnect();
-    }
-
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        fetchRequests(page + 1);
-      }
-    });
-
-    if (lastElementRef.current) {
-      observer.current.observe(lastElementRef.current);
-    }
-  }, [loading, hasMore, page]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -548,26 +529,24 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   }, []);
 
   useEffect(() => {
-    if (!stats.length) {
-      fetchStats();
-    }
-  }, []);
+    void fetchStats();
+  }, [fetchStats]);
 
   // Синхронизация вкладки с URL (при переходе из «Мой кабинет» /manager/cabinet по карточке). Таб «Управление» вынесен на отдельную страницу. На десктопе таб «Переговорные» скрыт.
   // Для department-head на desktop скрываем аналитику/графики — только KPI, обзор и заявки
   const isDepartmentHead = user?.role === "department-head";
-  const validTabs = isDesktop
+  const validTabs = useMemo(() => isDesktop
     ? isDepartmentHead
       ? ["requests", "overview"]
       : ["requests", "overview", "analytics", "workload", "logs"]
-    : ["meeting-rooms", "overview", "analytics", "registration-requests"];
+    : ["meeting-rooms", "overview", "analytics", "registration-requests"], [isDesktop, isDepartmentHead]);
   useEffect(() => {
     if (standaloneManagement) return;
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && validTabs.includes(tabFromUrl)) {
       setTab(tabFromUrl);
     }
-  }, [searchParams, standaloneManagement]);
+  }, [searchParams, standaloneManagement, validTabs]);
 
   // На десктопе таб «Переговорные» скрыт — при выборе переключаем на «Обзор»
   useEffect(() => {
@@ -600,32 +579,15 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setModalStack(prev => prev.filter(modal => modal !== 'createRequest'));
     }
 
-    // Обработка параметров фильтров из URL
-    // Устанавливаем фильтры из URL только после инициализации, чтобы избежать конфликта с INITIAL LOAD
-    if (isInitialized) {
-      if (status) {
-        // Если в URL есть параметр status, обновляем фильтр
-        setFilterStatus(status);
-        filtersInitializedFromURL.current = true;
-      }
-      // Если параметра нет, НЕ меняем filterStatus - сохраняем текущее значение
-
-      if (priority) {
-        // Если в URL есть параметр priority, обновляем фильтр
-        setFilterType(priority);
-        filtersInitializedFromURL.current = true;
-      }
-      // Если параметра нет, НЕ меняем filterType - сохраняем текущее значение
-    }
-    // Если еще не инициализирован, фильтры будут установлены в INITIAL LOAD
-  }, [searchParams, isInitialized])
+    // Отсутствие параметра сохраняет выбранный пользователем фильтр.
+    if (status) setFilterStatus(status);
+    if (priority) setFilterType(priority);
+  }, [searchParams, getManagerFullUrl])
 
   useEffect(() => {
-    if (stats.length) {
-      setKpi(calculateKPI(stats, office, period));
-      setChartData(prepareChartData(stats, office, period));
-      setDistribution(getRequestsDistribution(stats, office, period));
-    }
+    setKpi(calculateManagerHomeKpi(stats, office, period));
+    setChartData(prepareChartData(stats, office, period));
+    setDistribution(getRequestsDistribution(stats, office, period));
   }, [stats, office, period]);
 
   // Данные графика для таба «Заявки»: при выборе диапазона дат — по нему, иначе по period
@@ -695,54 +657,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     urgentPercent: 0,
     plannedPercent: 0,
   });
-
-  const calculateKPI = (stats: Stats[], selectedOffice: string, selectedPeriod: string) => {
-    let filteredStats = stats;
-
-    if (selectedOffice !== "all") {
-      const officeId = parseInt(selectedOffice);
-      filteredStats = stats.filter(stat => stat.officeId === officeId);
-    }
-
-    const now = new Date();
-    let startDate: Date;
-
-    switch (selectedPeriod) {
-      case "week":
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case "month":
-        startDate = new Date(now);
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case "year":
-        startDate = new Date(now);
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-      default:
-        startDate = new Date(0);
-    }
-
-    let total = 0;
-    let completed = 0;
-    let overdue = 0;
-    let emergency = 0;
-
-    filteredStats.forEach(stat => {
-      Object.entries(stat.data).forEach(([date, data]) => {
-        const entryDate = new Date(date);
-        if (entryDate >= startDate) {
-          total += data.totalRequests;
-          completed += data.completedRequests;
-          overdue += data.overdueRequests;
-          emergency += data.overdueRequests;
-        }
-      });
-    });
-
-    return { total, completed, overdue, emergency };
-  };
 
   const prepareChartData = (stats: Stats[], selectedOffice: string, selectedPeriod: string, startDateParam?: Date, endDateParam?: Date) => {
     let filteredStats = stats;
@@ -846,9 +760,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         setUsers([]);
       }
     } catch (error) {
-      setLoading(false);
       console.error('Ошибка при загрузке пользователей:', error);
       setUsers([]);
+    } finally {
+      setLoading(false);
     }
   }, [pagination.itemsPerPage, officeFilter, roleFilter]);
 
@@ -945,84 +860,32 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   };
 
 
-  useEffect(() => {
-    fetchUsers(1); // при загрузке
-  }, []);
-
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage); // при переключении
   };
 
   const handleExport = async (format: "xlsx" | "pbix") => {
+    if (exportLock.current || user?.role !== "manager") return;
+    exportLock.current = true;
+    setExporting(true);
+    setExportError(null);
+    const now = new Date();
+    const periodStartDate = period === "week" ? subDays(now, 7)
+      : period === "month" ? subMonths(now, 1)
+      : period === "year" ? subYears(now, 1) : undefined;
     try {
-      const now = new Date();
-      let periodStartDate: Date | null;
-
-      switch (period) {
-        case 'week':
-          periodStartDate = subDays(now, 7);
-          break;
-        case 'month':
-          periodStartDate = subMonths(now, 1);
-          break;
-        case 'year':
-          periodStartDate = subYears(now, 1);
-          break;
-        default:
-          periodStartDate = null;
-      }
-
-      const params = new URLSearchParams();
-      if (office && office !== 'all') params.append("office_id", String(office));
-      if (periodStartDate) params.append("from", periodStartDate.toISOString());
-      params.append("format", format);
-
-      // Для Android WebView используем специальный обработчик
-      if (window.androidApp) {
-        const response = await fetch(`http://localhost:3001/api/analytics/export?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const blob = await response.blob();
-        const reader = new FileReader();
-
-        reader.onloadend = function() {
-          const base64data = reader.result?.toString().split(',')[1] || '';
-          const mimeType = blob.type ||
-              (format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
-                  'application/octet-stream');
-
-          window.androidApp?.saveFileBase64(
-              `analytics.${format}`,
-              base64data,
-              mimeType
-          );
-        };
-
-        reader.readAsDataURL(blob);
-      } else {
-        // Оригинальный код для веб-браузеров
-        const res = await axios.get(`http://localhost:3001/api/analytics/export?${params.toString()}`, {
-          responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const url = window.URL.createObjectURL(res.data);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `analytics.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      }
+      await exportManagerAnalytics(token, {
+        office,
+        startDate: startDate && endDate ? startDate : periodStartDate,
+        endDate: startDate && endDate ? endDate : now,
+        format,
+      });
     } catch (error) {
-      console.error("Ошибка при экспорте файла:", error);
-      alert("Не удалось экспортировать файл");
+      setExportError(error instanceof Error && !("isAxiosError" in error)
+        ? error.message : `Не удалось экспортировать файл. ${listLoadError(error)}`);
+    } finally {
+      exportLock.current = false;
+      setExporting(false);
     }
   };
 
@@ -1081,20 +944,18 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     if (!hydrated) return; // ждём восстановления данных
 
     if (!user || (user.role !== "manager" && user.role !== "admin-worker" && user.role !== "department-head")) {
-      Promise.all([
-        clearNotifications,
-        clearAuth,
-        useStatsStore.getState().resetStats,
-        clearRequests,
-        clearCategories,
-      ])
+      clearNotifications();
+      clearAuth();
+      useStatsStore.getState().resetStats();
+      clearRequests();
+      clearCategories();
       router.push("/login");
     } else {
       // пользователь валидный
       setIsLoggedIn(true);
       setCurrentUserId(user.id);
     }
-  }, [hydrated, user, router]);
+  }, [hydrated, user, router, clearNotifications, clearAuth, clearRequests, clearCategories]);
 
   const handleDeleteUser = async (userId: number) => {
     try {
@@ -1141,114 +1002,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     setEditingUserId(user.id);
   };
 
-  useEffect(() => {
-    // Инициализация данных при первом рендере
-    if (!isInitialized && token) {
-      // Читаем параметры из URL перед загрузкой
-      const status = searchParams.get("status");
-      const priority = searchParams.get("priority");
-      
-      // Устанавливаем фильтры из URL
-      if (status) {
-        setFilterStatus(status);
-      }
-      if (priority) {
-        setFilterType(priority);
-      }
-      
-      // Загружаем данные с учетом фильтров из URL
-      // Используем параметры напрямую из searchParams, а не из состояния
-      const params = new URLSearchParams({
-        page: '1',
-        pageSize: '10'
-      });
-      
-      if (status && status !== "all" && status !== "long_term") {
-        params.append('status', status);
-      }
-      if (priority && priority !== "all") {
-        params.append('priority', priority);
-      }
-      
-      // Загружаем данные с правильными фильтрами из URL
-      setLoading(true);
-      api.get(`/request-groups?${params.toString()}`)
-        .then((response) => {
-          const newRequests = response.data.data ?? [
-            ...(response.data.otherRequests || []),
-            ...(response.data.myRequests || []),
-          ];
-          setRequests(newRequests);
-          setHasMore(1 < response.data.totalPages);
-          setPage(1);
-          
-          // Загружаем оценки для завершенных заявок
-          newRequests.forEach((requestGroup: any) => {
-            requestGroup.requests.forEach((subRequest: any) => {
-              if (subRequest.status === "completed") {
-                checkUserRating(subRequest.id);
-              }
-            });
-          });
-          
-          setIsInitialized(true);
-        })
-        .catch((error: any) => {
-          console.error("Ошибка при загрузке заявок:", error);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-    fetchNotifications();
-    fetchOffices();
-    if (token) {
-      fetchCategories(token);
-    }
-  }, [token, searchParams, checkUserRating]);
-
-  useEffect(() => {
-    if (categories.length > 0) {
-      checkCategoriesWithExecutors();
-    }
-  }, [categories]);
-
-  // Автоматический поиск при изменении фильтров
-  useEffect(() => {
-    if (officeFilter !== null || roleFilter !== null) {
-      handleSearch();
-    }
-  }, [officeFilter, roleFilter]);
-
-  // Сбрасываем состояние при изменении фильтра типа
-  useEffect(() => {
-    if (isInitialized && filterType !== "all") {
-      setPage(1);
-      setHasMore(true);
-      setRequests([]);
-      // Не вызываем fetchRequests здесь - это сделает useEffect для фильтров
-    }
-  }, [filterType]);
-
-  // Сбрасываем состояние при изменении фильтра статуса
-  useEffect(() => {
-    if (isInitialized && filterStatus !== "all") {
-      setPage(1);
-      setHasMore(true);
-      setRequests([]);
-      // Не вызываем fetchRequests здесь - это сделает useEffect для фильтров
-    }
-  }, [filterStatus]);
-
-  // Перезагружаем данные при изменении фильтров (только если уже инициализирован)
-  useEffect(() => {
-    if (isInitialized) {
-      fetchRequests(1); // Reset to first page when filter changes
-    }
-    // INITIAL LOAD теперь обрабатывается отдельно с учетом searchParams
-  }, [filterStatus, filterType]);
-
   const fetchRequests = useCallback(async (pageToLoad = 1) => {
+    if (pageToLoad > 1 && requestLoading.current) return;
+    const version = ++requestLoadVersion.current;
+    requestLoading.current = true;
     try {
       setLoading(true);
       
@@ -1272,6 +1029,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       const url = `/request-groups?${queryString}`;
       
       const response = await api.get(url);
+      if (version !== requestLoadVersion.current) return;
       const newRequests = response.data.data ?? [
         ...(response.data.otherRequests || []),
         ...(response.data.myRequests || []),
@@ -1296,9 +1054,31 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     } catch (error) {
       console.error("Failed to fetch requests:", error);
     } finally {
-      setLoading(false);
+      if (version === requestLoadVersion.current) {
+        requestLoading.current = false;
+        setLoading(false);
+      }
     }
-  }, [checkUserRating, filterStatus, filterType]);
+  }, [checkUserRating, filterStatus, filterType, setRequests]);
+
+  useEffect(() => {
+    if (!token) return;
+    void fetchRequests(1);
+    return () => {
+      requestLoadVersion.current += 1;
+      requestLoading.current = false;
+    };
+  }, [token, fetchRequests]);
+
+  useEffect(() => {
+    if (loading || !hasMore || !token) return;
+    const requestObserver = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void fetchRequests(page + 1);
+    });
+    observer.current = requestObserver;
+    if (lastElementRef.current) requestObserver.observe(lastElementRef.current);
+    return () => requestObserver.disconnect();
+  }, [loading, hasMore, page, token, fetchRequests]);
 
   const handleLogout = async () => {
     try {
@@ -1363,9 +1143,11 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       });
       
       resetForm();
+      return true;
     } catch (error: any) {
       console.error("Ошибка при создании заявки:", error);
       setFormErrors(error.response?.data?.error || "Не удалось создать заявку.");
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -1489,19 +1271,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     router.push('/create-request');
   };
 
-  useEffect(() => {
-    if (notifications.length > 0) {
-      setNotificationLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      setNotificationLoading(true)
-      fetchNotifications()
-    }
-  }, [isLoggedIn])
-
   // Сохраняем requestId в state при первой загрузке
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const [pendingSubRequestId, setPendingSubRequestId] = useState<string | null>(null);
@@ -1579,7 +1348,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         window.history.replaceState({}, "", window.location.pathname + search);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, requests, selectedRequest, pendingRequestId, pendingSubRequestId, openModal]);
 
   const fetchNotifications = useCallback(async () => {
@@ -1591,7 +1359,13 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     } finally {
       setNotificationLoading(false)
     }
-  }, []);
+  }, [setNotifications, setNotificationLoading]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !token) return;
+    setNotificationLoading(true);
+    void fetchNotifications();
+  }, [isLoggedIn, token, fetchNotifications, setNotificationLoading]);
 
   const handleNotificationClick = async (notification: any) => {
     setSelectedNotification(notification)
@@ -1614,15 +1388,16 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   }
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
+    const query = searchInputRef.current.trim();
     try {
       setIsSearching(true);
       
       // Если есть текстовый поиск, используем API поиска
-      if (searchInput.trim()) {
+      if (query) {
         const response = await api.get('/users/search', {
           params: {
-            q: searchInput.trim(),
+            q: query,
             limit: 50
           }
         });
@@ -1654,7 +1429,12 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [officeFilter, roleFilter, fetchUsers]);
+
+  // Текст отправляется по кнопке/Enter; фильтры обновляют текущий поиск автоматически.
+  useEffect(() => {
+    void handleSearch();
+  }, [handleSearch]);
 
   const StatCard = ({
     title,
@@ -1831,6 +1611,12 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    void fetchOffices();
+    void fetchCategories(token);
+  }, [token, fetchOffices, fetchCategories]);
+
   const handleAddOffice = async () => {
     const city = newOfficeCity.trim();
     const address = newOfficeAddress.trim();
@@ -1899,25 +1685,38 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     }
   }
 
-  const checkCategoriesWithExecutors = async () => {
-    const categoriesWithExecs = new Set<number>();
-    
-    for (const category of categories) {
+  const categoryManagementVisible = effectiveTab === "management" && (
+    isDesktop ? managementDesktopTab === "categories" : managementSubSection === "categories"
+  );
+
+  useEffect(() => {
+    if (!token || !categoryManagementVisible) return;
+    let cancelled = false;
+    const check = async () => {
+      setCheckingCategoryExecutors(true);
+      setCategoryCheckError(null);
+      const categoriesWithExecs = new Set<number>();
       try {
-        const response = await getExecutorsByCategory(category.id);
-        if (response.data && response.data.length > 0) {
-          categoriesWithExecs.add(category.id);
+        for (const category of categories) {
+          const response = await getExecutorsByCategory(category.id);
+          if (cancelled) return;
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            categoriesWithExecs.add(category.id);
+          }
         }
+        setCategoriesWithExecutors(categoriesWithExecs);
       } catch (error) {
-        console.error(`Ошибка при проверке категории ${category.id}:`, error);
+        if (!cancelled) setCategoryCheckError(`Не удалось проверить исполнителей категорий. ${listLoadError(error)}`);
+      } finally {
+        if (!cancelled) setCheckingCategoryExecutors(false);
       }
-    }
-    
-    setCategoriesWithExecutors(categoriesWithExecs);
-  };
+    };
+    void check();
+    return () => { cancelled = true; };
+  }, [token, categoryManagementVisible, categories, categoryCheckAttempt]);
 
   const handleDeleteCategory = async () => {
-    if (!categoryToDelete) return;
+    if (!categoryToDelete || checkingCategoryExecutors || categoryCheckError) return;
 
     setIsDeletingCategory(true);
     setCategoryError(null);
@@ -1932,7 +1731,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
       setCategoryToDelete(null);
       fetchCategories(token!);
-      checkCategoriesWithExecutors();
     } catch (error: any) {
       console.error("Ошибка при удалении категории:", error);
       setCategoryError(error.response?.data?.message || "Ошибка при удалении категории");
@@ -2159,7 +1957,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         // Обновляем локальное состояние
         const updateLocalState = (prev: any[]) => prev.map(request => {
           if (request.id === selectedRequest.id) {
-            let updatedRequest = { ...request, ...updateData };
+            const updatedRequest = { ...request, ...updateData };
             
             // Обновляем подзаявки если они были изменены
             if (updateData.sub_requests && updateData.sub_requests.length > 0) {
@@ -2328,6 +2126,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       // setFilterType("all")
       setNewUser({ id: 0, full_name: "", phone: "", office_id: 0, role: "", category_id: 0 });
       setSearchInput("")
+      searchInputRef.current = "";
       setEditedOffice({name: "", city: "", address: ""})
       setDistribution({
         total: 0,
@@ -2367,7 +2166,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     openModal('requestDetails');
   }, [openModal]);
 
-  const renderCardHeader = useCallback((requestGroup: RequestGroup) => {
+  const renderCardHeader = (requestGroup: RequestGroup) => {
     const isLongTerm = requestGroup.requests.some(req => req.is_long_term);
 
     return (
@@ -2426,7 +2225,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           </div>
         </CardHeader>
     );
-  }, [isDesktop, openModal, checkUserRating]);
+  };
 
 
   const handleRateExecutor = async () => {
@@ -2512,8 +2311,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               </SelectTrigger>
               <SelectContent className={isDesktop ? "bg-[#2C2C2E] border-white/10" : ""}>
                 <SelectItem value="all" className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>Все офисы</SelectItem>
-                {offices.map((office:any, index) => (
-                  <SelectItem key={index} value={office.id} className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>
+                {offices.map((office) => (
+                  <SelectItem key={office.id} value={String(office.id)} className={isDesktop ? "text-white focus:bg-white/10 focus:text-white" : ""}>
                     {office.name}
                   </SelectItem>
                 ))}
@@ -2533,16 +2332,17 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           </div>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
-            {isDesktop && (
+            {isDesktop && user?.role === "manager" && (
                 <>
             <Button
                 variant="outline"
                 size="sm"
                 className="flex items-center justify-center min-w-0 sm:min-w-[100px] md:min-w-[150px] h-10 px-3 sm:px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white text-xs sm:text-sm"
                 onClick={() => handleExport("xlsx")}
+                disabled={exporting}
             >
               <Download className="w-4 h-4 mr-2 shrink-0" />
-              Excel
+              {exporting ? "Подготовка…" : "Excel"}
             </Button>
 
             <Button
@@ -2550,9 +2350,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 size="sm"
                 className="flex items-center justify-center min-w-0 sm:min-w-[100px] md:min-w-[150px] h-10 px-3 sm:px-4 border-white/20 bg-[#2C2C2E] text-white hover:bg-[#3A3A3C] hover:text-white text-xs sm:text-sm"
                 onClick={() => handleExport("pbix")}
+                disabled={exporting}
             >
               <Download className="w-4 h-4 mr-2 shrink-0" />
-              Power BI
+              Шаблон Power BI
             </Button>
                 </>
             )}
@@ -2568,6 +2369,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           </div>
         </div>
         )}
+        {exportError && <p role="alert" className="mb-4 text-sm text-red-400">{exportError}</p>}
 
         {/* KPI Cards - unified dashboard component (скрыты на отдельной странице «Управление») */}
         {isDesktop && !standaloneManagement ? (
@@ -2575,7 +2377,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               <DashboardKpiCards
                 counts={{
                   new: kpi.emergency,
-                  inWork: Math.max(0, kpi.total - kpi.completed - kpi.overdue),
+                  inWork: kpi.inWork,
                   completed: kpi.completed,
                   overdue: kpi.overdue,
                 }}
@@ -2583,6 +2385,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                 createBookingHref="/meeting-rooms"
                 statisticsHref={`${basePath}/statistics`}
                 requestsHref={`${basePath}/requests`}
+                requestHrefs={managerKpiRequestHrefs(basePath, office, period)}
                 variant="manager"
                 hideActionButtons
               />
@@ -2948,7 +2751,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     >
                       Управление категориями услуг
                     </TabsTrigger>
-                    {["admin-worker", "manager"].includes(user?.role) && (
+                    {(user?.role === "admin-worker" || user?.role === "manager") && (
                       <TabsTrigger
                         value="subcategories"
                         className="flex-shrink-0 rounded-lg px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-white/60 data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:text-white/90"
@@ -3324,7 +3127,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                       </Select>
                       <Button
                         onClick={handleDeleteCategory}
-                        disabled={!categoryToDelete || isDeletingCategory || (categoryToDelete ? categoriesWithExecutors.has(categoryToDelete) : false)}
+                        disabled={!categoryToDelete || isDeletingCategory || checkingCategoryExecutors || Boolean(categoryCheckError) || (categoryToDelete ? categoriesWithExecutors.has(categoryToDelete) : false)}
                         variant="destructive"
                         className={`flex-shrink-0 w-full ${isDesktop ? "sm:w-auto" : ""}`}
                       >
@@ -3340,6 +3143,13 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     </div>
                   </div>
 
+                  {checkingCategoryExecutors && <p role="status" className={`text-sm ${mgmtMutedCl}`}>Проверяем исполнителей категорий…</p>}
+                  {categoryCheckError && (
+                    <div role="alert" className="space-y-2 text-sm text-red-400">
+                      <p>{categoryCheckError}</p>
+                      <Button variant="outline" disabled={checkingCategoryExecutors} onClick={() => setCategoryCheckAttempt((attempt) => attempt + 1)}>Повторить проверку</Button>
+                    </div>
+                  )}
                   {categoryError && (
                     <div className={`p-3 rounded-md ${mgmtDark ? "bg-red-500/20 border border-red-500/50" : "bg-red-50 border border-red-200"}`}>
                       <p className={`text-sm ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{categoryError}</p>
@@ -3376,7 +3186,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               )}
 
               {/* Управление подкатегориями — только для админа на десктопе */}
-              {isDesktop && ["admin-worker", "manager"].includes(user?.role) && managementDesktopTab === "subcategories" && (
+              {isDesktop && (user?.role === "admin-worker" || user?.role === "manager") && managementDesktopTab === "subcategories" && (
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление подкатегориями</CardTitle>
@@ -3603,7 +3413,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     <Input
                         placeholder="Поиск по имени или номер"
                         value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
+                        onChange={(e) => {
+                          searchInputRef.current = e.target.value;
+                          setSearchInput(e.target.value);
+                        }}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                         className={mgmtInputCl}
                     />
@@ -3626,9 +3439,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                             variant="outline"
                             onClick={() => {
                               setSearchInput("");
+                              searchInputRef.current = "";
                                 setOfficeFilter(null);
                                 setRoleFilter(null);
-                              fetchUsers(1);
+                              if (officeFilter === null && roleFilter === null) void handleSearch();
                             }}
                             className={mgmtDark ? "w-full border-white/10 text-white hover:bg-white/10" : ""}
                         >
@@ -4255,7 +4069,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                         {selectedRequest.photos
                             .filter((photo: any) => photo.type === 'before')
                             .map((photo: any, index: number) => (
-                                          <img
+                                          <Image
+                                              width={96}
+                                              height={96}
+                                              unoptimized
                                               key={index}
                                               src={getPreviewUrl(photo.photo_url)}
                                     alt={`Фото ${index + 1}`}
@@ -4281,7 +4098,10 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                         {selectedRequest.photos
                             .filter((photo: any) => photo.type === 'after')
                             .map((photo: any, index: number) => (
-                                          <img
+                                          <Image
+                                              width={96}
+                                              height={96}
+                                              unoptimized
                                               key={index}
                                               src={getPreviewUrl(photo.photo_url)}
                                     alt={`Фото ${index + 1}`}
@@ -4546,5 +4366,3 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 }
 
 export { ManagerDashboard as ManagerHomeDashboard };
-export type { ManagerDashboardProps };
-

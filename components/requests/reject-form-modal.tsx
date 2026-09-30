@@ -392,7 +392,8 @@ export function RejectFormModal(props: RejectFormModalProps) {
     <RequestModalShell
       isOpen={isOpen}
       onClose={onClose}
-      overlayClassName={variant === "executor" ? "z-50 bg-black bg-opacity-50 backdrop-blur-none" : undefined}
+      title="Отклонить заявку"
+      overlayClassName={variant === "executor" ? "bg-black bg-opacity-50 backdrop-blur-none" : undefined}
       closeOnOverlayClick={variant === "executor"}
     >
       {variant === "executor" ? (

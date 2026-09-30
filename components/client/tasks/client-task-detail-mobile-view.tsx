@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -43,6 +44,8 @@ import { MOBILE_COLORS } from "@/constants/mobile-theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   formatRequestDate,
+  addCalendarDaysToDateKey,
+  todayTaskDateKey,
   formatTaskTime,
   toAppDateKey,
   toUtcIsoFromAppDateTime,
@@ -74,6 +77,7 @@ import { toTransferInput, transferRecipientLabel, type RecipientSelection } from
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/stores/confirm-dialog-store";
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "low", label: "Низкий" },
@@ -168,9 +172,8 @@ export function ClientTaskDetailMobileView({
   const [fetchedTask, setFetchedTask] = useState<UserTask | null>(null);
   const [loadingTask, setLoadingTask] = useState(false);
 
-  const task = useMemo(() => {
-    return tasks.find((t) => t.id === taskId) ?? fetchedTask;
-  }, [tasks, taskId, fetchedTask]);
+  const listedTask = tasks.find((t) => t.id === taskId);
+  const task = listedTask ?? (fetchedTask?.id === taskId ? fetchedTask : null);
 
   useEffect(() => {
     if (isGuest) {
@@ -178,7 +181,7 @@ export function ClientTaskDetailMobileView({
       setLoadingTask(false);
       return;
     }
-    if (tasks.some((t) => t.id === taskId)) {
+    if (listedTask) {
       setFetchedTask(null);
       setLoadingTask(false);
       return;
@@ -197,7 +200,7 @@ export function ClientTaskDetailMobileView({
     return () => {
       cancelled = true;
     };
-  }, [taskId, isGuest, tasks, tasksInvalidateVersion, navigateBack, toast]);
+  }, [taskId, isGuest, listedTask, tasksInvalidateVersion, navigateBack, toast]);
 
   const canEditDetails = !!task && canEditUserTaskDetails(task, currentUserId);
 
@@ -211,14 +214,25 @@ export function ClientTaskDetailMobileView({
   }, [toast]);
 
   const [titleDraft, setTitleDraft] = useState("");
+  const [titleSaveError, setTitleSaveError] = useState<string | null>(null);
+  const [titleSaving, setTitleSaving] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const leavingRef = useRef(false);
+  const titleSavePromise = useRef<Promise<boolean> | null>(null);
+  const confirmedTitle = useRef<{ id: number; title: string } | null>(null);
+  const deletedTask = useRef(false);
   const taskRef = useRef(task);
   const canEditDetailsRef = useRef(canEditDetails);
   const titleDraftRef = useRef(titleDraft);
   const completeToggleBusyRef = useRef(false);
-  taskRef.current = task;
-  canEditDetailsRef.current = canEditDetails;
-  titleDraftRef.current = titleDraft;
+  useLayoutEffect(() => {
+    taskRef.current = task;
+    canEditDetailsRef.current = canEditDetails;
+    titleDraftRef.current = titleDraft;
+  }, [task, canEditDetails, titleDraft]);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deleteLock = useRef(false);
 
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleDraftDate, setScheduleDraftDate] = useState<string | null>(null);
@@ -243,10 +257,18 @@ export function ClientTaskDetailMobileView({
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!task) return;
-    setTitleDraft(task.title ?? "");
-  }, [task?.id, task?.title]);
+  const loadedTaskId = task?.id;
+  const savedTitle = task?.title ?? "";
+  const titleTaskId = useRef<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (loadedTaskId === undefined || titleTaskId.current === loadedTaskId) return;
+    titleTaskId.current = loadedTaskId;
+    confirmedTitle.current = { id: loadedTaskId, title: savedTitle };
+    titleDraftRef.current = savedTitle;
+    setTitleDraft(savedTitle);
+    setTitleSaveError(null);
+    deletedTask.current = false;
+  }, [loadedTaskId, savedTitle]);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,16 +299,63 @@ export function ClientTaskDetailMobileView({
       clearTimeout(titleDebounceRef.current);
       titleDebounceRef.current = null;
     }
+    while (titleSavePromise.current) {
+      if (!(await titleSavePromise.current)) return false;
+    }
     const t = taskRef.current;
-    if (!t || !canEditDetailsRef.current) return;
+    if (!t || !canEditDetailsRef.current || deletedTask.current) return true;
     const next = titleDraftRef.current.trim();
     if (!next) {
-      setTitleDraft(t.title ?? "");
-      return;
+      setTitleSaveError("Введите название задачи перед сохранением.");
+      return false;
     }
-    if (next === t.title) return;
-    await updateTask(t, { title: next });
+    if (confirmedTitle.current?.id === t.id && next === confirmedTitle.current.title) {
+      setTitleSaveError(null);
+      return true;
+    }
+    setTitleSaving(true);
+    setTitleSaveError(null);
+    const save = (async () => {
+      try {
+        const updated = await updateTask(t, { title: next });
+        if (!updated) {
+          if (taskRef.current?.id === t.id) setTitleSaveError("Название не сохранено. Повторите попытку.");
+          return false;
+        }
+        if (taskRef.current?.id === t.id) {
+          const title = updated.title ?? next;
+          confirmedTitle.current = { id: t.id, title };
+          taskRef.current = { ...t, ...updated, title };
+          setFetchedTask((current) => current?.id === t.id ? { ...current, ...updated, title } : current);
+          if (titleDraftRef.current.trim() === next) {
+            titleDraftRef.current = title;
+            setTitleDraft(title);
+          }
+        }
+        return true;
+      } catch {
+        if (taskRef.current?.id === t.id) setTitleSaveError("Название не сохранено. Повторите попытку.");
+        return false;
+      } finally {
+        titleSavePromise.current = null;
+        setTitleSaving(false);
+      }
+    })();
+    titleSavePromise.current = save;
+    return save;
   }, [updateTask]);
+
+  const handleBack = useCallback(async () => {
+    if (leavingRef.current || deleteLock.current) return;
+    leavingRef.current = true;
+    setLeaving(true);
+    try {
+      if (await flushTitleToServer()) navigateBack();
+    } finally {
+      leavingRef.current = false;
+      setLeaving(false);
+    }
+  }, [flushTitleToServer, navigateBack]);
 
   const scheduleTitleSave = useCallback(() => {
     if (!canEditDetailsRef.current) return;
@@ -526,8 +595,17 @@ export function ClientTaskDetailMobileView({
   const completeBlockedReason = task ? taskToggleBlockedReason(task) : null;
   const detailColors = { text, textMuted, primary, cardBg, border };
 
-  const todayKey = toAppDateKey(new Date());
-  const tomorrowKey = toAppDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [todayKey, setTodayKey] = useState(todayTaskDateKey);
+  useEffect(() => {
+    const refreshDay = () => setTodayKey(todayTaskDateKey());
+    const timer = window.setInterval(refreshDay, 60_000);
+    window.addEventListener("focus", refreshDay);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshDay);
+    };
+  }, []);
+  const tomorrowKey = addCalendarDaysToDateKey(todayKey, 1);
 
   const scheduledEnabled = !!task?.scheduled_at;
   const scheduledPrimaryLine = task?.scheduled_at
@@ -552,8 +630,13 @@ export function ClientTaskDetailMobileView({
             <div className="flex justify-center pt-2 pb-1">
               <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
             </div>
-            <Header title="Подробно" text={text} />
+            <Header title="Подробно" text={text} onBack={() => void handleBack()} backDisabled={leaving || deleting} />
           </>
+        )}
+        {isDesktopLayout && (
+          <button type="button" disabled={leaving || deleting} onClick={() => void handleBack()} className="inline-flex min-h-11 items-center gap-1 text-sm text-[#E25B21] disabled:opacity-50">
+            <ChevronLeft className="h-5 w-5" /> К списку задач
+          </button>
         )}
         <div className="flex justify-center py-16">
           {loadingTask ? (
@@ -576,7 +659,7 @@ export function ClientTaskDetailMobileView({
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 rounded-full" style={{ backgroundColor: primary }} />
           </div>
-          <Header title="Подробно" text={text} onBack={navigateBack} />
+          <Header title="Подробно" text={text} onBack={() => void handleBack()} backDisabled={leaving || deleting} />
         </>
       )}
 
@@ -586,6 +669,11 @@ export function ClientTaskDetailMobileView({
           isDesktopLayout ? "max-w-3xl" : "px-4",
         )}
       >
+        {isDesktopLayout && (
+          <button type="button" disabled={leaving || deleting} onClick={() => void handleBack()} className="inline-flex min-h-11 items-center gap-1 text-sm text-[#E25B21] disabled:opacity-50">
+            <ChevronLeft className="h-5 w-5" /> К списку задач
+          </button>
+        )}
         <div
           className={cn(
             "rounded-2xl border p-4",
@@ -596,6 +684,7 @@ export function ClientTaskDetailMobileView({
           <textarea
             value={titleDraft}
             onChange={(e) => {
+              titleDraftRef.current = e.target.value;
               setTitleDraft(e.target.value);
               scheduleTitleSave();
             }}
@@ -603,12 +692,19 @@ export function ClientTaskDetailMobileView({
             onClick={() => {
               if (!canEditDetails) notifyCreatorOnly();
             }}
-            readOnly={!canEditDetails}
+            readOnly={!canEditDetails || leaving || deleting}
             rows={3}
             placeholder="Название и описание"
             className="task-title-input w-full bg-transparent text-lg font-medium outline-none resize-none min-h-[4rem]"
             style={{ color: canEditDetails ? text : textMuted }}
           />
+          {titleSaving && <p role="status" className="mt-2 text-sm" style={{ color: textMuted }}>Сохраняем название…</p>}
+          {titleSaveError && (
+            <div role="alert" className="mt-2 space-y-2 text-sm text-red-500">
+              <p>{titleSaveError}</p>
+              <button type="button" disabled={titleSaving || leaving} onClick={() => void flushTitleToServer()} className="min-h-11 rounded-lg border border-current px-3 disabled:opacity-50">Повторить сохранение</button>
+            </div>
+          )}
         </div>
 
         {readOnly ? (
@@ -951,11 +1047,32 @@ export function ClientTaskDetailMobileView({
           <Divider border={border} />
           <button
             type="button"
-            disabled={!canEditDetails}
+            disabled={!canEditDetails || deleting || leaving}
             onClick={async () => {
-              if (!canEditDetails) return;
-              await removeTask(task);
-              navigateBack();
+              if (!canEditDetails || deleteLock.current || leavingRef.current) return;
+              deleteLock.current = true;
+              try {
+                if (!(await confirmAction({
+                  title: "Удалить задачу?",
+                  message: `Задача «${task.title}» будет удалена. Это действие нельзя отменить.`,
+                  confirmLabel: "Удалить",
+                  cancelLabel: "Отмена",
+                  destructive: true,
+                }))) return;
+                setDeleting(true);
+                if (titleDebounceRef.current) {
+                  clearTimeout(titleDebounceRef.current);
+                  titleDebounceRef.current = null;
+                }
+                if (titleSavePromise.current) await titleSavePromise.current;
+                if (await removeTask(task)) {
+                  deletedTask.current = true;
+                  navigateBack();
+                }
+              } finally {
+                deleteLock.current = false;
+                setDeleting(false);
+              }
             }}
             className={cn(
               "w-full flex items-center gap-3 p-3 min-h-11 transition-colors",
@@ -1045,15 +1162,17 @@ function Header({
   title,
   text,
   onBack,
+  backDisabled = false,
 }: {
   title: string;
   text: string;
   onBack?: () => void;
+  backDisabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-2 mb-2">
       {onBack ? (
-        <button type="button" onClick={onBack} className="inline-flex items-center min-h-11 text-[#E25B21]">
+        <button type="button" onClick={onBack} disabled={backDisabled} className="inline-flex items-center min-h-11 text-[#E25B21] disabled:opacity-50">
           <ChevronLeft className="h-7 w-7" />
           <span className="text-base font-medium ml-0.5">Назад</span>
         </button>
@@ -1192,4 +1311,3 @@ function RowStatic({
     </div>
   );
 }
-

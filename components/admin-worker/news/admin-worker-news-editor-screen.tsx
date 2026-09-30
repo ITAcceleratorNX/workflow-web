@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ export function AdminWorkerNewsEditorScreen() {
   const editingIsScheduled = mode === "edit" && editingStatus === "scheduled";
   const showPublishSchedule = mode === "create" || editingIsScheduled;
 
-  const initialScheduledAt = useMemo(() => {
+  const [scheduledAt, setScheduledAt] = useState(() => {
     const publishedAt = searchParams.get("publishedAt");
     let d: Date;
     if (publishedAt) {
@@ -73,7 +73,7 @@ export function AdminWorkerNewsEditorScreen() {
       d = new Date(Date.now() + 60 * 60 * 1000);
     }
     return clampNewsScheduleDate(d);
-  }, [searchParams]);
+  });
 
   const [title, setTitle] = useState(() => searchParams.get("title") ?? "");
   const [content, setContent] = useState(() => searchParams.get("content") ?? "");
@@ -81,7 +81,6 @@ export function AdminWorkerNewsEditorScreen() {
   const [publishMode, setPublishMode] = useState<NewsPublishMode>(() =>
     editingIsScheduled ? "schedule" : "now",
   );
-  const [scheduledAt, setScheduledAt] = useState(initialScheduledAt);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);

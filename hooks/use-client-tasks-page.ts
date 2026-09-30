@@ -127,7 +127,7 @@ export function useClientTasksPage() {
   }, [mainView, todayKey, upcomingDate, tomorrowKey, completedDateKey, viewMode]);
 
   const todo = useTodoList(todoListQuery);
-  const { tasks, toggleComplete, loading: loadingTasks, loadingMore, hasMore, loadMore, addTask } =
+  const { tasks, toggleComplete, loading: loadingTasks, error: tasksError, refresh: retryTasks, loadingMore, hasMore, loadMore, addTask } =
     todo;
 
   useEffect(() => {
@@ -281,6 +281,8 @@ export function useClientTasksPage() {
     sections,
     emptyCopy,
     loadingTasks,
+    tasksError,
+    retryTasks,
     loadingMore,
     hasMore,
     loadMore,

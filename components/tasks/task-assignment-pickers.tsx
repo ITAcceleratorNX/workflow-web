@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 import { Check, Loader2, Search, UserX, Users } from "lucide-react";
 import { AssignUserSearchFilters } from "@/components/tasks/assign-user-search-filters";
 import { TaskPickerShell, type TaskPickerVariant } from "@/components/tasks/task-picker-shell";
@@ -136,6 +136,7 @@ type ExecutorPickerProps = {
   selectedExecutor: { id: number; full_name: string } | null;
   onSelect: (executor: { id: number; full_name: string } | null) => void;
   variant?: TaskPickerVariant;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
 export function TaskExecutorPickerOverlay({
@@ -147,6 +148,7 @@ export function TaskExecutorPickerOverlay({
   selectedExecutor,
   onSelect,
   variant = "sheet",
+  returnFocusRef,
 }: ExecutorPickerProps) {
   const { text, textMuted, primary, border, cardBg } = useTaskPickerTheme(variant);
   const isDialog = variant === "dialog";
@@ -290,6 +292,7 @@ export function TaskExecutorPickerOverlay({
       onClose={onClose}
       variant={variant}
       title={isDialog ? "Исполнитель" : undefined}
+      returnFocusRef={returnFocusRef}
       maxWidthClass="max-w-md"
     >
       {!isDialog ? (

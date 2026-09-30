@@ -29,7 +29,7 @@ export function AdminManagerRequestsDesktopFrame({
   onCloseDetail,
 }: AdminManagerRequestsDesktopFrameProps) {
   return (
-    <div className="h-full flex flex-col bg-[#1A1A1A]">
+    <div className={`dark h-full flex flex-col bg-[#1A1A1A] ${REQUESTS_DESKTOP_DARK_CLASS}`}>
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="p-4 border-b border-white/10 flex justify-between items-center">
@@ -41,7 +41,7 @@ export function AdminManagerRequestsDesktopFrame({
               </Button>
             </Link>
           </div>
-          <div className={`p-4 flex gap-2 flex-wrap ${REQUESTS_DESKTOP_DARK_CLASS}`}>
+          <div className="p-4 flex gap-2 flex-wrap">
             {filtersSlot}
           </div>
           {tabsSlot && (

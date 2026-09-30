@@ -3,6 +3,7 @@
  * Синхронизировано с workflow-mobile app/(tabs)/requests/index.tsx
  */
 
+import { completedAfterSla } from "@/lib/request-overdue";
 import { isLongTermRequestGroup } from '@/constants/requests';
 import type { RequestGroup, SubRequest } from '@/lib/types/request';
 
@@ -57,6 +58,7 @@ export function matchesRequestStatusFilter(
   filterStatus: string
 ): boolean {
   if (filterStatus === 'all') return true;
+  if (filterStatus === 'overdue') return completedAfterSla(request);
   if (filterStatus === 'long_term') {
     return isLongTermRequestGroup(request);
   }

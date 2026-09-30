@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -106,7 +107,7 @@ function ConfirmPageContent() {
         <div className="overflow-hidden rounded-[10px] bg-[#1C1C1E] border border-white/5">
           <div className="relative aspect-[16/10] bg-[#2C2C2E]">
             {photos.length > 0 ? (
-              <img
+              <NextImage fill sizes="(max-width: 512px) 100vw, 512px" unoptimized
                 src={photos[0]}
                 alt={room?.name ? `Фото: ${room.name}` : "Фото переговорной"}
                 className="h-full w-full object-cover"

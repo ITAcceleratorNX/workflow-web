@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getMeetingRoomStats, MeetingRoomStats } from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
 import { useToast } from "@/hooks/use-toast";
 import { MeetingRoomCalendar } from "./MeetingRoomCalendar";
 import {
@@ -26,28 +27,33 @@ export function MeetingRoomStatistics({ variant = "default", defaultShowCalendar
   const [error, setError] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(defaultShowCalendar);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const fetchVersion = useRef(0);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    const version = ++fetchVersion.current;
     try {
       setLoading(true);
       setError(null);
       const response = await getMeetingRoomStats();
-      setStats(response.data);
-    } catch (err: any) {
+      if (version === fetchVersion.current) setStats(response.data);
+    } catch (err: unknown) {
+      if (version !== fetchVersion.current) return;
       console.error("Ошибка загрузки статистики:", err);
-      setError(err.response?.data?.message || "Не удалось загрузить статистику");
+      setError(listLoadError(err));
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить статистику",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (version === fetchVersion.current) setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchStats();
+    return () => { fetchVersion.current += 1; };
+  }, [fetchStats]);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -70,7 +76,7 @@ export function MeetingRoomStatistics({ variant = "default", defaultShowCalendar
   }
 
   if (error) {
-    return <MeetingRoomsErrorState error={error} />;
+    return <MeetingRoomsErrorState error={error} onRetry={fetchStats} />;
   }
 
   if (!stats) {

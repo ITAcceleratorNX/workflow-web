@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,19 +159,18 @@ export function EditRequestGroupModal({
   };
 
   const content = (
-    <div
-      className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !loading) onClose(); }}>
+      <DialogContent
+        layer={110}
+        showCloseButton={false}
+        aria-describedby={undefined}
         className={cn(
-          "w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl",
+          "left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl p-0 gap-0",
           MANAGEMENT_MODAL_DARK_CLASS,
         )}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700 sticky top-0 bg-[#1C1C1E]">
-          <h2 className="text-lg font-semibold text-white">Редактировать заявку</h2>
+          <DialogTitle className="text-lg font-semibold text-white">Редактировать заявку</DialogTitle>
           <p className="text-sm text-gray-400 mt-1">Заявка #{request.id}</p>
         </div>
         <div className="p-4 space-y-4">
@@ -273,23 +272,23 @@ export function EditRequestGroupModal({
         <div className="p-4 border-t border-gray-700 flex gap-3 sticky bottom-0 bg-[#1C1C1E]">
           <Button
             variant="outline"
-            className={cn("flex-1", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            className={cn("flex-1 h-auto min-h-11 min-w-0 whitespace-normal", REQUESTS_DESKTOP_OUTLINE_BTN)}
             onClick={onClose}
             disabled={loading}
           >
             Отмена
           </Button>
           <Button
-            className="flex-1 bg-[#F35713] hover:bg-[#E04F10] text-white"
+            className="flex-1 h-auto min-h-11 min-w-0 whitespace-normal bg-[hsl(var(--action-background))] hover:bg-[hsl(var(--action-background))]/90 text-white"
             onClick={handleSave}
             disabled={loading}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Сохранить"}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 
-  return createPortal(content, document.body);
+  return content;
 }

@@ -203,7 +203,7 @@ export const useStatsStore = create<StatsState & StatsActions>()(
 
                 try {
                     const response = await api.get(`/analytics/stats/${role}`);
-                    let data = response.data;
+                    const data = response.data;
 
                     // Для исполнителя — отдельно получаем рейтинг
                     let myRating = null;

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api, { getOffices, type Office } from "@/lib/api";
 import { getRequestNavigationUrl } from "@/lib/requestNavigation";
+import type { ExecutorRequestGroupsResponse } from "@/lib/types/request";
 import { useRequestStore, type RequestGroup } from "@/stores/useRequestStore";
 
 export interface ExecutorHomeStats {
@@ -77,34 +78,10 @@ export function useExecutorHome() {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const response = await api.get("request-groups");
-      const responseRating = await api.get("ratings/executor");
-      const responseMyRating = await api.get("executors/average-rating");
-      setMyRating(responseMyRating.data.average_rating);
-
-      const ratingsMap = new Map<number, { rating: number; comments: string[] }>();
-      for (const r of responseRating.data) {
-        ratingsMap.set(r.request_id, {
-          rating: parseFloat(r.rating),
-          comments: r.comments || [],
-        });
-      }
-
-      const completed = response.data.completedRequests.map((reqGroup: RequestGroup) => ({
-        ...reqGroup,
-        requests: reqGroup.requests.map((req) => {
-          const ratingData = ratingsMap.get(req.id);
-          return {
-            ...req,
-            rating: ratingData?.rating ?? null,
-            ratings: ratingData
-              ? [{ rating: ratingData.rating, comments: ratingData.comments }]
-              : undefined,
-          };
-        }),
-      }));
-
-      setCompletedRequests(completed);
+      const response = await api.get<ExecutorRequestGroupsResponse>("request-groups");
+      // Request groups already contain aggregated ratings; an optional rating request
+      // must not prevent the primary lists from loading.
+      setCompletedRequests(response.data.completedRequests);
       setAssignedRequests(response.data.assignedRequests);
       setMyRequests(response.data.myRequests);
 
@@ -133,15 +110,27 @@ export function useExecutorHome() {
     }
   }, [setAssignedRequests, setCompletedRequests, setMyRequests]);
 
+  const fetchMyRating = useCallback(async () => {
+    try {
+      const response = await api.get<{ average_rating: string | number | null }>("executors/average-rating");
+      const value = response.data.average_rating;
+      const rating = value === null || value === "" ? NaN : Number(value);
+      setMyRating(Number.isFinite(rating) && rating >= 0 && rating <= 5 ? rating : null);
+    } catch (error) {
+      console.error("Failed to fetch executor rating:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchRequests();
     fetchOffices();
-  }, [fetchStats, fetchRequests, fetchOffices]);
+    fetchMyRating();
+  }, [fetchStats, fetchRequests, fetchOffices, fetchMyRating]);
 
   const handleRefresh = useCallback(async () => {
-    await Promise.all([fetchStats(), fetchRequests(), fetchOffices()]);
-  }, [fetchStats, fetchRequests, fetchOffices]);
+    await Promise.all([fetchStats(), fetchRequests(), fetchOffices(), fetchMyRating()]);
+  }, [fetchStats, fetchRequests, fetchOffices, fetchMyRating]);
 
   const handleRequestClick = useCallback(
     (requestId: number) => {

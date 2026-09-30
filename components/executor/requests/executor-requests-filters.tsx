@@ -52,7 +52,7 @@ export function ExecutorRequestsFilters({
       <>
         <Select value={filterMyStatus} onValueChange={onFilterMyStatusChange}>
           <SelectTrigger className={triggerClass}>
-            <SelectValue placeholder="Статус" />
+            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {statusFilterOptions.map((option) => (
@@ -64,7 +64,7 @@ export function ExecutorRequestsFilters({
         </Select>
         <Select value={filterMyType} onValueChange={onFilterMyTypeChange}>
           <SelectTrigger className={triggerClass}>
-            <SelectValue placeholder="Тип" />
+            <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
           </SelectTrigger>
           <SelectContent className={contentClass}>
             {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
@@ -81,7 +81,7 @@ export function ExecutorRequestsFilters({
   return (
     <Select value={filterType} onValueChange={onFilterTypeChange}>
       <SelectTrigger className={triggerClass}>
-        <SelectValue placeholder="Тип" />
+        <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
       </SelectTrigger>
       <SelectContent className={contentClass}>
         {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (

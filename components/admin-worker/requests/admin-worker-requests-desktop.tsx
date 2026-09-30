@@ -43,6 +43,10 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
     ) : (
       <AdminWorkerRequestsListContent
         variant="desktop"
+        error={props.error}
+        isFiltered={props.isFiltered}
+        onRetry={props.handleRefresh}
+        onResetFilters={props.resetFilters}
         loading={loading}
         loadingMore={loadingMore}
         hasMore={hasMore}
@@ -84,7 +88,7 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
             onClose={handleClosePanel}
             onRequestUpdated={handleRequestUpdated}
             userRole="admin-worker"
-            sourceTab="incoming"
+            sourceTab={activeTab === "my-requests" ? "my-requests" : "incoming"}
             hideFullModeButton
             embedInPanel
           />

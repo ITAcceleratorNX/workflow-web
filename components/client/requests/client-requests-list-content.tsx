@@ -2,15 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { RequestListFeedback, type RequestListFeedbackProps } from "@/components/requests/request-list-feedback";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
 import {
-  MOBILE_REQUESTS_EMPTY_TEXT,
   MOBILE_REQUESTS_LOAD_MORE_BTN,
 } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 
-interface ClientRequestsListContentProps {
+interface ClientRequestsListContentProps extends RequestListFeedbackProps {
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -24,6 +24,10 @@ interface ClientRequestsListContentProps {
 
 export function ClientRequestsListContent({
   loading,
+  error,
+  isFiltered,
+  onRetry,
+  onResetFilters,
   loadingMore,
   hasMore,
   requests,
@@ -35,21 +39,9 @@ export function ClientRequestsListContent({
 }: ClientRequestsListContentProps) {
   const isDesktop = variant === "desktop";
 
-  if (loading) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        Загрузка...
-      </div>
-    );
-  }
-
   return (
     <>
+      <RequestListFeedback loading={loading} error={error} isFiltered={isFiltered} onRetry={onRetry} onResetFilters={onResetFilters} count={requests.length} emptyMessage={"У вас пока нет заявок"} />
       {requests.map((request) => (
         <RequestCard
           key={request.id}
@@ -61,17 +53,7 @@ export function ClientRequestsListContent({
           variant="compact"
         />
       ))}
-      {requests.length === 0 && (
-        <div
-          className={cn(
-            "text-center py-12",
-            isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-          )}
-        >
-          У вас пока нет заявок
-        </div>
-      )}
-      {hasMore && requests.length > 0 && (
+      {hasMore && (
         <div className={cn("flex justify-center pt-4", !isDesktop && "pb-2")}>
           <Button
             variant="outline"
@@ -81,7 +63,7 @@ export function ClientRequestsListContent({
                 : MOBILE_REQUESTS_LOAD_MORE_BTN
             }
             onClick={onLoadMore}
-            disabled={loadingMore}
+            disabled={loading || loadingMore}
           >
             {loadingMore ? (
               <>
@@ -89,7 +71,7 @@ export function ClientRequestsListContent({
                 Загрузка...
               </>
             ) : (
-              "Загрузить ещё"
+              "Показать ещё"
             )}
           </Button>
         </div>

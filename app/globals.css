@@ -7,6 +7,9 @@
     /* ── Brand (workflow-mobile/constants/theme.ts) ── */
     --brand-primary: 19 77% 51%; /* #E25B21 */
     --brand-primary-foreground: 0 0% 100%;
+    /* Filled controls need more contrast than decorative brand accents. */
+    --action-background: 18 86% 39%; /* #B8400E */
+    --action-foreground: 0 0% 100%;
     --brand-error: 18 90% 51%; /* #F35713 — bottom nav, admin accent */
     --brand-accent-soft: 19 77% 51% / 0.12;
 
@@ -62,7 +65,7 @@
     --surface: 0 0% 10%; /* #1A1A1A */
     --surface-elevated: 0 0% 14%; /* #242424 */
     --surface-muted: 0 0% 6%; /* #0F0F0F */
-    --text-muted: 0 0% 43%;
+    --text-muted: 240 2% 63%; /* #A0A0A5 on dark surfaces */
     --text-secondary: 240 2% 63%; /* #A0A0A5 */
     --brand-accent-soft: 19 77% 51% / 0.18;
 

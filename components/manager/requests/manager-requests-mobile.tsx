@@ -46,7 +46,7 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-foreground">Заявки</h1>
             <Link href="/create-request">
-              <Button className="h-12 px-5 bg-[#F35713] hover:bg-[#E04A0A] text-white font-semibold rounded-2xl">
+              <Button className="h-12 px-5 font-semibold rounded-2xl">
                 <Plus className="h-4 w-4 mr-2" />
                 Создать
               </Button>
@@ -73,6 +73,10 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
             <div className="space-y-4 pb-40">
               <ManagerRequestsListContent
                 variant="mobile"
+                error={props.error}
+                isFiltered={props.isFiltered}
+                onRetry={props.handleRefresh}
+                onResetFilters={props.resetFilters}
                 loading={loading}
                 loadingMore={loadingMore}
                 hasMore={hasMore}

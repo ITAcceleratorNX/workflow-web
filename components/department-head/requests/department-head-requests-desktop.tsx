@@ -43,7 +43,11 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
     ) : (
       <DepartmentHeadRequestsListContent
         variant="desktop"
-        loading={loading}
+        error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.handleRefresh}
+              onResetFilters={props.resetFilters}
+              loading={loading}
         loadingMore={loadingMore}
         hasMore={hasMore}
         requests={activeList}
@@ -59,10 +63,10 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
       filtersSlot={
         <DepartmentHeadRequestsFilters
           variant="desktop"
-          filterStatus={filterIncomingStatus}
-          onFilterStatusChange={setFilterIncomingStatus}
-          filterType={filterIncomingType}
-          onFilterTypeChange={setFilterIncomingType}
+          filterStatus={activeTab === "my-requests" ? props.filterMyStatus : filterIncomingStatus}
+          onFilterStatusChange={activeTab === "my-requests" ? props.setFilterMyStatus : setFilterIncomingStatus}
+          filterType={activeTab === "my-requests" ? props.filterMyType : filterIncomingType}
+          onFilterTypeChange={activeTab === "my-requests" ? props.setFilterMyType : setFilterIncomingType}
           statusFilterOptions={statusFilterOptions}
         />
       }
@@ -81,7 +85,7 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
             onClose={handleClosePanel}
             onRequestUpdated={handleRequestUpdated}
             userRole="department-head"
-            sourceTab="incoming"
+            sourceTab={activeTab === "my-requests" ? "my-requests" : "incoming"}
             hideFullModeButton
             embedInPanel
             onAssignExecutor={handleAssignExecutors}

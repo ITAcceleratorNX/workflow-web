@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buildRequestsUrlWithoutFilters } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
+import { useRequestListWindow } from "@/hooks/use-request-list-window";
 import { useRequestStore } from "@/stores/useRequestStore";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +21,9 @@ import {
 } from "@/components/executor/requests/executor-requests-constants";
 
 export function useExecutorRequestsList() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
   const {
@@ -26,7 +33,6 @@ export function useExecutorRequestsList() {
     setAssignedRequests,
     setCompletedRequests,
     setMyRequests,
-    clearRequests,
   } = useRequestStore();
 
   const [activeTab, setActiveTab] = useState<ExecutorRequestsTab>("tasks");
@@ -35,9 +41,8 @@ export function useExecutorRequestsList() {
   const [filterMyType, setFilterMyType] = useState("all");
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const fetchVersion = useRef(0);
   const { token } = useAuthStore();
   const { categories, fetchCategories } = useCategoryStore();
 
@@ -57,94 +62,39 @@ export function useExecutorRequestsList() {
   const statusFilterOptions = useMemo(() => getStatusOptionsForRole("executor"), []);
 
   const fetchRequests = useCallback(
-    async (pageToLoad = 1) => {
+    async (_page = 1) => {
+      const version = ++fetchVersion.current;
+      if (!token) { setLoading(false); return; }
+      setLoading(true);
+      setError(null);
       try {
-        const isFirstPage = pageToLoad === 1;
-        if (isFirstPage) setLoading(true);
-        else setLoadingMore(true);
-
-        const response = await api.get(`request-groups?page=${pageToLoad}&pageSize=10`);
-        const responseRating = await api.get("ratings/executor");
-        const ratingsMap = new Map<number, any>();
-        for (const r of responseRating.data) {
-          ratingsMap.set(r.request_id, {
-            rating: parseFloat(r.rating),
-            comments: r.comments || [],
-          });
+        // Executor endpoint returns all three lists, including per-request ratings.
+        const { data } = await api.get("/request-groups");
+        if (![data.assignedRequests, data.completedRequests, data.myRequests].every(Array.isArray)) {
+          throw new Error("Invalid request lists");
         }
-
-        const mapCompleted = (list: any[]) =>
-          list?.map((reqGroup: any) => ({
-            ...reqGroup,
-            requests: reqGroup.requests?.map((req: any) => {
-              const ratingData = ratingsMap.get(req.id);
-              return {
-                ...req,
-                rating: ratingData?.rating || null,
-                ratings: ratingData
-                  ? [{ rating: ratingData.rating, comments: ratingData.comments }]
-                  : undefined,
-              };
-            }),
-          })) || [];
-
-        const newCompleted = mapCompleted(response.data.completedRequests || []);
-        const newAssigned = response.data.assignedRequests || [];
-        const newMy = response.data.myRequests || [];
-
-        if (isFirstPage) {
-          setCompletedRequests(newCompleted);
-          setAssignedRequests(newAssigned);
-          setMyRequests(newMy);
-        } else {
-          setCompletedRequests((prev) => {
-            const ids = new Set(prev.map((r: any) => r.id));
-            return [...prev, ...newCompleted.filter((r: any) => !ids.has(r.id))];
-          });
-          setAssignedRequests((prev) => {
-            const ids = new Set(prev.map((r: any) => r.id));
-            return [...prev, ...newAssigned.filter((r: any) => !ids.has(r.id))];
-          });
-          setMyRequests((prev) => {
-            const ids = new Set(prev.map((r: any) => r.id));
-            return [...prev, ...newMy.filter((r: any) => !ids.has(r.id))];
-          });
-        }
-
-        const newRatings: Record<number, any> = {};
-        const allGroups: any[] = [
-          ...(response.data.completedRequests || []),
-          ...(response.data.assignedRequests || []),
-          ...(response.data.myRequests || []),
-        ];
-        allGroups.forEach((rg: any) => {
-          if (rg.clientRatings?.length > 0) {
-            const r = rg.clientRatings[0];
-            newRatings[rg.id] = { id: r.id, rating: r.rating, comment: r.comment };
-          }
+        if (version !== fetchVersion.current) return;
+        setAssignedRequests(data.assignedRequests);
+        setCompletedRequests(data.completedRequests);
+        setMyRequests(data.myRequests);
+        const ratings: Record<number, unknown> = {};
+        [...data.assignedRequests, ...data.completedRequests, ...data.myRequests].forEach((group) => {
+          if (group.clientRatings?.length) ratings[group.id] = group.clientRatings[0];
         });
-        setClientRatings(newRatings);
-
-        const loadedCount =
-          (response.data.completedRequests?.length || 0) +
-          (response.data.assignedRequests?.length || 0) +
-          (response.data.myRequests?.length || 0);
-        setHasMore(loadedCount >= 10);
-        setPage(pageToLoad);
-      } catch (e) {
-        console.error(e);
+        setClientRatings(ratings);
+      } catch (failure) {
+        if (version === fetchVersion.current) setError(listLoadError(failure));
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        if (version === fetchVersion.current) setLoading(false);
       }
     },
-    [setAssignedRequests, setCompletedRequests, setMyRequests]
+    [token, setAssignedRequests, setCompletedRequests, setMyRequests]
   );
 
   useEffect(() => {
-    if (!isDesktop) clearRequests();
-    fetchRequests(1);
-  }, [isDesktop, fetchRequests, clearRequests]);
+    void fetchRequests();
+    return () => { fetchVersion.current += 1; };
+  }, [fetchRequests]);
 
   useEffect(() => {
     if (isDesktop && token) fetchCategories(token);
@@ -154,12 +104,6 @@ export function useExecutorRequestsList() {
     setLoading(true);
     await fetchRequests(1);
   }, [fetchRequests]);
-
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchRequests(page + 1);
-    }
-  }, [loadingMore, hasMore, page, fetchRequests]);
 
   const filteredMy = useMemo(
     () =>
@@ -190,6 +134,17 @@ export function useExecutorRequestsList() {
     return filteredCompleted;
   }, [activeTab, filteredTasks, filteredMy, filteredCompleted]);
 
+  const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
+    activeList, `${activeTab}:${filterType}:${filterMyStatus}:${filterMyType}`,
+  );
+  const isFiltered = activeTab === "myTasks"
+    ? filterMyStatus !== "all" || filterMyType !== "all" : filterType !== "all";
+  const resetFilters = () => {
+    if (activeTab === "myTasks") { setFilterMyStatus("all"); setFilterMyType("all"); }
+    else setFilterType("all");
+    router.replace(buildRequestsUrlWithoutFilters(pathname, searchParams.toString()), { scroll: false });
+  };
+
   const {
     displayRequest,
     selectRequest: handleCardClick,
@@ -205,7 +160,7 @@ export function useExecutorRequestsList() {
   });
 
   const displayRequestIdRef = useRef<number | null>(null);
-  displayRequestIdRef.current = displayRequest?.id ?? null;
+  useEffect(() => { displayRequestIdRef.current = displayRequest?.id ?? null; }, [displayRequest?.id]);
 
   const handleRequestUpdated = useCallback(() => {
     fetchRequests();
@@ -414,7 +369,10 @@ export function useExecutorRequestsList() {
     hasMore,
     clientRatings,
     categories,
-    activeList,
+    activeList: visibleRequests,
+    error,
+    isFiltered,
+    resetFilters,
     filteredTasks,
     filteredMy,
     filteredCompleted,

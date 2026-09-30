@@ -152,7 +152,7 @@ export function AssignExecutorsModal({
             user: executor.user,
             RequestExecutor: { role: executorData.role }
           };
-        }).filter(Boolean);
+        }).filter((executor): executor is NonNullable<typeof executor> => executor !== null);
         
         updateSubRequestExecutors(requestGroup.id, subRequest.id, executorsForUpdate);
         
@@ -408,19 +408,19 @@ export function AssignExecutorsModal({
           {/* Footer - фиксированный с кнопками */}
           {canAssignExecutors && (
             <div className={`flex-shrink-0 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 pt-3 sm:pt-4 border-t ${isDark ? "border-white/10" : "border-gray-100"}`}>
-              <div className="flex gap-2 sm:gap-3">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:gap-3">
                 <Button
                   variant="outline"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className={`bg-transparent h-9 sm:h-10 md:h-12 rounded-lg font-medium transition-colors text-xs sm:text-sm ${isDark ? "border-white/20 text-white hover:bg-white/10" : "bg-white border-gray-300 hover:border-gray-400 hover:bg-gray-50"}`}
+                  className={`bg-transparent h-auto min-h-11 min-w-0 whitespace-normal py-3 rounded-lg font-medium transition-colors text-sm ${isDark ? "border-white/20 text-white hover:bg-white/10" : "bg-white border-gray-300 hover:border-gray-400 hover:bg-gray-50"}`}
                 >
                   Отмена
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || !selectedExecutors.some(e => e.role === 'leader')}
-                  className={`flex-1 h-9 sm:h-10 md:h-12 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm ${isDark ? "bg-[#F35713] hover:bg-[#E04A0A] text-white" : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"}`}
+                  className={`flex-1 h-auto min-h-11 min-w-0 whitespace-normal py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm ${isDark ? "bg-[hsl(var(--action-background))] hover:bg-[hsl(var(--action-background))]/90 text-[hsl(var(--action-foreground))]" : "bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] text-white"}`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-1 sm:gap-2">

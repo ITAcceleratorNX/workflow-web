@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
 import { exportManagerAnalytics } from "@/lib/manager-stats-export";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useStatsStore } from "@/stores/statsStore";
@@ -33,7 +34,17 @@ export function useManagerStatisticsPage() {
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [offices, setOffices] = useState<OfficeType[]>([]);
 
-  const basePath = user?.role === "admin-worker" ? "/admin-worker" : "/manager";
+  const basePath = user?.role === "admin-worker" ? "/admin-worker/requests" : "/manager/requests";
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportLock = useRef(false);
+  const canExport = user?.role === "manager";
+  const requestUrl = useCallback((key?: string, value?: string) => {
+    const params = new URLSearchParams({ period });
+    if (office !== "all") params.set("office_id", office);
+    if (key && value) params.set(key, value);
+    return `${basePath}?${params}`;
+  }, [basePath, office, period]);
 
   const fetchOffices = useCallback(async () => {
     if (offices.length !== 0) return;
@@ -280,49 +291,52 @@ export function useManagerStatisticsPage() {
     setEndDate(undefined);
   }, []);
 
-  const handleExport = useCallback(
-    async (format: "xlsx" | "pbix") => {
-      await exportManagerAnalytics(token, {
-        office,
-        startDate,
-        endDate,
-        format,
-      });
-    },
-    [token, office, startDate, endDate],
-  );
+  const handleExport = useCallback(async (format: "xlsx" | "pbix") => {
+    if (exportLock.current || !canExport) return;
+    exportLock.current = true;
+    setExporting(true);
+    setExportError(null);
+    const now = new Date();
+    const periodStart = period === "week" ? new Date(now.getTime() - 7 * 86400000)
+      : period === "month" ? new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+      : new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    try {
+      await exportManagerAnalytics(token, { office, startDate: startDate && endDate ? startDate : periodStart, endDate: startDate && endDate ? endDate : now, format });
+    } catch (failure) { setExportError(failure instanceof Error && !("isAxiosError" in failure) ? failure.message : `Не удалось экспортировать файл. ${listLoadError(failure)}`); }
+    finally { exportLock.current = false; setExporting(false); }
+  }, [token, office, startDate, endDate, period, canExport]);
 
   const handleTotalRequestsClick = useCallback(() => {
-    router.push(basePath);
-  }, [router, basePath]);
+    router.push(requestUrl());
+  }, [router, requestUrl]);
 
   const handleNewRequestsClick = useCallback(() => {
-    router.push(`${basePath}?status=in_progress`);
-  }, [router, basePath]);
+    router.push(requestUrl("status", "in_progress"));
+  }, [router, requestUrl]);
 
   const handleInWorkRequestsClick = useCallback(() => {
-    router.push(`${basePath}?status=execution`);
-  }, [router, basePath]);
+    router.push(requestUrl("status", "execution"));
+  }, [router, requestUrl]);
 
   const handleCompletedRequestsClick = useCallback(() => {
-    router.push(`${basePath}?status=completed`);
-  }, [router, basePath]);
+    router.push(requestUrl("status", "completed"));
+  }, [router, requestUrl]);
 
   const handleOverdueRequestsClick = useCallback(() => {
-    router.push(`${basePath}?status=overdue`);
-  }, [router, basePath]);
+    router.push(requestUrl("status", "overdue"));
+  }, [router, requestUrl]);
 
   const handleNormalRequestsClick = useCallback(() => {
-    router.push(`${basePath}?priority=normal`);
-  }, [router, basePath]);
+    router.push(requestUrl("priority", "normal"));
+  }, [router, requestUrl]);
 
   const handleUrgentRequestsClick = useCallback(() => {
-    router.push(`${basePath}?priority=urgent`);
-  }, [router, basePath]);
+    router.push(requestUrl("priority", "urgent"));
+  }, [router, requestUrl]);
 
   const handlePlannedRequestsClick = useCallback(() => {
-    router.push(`${basePath}?priority=planned`);
-  }, [router, basePath]);
+    router.push(requestUrl("priority", "planned"));
+  }, [router, requestUrl]);
 
   return {
     user,
@@ -342,6 +356,9 @@ export function useManagerStatisticsPage() {
     handleRefresh,
     resetDateFilters,
     handleExport,
+    exporting,
+    exportError,
+    canExport,
     handleTotalRequestsClick,
     handleNewRequestsClick,
     handleInWorkRequestsClick,

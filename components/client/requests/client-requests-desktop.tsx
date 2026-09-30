@@ -64,7 +64,11 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
         listSlot={
           <ClientRequestsListContent
             variant="desktop"
-            loading={loading}
+            error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.fetchRequests}
+              onResetFilters={props.resetFilters}
+              loading={loading}
             loadingMore={loadingMore}
             hasMore={hasMore}
             requests={filteredRequests}

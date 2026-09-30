@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,23 +78,16 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
     const [editError, setEditError] = useState<string | null>(null);
     const canEditOfficeCompany = role === 'admin-worker' || role === 'admin' || role === 'manager';
 
-    useEffect(() => {
-        if (role === 'manager') {
-            void loadOffices();
-        }
-        void loadRequests();
-    }, [filters, role, departmentHeadOfficeId]);
-
-    const loadOffices = async () => {
+    const loadOffices = useCallback(async () => {
         try {
             const response = await api.get('/offices');
             setOffices(response.data);
         } catch (error) {
             console.error('Ошибка при загрузке офисов:', error);
         }
-    };
+    }, []);
 
-    const loadRequests = async () => {
+    const loadRequests = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -112,7 +105,17 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters, departmentHeadOfficeId]);
+
+    useEffect(() => {
+        if (role === 'manager') {
+            void loadOffices();
+        }
+    }, [role, loadOffices]);
+
+    useEffect(() => {
+        void loadRequests();
+    }, [role, loadRequests]);
 
     const handleApprove = async (requestId: number) => {
         try {

@@ -61,6 +61,8 @@ export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTas
     sections,
     emptyCopy,
     loadingTasks,
+    tasksError,
+    retryTasks,
     loadingMore,
     hasMore,
     loadMore,
@@ -232,14 +234,20 @@ export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTas
           <div className="flex-1 min-h-0 flex flex-col pt-2">
             <CalendarTab />
           </div>
-        ) : loadingTasks ? (
+        ) : loadingTasks && sections.length === 0 ? (
           <div className="flex-1 flex items-center justify-center py-10">
             <Loader2 className="h-10 w-10 animate-spin text-[#E25B21]" />
           </div>
         ) : (
           <div className="flex-1 relative">
             <div className="px-4 pt-3 pb-24 overflow-y-auto max-h-[calc(100vh-220px)]">
-              {sections.length === 0 ? (
+              {tasksError && <div role="alert" className="mb-4 rounded-xl border border-destructive/30 p-4 text-foreground">
+                <p>{tasksError}</p>
+                {sections.length > 0 && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
+                <button type="button" disabled={loadingTasks} className="mt-2 min-h-11 font-medium text-primary" onClick={() => void retryTasks()}>Повторить загрузку</button>
+              </div>}
+              {loadingTasks && <p role="status" className="py-2 text-muted-foreground">Обновляем задачи…</p>}
+              {sections.length === 0 ? (!tasksError && (
                 <div className="flex flex-col items-center py-12 px-6 text-center">
                   {mainView === "completed" ? (
                     <CheckCircle2 className="h-12 w-12 text-[#8E8E93] mb-4" />
@@ -249,7 +257,7 @@ export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTas
                   <p className="text-lg font-semibold text-white">{emptyCopy.title}</p>
                   <p className="text-sm text-[#8E8E93] mt-1">{emptyCopy.subtitle}</p>
                 </div>
-              ) : (
+              )) : (
                 sections.map((section) => (
                   <div key={section.sectionId}>
                     {section.title ? (

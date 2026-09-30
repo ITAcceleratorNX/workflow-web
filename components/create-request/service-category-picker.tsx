@@ -6,6 +6,8 @@ import {
   type ServiceCategoryCardIcon,
 } from "@/constants/requests";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { MOBILE_COLORS } from "@/constants/mobile-theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export type ServiceCategoryOption = {
   id: number;
@@ -20,6 +22,7 @@ type ServiceCategoryPickerProps = {
   loading?: boolean;
   officeName?: string | null;
   emptyHint?: string;
+  themeOverride?: "light" | "dark";
 };
 
 function CategoryIcon({ kind }: { kind: ServiceCategoryCardIcon }) {
@@ -45,13 +48,10 @@ export function ServiceCategoryPicker({
   loading = false,
   officeName,
   emptyHint = "Нет категорий для выбранного офиса",
+  themeOverride,
 }: ServiceCategoryPickerProps) {
-  const primary = useThemeColor("primary");
-  const text = useThemeColor("text");
-  const textMuted = useThemeColor("textMuted");
-  const cardBg = useThemeColor("cardBackground");
-  const border = useThemeColor("border");
-  const surfaceMuted = useThemeColor("surfaceMuted");
+  const scheme = useColorScheme();
+  const { primary, text, textMuted, cardBackground: cardBg, border, surfaceMuted } = MOBILE_COLORS[themeOverride ?? scheme];
 
   if (loading) {
     return (
@@ -83,8 +83,9 @@ export function ServiceCategoryPicker({
           <button
             key={c.id}
             type="button"
+            aria-pressed={selected}
             onClick={() => onSelect(c)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl border text-left min-h-11 transition-colors"
+            className="w-full flex items-center gap-3 p-3 rounded-xl border text-left min-h-11 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             style={{
               borderColor: selected ? primary : border,
               backgroundColor: selected ? `${primary}18` : cardBg,

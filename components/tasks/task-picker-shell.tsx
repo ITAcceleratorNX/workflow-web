@@ -1,8 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode, RefObject } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { cn } from "@/lib/utils";
+import { OVERLAY_LAYERS } from "@/components/ui/overlay-layer";
 
 import type { TaskPickerVariant } from "@/hooks/use-task-picker-theme";
 
@@ -26,7 +25,8 @@ type TaskPickerShellProps = {
   /** Dialog title — only shown in dialog variant when provided */
   title?: string;
   maxWidthClass?: string;
-  zIndexClass?: string;
+  layer?: number;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   maxHeightClass?: string;
   /** Extra classes on the bottom sheet panel (mobile). */
   sheetPanelClassName?: string;
@@ -39,63 +39,50 @@ export function TaskPickerShell({
   variant = "sheet",
   title,
   maxWidthClass = "max-w-lg",
-  zIndexClass = "z-[60]",
+  layer = OVERLAY_LAYERS.taskPicker,
+  returnFocusRef,
   maxHeightClass = "max-h-[90vh]",
   sheetPanelClassName,
   children,
 }: TaskPickerShellProps) {
   const cardBackground = useThemeColor("cardBackground");
   const primary = useThemeColor("primary");
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(typeof document !== "undefined");
-  }, []);
-
-  useEffect(() => {
-    if (!open || variant === "dialog") return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open, variant]);
-
   if (variant === "dialog") {
     return (
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent className={cn(DESKTOP_DIALOG_CONTENT_CLASS, maxWidthClass)}>
+        <DialogContent layer={layer} returnFocusRef={returnFocusRef} aria-describedby={undefined} className={cn(DESKTOP_DIALOG_CONTENT_CLASS, maxWidthClass)}>
           {title ? (
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-[#3A3A3C] shrink-0 text-left space-y-0">
               <DialogTitle className="text-lg font-bold text-white">{title}</DialogTitle>
             </DialogHeader>
-          ) : null}
+          ) : <DialogTitle className="sr-only">Выбор параметров</DialogTitle>}
           <div className="flex flex-col min-h-0 flex-1 overflow-hidden">{children}</div>
         </DialogContent>
       </Dialog>
     );
   }
 
-  if (!open || !portalReady) return null;
-
-  const sheet = (
-    <div className={cn("fixed inset-0 flex flex-col justify-end", zIndexClass)}>
-      <button type="button" className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Закрыть" />
-      <div
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        layer={layer}
+        returnFocusRef={returnFocusRef}
+        showCloseButton={false}
+        overlayClassName="bg-black/45"
+        aria-describedby={undefined}
         className={cn(
-          "relative flex min-h-0 w-full flex-col rounded-t-2xl border-t border-border shadow-2xl",
+          "inset-x-0 bottom-0 top-auto left-0 flex w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-t-2xl border-0 border-t border-border p-0 shadow-2xl sm:rounded-b-none !animate-none",
           maxHeightClass,
           sheetPanelClassName,
         )}
-        style={{ backgroundColor: cardBackground }}
+        style={{ backgroundColor: cardBackground, transform: "none" }}
       >
+        <DialogTitle className="sr-only">{title ?? "Выбор параметров"}</DialogTitle>
         <div className="flex shrink-0 justify-center pt-2 pb-1">
           <div className="h-1 w-10 rounded-full" style={{ backgroundColor: primary }} />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-
-  return createPortal(sheet, document.body);
 }

@@ -1,3 +1,4 @@
+import { listLoadError } from "@/lib/request-list-loading";
 import api from "@/lib/api";
 import type { TaskAssignmentInput, TaskTransferInput } from "@/lib/task-recipients-api";
 import { normalizeRecurrenceFromApi, type TaskRecurrencePayload } from "@/lib/task-recurrence";
@@ -190,7 +191,7 @@ export async function getUserTasks(params: {
       },
     };
   } catch (error) {
-    return { ok: false, error: extractError(error) };
+    return { ok: false, error: listLoadError(error) };
   }
 }
 

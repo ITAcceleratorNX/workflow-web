@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   InputOTP,
   InputOTPGroup,
@@ -25,6 +26,7 @@ export function AuthOtpInput({
   className,
 }: AuthOtpInputProps) {
   const isMobile = variant === "mobile";
+  const id = useId();
 
   return (
     <div
@@ -36,11 +38,10 @@ export function AuthOtpInput({
     >
       {label ? (
         <label
+          htmlFor={id}
           className={cn(
-            "font-medium text-white",
-            isMobile
-              ? "text-base leading-6"
-              : "text-base leading-6"
+            "font-medium text-base leading-6",
+            isMobile ? "text-foreground" : "text-white"
           )}
           style={isMobile ? undefined : { fontFamily: "'Inter', sans-serif" }}
         >
@@ -48,19 +49,22 @@ export function AuthOtpInput({
         </label>
       ) : null}
       <InputOTP
+        id={id}
+        aria-label={label ?? "Код из SMS"}
+        autoComplete="one-time-code"
         maxLength={6}
         value={value}
         onChange={onChange}
         containerClassName={cn("gap-2", !isMobile && "justify-center")}
       >
-        <InputOTPGroup>
+        <InputOTPGroup className={isMobile ? "w-full min-w-0" : undefined}>
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <InputOTPSlot
               key={index}
               index={index}
               className={cn(
-                "h-12 w-12 text-lg font-semibold text-white transition-all duration-200",
-                "border border-[#212121] bg-transparent rounded-lg"
+                "h-12 text-lg font-semibold transition-all duration-200 border bg-transparent rounded-lg",
+                isMobile ? "min-w-0 flex-1 border-input text-foreground" : "w-12 border-[#212121] text-white"
               )}
             />
           ))}

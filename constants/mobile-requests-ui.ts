@@ -1,10 +1,9 @@
-import { MOBILE_PAGE_BACKGROUND } from "@/constants/mobile-theme";
 import { cn } from "@/lib/utils";
 
-/** RN ThemedView background — explicit hex so body.admin-management-mobile cannot override. */
-export const MOBILE_REQUESTS_PAGE_BG = MOBILE_PAGE_BACKGROUND.dark;
+/** Follow the active page theme for both CSS classes and inline backgrounds. */
+export const MOBILE_REQUESTS_PAGE_BG = "hsl(var(--background))";
 /** Literal class — Tailwind JIT must see the full token at build time. */
-export const MOBILE_REQUESTS_PAGE_CLASS = "min-h-screen bg-[#040404]";
+export const MOBILE_REQUESTS_PAGE_CLASS = "min-h-screen bg-background";
 
 /** RN Select trigger on requests list — transparent + border */
 export const MOBILE_REQUESTS_FILTER_TRIGGER =
@@ -15,7 +14,7 @@ export const REQUESTS_DESKTOP_SELECT_TRIGGER =
   "h-10 rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] text-white shadow-none focus:ring-2 focus:ring-[#F35713]/30";
 
 export const REQUESTS_DESKTOP_SELECT_CONTENT =
-  "z-[120] bg-[#2C2C2E] border border-[#3A3A3C] text-white";
+  "bg-[#2C2C2E] border border-[#3A3A3C] text-white";
 
 export const REQUESTS_DESKTOP_SELECT_ITEM =
   "text-white focus:bg-[#3A3A3C] focus:text-white data-[highlighted]:bg-[#3A3A3C] data-[highlighted]:text-white";
@@ -37,7 +36,7 @@ export function mobileRequestsFilterContent(variant: "mobile" | "desktop") {
   if (variant === "desktop") {
     return REQUESTS_DESKTOP_SELECT_CONTENT;
   }
-  return "z-[110] bg-[#040404] border border-border text-foreground";
+  return "bg-popover border border-border text-popover-foreground";
 }
 
 export function mobileRequestsFilterItem(variant: "mobile" | "desktop") {

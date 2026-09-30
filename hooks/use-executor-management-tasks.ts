@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
+import { useRequestListWindow } from "@/hooks/use-request-list-window";
 import { useRequestStore, type RequestGroup } from "@/stores/useRequestStore";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups, matchesRequestTypeFilter } from "@/lib/request-utils";
@@ -24,7 +26,6 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
     setAssignedRequests,
     setCompletedRequests,
     setMyRequests,
-    clearRequests,
   } = useRequestStore();
 
   const [filterType, setFilterType] = useState("all");
@@ -32,38 +33,16 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
   const [filterMyType, setFilterMyType] = useState("all");
   const [clientRatings, setClientRatings] = useState<Record<number, unknown>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const statusFilterOptions = useMemo(() => getStatusOptionsForRole("executor"), []);
 
   const fetchRequests = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.get("request-groups");
-      const responseRating = await api.get("ratings/executor");
-      const ratingsMap = new Map<number, { rating: number; comments: string[] }>();
-
-      for (const r of responseRating.data) {
-        ratingsMap.set(r.request_id, {
-          rating: parseFloat(r.rating),
-          comments: r.comments || [],
-        });
-      }
-
-      const mapCompleted = (list: RequestGroup[]) =>
-        list?.map((reqGroup) => ({
-          ...reqGroup,
-          requests: reqGroup.requests?.map((req) => {
-            const ratingData = ratingsMap.get(req.id);
-            return {
-              ...req,
-              rating: ratingData?.rating ?? null,
-              ratings: ratingData
-                ? [{ rating: ratingData.rating, comments: ratingData.comments }]
-                : undefined,
-            };
-          }),
-        })) ?? [];
-
-      setCompletedRequests(mapCompleted(response.data.completedRequests || []));
+      setCompletedRequests(response.data.completedRequests || []);
       setAssignedRequests(response.data.assignedRequests || []);
       setMyRequests(response.data.myRequests || []);
 
@@ -81,7 +60,7 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
       });
       setClientRatings(newRatings);
     } catch (e) {
-      console.error(e);
+      setError(listLoadError(e));
     } finally {
       setLoading(false);
     }
@@ -89,9 +68,8 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
 
   useEffect(() => {
     if (isDesktop) return;
-    clearRequests();
     fetchRequests();
-  }, [isDesktop, fetchRequests, clearRequests]);
+  }, [isDesktop, fetchRequests]);
 
   useEffect(() => {
     if (isDesktop) {
@@ -134,6 +112,10 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
     filterMyType,
   ]);
 
+  const window = useRequestListWindow(filteredList, `${tab}:${filterType}:${filterMyStatus}:${filterMyType}`);
+  const isFiltered = tab === "myTasks" ? filterMyStatus !== "all" || filterMyType !== "all" : filterType !== "all";
+  const resetFilters = () => { setFilterType("all"); setFilterMyStatus("all"); setFilterMyType("all"); };
+
   return {
     isDesktop,
     tab,
@@ -146,7 +128,12 @@ export function useExecutorManagementTasks(tab: ExecutorRequestsTab) {
     statusFilterOptions,
     loading,
     clientRatings,
-    filteredList,
+    filteredList: window.visibleRequests,
+    hasMore: window.hasMore,
+    handleLoadMore: window.handleLoadMore,
+    error,
+    isFiltered,
+    resetFilters,
     handleRefresh,
     handleCardClick,
   };

@@ -77,28 +77,34 @@ export function useCreateRequestPage() {
     async (formData: FormData) => {
       if (!user) {
         setFormErrors("Пользователь не авторизован");
-        return;
+        return false;
       }
 
       setIsSubmitting(true);
       setFormErrors(null);
 
-      const result = await submitCreateRequestForm({
-        user,
-        formData,
-        isGuest,
-        createMode,
-        addGuestRequest: (group) => addRequests([group]),
-      });
+      try {
+        const result = await submitCreateRequestForm({
+          user,
+          formData,
+          isGuest,
+          createMode,
+          addGuestRequest: (group) => addRequests([group]),
+        });
 
-      if (result.ok) {
-        toast(result.toast);
-        handleClose();
-      } else {
-        setFormErrors(result.error);
+        if (result.ok) {
+          toast(result.toast);
+          handleClose();
+        } else {
+          setFormErrors(result.error);
+        }
+        return result.ok;
+      } catch {
+        setFormErrors("Не удалось отправить заявку. Попробуйте ещё раз.");
+        return false;
+      } finally {
+        setIsSubmitting(false);
       }
-
-      setIsSubmitting(false);
     },
     [user, isGuest, createMode, addRequests, handleClose]
   );

@@ -49,6 +49,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <nav
+      aria-label="Основная навигация"
       className="md:hidden fixed left-0 right-0 bottom-0 z-50 flex flex-row justify-between items-center px-2"
       style={{
         paddingTop: BOTTOM_NAV_TOP_PAD,
@@ -58,18 +59,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     >
       {navItems.map((item) => {
         const Icon = item.icon;
+        const isActive = activeTab === item.key;
         const color =
-          activeTab === item.key ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR;
+          isActive ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR;
 
         return (
           <Link
             key={item.key}
             href={item.href}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 h-[42px]"
+            aria-current={isActive ? "page" : undefined}
+            className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 min-h-11 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${isActive ? "bg-black/15" : ""}`}
           >
             <Icon size={24} style={{ color, flexShrink: 0 }} aria-hidden />
             <span
-              className="text-[10px] font-medium text-center leading-3"
+              className={`text-[11px] text-center leading-[14px] ${isActive ? "font-bold underline underline-offset-2" : "font-medium"}`}
               style={{ color }}
             >
               {item.label}

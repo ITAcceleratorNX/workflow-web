@@ -64,19 +64,20 @@ export function UserTaskRow({
   const showPriorityFlag = item.priority === "high" || item.priority === "low";
 
   return (
-    <div className="flex items-center gap-3 rounded-[14px] border border-[#3A3A3C] bg-[#2C2C2E] px-3.5 py-3 mb-2">
+    <div className="flex items-center gap-2 rounded-[14px] border border-[#3A3A3C] bg-[#2C2C2E] pl-1 pr-3.5 py-3 mb-2">
       <button
         type="button"
         onClick={onToggle}
         aria-label={item.completed ? "Отметить невыполненной" : "Отметить выполненной"}
-        className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 flex items-center justify-center ${
-          item.completed ? "bg-[#E25B21] border-[#E25B21]" : "border-[#3A3A3C]"
-        } ${isReadOnlyTask(item) ? "opacity-40" : ""}`}
+        aria-pressed={item.completed}
+        className={`h-11 w-11 rounded-lg shrink-0 flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${isReadOnlyTask(item) ? "opacity-40" : ""}`}
       >
-        {item.completed ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
+        <span className={`w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center ${item.completed ? "bg-[#E25B21] border-[#E25B21]" : "border-[#8E8E93]"}`} aria-hidden>
+          {item.completed ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
+        </span>
       </button>
 
-      <button type="button" onClick={onPressRow} className="flex-1 flex items-center gap-2 min-w-0 text-left">
+      <button type="button" onClick={onPressRow} className="flex-1 flex items-center gap-2 min-w-0 min-h-11 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2">
             <p

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode, type RefObject } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -44,6 +44,7 @@ type Props = {
   /** Заголовок: «Исполнитель» при создании, «Передать задачу» при передаче. */
   title?: string;
   variant?: TaskPickerVariant;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
 type Entry = { company: RecipientCompany; mine: boolean };
@@ -69,6 +70,7 @@ function RecipientPicker({
   onConfirm,
   title = "Исполнитель",
   variant = "sheet",
+  returnFocusRef,
 }: Props) {
   const { text, textMuted, primary, border, cardBg } = useTaskPickerTheme(variant);
   const isDialog = variant === "dialog";
@@ -125,6 +127,7 @@ function RecipientPicker({
     return (
       <TaskExecutorPickerOverlay
         visible
+        returnFocusRef={returnFocusRef}
         onClose={onClose}
         teamScope={false}
         team={null}
@@ -400,7 +403,7 @@ function RecipientPicker({
             : "";
 
   return (
-    <TaskPickerShell open onClose={onClose} variant={variant} title={isDialog ? title : undefined} maxWidthClass="max-w-lg">
+    <TaskPickerShell open onClose={onClose} variant={variant} returnFocusRef={returnFocusRef} title={isDialog ? title : undefined} maxWidthClass="max-w-lg">
       <div className="flex min-h-0 flex-col">
         {!isDialog ? (
           <div className="flex shrink-0 items-center justify-between px-2 py-1">

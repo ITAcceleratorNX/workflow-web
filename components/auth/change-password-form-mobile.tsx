@@ -28,10 +28,11 @@ export function ChangePasswordFormMobile({
         hideBackLabel
       />
       <div className="flex-1 px-4 pb-8 pt-4">
-        <div className="rounded-xl border border-[#212121] p-5 flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-white">Новый пароль</h2>
+        <div className="rounded-xl border border-input p-5 flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-foreground">Новый пароль</h2>
           <AuthTextField
-            id="old-password"
+            id="change-mobile-old-password"
+            autoComplete="current-password"
             label="Старый пароль"
             type="password"
             placeholder="••••••••"
@@ -42,7 +43,8 @@ export function ChangePasswordFormMobile({
             }}
           />
           <AuthTextField
-            id="new-password"
+            id="change-mobile-new-password"
+            autoComplete="new-password"
             label="Новый пароль"
             type="password"
             placeholder="••••••••"
@@ -53,7 +55,8 @@ export function ChangePasswordFormMobile({
             }}
           />
           <AuthTextField
-            id="confirm-password"
+            id="change-mobile-confirm-password"
+            autoComplete="new-password"
             label="Подтверждение"
             type="password"
             placeholder="••••••••"
@@ -67,12 +70,12 @@ export function ChangePasswordFormMobile({
             type="button"
             onClick={() => void handleChangePassword()}
             disabled={isChanging}
-            className="flex h-12 items-center justify-center rounded-lg bg-[#F35713] text-base font-medium text-white disabled:opacity-50"
+            className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-medium text-white disabled:opacity-50"
           >
             {isChanging ? "Смена..." : "Сменить пароль"}
           </button>
           {passwordError ? (
-            <p className="text-sm text-[#F35713]">{passwordError}</p>
+            <p className="text-sm text-red-700 dark:text-red-400">{passwordError}</p>
           ) : null}
           {passwordSuccess ? (
             <p className="text-sm text-green-500">{passwordSuccess}</p>

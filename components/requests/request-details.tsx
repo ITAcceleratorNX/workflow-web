@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -880,17 +881,17 @@ export function RequestDetails({
                   офис-менеджеру офиса заявки.
                 </p>
                 {formErrors && <p className="text-[#F35713] text-sm">{formErrors}</p>}
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex min-w-0 flex-col gap-3">
                   <Button
                     onClick={() => void handleAdminTakeGroup()}
                     disabled={isSubmitting}
-                    className="flex-1 bg-[#22C55E] hover:bg-[#16A34A] text-white"
+                    className="h-auto min-h-11 w-full min-w-0 whitespace-normal py-3 bg-[#15803D] hover:bg-[#166534] text-white"
                   >
                     {isSubmitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <Play className="w-4 h-4 mr-2" />
+                        <Play className="w-4 h-4" />
                         Взять в работу
                       </>
                     )}
@@ -902,10 +903,10 @@ export function RequestDetails({
                       setShowAcceptGroupModal(true);
                     }}
                     disabled={isSubmitting}
-                    className="flex-1 border-white/20 text-white hover:bg-white/10"
+                    className="h-auto min-h-11 w-full min-w-0 whitespace-normal py-3 border-white/20 text-white hover:bg-white/10"
                   >
-                    <Send className="w-4 h-4 mr-2" />
-                    Передать Офис-менеджеру
+                    <Send className="w-4 h-4" />
+                    Передать офис-менеджеру
                   </Button>
                 </div>
                 <Button
@@ -915,9 +916,9 @@ export function RequestDetails({
                     setShowRejectGroupModal(true);
                   }}
                   disabled={isSubmitting}
-                  className="w-full border-red-500/50 text-red-400 hover:bg-red-500/20"
+                  className="h-auto min-h-11 w-full min-w-0 whitespace-normal py-3 border-red-500/50 text-red-400 hover:bg-red-500/20"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-4 h-4" />
                   Отклонить заявку
                 </Button>
               </div>
@@ -942,13 +943,13 @@ export function RequestDetails({
                 <Button
                   onClick={() => void handleAdminCompleteRequest()}
                   disabled={isSubmitting}
-                  className="w-full bg-[#114A65] hover:bg-[#0d3a4f] text-white"
+                  className="h-auto min-h-11 w-full min-w-0 whitespace-normal py-3 bg-[#114A65] hover:bg-[#0d3a4f] text-white"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                      <CheckCircle className="w-4 h-4" />
                       Завершить задачу (без исполнителя)
                     </>
                   )}
@@ -976,7 +977,7 @@ export function RequestDetails({
                         }
                         className="aspect-square rounded-lg overflow-hidden bg-gray-800"
                       >
-                        <img
+                        <NextImage width={160} height={160} unoptimized
                           src={getPreviewUrl(photo.photo_url)}
                           alt={`До ${idx + 1}`}
                           className="w-full h-full object-cover"
@@ -1004,7 +1005,7 @@ export function RequestDetails({
                         }
                         className="aspect-square rounded-lg overflow-hidden bg-gray-800"
                       >
-                        <img
+                        <NextImage width={160} height={160} unoptimized
                           src={getPreviewUrl(photo.photo_url)}
                           alt={`После ${idx + 1}`}
                           className="w-full h-full object-cover"
@@ -1032,7 +1033,7 @@ export function RequestDetails({
                         }
                         className="aspect-square rounded-lg overflow-hidden bg-gray-800"
                       >
-                        <img
+                        <NextImage width={160} height={160} unoptimized
                           src={getPreviewUrl(photo.photo_url)}
                           alt={`Фото ${idx + 1}`}
                           className="w-full h-full object-cover"

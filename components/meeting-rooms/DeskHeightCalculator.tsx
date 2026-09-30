@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,44 @@ interface DeskHeightCalculatorProps {
 
 const HEIGHT_OPTIONS = [150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200]
 
+// Функция для расчета корректировки по весу
+const calculateWeightAdjustment = (weightValue: number): number => {
+  // Формула: (вес − 75) ÷ 10
+  const rawAdjustment = (weightValue - 75) / 10
+
+  // Округление по правилам:
+  // Меньше или 64 кг: -2 см
+  // 65-69 кг: -1 см
+  // 70-79 кг: 0 см
+  // 80-89 кг: +1 см
+  // Больше или 90 кг: +2 см
+  if (weightValue <= 64) return -2
+  if (weightValue >= 65 && weightValue <= 69) return -1
+  if (weightValue >= 70 && weightValue <= 79) return 0
+  if (weightValue >= 80 && weightValue <= 89) return 1
+  if (weightValue >= 90) return 2
+
+  // Для промежуточных значений округляем результат формулы
+  return Math.round(rawAdjustment)
+}
+
+const calculateHeights = (heightValue: number, weightValue?: number) => {
+  // Сидя: Рост × 0.29 + 20, затем округление (без веса)
+  const sitting = Math.round(heightValue * 0.29 + 20)
+
+  // Стоя: Рост × 0.62 - 2, затем округление
+  const baseStanding = Math.round(heightValue * 0.62 - 2)
+
+  // Добавляем корректировку по весу, если вес указан
+  let standing = baseStanding
+  if (weightValue && weightValue > 0) {
+    const weightAdjustment = calculateWeightAdjustment(weightValue)
+    standing = baseStanding + weightAdjustment
+  }
+
+  return { sitting, standing }
+}
+
 export function DeskHeightCalculator({
   isOpen,
   onToggle,
@@ -29,60 +67,13 @@ export function DeskHeightCalculator({
   const [height, setHeight] = useState<string>("175")
   const [weight, setWeight] = useState<string>("")
   const [inputMode, setInputMode] = useState<"manual" | "dropdown">("manual")
-  const [sittingHeight, setSittingHeight] = useState<number | null>(null)
-  const [standingHeight, setStandingHeight] = useState<number | null>(null)
 
-  // Функция для расчета корректировки по весу
-  const calculateWeightAdjustment = (weightValue: number): number => {
-    // Формула: (вес − 75) ÷ 10
-    const rawAdjustment = (weightValue - 75) / 10
-    
-    // Округление по правилам:
-    // Меньше или 64 кг: -2 см
-    // 65-69 кг: -1 см
-    // 70-79 кг: 0 см
-    // 80-89 кг: +1 см
-    // Больше или 90 кг: +2 см
-    if (weightValue <= 64) return -2
-    if (weightValue >= 65 && weightValue <= 69) return -1
-    if (weightValue >= 70 && weightValue <= 79) return 0
-    if (weightValue >= 80 && weightValue <= 89) return 1
-    if (weightValue >= 90) return 2
-    
-    // Для промежуточных значений округляем результат формулы
-    return Math.round(rawAdjustment)
-  }
-
-  const calculateHeights = (heightValue: number, weightValue?: number) => {
-    // Сидя: Рост × 0.29 + 20, затем округление (без веса)
-    const sitting = Math.round(heightValue * 0.29 + 20)
-
-    // Стоя: Рост × 0.62 - 2, затем округление
-    const baseStanding = Math.round(heightValue * 0.62 - 2)
-    
-    // Добавляем корректировку по весу, если вес указан
-    let standing = baseStanding
-    if (weightValue && weightValue > 0) {
-      const weightAdjustment = calculateWeightAdjustment(weightValue)
-      standing = baseStanding + weightAdjustment
-    }
-
-    return { sitting, standing }
-  }
-
-  useEffect(() => {
-    const heightNum = parseFloat(height)
-    const weightNum = weight ? parseFloat(weight) : undefined
-    
-    if (!isNaN(heightNum) && heightNum > 0) {
-      const { sitting, standing } = calculateHeights(heightNum, weightNum)
-      setSittingHeight(sitting)
-      setStandingHeight(standing)
-    } else {
-      setSittingHeight(null)
-      setStandingHeight(null)
-    }
-  }, [height, weight])
+  const heightNumber = Number(height);
+  const weightNumber = weight ? Number(weight) : undefined;
+  const result = Number.isFinite(heightNumber) && heightNumber > 0
+    ? calculateHeights(heightNumber, weightNumber) : null;
+  const sittingHeight = result?.sitting ?? null;
+  const standingHeight = result?.standing ?? null;
 
   const handleHeightSelect = (selectedHeight: string) => {
     setHeight(selectedHeight)

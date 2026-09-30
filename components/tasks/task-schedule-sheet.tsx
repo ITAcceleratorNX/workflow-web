@@ -564,7 +564,7 @@ export function TaskScheduleSheet({
       variant={variant}
       title={variant === "dialog" ? "Срок" : undefined}
       maxWidthClass="max-w-xl"
-      zIndexClass="z-[55]"
+      layer={55}
     >
       <TaskScheduleSheetContent
         {...contentProps}

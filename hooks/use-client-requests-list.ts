@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buildRequestsUrlWithoutFilters } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useRequestStore } from "@/stores/useRequestStore";
 import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
@@ -10,8 +12,13 @@ import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups } from "@/lib/request-utils";
 import api from "@/lib/api";
+import { collectRequestPages, listLoadError } from "@/lib/request-list-loading";
+import { useRequestListWindow } from "@/hooks/use-request-list-window";
 
 export function useClientRequestsList() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isDesktop = useIsDesktop();
   const { token, isGuest } = useAuthStore();
   const { toast } = useToast();
@@ -21,9 +28,8 @@ export function useClientRequestsList() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const fetchVersion = useRef(0);
   const [userRatings, setUserRatings] = useState<Record<number, { rating: number; comment?: string }>>({});
   const [clientRatings, setClientRatings] = useState<Record<number, any>>({});
   const [requestToRate, setRequestToRate] = useState<SubRequest | null>(null);
@@ -32,51 +38,39 @@ export function useClientRequestsList() {
   const [showRatingModal, setShowRatingModal] = useState(false);
 
   const fetchRequests = useCallback(
-    async (pageToLoad = 1) => {
-      if (!token) return;
-      const isFirstPage = pageToLoad === 1;
-      if (isFirstPage) setLoading(true);
-      else setLoadingMore(true);
-
-      if (isGuest) {
-        setHasMore(false);
-        setPage(1);
-        if (isFirstPage) setLoading(false);
-        else setLoadingMore(false);
+    async (_page = 1) => {
+      const version = ++fetchVersion.current;
+      if (!token || isGuest) {
+        setLoading(false);
+        setError(null);
         return;
       }
-
+      setLoading(true);
+      setError(null);
       try {
-        const response = await api.get(`/request-groups?page=${pageToLoad}&pageSize=10`);
-        const list: RequestGroup[] = response.data?.requests ?? [];
-        if (isFirstPage) {
-          setRequests(list);
-        } else {
-          setRequests((prev) => {
-            const existingIds = new Set(prev.map((r) => r.id));
-            const toAdd = list.filter((r) => !existingIds.has(r.id));
-            return [...prev, ...toAdd];
-          });
-        }
-        (list as any[]).forEach((group: any) => {
-          if (group.clientRatings?.length) {
-            setClientRatings((prev) => ({ ...prev, [group.id]: group.clientRatings }));
-          }
+        const list = await collectRequestPages<RequestGroup>(async (page) => {
+          const response = await api.get("/request-groups", { params: { page, pageSize: 50 } });
+          return response.data;
         });
-        setHasMore(list.length === 10);
-        setPage(pageToLoad);
-      } catch (e) {
-        console.error(e);
+        if (version !== fetchVersion.current) return;
+        setRequests(list);
+        const ratings: Record<number, unknown> = {};
+        list.forEach((group) => {
+          if (group.clientRatings?.length) ratings[group.id] = group.clientRatings;
+        });
+        setClientRatings(ratings);
+      } catch (failure) {
+        if (version === fetchVersion.current) setError(listLoadError(failure));
       } finally {
-        if (isFirstPage) setLoading(false);
-        else setLoadingMore(false);
+        if (version === fetchVersion.current) setLoading(false);
       }
     },
     [token, isGuest, setRequests]
   );
 
   useEffect(() => {
-    fetchRequests(1);
+    void fetchRequests();
+    return () => { fetchVersion.current += 1; };
   }, [fetchRequests]);
 
   const filteredRequests = useMemo(
@@ -107,11 +101,13 @@ export function useClientRequestsList() {
     clearAfterUpdate();
   }, [fetchRequests, clearAfterUpdate]);
 
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchRequests(page + 1);
-    }
-  }, [loadingMore, hasMore, page, fetchRequests]);
+  const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
+    filteredRequests, `${filterStatus}:${filterType}`,
+  );
+  const resetFilters = () => {
+    setFilterStatus("all"); setFilterType("all");
+    router.replace(buildRequestsUrlWithoutFilters(pathname, searchParams.toString()), { scroll: false });
+  };
 
   const handleDeleteSubRequest = useCallback(
     async (subRequest: SubRequest) => {
@@ -183,7 +179,10 @@ export function useClientRequestsList() {
     loading,
     loadingMore,
     hasMore,
-    filteredRequests,
+    filteredRequests: visibleRequests,
+    error,
+    isFiltered: filterStatus !== "all" || filterType !== "all",
+    resetFilters,
     clientRatings,
     fetchRequests,
     handleLoadMore,

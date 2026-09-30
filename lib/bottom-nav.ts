@@ -26,13 +26,13 @@ export type MobileBottomNavTabKey = keyof typeof MOBILE_BOTTOM_NAV_LABELS;
 
 /** Отступ сверху + высота блока иконка+подпись (без safe area). */
 export const BOTTOM_NAV_TOP_PAD = 10;
-export const BOTTOM_NAV_ROW_HEIGHT = BOTTOM_NAV_TOP_PAD + 42;
+export const BOTTOM_NAV_ROW_HEIGHT = BOTTOM_NAV_TOP_PAD + 44;
 /** Минимальный отступ снизу под иконками (когда safe-area = 0, напр. Android / desktop preview). */
 export const BOTTOM_NAV_MIN_BOTTOM_PAD = 10;
 
 export const BOTTOM_NAV_ACTIVE_COLOR = "#FFFFFF";
-export const BOTTOM_NAV_INACTIVE_COLOR = "rgba(255, 255, 255, 0.55)";
-export const BOTTOM_NAV_BAR_BACKGROUND = "#F35713";
+export const BOTTOM_NAV_INACTIVE_COLOR = "#FFF3ED";
+export const BOTTOM_NAV_BAR_BACKGROUND = "#B8400E";
 
 export type BottomNavTabKey = "home" | "booking" | "requests" | "help" | "profile";
 

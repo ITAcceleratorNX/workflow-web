@@ -85,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({
             setHasMoreNotifications(true);
             loadNotificationsList(1, false);
         }
-    }, [notificationsOpen, variant]);
+    }, [notificationsOpen, variant, loadNotificationsList]);
 
     const handleNotificationScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         const el = e.currentTarget;
@@ -156,7 +156,8 @@ const Header: React.FC<HeaderProps> = ({
                                         alt="App Icon" 
                                         width={40} 
                                         height={40} 
-                                        className="rounded-lg"
+                                        loading="eager"
+                                        className="h-10 w-10 rounded-lg object-contain"
                                     />
                                 </div>
                             </div>

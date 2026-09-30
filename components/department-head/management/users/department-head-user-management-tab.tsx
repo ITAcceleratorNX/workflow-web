@@ -243,7 +243,7 @@ export function DepartmentHeadUserManagementTab() {
     return () => {
       cancelled = true;
     };
-  }, [editUser?.id, editUser?.role, selectedRole]);
+  }, [editUser, selectedRole]);
 
   const stats = useMemo(() => {
     const clients = users.filter((u) => u.role === "client").length;

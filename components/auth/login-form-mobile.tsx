@@ -37,15 +37,26 @@ export function LoginFormMobile({
     <div className="min-h-screen flex flex-col bg-background safe-area-top safe-area-bottom">
       <div className="flex flex-1 flex-col justify-center px-5 py-8">
         <header className="mb-12 flex flex-col gap-3">
-          <h1 className="text-[28px] font-semibold leading-10 text-white">Вход</h1>
-          <p className="text-lg leading-[26px] text-[#7F7F7F]">
+          <h1 id="login-mobile-heading" className="text-[28px] font-semibold leading-10 text-foreground">Вход</h1>
+          <p className="text-lg leading-[26px] text-muted-foreground">
             Войдите в свою учетную запись
           </p>
         </header>
 
-        <div className="flex flex-col gap-6">
+        <form
+          aria-labelledby="login-mobile-heading"
+          aria-busy={loading}
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!loading) void handleLogin();
+          }}
+          className="flex flex-col gap-6"
+        >
           <AuthTextField
-            id="phone"
+            id="login-mobile-phone"
+            name="phone"
+            autoComplete="username"
             label="Номер телефона"
             type="tel"
             placeholder="+7 XXX XXX XX XX"
@@ -58,18 +69,20 @@ export function LoginFormMobile({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-base font-medium leading-6 text-white">
+              <label htmlFor="login-mobile-password" className="text-base font-medium leading-6 text-foreground">
                 Пароль
               </label>
               <Link
                 href="/reset-password"
-                className="text-xs font-medium leading-6 text-[#F35713]"
+                className="rounded-sm py-2 text-xs font-medium leading-6 text-[#B8400E] dark:text-[#F59A71] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
               >
                 Забыли пароль?
               </Link>
             </div>
             <AuthTextField
-              id="password"
+              id="login-mobile-password"
+              name="password"
+              autoComplete="current-password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -80,14 +93,13 @@ export function LoginFormMobile({
           </div>
 
           {formError ? (
-            <p className="text-center text-sm text-[#F35713]">{formError}</p>
+            <p role="alert" className="text-center text-sm text-red-700 dark:text-red-400">{formError}</p>
           ) : null}
 
           <button
-            type="button"
-            onClick={handleLogin}
+            type="submit"
             disabled={loading}
-            className="flex h-12 w-full items-center justify-center rounded-lg bg-[#F35713] text-base font-medium text-white disabled:opacity-50"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-[hsl(var(--action-background))] px-4 py-3 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
           >
             {loading ? "Вход..." : "Войти"}
           </button>
@@ -95,7 +107,7 @@ export function LoginFormMobile({
           <button
             type="button"
             onClick={handleRegister}
-            className="flex h-12 w-full items-center justify-center rounded-lg bg-[rgba(56,189,248,0.18)] text-base font-normal text-[#38BDF8]"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-sky-100 px-4 py-3 text-base font-normal text-sky-800 dark:bg-sky-950 dark:text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Запросить регистрацию
           </button>
@@ -103,18 +115,18 @@ export function LoginFormMobile({
           <button
             type="button"
             onClick={handleGuestLogin}
-            className="flex h-12 w-full items-center justify-center rounded-lg border border-[#3A3A3C] bg-transparent text-base font-normal text-[#7F7F7F]"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-input bg-transparent px-4 py-3 text-base font-normal text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Открыть демо-режим
           </button>
 
           <Link
             href="/privacy"
-            className="py-2 text-center text-base text-[#7F7F7F] hover:opacity-80"
+            className="rounded-sm py-2 text-center text-base text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
           >
             Политика конфиденциальности
           </Link>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -54,6 +54,10 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
       listSlot={
         <ManagerRequestsListContent
           variant="desktop"
+          error={props.error}
+          isFiltered={props.isFiltered}
+          onRetry={props.handleRefresh}
+          onResetFilters={props.resetFilters}
           loading={loading}
           loadingMore={loadingMore}
           hasMore={hasMore}

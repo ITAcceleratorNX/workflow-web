@@ -26,15 +26,16 @@ function MobileSelect({
 }) {
   return (
     <select
+      aria-label={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-12 w-full appearance-none rounded-lg border border-[#212121] bg-transparent px-4 text-base text-white outline-none"
+      className="h-12 w-full appearance-none rounded-lg border border-input bg-transparent px-4 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <option value="" disabled className="bg-[#1a1a1a] text-[#6E6E6E]">
+      <option value="" disabled className="bg-background text-muted-foreground">
         {placeholder}
       </option>
       {options.map((option) => (
-        <option key={option.value} value={option.value} className="bg-[#1a1a1a] text-white">
+        <option key={option.value} value={option.value} className="bg-background text-foreground">
           {option.label}
         </option>
       ))}
@@ -71,10 +72,10 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
     <div className="min-h-screen flex flex-col bg-background safe-area-top safe-area-bottom">
       <div className="flex flex-1 flex-col justify-center px-5 py-8">
         <header className="mb-8 flex flex-col gap-3">
-          <h1 className="text-[28px] font-semibold leading-10 text-white">
+          <h1 className="text-[28px] font-semibold leading-10 text-foreground">
             {REGISTER_STEP_TITLES[step - 1]}
           </h1>
-          <p className="text-lg leading-[26px] text-[#7F7F7F]">
+          <p className="text-lg leading-[26px] text-muted-foreground">
             {REGISTER_STEP_SUBTITLES[step - 1]}
           </p>
         </header>
@@ -83,7 +84,8 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
           {step === 1 && (
             <>
               <AuthTextField
-                id="phone"
+                id="register-mobile-phone"
+                autoComplete="tel"
                 label="Номер телефона"
                 type="tel"
                 placeholder="+7 700 123 45 67"
@@ -93,7 +95,8 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 inputMode="tel"
               />
               <AuthTextField
-                id="full_name"
+                id="register-mobile-full_name"
+                autoComplete="name"
                 label="ФИО"
                 placeholder="Ахметов Айдос Ерланұлы"
                 value={formData.full_name}
@@ -102,7 +105,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 }
               />
               <div className="flex flex-col gap-2">
-                <span className="text-base font-medium leading-6 text-white">Офис</span>
+                <span className="text-base font-medium leading-6 text-foreground">Офис</span>
                 <MobileSelect
                   value={formData.office_id}
                   onChange={(v) =>
@@ -119,7 +122,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-base font-medium leading-6 text-white">Роль</span>
+                <span className="text-base font-medium leading-6 text-foreground">Роль</span>
                 <MobileSelect
                   value={formData.role}
                   onChange={(v) =>
@@ -137,7 +140,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
               </div>
               {formData.role === "client" && formData.office_id !== "" && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-base font-medium leading-6 text-white">Компания</span>
+                  <span className="text-base font-medium leading-6 text-foreground">Компания</span>
                   <MobileSelect
                     value={formData.company_id}
                     onChange={(v) =>
@@ -159,7 +162,8 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
               {formData.role === "client" &&
                 formData.company_id === COMPANY_OTHER_VALUE && (
                   <AuthTextField
-                    id="company_other_name"
+                    id="register-mobile-company_other_name"
+                    autoComplete="organization"
                     label="Название компании"
                     placeholder="Введите название вашей компании"
                     value={formData.company_other_name}
@@ -170,7 +174,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 )}
               {formData.role === "executor" && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-base font-medium leading-6 text-white">
+                  <span className="text-base font-medium leading-6 text-foreground">
                     Категория услуг
                   </span>
                   <MobileSelect
@@ -184,13 +188,13 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 </div>
               )}
               {formErrors ? (
-                <p className="text-xs text-[#F35713]">{formErrors}</p>
+                <p className="text-xs text-red-700 dark:text-red-400">{formErrors}</p>
               ) : null}
               <button
                 type="button"
                 onClick={() => void handleMobileStep1Next()}
                 disabled={!isStep1Valid || isSendingCode}
-                className="flex h-12 w-full items-center justify-center rounded-lg bg-[#F35713] text-base font-medium text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-medium text-white disabled:opacity-50"
               >
                 Далее
               </button>
@@ -199,7 +203,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
 
           {step === 2 && (
             <>
-              <p className="text-center text-sm text-[#7F7F7F]">
+              <p className="text-center text-sm text-muted-foreground">
                 Мы отправили SMS с кодом на номер {formData.phone}
               </p>
               <AuthOtpInput
@@ -212,13 +216,13 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 }}
               />
               {formErrors ? (
-                <p className="text-center text-xs text-[#F35713]">{formErrors}</p>
+                <p className="text-center text-xs text-red-700 dark:text-red-400">{formErrors}</p>
               ) : null}
               <button
                 type="button"
                 onClick={() => void handleVerifyCode()}
                 disabled={verificationCode.length !== 6}
-                className="flex h-12 w-full items-center justify-center rounded-lg bg-[#F35713] text-base font-medium text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-medium text-white disabled:opacity-50"
               >
                 Подтвердить
               </button>
@@ -226,7 +230,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 type="button"
                 onClick={() => void handleResendCode()}
                 disabled={isSendingCode || countdown > 0}
-                className="flex h-12 w-full items-center justify-center rounded-lg bg-[#212121] text-base text-[#6E6E6E] disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-muted text-base text-muted-foreground disabled:opacity-50"
               >
                 {isSendingCode
                   ? "Отправка..."
@@ -241,7 +245,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                   setFormErrors(null);
                   setVerificationCode("");
                 }}
-                className="flex h-12 w-full items-center justify-center text-base text-[#6E6E6E]"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center text-base text-muted-foreground"
               >
                 Назад
               </button>
@@ -251,7 +255,8 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
           {step === 3 && (
             <>
               <AuthTextField
-                id="password"
+                id="register-mobile-password"
+                autoComplete="new-password"
                 label="Пароль"
                 type="password"
                 placeholder="Не менее 6 символов"
@@ -261,7 +266,8 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 }
               />
               <AuthTextField
-                id="confirm_password"
+                id="register-mobile-confirm_password"
+                autoComplete="new-password"
                 label="Подтвердите пароль"
                 type="password"
                 placeholder="Введите пароль ещё раз"
@@ -271,12 +277,12 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                 }
               />
               {formErrors ? (
-                <p className="text-xs text-[#F35713]">{formErrors}</p>
+                <p className="text-xs text-red-700 dark:text-red-400">{formErrors}</p>
               ) : null}
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-12 w-full items-center justify-center rounded-lg bg-[#F35713] text-base font-medium text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-medium text-white disabled:opacity-50"
               >
                 {loading ? "Отправка..." : "Отправить запрос"}
               </button>
@@ -286,7 +292,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                   setStep(2);
                   setFormErrors(null);
                 }}
-                className="flex h-12 w-full items-center justify-center text-base text-[#6E6E6E]"
+                className="flex min-h-12 px-4 py-3 w-full items-center justify-center text-base text-muted-foreground"
               >
                 Назад
               </button>
@@ -295,7 +301,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
 
           <Link
             href="/login"
-            className="flex h-12 w-full items-center justify-center rounded-lg bg-[rgba(56,189,248,0.18)] text-base text-[#38BDF8]"
+            className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-950 text-base text-sky-800 dark:text-sky-300"
           >
             Вернуться к входу
           </Link>

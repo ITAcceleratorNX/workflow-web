@@ -65,6 +65,12 @@ export function ExecutorManagementTasksMobile(props: ExecutorManagementTasksMobi
           <ExecutorRequestsListContent
             variant="mobile"
             loading={loading}
+            hasMore={props.hasMore}
+            onLoadMore={props.handleLoadMore}
+            error={props.error}
+            isFiltered={props.isFiltered}
+            onRetry={handleRefresh}
+            onResetFilters={props.resetFilters}
             requests={filteredList}
             activeTab={tab}
             clientRatings={clientRatings}

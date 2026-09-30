@@ -31,8 +31,8 @@ function QuickStatCard({
   return (
     <div className={`flex-1 min-w-[47%] max-w-[48%] rounded-xl p-3.5 ${className}`}>
       {icon}
-      <p className="text-[22px] font-bold text-white mt-1.5">{value}</p>
-      <p className="text-xs text-[#8E8E93] mt-0.5">{label}</p>
+      <p className="text-[22px] font-bold text-foreground mt-1.5">{value}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
     </div>
   );
 }
@@ -53,8 +53,8 @@ function TabButton({
       className={cn(
         "flex-1 py-2.5 px-4 rounded-[10px] text-[15px] font-medium border transition-colors",
         active
-          ? "bg-[#F35713] border-[#F35713] text-white"
-          : "bg-[#2C2C2E] border-[#3A3A3C] text-[#8E8E93]",
+          ? "bg-primary border-primary text-primary-foreground"
+          : "bg-card border-border text-muted-foreground",
       )}
     >
       {label}
@@ -69,6 +69,11 @@ export function ManagerStatisticsMobileView({
   stats,
   loading,
   analyticsLoading,
+  analytics,
+  analyticsError,
+  retryAnalytics,
+  exporting,
+  exportError,
   error,
   handleRefresh,
   handleExport,
@@ -94,21 +99,21 @@ export function ManagerStatisticsMobileView({
         />
       </div>
 
+      <p className="px-4 mb-4 text-sm text-muted-foreground">Все доступные офисы · За весь доступный период</p>
+
       {activeTab === "stats" && (
         <PullToRefresh onRefresh={handleRefresh}>
+          {error && <div role="alert" className="mx-4 mb-4 rounded-xl border border-destructive/30 p-4 text-foreground">
+            <p>{error}</p>
+            {stats && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
+            <Button className="mt-3" variant="outline" disabled={loading} onClick={retry}>Повторить</Button>
+          </div>}
           {loading && !stats ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="h-10 w-10 animate-spin text-[#F35713]" />
-              <p className="text-sm text-[#8E8E93]">Загрузка...</p>
+              <p className="text-sm text-muted-foreground">Загрузка...</p>
             </div>
-          ) : error ? (
-            <div className="mx-4 my-4 p-4 rounded-xl border border-red-500/30 bg-red-500/10">
-              <p className="text-sm text-red-400 mb-3">{error}</p>
-              <Button variant="outline" size="sm" onClick={retry}>
-                Повторить
-              </Button>
-            </div>
-          ) : (
+          ) : stats ? (
             <div className="px-4 pb-6">
               <div className="flex flex-wrap gap-2.5 mb-4">
                 <QuickStatCard
@@ -137,8 +142,8 @@ export function ManagerStatisticsMobileView({
                 />
               </div>
 
-              <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4 mb-4">
-                <h2 className="text-[17px] font-semibold text-white mb-4">Статистика по заявкам</h2>
+              <div className="rounded-xl border border-border bg-card p-4 mb-4">
+                <h2 className="text-[17px] font-semibold text-foreground mb-4">Статистика по заявкам</h2>
                 <StatRow label="Всего заявок" value={stats?.totalRequests ?? 0} />
                 <StatRow
                   label="Завершено"
@@ -154,61 +159,70 @@ export function ManagerStatisticsMobileView({
                 />
               </div>
 
-              <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4 mb-4">
-                <h2 className="text-[17px] font-semibold text-white mb-4">По типам заявок</h2>
+              <div className="rounded-xl border border-border bg-card p-4 mb-4">
+                <h2 className="text-[17px] font-semibold text-foreground mb-4">По типам заявок</h2>
                 <StatRow label="Обычные" value={typeof rts.normal === "number" ? rts.normal : 0} />
                 <StatRow label="Экстренные" value={typeof rts.urgent === "number" ? rts.urgent : 0} />
                 <StatRow label="Плановые" value={typeof rts.planned === "number" ? rts.planned : 0} />
               </div>
 
-              <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4">
-                <h2 className="text-[17px] font-semibold text-white mb-4">Экспорт данных</h2>
-                <div className="flex gap-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h2 className="text-[17px] font-semibold text-foreground mb-4">Экспорт данных</h2>
+                {exporting && <p role="status" className="mb-3 text-sm text-muted-foreground">Подготовка файла…</p>}
+                {exportError && <p role="alert" className="mb-3 text-sm text-destructive">{exportError}</p>}
+                <div className="flex flex-wrap gap-3">
                   <Button
-                    className="flex-1 bg-[#F35713] hover:bg-[#F35713]/90"
+                    className="flex-1"
+                    disabled={exporting}
                     onClick={() => handleExport("xlsx")}
                   >
                     Excel
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 border-[#3A3A3C] text-white"
+                    className="flex-1 border-border text-foreground"
+                    disabled={exporting}
                     onClick={() => handleExport("pbix")}
                   >
-                    Power BI
+                    Шаблон Power BI
                   </Button>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </PullToRefresh>
       )}
 
       {activeTab === "analytics" && (
         <PullToRefresh onRefresh={handleRefresh}>
-          {analyticsLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="h-10 w-10 animate-spin text-[#F35713]" />
-              <p className="text-sm text-[#8E8E93]">Загрузка...</p>
-            </div>
-          ) : (
-            <div className="px-4 pb-6 space-y-4">
-              <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4">
-                <h2 className="text-[17px] font-semibold text-white mb-2">
-                  SLA и время выполнения
-                </h2>
-                <p className="text-sm text-[#8E8E93] leading-5">
-                  Данные по срокам и среднему времени закрытия заявок (как в браузере).
-                </p>
-              </div>
-              <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4">
-                <h2 className="text-[17px] font-semibold text-white mb-2">Рейтинги</h2>
-                <p className="text-sm text-[#8E8E93] leading-5">
-                  Средние оценки по офисам, категориям, исполнителям (как в браузере).
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="px-4 pb-6 space-y-4">
+            {analyticsError && <div role="alert" className="rounded-xl border border-destructive/30 p-4 text-foreground">
+              <p>{analyticsError}</p>
+              {analytics && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
+              <Button className="mt-3" variant="outline" disabled={analyticsLoading} onClick={retryAnalytics}>Повторить</Button>
+            </div>}
+            {analyticsLoading && <p role="status" className="py-6 text-center text-muted-foreground">Загрузка аналитики…</p>}
+            {analytics && <>
+              <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
+                <h2 className="text-lg font-semibold">Время выполнения по офисам</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Среднее время закрытия завершённых заявок, часы.</p>
+                {analytics.sla.length === 0 && <p className="mt-4 text-muted-foreground">Завершённых заявок с данными о времени пока нет.</p>}
+                {analytics.sla.map((row) => <div key={row.officeId} className="mt-4 border-t border-border pt-3">
+                  <h3 className="font-medium break-words">{analytics.offices.find((office) => office.id === row.officeId)?.name ?? `Офис №${row.officeId}`}</h3>
+                  <p className="mt-1">{Number.isFinite(Number(row.avgHours)) ? Number(row.avgHours).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) : "—"} ч · Завершено: {row.totalCompleted}</p>
+                </div>)}
+              </section>
+              <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
+                <h2 className="text-lg font-semibold">Оценки по офисам</h2>
+                {analytics.ratings.length === 0 && <p className="mt-4 text-muted-foreground">Оценок пока нет.</p>}
+                {analytics.ratings.map((row) => <div key={row.officeId} className="mt-4 border-t border-border pt-3">
+                  <h3 className="font-medium break-words">{analytics.offices.find((office) => office.id === row.officeId)?.name ?? `Офис №${row.officeId}`}</h3>
+                  <p className="mt-1">{Number.isFinite(Number(row.avgRating)) ? Number(row.avgRating).toLocaleString("ru-RU", { maximumFractionDigits: 2 }) : "—"} из 5 · Оценок: {row.totalRatings}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Оценок 1–2: {row.lowRatings}</p>
+                </div>)}
+              </section>
+            </>}
+          </div>
         </PullToRefresh>
       )}
     </div>

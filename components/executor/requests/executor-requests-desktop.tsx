@@ -67,7 +67,13 @@ export function ExecutorRequestsDesktop(props: ExecutorRequestsDesktopProps) {
           listSlot={
             <ExecutorRequestsListContent
               variant="desktop"
+              error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.handleRefresh}
+              onResetFilters={props.resetFilters}
               loading={loading}
+              hasMore={props.hasMore}
+              onLoadMore={props.handleLoadMore}
               requests={activeList}
               activeTab={activeTab}
               clientRatings={clientRatings}

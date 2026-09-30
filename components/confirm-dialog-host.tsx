@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useConfirmDialogStore } from "@/stores/confirm-dialog-store";
 import { cn } from "@/lib/utils";
+import { OVERLAY_LAYERS } from "@/components/ui/overlay-layer";
 
 /** Окно для confirmAction / showNotice; монтируется один раз в корневом layout. */
 export function ConfirmDialogHost() {
@@ -21,7 +22,7 @@ export function ConfirmDialogHost() {
 
   return (
     <AlertDialog open={pending != null} onOpenChange={(open) => !open && answer(false)}>
-      <AlertDialogContent className="max-w-sm border-[#3A3A3C] bg-[#1C1C1E] text-white sm:rounded-2xl">
+      <AlertDialogContent layer={OVERLAY_LAYERS.confirmation} className="max-w-sm border-[#3A3A3C] bg-[#1C1C1E] text-white sm:rounded-2xl">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-white">{pending?.title}</AlertDialogTitle>
           <AlertDialogDescription className="whitespace-pre-line text-[#AEAEB2]">

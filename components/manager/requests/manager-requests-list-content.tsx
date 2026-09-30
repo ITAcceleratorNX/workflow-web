@@ -2,15 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { RequestListFeedback, type RequestListFeedbackProps } from "@/components/requests/request-list-feedback";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
 import {
-  MOBILE_REQUESTS_EMPTY_TEXT,
   MOBILE_REQUESTS_LOAD_MORE_BTN,
 } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 
-interface ManagerRequestsListContentProps {
+interface ManagerRequestsListContentProps extends RequestListFeedbackProps {
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -24,6 +24,10 @@ interface ManagerRequestsListContentProps {
 
 export function ManagerRequestsListContent({
   loading,
+  error,
+  isFiltered,
+  onRetry,
+  onResetFilters,
   loadingMore,
   hasMore,
   requests,
@@ -35,34 +39,9 @@ export function ManagerRequestsListContent({
 }: ManagerRequestsListContentProps) {
   const isDesktop = variant === "desktop";
 
-  if (loading) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        Загрузка...
-      </div>
-    );
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div
-        className={cn(
-          "text-center py-12",
-          isDesktop ? "text-white/60" : cn("py-8", MOBILE_REQUESTS_EMPTY_TEXT)
-        )}
-      >
-        Нет заявок
-      </div>
-    );
-  }
-
   return (
     <>
+      <RequestListFeedback loading={loading} error={error} isFiltered={isFiltered} onRetry={onRetry} onResetFilters={onResetFilters} count={requests.length} />
       {requests.map((request, index) => (
         <RequestCard
           key={request.id}
@@ -80,7 +59,7 @@ export function ManagerRequestsListContent({
           <Button
             variant="outline"
             onClick={onLoadMore}
-            disabled={loadingMore}
+            disabled={loading || loadingMore}
             className={
               isDesktop
                 ? "bg-transparent border-white/20 text-white hover:bg-[#E04A0A]"
@@ -93,7 +72,7 @@ export function ManagerRequestsListContent({
                 Загрузка...
               </>
             ) : (
-              "Загрузить ещё"
+              "Показать ещё"
             )}
           </Button>
         </div>

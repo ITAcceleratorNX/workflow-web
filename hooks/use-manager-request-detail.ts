@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
 import type { RequestGroup } from "@/stores/useRequestStore";
@@ -9,6 +10,7 @@ import type { RequestGroup } from "@/stores/useRequestStore";
 export function useManagerRequestDetail() {
   const router = useRouter();
   const params = useParams();
+  const currentSearch = useSearchParams().toString();
   const id = params?.id as string;
   const isDesktop = useIsDesktop();
   const [request, setRequest] = useState<RequestGroup | null>(null);
@@ -17,9 +19,9 @@ export function useManagerRequestDetail() {
 
   useEffect(() => {
     if (isDesktop && id) {
-      router.replace(`/manager/requests?requestId=${id}`);
+      router.replace(buildRequestsUrlWithId("/manager/requests", id, currentSearch));
     }
-  }, [isDesktop, router, id]);
+  }, [isDesktop, router, id, currentSearch]);
 
   useEffect(() => {
     if (!id || isDesktop) return;
@@ -42,12 +44,12 @@ export function useManagerRequestDetail() {
   }, [id, isDesktop]);
 
   const handleClose = useCallback(() => {
-    router.push("/manager/requests");
-  }, [router]);
+    router.push(buildRequestsListPath("/manager/requests", currentSearch));
+  }, [router, currentSearch]);
 
   const handleRequestUpdated = useCallback(() => {
-    router.push("/manager/requests");
-  }, [router]);
+    router.push(buildRequestsListPath("/manager/requests", currentSearch));
+  }, [router, currentSearch]);
 
   return {
     isDesktop,

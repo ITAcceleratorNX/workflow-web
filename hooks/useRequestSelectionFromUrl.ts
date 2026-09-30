@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import {
   buildMobileRequestDetailPath,
+  buildRequestsListPath,
   buildRequestsUrlWithId,
 } from "@/lib/requestNavigation";
 
@@ -33,6 +34,7 @@ export function useRequestSelectionFromUrl({
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestIdFromUrl = searchParams?.get("requestId") ?? null;
+  const currentSearch = searchParams.toString();
 
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null);
   const [resolvedFromUrl, setResolvedFromUrl] = useState<RequestGroup | null>(null);
@@ -58,9 +60,9 @@ export function useRequestSelectionFromUrl({
   }, [requestIdFromUrl, findById, isDataReady]);
 
   const displayRequest = useMemo(() => {
-    if (selectedRequest) return selectedRequest;
-    if (resolvedFromUrl) return resolvedFromUrl;
     if (!requestIdFromUrl) return null;
+    if (selectedRequest && String(selectedRequest.id) === requestIdFromUrl) return selectedRequest;
+    if (resolvedFromUrl && String(resolvedFromUrl.id) === requestIdFromUrl) return resolvedFromUrl;
     for (const list of fallbackLists) {
       const found = list.find((r) => String(r.id) === requestIdFromUrl);
       if (found) return found;
@@ -72,36 +74,36 @@ export function useRequestSelectionFromUrl({
     (request: RequestGroup) => {
       if (isDesktop) {
         setSelectedRequest(request);
-        router.push(buildRequestsUrlWithId(requestsBasePath, request.id), {
+        router.push(buildRequestsUrlWithId(requestsBasePath, request.id, currentSearch), {
           scroll: false,
         });
       } else {
-        router.push(buildMobileRequestDetailPath(requestsBasePath, request.id));
+        router.push(buildMobileRequestDetailPath(requestsBasePath, request.id, currentSearch));
       }
     },
-    [isDesktop, requestsBasePath, router]
+    [isDesktop, requestsBasePath, currentSearch, router]
   );
 
   const openRequestById = useCallback(
     (requestId: string | number) => {
       if (isDesktop) {
-        router.push(buildRequestsUrlWithId(requestsBasePath, requestId));
+        router.push(buildRequestsUrlWithId(requestsBasePath, requestId, currentSearch));
       } else {
-        router.push(buildMobileRequestDetailPath(requestsBasePath, requestId));
+        router.push(buildMobileRequestDetailPath(requestsBasePath, requestId, currentSearch));
       }
     },
-    [isDesktop, requestsBasePath, router]
+    [isDesktop, requestsBasePath, currentSearch, router]
   );
 
   const closeDetail = useCallback(() => {
     setSelectedRequest(null);
-    router.push(requestsBasePath, { scroll: false });
-  }, [requestsBasePath, router]);
+    router.push(buildRequestsListPath(requestsBasePath, currentSearch), { scroll: false });
+  }, [requestsBasePath, currentSearch, router]);
 
   const clearAfterUpdate = useCallback(() => {
     setSelectedRequest(null);
-    router.push(requestsBasePath, { scroll: false });
-  }, [requestsBasePath, router]);
+    router.push(buildRequestsListPath(requestsBasePath, currentSearch), { scroll: false });
+  }, [requestsBasePath, currentSearch, router]);
 
   return {
     requestIdFromUrl,

@@ -68,7 +68,7 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
           </div>
 
           <Link href="/create-request" className="block">
-            <Button className="w-full h-12 bg-[#E25B21] hover:bg-[#D94F15] text-white font-semibold rounded-2xl">
+            <Button className="w-full h-12 font-semibold rounded-2xl">
               <Plus className="h-4 w-4 mr-2" />
               Создать
             </Button>
@@ -77,7 +77,13 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
           <div className="space-y-4 pb-8">
             <ExecutorRequestsListContent
               variant="mobile"
+              error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.handleRefresh}
+              onResetFilters={props.resetFilters}
               loading={loading}
+              hasMore={props.hasMore}
+              onLoadMore={props.handleLoadMore}
               requests={activeList}
               activeTab={activeTab}
               clientRatings={clientRatings}

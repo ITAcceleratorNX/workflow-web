@@ -40,19 +40,20 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
     <div className="min-h-screen flex flex-col bg-background safe-area-top safe-area-bottom">
       <div className="flex flex-1 flex-col justify-center px-5 py-8">
         <header className="mb-6 flex flex-col gap-2 text-center">
-          <h1 className="text-[28px] font-bold leading-10 text-white">
+          <h1 className="text-[28px] font-bold leading-10 text-foreground">
             {RESET_PASSWORD_STEP_TITLES[step - 1]}
           </h1>
-          <p className="text-base text-[#7F7F7F]">
+          <p className="text-base text-muted-foreground">
             {RESET_PASSWORD_STEP_SUBTITLES[step - 1]}
           </p>
         </header>
 
-        <div className="rounded-xl border border-[#212121] p-4 flex flex-col gap-3">
+        <div className="rounded-xl border border-input p-4 flex flex-col gap-3">
           {step === 1 && (
             <>
               <AuthTextField
-                id="phone"
+                id="reset-mobile-phone"
+                autoComplete="tel"
                 label="Номер телефона"
                 type="tel"
                 placeholder="+7 XXX XXX XX XX"
@@ -61,18 +62,18 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
                 maxLength={19}
                 inputMode="tel"
               />
-              {error ? <p className="text-sm text-[#F35713]">{error}</p> : null}
+              {error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
               <button
                 type="button"
                 onClick={() => void handleSendVerificationCode()}
                 disabled={isSendingCode || !isPhoneValid}
-                className="flex h-12 items-center justify-center rounded-lg bg-[#F35713] text-base font-semibold text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-semibold text-white disabled:opacity-50"
               >
                 {isSendingCode ? "Отправка..." : "Отправить код"}
               </button>
               <Link
                 href="/login"
-                className="flex h-12 items-center justify-center rounded-lg border border-[#212121] text-base font-medium text-[#7F7F7F]"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg border border-input text-base font-medium text-muted-foreground"
               >
                 Вернуться к входу
               </Link>
@@ -81,7 +82,7 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
 
           {step === 2 && (
             <>
-              <p className="text-center text-sm leading-5 text-[#7F7F7F]">
+              <p className="text-center text-sm leading-5 text-muted-foreground">
                 Мы отправили SMS с кодом верификации на номер {phone}
               </p>
               <AuthOtpInput
@@ -93,12 +94,12 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
                   setError("");
                 }}
               />
-              {error ? <p className="text-sm text-[#F35713]">{error}</p> : null}
+              {error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
               <button
                 type="button"
                 onClick={() => void handleVerifyCode()}
                 disabled={verificationCode.length !== 6}
-                className="flex h-12 items-center justify-center rounded-lg bg-[#F35713] text-base font-semibold text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-semibold text-white disabled:opacity-50"
               >
                 Подтвердить
               </button>
@@ -106,7 +107,7 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
                 type="button"
                 onClick={() => void handleResendCode()}
                 disabled={isSendingCode || countdown > 0}
-                className="flex h-12 items-center justify-center rounded-lg border border-[#212121] text-base text-[#7F7F7F] disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg border border-input text-base text-muted-foreground disabled:opacity-50"
               >
                 {isSendingCode
                   ? "Отправка..."
@@ -117,7 +118,7 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
               <button
                 type="button"
                 onClick={goBackToPhone}
-                className="flex h-12 items-center justify-center text-base text-[#7F7F7F]"
+                className="flex min-h-12 px-4 py-3 items-center justify-center text-base text-muted-foreground"
               >
                 Назад
               </button>
@@ -127,7 +128,8 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
           {step === 3 && (
             <>
               <AuthTextField
-                id="new-password"
+                id="reset-mobile-new-password"
+                autoComplete="new-password"
                 label="Новый пароль"
                 type="password"
                 placeholder="Минимум 6 символов"
@@ -138,7 +140,8 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
                 }}
               />
               <AuthTextField
-                id="confirm-password"
+                id="reset-mobile-confirm-password"
+                autoComplete="new-password"
                 label="Подтвердите пароль"
                 type="password"
                 placeholder="Повторите пароль"
@@ -148,19 +151,19 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
                   setError("");
                 }}
               />
-              {error ? <p className="text-sm text-[#F35713]">{error}</p> : null}
+              {error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
               <button
                 type="button"
                 onClick={() => void handleResetPassword()}
                 disabled={loading}
-                className="flex h-12 items-center justify-center rounded-lg bg-[#F35713] text-base font-semibold text-white disabled:opacity-50"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-semibold text-white disabled:opacity-50"
               >
                 {loading ? "Сохранение..." : "Изменить пароль"}
               </button>
               <button
                 type="button"
                 onClick={goBackToOtp}
-                className="flex h-12 items-center justify-center text-base text-[#7F7F7F]"
+                className="flex min-h-12 px-4 py-3 items-center justify-center text-base text-muted-foreground"
               >
                 Назад
               </button>
@@ -169,13 +172,13 @@ export function ResetPasswordFormMobile(props: UseResetPasswordResult) {
 
           {step === 4 && (
             <>
-              <p className="text-center text-5xl font-bold text-[#F35713]">✓</p>
-              <p className="text-center text-sm leading-5 text-[#7F7F7F]">
+              <p className="text-center text-5xl font-bold text-red-700 dark:text-red-400">✓</p>
+              <p className="text-center text-sm leading-5 text-muted-foreground">
                 {RESET_PASSWORD_SUCCESS_MESSAGE}
               </p>
               <Link
                 href="/login"
-                className="flex h-12 items-center justify-center rounded-lg bg-[#F35713] text-base font-semibold text-white"
+                className="flex min-h-12 px-4 py-3 items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-semibold text-white"
               >
                 Перейти к входу
               </Link>

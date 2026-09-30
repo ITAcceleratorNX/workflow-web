@@ -68,7 +68,7 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
         </div>
 
         <Link href="/create-request" className="block mb-4">
-          <Button className="w-full h-12 bg-[#E85D2B] hover:bg-[#D94F15] text-white font-semibold rounded-2xl">
+          <Button className="w-full h-12 font-semibold rounded-2xl">
             <Plus className="h-4 w-4 mr-2" />
             Создать
           </Button>
@@ -77,7 +77,11 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
         <div className="space-y-4">
           <ClientRequestsListContent
             variant="mobile"
-            loading={loading}
+            error={props.error}
+              isFiltered={props.isFiltered}
+              onRetry={props.fetchRequests}
+              onResetFilters={props.resetFilters}
+              loading={loading}
             loadingMore={loadingMore}
             hasMore={hasMore}
             requests={filteredRequests}

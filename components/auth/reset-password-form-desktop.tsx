@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,7 @@ export function ResetPasswordFormDesktop(props: UseResetPasswordResult) {
         <div className="text-center mb-10">
           <div className="flex items-center justify-center space-x-3 mb-5">
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden">
-              <img src="/app-icon.png" alt="App Icon" className="w-full h-full object-cover" />
+              <Image src="/app-icon.png" alt="App Icon" width={64} height={64} loading="eager" className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold text-3xl tracking-tight">WORKFLOW</span>
           </div>

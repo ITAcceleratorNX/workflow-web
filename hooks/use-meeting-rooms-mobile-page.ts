@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   startOfMonth,
@@ -19,11 +19,13 @@ import {
   type Office,
 } from "@/lib/api";
 import api from "@/lib/api";
+import { listLoadError } from "@/lib/request-list-loading";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useGuestDemoStore } from "@/stores/useGuestDemoStore";
 import { useToast } from "@/hooks/use-toast";
 import { MEETING_ROOM_TIME_SLOTS } from "@/lib/meeting-room-time-slots";
 import {
+  bookingHourStart,
   formatDateForAvailability,
   parseBookedHourSlots,
 } from "@/lib/meeting-room-availability";
@@ -56,6 +58,12 @@ export function useMeetingRoomsMobilePage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
   const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
+  const [loadedAvailabilityKey, setLoadedAvailabilityKey] = useState<string | null>(null);
+  const availabilityKey = selectedDate && selectedRoom ? `${selectedRoom.id}:${formatDateForAvailability(selectedDate)}` : null;
+  const bookingLock = useRef(false);
+  const retryAvailability = () => setAvailabilityAttempt((attempt) => attempt + 1);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -89,7 +97,7 @@ export function useMeetingRoomsMobilePage() {
           return;
         }
         const response = await getMeetingRooms(officeId);
-        const activeRooms = (response.data || []).filter((room) => room.isActive);
+        const activeRooms = (response.data || []).filter((room) => room.isActive && room.room_type !== "cabinet");
         setRooms(activeRooms);
       } catch (error) {
         console.error("Error fetching rooms:", error);
@@ -102,31 +110,35 @@ export function useMeetingRoomsMobilePage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setAvailabilityError(null);
+    setLoadedAvailabilityKey(null);
+    setBookedSlots(new Set());
     if (!selectedDate || !selectedRoom) {
-      setBookedSlots(new Set());
+      setLoadingAvailability(false);
       return;
     }
     if (isGuest) {
-      setBookedSlots(new Set());
+      setLoadedAvailabilityKey(availabilityKey);
+      setLoadingAvailability(false);
       return;
     }
-
     const dateString = formatDateForAvailability(selectedDate);
     setLoadingAvailability(true);
-
     getRoomDailyAvailability(selectedRoom.id, dateString, 60)
       .then((response) => {
-        setBookedSlots(
-          parseBookedHourSlots(
-            dateString,
-            response.data.bookings,
-            response.data.slots,
-          ),
-        );
+        if (cancelled) return;
+        setBookedSlots(parseBookedHourSlots(dateString, response.data.bookings, response.data.slots));
+        setLoadedAvailabilityKey(availabilityKey);
       })
-      .catch(() => setBookedSlots(new Set()))
-      .finally(() => setLoadingAvailability(false));
-  }, [selectedDate, selectedRoom, isGuest]);
+      .catch((failure: unknown) => {
+        if (!cancelled) setAvailabilityError(listLoadError(failure));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAvailability(false);
+      });
+    return () => { cancelled = true; };
+  }, [selectedDate, selectedRoom, isGuest, availabilityAttempt, availabilityKey]);
 
   useEffect(() => {
     setPhotoIndex(0);
@@ -145,22 +157,14 @@ export function useMeetingRoomsMobilePage() {
   };
 
   const handleBookRoom = async () => {
-    if (!selectedRoom || !selectedDate || !selectedTimeSlot) return;
+    if (bookingLock.current || !selectedRoom || !selectedDate || !selectedTimeSlot) return;
 
     const timeSlot = MEETING_ROOM_TIME_SLOTS.find((slot) => slot.label === selectedTimeSlot);
     if (!timeSlot) return;
 
-    const now = new Date();
-    const isDateToday = isSameDay(selectedDate, now);
-    const slotDateTime = new Date(selectedDate);
-    const [hour] = timeSlot.start.split(":");
-    slotDateTime.setHours(parseInt(hour, 10), 0, 0, 0);
+    if (isSlotDisabled(timeSlot.start)) return;
 
-    if (isDateToday && slotDateTime < now) {
-      alert("Нельзя бронировать время, которое уже прошло");
-      return;
-    }
-
+    bookingLock.current = true;
     setIsBooking(true);
     try {
       if (isGuest && selectedRoom) {
@@ -199,6 +203,7 @@ export function useMeetingRoomsMobilePage() {
         "Ошибка при бронировании";
       alert(errorMessage);
     } finally {
+      bookingLock.current = false;
       setIsBooking(false);
     }
   };
@@ -241,15 +246,9 @@ export function useMeetingRoomsMobilePage() {
   };
 
   const isSlotDisabled = (slotStart: string) => {
-    if (!selectedDate) return true;
-    const now = new Date();
-    const isDateToday = isSameDay(selectedDate, now);
-    const slotDateTime = new Date(selectedDate);
-    const [hour] = slotStart.split(":");
-    slotDateTime.setHours(parseInt(hour, 10), 0, 0, 0);
-    const isPast = isDateToday && slotDateTime < now;
-    const isBooked = bookedSlots.has(slotStart);
-    return isPast || isBooked;
+    if (!selectedDate || !selectedRoom?.isActive || loadingAvailability || availabilityError || loadedAvailabilityKey !== availabilityKey) return true;
+    const start = bookingHourStart(formatDateForAvailability(selectedDate), slotStart);
+    return !Number.isFinite(start) || start < Date.now() || bookedSlots.has(slotStart);
   };
 
   return {
@@ -271,6 +270,8 @@ export function useMeetingRoomsMobilePage() {
     isBooking,
     bookedSlots,
     loadingAvailability,
+    availabilityError,
+    retryAvailability,
     currentMonth,
     setCurrentMonth,
     showCalendar,

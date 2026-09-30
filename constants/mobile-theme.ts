@@ -1,5 +1,6 @@
 /**
- * Mobile theme tokens — parity with workflow-mobile/constants/theme.ts
+ * Mobile web palette aligned with workflow-mobile, with separate accessible
+ * filled-action colors so the brand accent can keep its original appearance.
  */
 
 export type AppColorScheme = "light" | "dark";
@@ -16,6 +17,8 @@ export type MobileThemeColorName =
   | "textMuted"
   | "border"
   | "primary"
+  | "actionBackground"
+  | "onAction"
   | "accent"
   | "onPrimary";
 
@@ -35,6 +38,8 @@ export const MOBILE_COLORS: Record<
     textMuted: "#6E6E6E",
     border: "#E5E5EA",
     primary: "#E25B21",
+    actionBackground: "#B8400E",
+    onAction: "#FFFFFF",
     accent: "#E25B21",
     onPrimary: "#FFFFFF",
   },
@@ -47,9 +52,11 @@ export const MOBILE_COLORS: Record<
     text: "#ECEDEE",
     textPrimary: "#ECEDEE",
     textSecondary: "#A0A0A5",
-    textMuted: "#6E6E6E",
+    textMuted: "#A0A0A5",
     border: "#212121",
     primary: "#E25B21",
+    actionBackground: "#B8400E",
+    onAction: "#FFFFFF",
     accent: "#E25B21",
     onPrimary: "#FFFFFF",
   },

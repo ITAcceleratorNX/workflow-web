@@ -1,6 +1,6 @@
 import type React from "react"
 import { Suspense } from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import "../lib/fcm"
 import BridgeInit from "@/components/BridgeInit"
@@ -19,15 +19,20 @@ export const metadata: Metadata = {
     generator: 'v0.dev'
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
         <ColorSchemeInitScript />
       </head>
       <body className="font-sf-pro">

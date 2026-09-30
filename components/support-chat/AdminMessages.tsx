@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { getSupportTickets, getSupportTicketMessages, sendSupportMessage, type SupportTicket, type SupportMessage } from "@/lib/api";
 import { MessageCircle, Send, Loader2, User, ArrowLeft, Headphones } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -15,10 +15,17 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
     const [messages, setMessages] = useState<SupportMessage[]>([]);
-    const [inputValue, setInputValue] = useState("");
+    const [drafts, setDrafts] = useState<Record<number, string>>({});
     const [loadingTickets, setLoadingTickets] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [sending, setSending] = useState(false);
+    const sendLock = useRef(false);
+    const selectedTicketId = selectedTicket?.id;
+    const activeTicketId = useRef(selectedTicketId);
+    const inputValue = selectedTicketId == null ? "" : drafts[selectedTicketId] ?? "";
+    useLayoutEffect(() => {
+        activeTicketId.current = selectedTicketId;
+    }, [selectedTicketId]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
@@ -28,32 +35,37 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
             const res = await getSupportTickets();
             const list = res.data?.tickets ?? [];
             setTickets(list);
-            if (selectedTicket && !list.some((t) => t.id === selectedTicket.id)) {
-                setSelectedTicket(null);
-                setMessages([]);
-            }
+            setSelectedTicket((current) => current && !list.some((t) => t.id === current.id) ? null : current);
         } catch (e) {
             toast({ title: "Ошибка", description: "Не удалось загрузить чаты", variant: "destructive" });
         } finally {
             setLoadingTickets(false);
         }
-    }, [selectedTicket, toast]);
+    }, [toast]);
 
     useEffect(() => {
         loadTickets();
     }, [loadTickets]);
 
     useEffect(() => {
-        if (!selectedTicket) {
+        if (!selectedTicketId) {
             setMessages([]);
+            setLoadingMessages(false);
             return;
         }
+        let cancelled = false;
+        setMessages([]);
         setLoadingMessages(true);
-        getSupportTicketMessages(selectedTicket.id)
-            .then((res) => setMessages(res.data?.messages ?? []))
-            .catch(() => toast({ title: "Ошибка", description: "Не удалось загрузить сообщения", variant: "destructive" }))
-            .finally(() => setLoadingMessages(false));
-    }, [selectedTicket?.id, toast]);
+        getSupportTicketMessages(selectedTicketId)
+            .then((res) => {
+                if (cancelled) return;
+                const loaded = res.data?.messages ?? [];
+                setMessages((current) => [...loaded, ...current.filter((message) => !loaded.some((item) => item.id === message.id))]);
+            })
+            .catch(() => { if (!cancelled) toast({ title: "Ошибка", description: "Не удалось загрузить сообщения", variant: "destructive" }); })
+            .finally(() => { if (!cancelled) setLoadingMessages(false); });
+        return () => { cancelled = true; };
+    }, [selectedTicketId, toast]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -62,16 +74,23 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
     const handleSend = async () => {
         if (!canRespond) return;
         const trimmed = inputValue.trim();
-        if (!trimmed || !selectedTicket || sending) return;
+        if (!trimmed || !selectedTicket || sendLock.current) return;
+        const ticketId = selectedTicket.id;
+        sendLock.current = true;
         setSending(true);
-        setInputValue("");
         try {
-            const res = await sendSupportMessage(selectedTicket.id, trimmed);
+            const res = await sendSupportMessage(ticketId, trimmed);
             const newMsg = res.data?.message;
-            if (newMsg) setMessages((prev) => [...prev, newMsg]);
+            if (newMsg) {
+                if (activeTicketId.current === ticketId) {
+                    setMessages((prev) => prev.some((message) => message.id === newMsg.id) ? prev : [...prev, newMsg]);
+                }
+                setDrafts((current) => current[ticketId]?.trim() === trimmed ? { ...current, [ticketId]: "" } : current);
+            }
         } catch (e) {
             toast({ title: "Ошибка", description: "Не удалось отправить сообщение", variant: "destructive" });
         } finally {
+            sendLock.current = false;
             setSending(false);
         }
     };
@@ -204,7 +223,10 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
                                 type="text"
                                 placeholder="Напишите сообщение..."
                                 value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (selectedTicketId != null) setDrafts((current) => ({ ...current, [selectedTicketId]: value }));
+                                }}
                                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                                 disabled={sending}
                                 className="flex-1 min-w-0 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#E85D2B] bg-[#2C2C2E] border border-white/10"

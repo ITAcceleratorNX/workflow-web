@@ -15,7 +15,7 @@ export function ExecutorInlineQrScanner({ enabled, onScan }: ExecutorInlineQrSca
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const stoppingRef = useRef(false);
   const onScanRef = useRef(onScan);
-  onScanRef.current = onScan;
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") {
