@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronRight, Loader2, Search, X } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { ClientNewsSearch } from "@/components/client/news/client-news-search";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -46,20 +47,7 @@ export function ClientNewsMobileView({
       >
         <ScreenHeader title="Все новости" />
 
-        <div className="mx-4 mt-3 mb-2 flex items-center gap-2 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2.5">
-          <Search className="h-5 w-5 text-[#8E8E93] shrink-0" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск новостей..."
-            className="flex-1 bg-transparent text-base text-white placeholder:text-[#8E8E93] outline-none"
-          />
-          {searchQuery.length > 0 && (
-            <button type="button" onClick={() => setSearchQuery("")} aria-label="Очистить">
-              <X className="h-5 w-5 text-[#8E8E93]" />
-            </button>
-          )}
-        </div>
+        <ClientNewsSearch value={searchQuery} onChange={setSearchQuery} className="mx-4 mt-3 mb-2" />
 
         <div className="px-4 pb-3 border-b border-[#3A3A3C]/60">
           <div className="flex items-center gap-3 mt-2">

@@ -576,6 +576,10 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .client-desktop-content textarea::placeholder {
     color: #8E8E93 !important;
   }
+  /* The search wrapper owns the surface; avoid a second rectangle inside it. */
+  .client-desktop-content input.news-search-input {
+    background-color: transparent !important;
+  }
   /* Название задачи — текст самой карточки, а не отдельное поле: без своего фона и рамки. */
   .client-desktop-content textarea.task-title-input {
     background-color: transparent !important;
