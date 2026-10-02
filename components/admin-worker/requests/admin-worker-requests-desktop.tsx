@@ -33,6 +33,7 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
     handleRequestUpdated,
     handleLoadMore,
     handleDeleteRecurringTask,
+    bulkDelete,
   } = props;
 
   const renderCardHeader = useAdminWorkerRequestCardHeader();
@@ -55,6 +56,7 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
         onCardClick={handleCardClick}
         renderCardHeader={renderCardHeader}
         onLoadMore={handleLoadMore}
+        bulkDelete={bulkDelete}
       />
     );
 

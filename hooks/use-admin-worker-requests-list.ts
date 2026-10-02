@@ -12,6 +12,7 @@ import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
+import { useRequestBulkDelete } from "@/hooks/use-request-bulk-delete";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import {
   filterRequestGroups,
@@ -157,6 +158,18 @@ export function useAdminWorkerRequestsList() {
     isDataReady: !loading,
   });
 
+  const handleBulkDeleted = useCallback(
+    (ids: number[]) => {
+      if (displayRequest && ids.includes(displayRequest.id)) handleClosePanel();
+    },
+    [displayRequest, handleClosePanel],
+  );
+  const bulkDelete = useRequestBulkDelete(handleBulkDeleted);
+  const cancelBulkDelete = bulkDelete.cancel;
+  useEffect(() => {
+    cancelBulkDelete();
+  }, [activeTab, cancelBulkDelete]);
+
   const handleRefresh = useCallback(async () => {
     await Promise.all([fetchRequests(), fetchOffices()]);
   }, [fetchRequests, fetchOffices]);
@@ -206,6 +219,7 @@ export function useAdminWorkerRequestsList() {
     handleClosePanel,
     handleRequestUpdated,
     handleDeleteRecurringTask,
+    bulkDelete,
     lastElementRef,
   };
 }
