@@ -14,7 +14,8 @@ import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ImportExcelModal } from "./ImportExcelModal";
 import { findNearestOffice, getLocationByIP } from "@/lib/utils";
-import { getBlocksForOffice, getLocationsForBlock, getRoomsForLocation, hasLocationsForBlock, hasRoomsForLocation } from "@/lib/office-locations";
+import { getOfficeLocationCatalog, type OfficeLocationCatalogRow } from "@/lib/office-location-catalog-api";
+import { getBlocksFromCatalog, getFloorZonesForBlock, getRoomsForFloorZone, hasFloorZonesForBlock, hasRoomsForFloorZone } from "@/lib/office-location-catalog-utils";
 import { getServiceCategoriesByOffice } from "@/lib/api";
 import { RequestTypeChips } from "@/components/create-request/request-type-chips";
 import { ServiceCategoryPicker } from "@/components/create-request/service-category-picker";
@@ -156,6 +157,13 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   const [selectedRoom, setSelectedRoom] = useState<string>("");
   const [customLocation, setCustomLocation] = useState<string>("");
   const [customRoom, setCustomRoom] = useState<string>("");
+  const [locationCatalog, setLocationCatalog] = useState<{
+    officeId: number | null;
+    rows: OfficeLocationCatalogRow[];
+    loading: boolean;
+    error: string | null;
+  }>({ officeId: null, rows: [], loading: false, error: null });
+  const [locationCatalogReload, setLocationCatalogReload] = useState(0);
 
   // Состояние для управления шагами
   const [currentStep, setCurrentStep] = useState(1);
@@ -214,6 +222,81 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   }, [isOpen, hasDraft, draftStorageState, photos.length, afterPhotos.length]);
 
   const isGuest = useAuthStore((s) => s.isGuest);
+  const locationCatalogLoading = locationSource === "office" && !!selectedOfficeId && !isGuest && (
+    locationCatalog.officeId !== selectedOfficeId || locationCatalog.loading
+  );
+  const locationCatalogRows = useMemo(() => (
+    locationSource === "office" && locationCatalog.officeId === selectedOfficeId && !locationCatalogLoading
+      ? locationCatalog.rows
+      : []
+  ), [locationSource, locationCatalog, selectedOfficeId, locationCatalogLoading]);
+  const blocks = useMemo(() => getBlocksFromCatalog(locationCatalogRows), [locationCatalogRows]);
+  const hasLocations = hasFloorZonesForBlock(locationCatalogRows, selectedBlock);
+  const locations = getFloorZonesForBlock(locationCatalogRows, selectedBlock);
+  const locationForRooms = hasLocations && selectedLocation !== "Другое" ? selectedLocation : "";
+  const hasRooms = blocks.includes(selectedBlock) && (!hasLocations || !!selectedLocation) &&
+    hasRoomsForFloorZone(locationCatalogRows, selectedBlock, locationForRooms);
+  const rooms = hasRooms ? getRoomsForFloorZone(locationCatalogRows, selectedBlock, locationForRooms) : [];
+
+  const locationFieldErrors = useMemo(() => {
+    const errors = new Set<string>();
+    if (locationSource === "cabinet") {
+      if (!selectedCabinetRoom) errors.add("cabinet");
+      return errors;
+    }
+    if (!selectedOfficeId) errors.add("office");
+    if (locationCatalogLoading) {
+      errors.add("locationCatalog");
+      return errors;
+    }
+    if (blocks.length === 0) {
+      if (!locationDetails.trim()) errors.add("locationDetails");
+      return errors;
+    }
+    if (!blocks.includes(selectedBlock)) {
+      errors.add("block");
+      return errors;
+    }
+    if (hasLocations) {
+      if (selectedLocation === "Другое") {
+        if (!customLocation.trim()) errors.add("customLocation");
+      } else if (!getFloorZonesForBlock(locationCatalogRows, selectedBlock).includes(selectedLocation)) {
+        errors.add("location");
+      }
+    }
+    if (hasRooms) {
+      if (selectedRoom === "Другое") {
+        if (!customRoom.trim()) errors.add("customRoom");
+      } else if (!getRoomsForFloorZone(locationCatalogRows, selectedBlock, locationForRooms).includes(selectedRoom)) {
+        errors.add("room");
+      }
+    } else if (hasLocations && selectedLocation && selectedLocation !== "Другое" && !customRoom.trim()) {
+      errors.add("customRoom");
+    }
+    return errors;
+  }, [locationSource, selectedCabinetRoom, selectedOfficeId, locationCatalogLoading, blocks,
+    locationDetails, selectedBlock, hasLocations, selectedLocation, customLocation, locationCatalogRows,
+    hasRooms, selectedRoom, customRoom, locationForRooms]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isOpen || isGuest || locationSource !== "office" || !selectedOfficeId) {
+      setLocationCatalog({ officeId: selectedOfficeId, rows: [], loading: false, error: null });
+      return;
+    }
+    setLocationCatalog({ officeId: selectedOfficeId, rows: [], loading: true, error: null });
+    void getOfficeLocationCatalog(selectedOfficeId).then((result) => {
+      if (cancelled) return;
+      setLocationCatalog({
+        officeId: selectedOfficeId,
+        rows: result.ok ? result.data : [],
+        loading: false,
+        error: result.ok ? null : result.error,
+      });
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, isGuest, locationSource, selectedOfficeId, locationCatalogReload, draftScope]);
+
   // This form deliberately uses a dark surface in both app themes.
   const { actionBackground: primaryColor, text: textColor, textMuted, border: borderColor, onAction: onPrimaryColor } = MOBILE_COLORS.dark;
 
@@ -302,6 +385,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     setSelectedRoom("");
     setCustomLocation("");
     setCustomRoom("");
+    setLocationDetails("");
     resetSubRequestCategory();
   }, [resetSubRequestCategory]);
 
@@ -574,52 +658,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       newBasicFieldErrors.add('requestType');
     }
 
-    // Валидация офиса или кабинета
-    if (locationSource === 'cabinet') {
-      if (!selectedCabinetRoom) newBasicFieldErrors.add('cabinet');
-    } else {
-      if (!selectedOfficeId) newBasicFieldErrors.add('office');
-    }
-
-    // Валидация блока, местонахождения и помещения (только при выборе офиса)
-    if (locationSource === 'office' && !selectedBlock) {
-      newBasicFieldErrors.add('block');
-    }
-
-    // Проверка местонахождения (только для офиса)
-    if (locationSource === 'office' && selectedBlock && selectedOfficeId) {
-      const currentOffice = offices.find(o => o.id === selectedOfficeId);
-      if (currentOffice) {
-        const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-        if (hasLocations) {
-          if (!selectedLocation || selectedLocation === "") {
-            newBasicFieldErrors.add('location');
-          } else if (selectedLocation === "Другое" && !customLocation.trim()) {
-            newBasicFieldErrors.add('customLocation');
-          }
-        }
-      }
-    }
-
-    // Проверка помещения (только для офиса)
-    if (locationSource === 'office' && selectedBlock && selectedLocation && selectedOfficeId) {
-      const currentOffice = offices.find(o => o.id === selectedOfficeId);
-      if (currentOffice) {
-        const hasRooms = hasRoomsForLocation(currentOffice.name, selectedBlock, selectedLocation === "Другое" ? "" : selectedLocation);
-        if (hasRooms) {
-          if (!selectedRoom || selectedRoom === "") {
-            newBasicFieldErrors.add('room');
-          } else if (selectedRoom === "Другое" && !customRoom.trim()) {
-            newBasicFieldErrors.add('customRoom');
-          }
-        } else if (selectedLocation !== "Другое" && selectedLocation !== "") {
-          // Если местонахождение выбрано (не "Другое"), но помещений нет в справочнике
-          if (!customRoom.trim()) {
-            newBasicFieldErrors.add('customRoom');
-          }
-        }
-      }
-    }
+    locationFieldErrors.forEach((field) => newBasicFieldErrors.add(field));
 
     // Фото опциональны — заявку можно создать без фото
 
@@ -634,7 +673,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     }
 
     setBasicFieldErrors(newBasicFieldErrors);
-  }, [requestType, selectedBlock, selectedLocation, selectedRoom, customLocation, customRoom, photos, afterPhotos, completionComment, selectedOfficeId, selectedCabinetRoom, locationSource, userRole, createMode, hasAttemptedSubmit, offices]);
+  }, [requestType, selectedBlock, selectedLocation, selectedRoom, customLocation, customRoom, photos, afterPhotos, completionComment, selectedOfficeId, selectedCabinetRoom, locationSource, userRole, createMode, hasAttemptedSubmit, offices, locationFieldErrors]);
 
   const handleGetLocation = useCallback(async () => {
     const requestId = ++locationRequestRef.current;
@@ -730,46 +769,11 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       basicFieldErrors.push('тип заявки');
     }
 
-    if (locationSource === 'cabinet') {
-      if (!selectedCabinetRoom) basicFieldErrors.push('кабинет');
-    } else {
-      if (!selectedOfficeId) basicFieldErrors.push('офис');
-      if (!selectedBlock) basicFieldErrors.push('блок');
+    if (locationFieldErrors.size > 0) {
+      setCurrentStep(locationFieldErrors.has("office") || locationFieldErrors.has("cabinet") ? 1 : 2);
+      return;
     }
-
-    const currentOffice = locationSource === 'office' ? offices.find(o => o.id === selectedOfficeId) : (selectedCabinetRoom ? { id: selectedCabinetRoom.office_id, name: '', lat: null, lon: null } : null);
-    if (locationSource === 'office' && currentOffice && selectedBlock) {
-      // Проверка местонахождения
-      const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-      if (hasLocations) {
-        if (!selectedLocation || selectedLocation === "") {
-          basicFieldErrors.push('местонахождение');
-        } else if (selectedLocation === "Другое" && !customLocation.trim()) {
-          basicFieldErrors.push('местонахождение (укажите вручную)');
-        }
-      }
-
-      // Проверка помещения
-      if (selectedLocation) {
-        const hasRooms = hasRoomsForLocation(
-          currentOffice.name,
-          selectedBlock, 
-          selectedLocation === "Другое" ? "" : selectedLocation
-        );
-        if (hasRooms) {
-          if (!selectedRoom || selectedRoom === "") {
-            basicFieldErrors.push('помещение');
-          } else if (selectedRoom === "Другое" && !customRoom.trim()) {
-            basicFieldErrors.push('помещение (укажите вручную)');
-          }
-        } else if (selectedLocation !== "Другое" && selectedLocation !== "") {
-          // Если местонахождение выбрано (не "Другое"), но помещений нет в справочнике
-          if (!customRoom.trim()) {
-            basicFieldErrors.push('помещение (укажите вручную)');
-          }
-        }
-      }
-    }
+    const currentOffice = offices.find(o => o.id === selectedOfficeId);
 
     // Фото опциональны — заявку можно создать без фото
 
@@ -866,59 +870,20 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     const locationParts: string[] = [];
     if (locationSource === 'cabinet' && selectedCabinetRoom) {
       locationParts.push(`Кабинет: ${selectedCabinetRoom.name}`);
+    } else if (blocks.length === 0) {
+      locationParts.push(locationDetails.trim());
     } else {
-      locationParts.push(`Блок: ${selectedBlock}`);
+      if (selectedBlock) locationParts.push(`Блок: ${selectedBlock}`);
+      const locationValue = hasLocations
+        ? (selectedLocation === "Другое" ? customLocation : selectedLocation)
+        : customLocation;
+      if (locationValue.trim()) locationParts.push(`Местонахождение: ${locationValue.trim()}`);
+      const roomValue = hasRooms
+        ? (selectedRoom === "Другое" ? customRoom : selectedRoom)
+        : customRoom;
+      if (roomValue.trim()) locationParts.push(`Помещение: ${roomValue.trim()}`);
     }
-    
-    // Добавляем местонахождение (только для офиса)
-    if (locationSource === 'office' && currentOffice) {
-      const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-      if (hasLocations) {
-        // Есть справочные местонахождения
-        const locationValue = selectedLocation === "Другое" ? customLocation : selectedLocation;
-        if (locationValue) {
-          locationParts.push(`Местонахождение: ${locationValue}`);
-        }
-      } else {
-        // Нет справочных местонахождений - используем customLocation если заполнено
-        if (customLocation) {
-          locationParts.push(`Местонахождение: ${customLocation}`);
-        }
-      }
-    }
-    
-    // Добавляем помещение (только для офиса)
-    if (locationSource === 'office' && currentOffice) {
-      const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-      
-      // Определяем текущее местонахождение для проверки помещений
-      let currentLocationForRooms = "";
-      if (hasLocations) {
-        currentLocationForRooms = selectedLocation === "Другое" ? "" : selectedLocation;
-      }
-      
-      const hasRooms = hasRoomsForLocation(
-        currentOffice.name,
-        selectedBlock, 
-        currentLocationForRooms
-      );
-      
-      if (hasRooms) {
-        // Есть справочные помещения
-        const roomValue = selectedRoom === "Другое" ? customRoom : selectedRoom;
-        if (roomValue) {
-          locationParts.push(`Помещение: ${roomValue}`);
-        }
-      } else {
-        // Нет справочных помещений - используем customRoom если заполнено
-        if (customRoom) {
-          locationParts.push(`Помещение: ${customRoom}`);
-        }
-      }
-    }
-
-    const locationDetailsStr = locationParts.join(', ');
-    formData.append('location_detail', locationDetailsStr);
+    formData.append('location_detail', locationParts.join(', '));
     formData.append('status', groupStatus);
     if (plannedDate) formData.append('planned_date', plannedDate);
     const officeIdToSend = locationSource === 'cabinet' && selectedCabinetRoom ? selectedCabinetRoom.office_id : selectedOfficeId;
@@ -989,32 +954,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     return selectedOfficeId !== null;
   };
 
-  const validateStep2 = (): boolean => {
-    if (locationSource === 'cabinet') return true;
-    if (!selectedBlock) return false;
-    const currentOffice = offices.find(o => o.id === selectedOfficeId);
-    if (!currentOffice) return false;
-    
-    const hasLocations = hasLocationsForBlock(currentOffice.name, selectedBlock);
-    if (hasLocations) {
-      if (!selectedLocation || selectedLocation === "") return false;
-      if (selectedLocation === "Другое" && !customLocation.trim()) return false;
-    }
-    
-    const hasRooms = hasRoomsForLocation(
-      currentOffice.name,
-      selectedBlock,
-      selectedLocation === "Другое" ? "" : selectedLocation
-    );
-    if (hasRooms) {
-      if (!selectedRoom || selectedRoom === "") return false;
-      if (selectedRoom === "Другое" && !customRoom.trim()) return false;
-    } else if (selectedLocation !== "Другое" && selectedLocation !== "") {
-      if (!customRoom.trim()) return false;
-    }
-    
-    return true;
-  };
+  const validateStep2 = (): boolean => locationFieldErrors.size === 0;
 
   const validateStep3 = (): boolean => {
     if (!requestType) return false;
@@ -1239,19 +1179,47 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     const currentOffice = offices.find(o => o.id === selectedOfficeId);
     if (!currentOffice) return null;
     
-    const blocks = getBlocksForOffice(currentOffice.name);
-    const hasLocations = selectedBlock ? hasLocationsForBlock(currentOffice.name, selectedBlock) : false;
-    const locations = hasLocations && selectedBlock ? getLocationsForBlock(currentOffice.name, selectedBlock) : [];
-    const hasRooms = selectedBlock && selectedLocation ? hasRoomsForLocation(
-      currentOffice.name,
-      selectedBlock,
-      selectedLocation === "Другое" ? "" : selectedLocation
-    ) : false;
-    const rooms = hasRooms && selectedBlock && selectedLocation ? getRoomsForLocation(
-      currentOffice.name,
-      selectedBlock,
-      selectedLocation === "Другое" ? "" : selectedLocation
-    ) : [];
+    if (locationCatalogLoading) {
+      return (
+        <div role="status" className="flex items-center gap-2 py-4 text-[#AEAEB2]">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          Загрузка локаций…
+        </div>
+      );
+    }
+    if (blocks.length === 0) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-[#AEAEB2]">{currentOffice.name}</p>
+          {locationCatalog.error ? (
+            <div role="alert" className="space-y-2 text-sm text-[#AEAEB2]">
+              <p>Не удалось загрузить локации. Повторите загрузку или укажите расположение вручную.</p>
+              <Button type="button" variant="outline" onClick={() => setLocationCatalogReload((value) => value + 1)}>
+                Повторить загрузку
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-[#AEAEB2]">Для этого офиса локации ещё не добавлены. Укажите расположение вручную.</p>
+          )}
+          <div>
+            <Label htmlFor="request-location-details" className="mb-3 block text-lg font-medium text-white">
+              Уточнение локации
+            </Label>
+            <Input
+              id="request-location-details"
+              placeholder="Например: Блок А, 2 этаж, кабинет 101"
+              value={locationDetails}
+              onChange={(event) => setLocationDetails(event.target.value)}
+              aria-invalid={hasAttemptedSubmit && locationFieldErrors.has("locationDetails")}
+              className={`h-11 w-full bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] ${hasAttemptedSubmit && locationFieldErrors.has("locationDetails") ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+            />
+            {hasAttemptedSubmit && locationFieldErrors.has("locationDetails") && (
+              <p className="mt-2 text-xs text-red-500">Пожалуйста, укажите расположение</p>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -1269,17 +1237,17 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     : 'bg-[#1E1E1E] text-white border-[#1E1E1E] hover:border-[#F35713]/50 hover:bg-[#2A2A2A]'
                 }`}
               >
-                          {block}
+                          {block || "Без блока"}
               </button>
             ))}
           </div>
-          {hasAttemptedSubmit && !selectedBlock && (
+          {hasAttemptedSubmit && locationFieldErrors.has("block") && (
             <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите блок</p>
               )}
             </div>
 
             {/* Местонахождение */}
-        {selectedBlock && hasLocations && locations.length > 0 && (
+        {blocks.includes(selectedBlock) && hasLocations && locations.length > 0 && (
                   <div>
             <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Местонахождение</Label>
             <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -1320,14 +1288,14 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                         )}
                       </div>
                     )}
-            {hasAttemptedSubmit && (!selectedLocation || selectedLocation === "") && (
+            {hasAttemptedSubmit && locationFieldErrors.has("location") && (
               <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите местонахождение</p>
                     )}
                   </div>
         )}
 
             {/* Помещение */}
-        {selectedBlock && (hasLocations ? selectedLocation : true) && (
+        {blocks.includes(selectedBlock) && (hasLocations ? selectedLocation : true) && (
                   <div>
             <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Помещение</Label>
             {hasRooms && rooms.length > 0 ? (
@@ -1363,9 +1331,9 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                           placeholder="Введите помещение"
                           value={customRoom}
                           onChange={(e) => setCustomRoom(e.target.value)}
-                      className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+                      className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && locationFieldErrors.has("customRoom") ? 'border-red-500' : 'border-[#1E1E1E]'}`}
                         />
-                    {hasAttemptedSubmit && !customRoom.trim() && (
+                    {hasAttemptedSubmit && locationFieldErrors.has("customRoom") && (
                           <p className="text-xs text-red-500 mt-1">Обязательное поле</p>
                         )}
                       </div>
@@ -1377,14 +1345,14 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       placeholder="Введите помещение"
                       value={customRoom}
                       onChange={(e) => setCustomRoom(e.target.value)}
-                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && !customRoom.trim() ? 'border-red-500' : 'border-[#1E1E1E]'}`}
+                  className={`h-[42px] w-full max-w-xs bg-[#040404] border-2 rounded-lg text-white placeholder:text-[#AEAEB2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] ${hasAttemptedSubmit && locationFieldErrors.has("customRoom") ? 'border-red-500' : 'border-[#1E1E1E]'}`}
                     />
-                {hasAttemptedSubmit && !customRoom.trim() && (
+                {hasAttemptedSubmit && locationFieldErrors.has("customRoom") && (
                       <p className="text-xs text-red-500 mt-1">Обязательное поле</p>
                 )}
               </div>
             )}
-            {hasAttemptedSubmit && hasRooms && (!selectedRoom || selectedRoom === "") && (
+            {hasAttemptedSubmit && locationFieldErrors.has("room") && (
               <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите помещение</p>
             )}
           </div>

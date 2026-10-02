@@ -37,6 +37,20 @@ export function getRoomsForFloorZone(
   return Array.from(new Set(rooms)).filter((room) => room !== "");
 }
 
+export function hasFloorZonesForBlock(rows: OfficeLocationCatalogRow[], block: string): boolean {
+  return activeRows(rows).some((r) => r.block === block && r.floor_zone !== "");
+}
+
+export function hasRoomsForFloorZone(
+  rows: OfficeLocationCatalogRow[],
+  block: string,
+  floorZone: string,
+): boolean {
+  return activeRows(rows).some(
+    (r) => r.block === block && r.floor_zone === floorZone && r.room !== "",
+  );
+}
+
 export function formatLocationBlockLabel(block: string): string {
   const trimmed = block?.trim();
   return trimmed ? `Блок ${trimmed}` : "Без блока";
