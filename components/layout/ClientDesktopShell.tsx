@@ -7,7 +7,6 @@ import { useClientDesktopSidebarNav } from "@/hooks/use-desktop-sidebar-nav";
 
 export interface ClientDesktopShellProps {
   children: React.ReactNode;
-  /** Optional right column (e.g. NotificationsSidebar) */
   rightSlot?: React.ReactNode;
 }
 
