@@ -40,6 +40,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
     handleCardClick,
     handleLoadMore,
     handleDeleteRecurringTask,
+    bulkDelete,
     lastElementRef,
   } = props;
 
@@ -106,6 +107,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
                 onCardClick={handleCardClick}
                 renderCardHeader={renderCardHeader}
                 onLoadMore={handleLoadMore}
+                bulkDelete={bulkDelete}
                 lastElementRef={lastElementRef}
               />
             </div>

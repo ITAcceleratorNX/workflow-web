@@ -12,6 +12,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useToast } from "@/hooks/use-toast";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
+import { useRequestBulkDelete } from "@/hooks/use-request-bulk-delete";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups, sortRequestGroupsByPriority } from "@/lib/request-utils";
 import {
@@ -170,6 +171,18 @@ export function useDepartmentHeadRequestsList() {
     isDataReady: !loading,
   });
 
+  const handleBulkDeleted = useCallback(
+    (ids: number[]) => {
+      if (displayRequest && ids.includes(displayRequest.id)) handleClosePanel();
+    },
+    [displayRequest, handleClosePanel],
+  );
+  const bulkDelete = useRequestBulkDelete(handleBulkDeleted);
+  const cancelBulkDelete = bulkDelete.cancel;
+  useEffect(() => {
+    cancelBulkDelete();
+  }, [activeTab, cancelBulkDelete]);
+
   const handleRefresh = useCallback(async () => {
     await fetchRequests(1);
   }, [fetchRequests]);
@@ -324,6 +337,7 @@ export function useDepartmentHeadRequestsList() {
     handleClosePanel,
     handleRequestUpdated,
     handleDeleteRecurringTask,
+    bulkDelete,
     lastElementRef,
     categories,
     executors,
