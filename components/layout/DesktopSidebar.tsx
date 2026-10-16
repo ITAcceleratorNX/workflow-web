@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelLeft, PanelLeftClose } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { formatRequestActionBadge, requestActionBadgeLabel } from "@/lib/request-action-count";
 
 export interface DesktopSidebarItem {
   key: string;
@@ -13,6 +14,8 @@ export interface DesktopSidebarItem {
   href: string;
   icon: LucideIcon;
   isActive: boolean;
+  /** Сколько заявок ждут действия пользователя; бейдж скрыт при 0. */
+  badgeCount?: number;
 }
 
 interface DesktopSidebarProps {
@@ -69,11 +72,17 @@ export function DesktopSidebar({
         >
           {items.map((item) => {
             const Icon = item.icon;
+            const badge = formatRequestActionBadge(item.badgeCount);
             return (
               <li key={item.key} className={cn("w-full", collapsed && "flex justify-center")}>
                 <Link
                   href={item.href}
                   title={collapsed ? item.label : undefined}
+                  aria-label={
+                    badge && item.badgeCount
+                      ? `${item.label}. ${requestActionBadgeLabel(item.badgeCount)}`
+                      : undefined
+                  }
                   className={cn(
                     "flex items-center rounded-lg font-medium transition-colors",
                     collapsed
@@ -84,8 +93,29 @@ export function DesktopSidebar({
                       : "text-white/80 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <Icon className="w-5 h-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <span className="relative flex shrink-0">
+                    <Icon className="w-5 h-5 shrink-0" />
+                    {badge && collapsed && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E85D2B] px-1 text-[10px] font-bold leading-none text-white ring-2 ring-[#1A1A1A]"
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </span>
+                  {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
+                  {badge && !collapsed && (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none",
+                        item.isActive ? "bg-white text-[#E85D2B]" : "bg-[#E85D2B] text-white"
+                      )}
+                    >
+                      {badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
