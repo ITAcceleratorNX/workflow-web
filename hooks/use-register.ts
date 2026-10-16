@@ -10,7 +10,7 @@ import {
   type RegistrationOffice,
   type RegistrationServiceCategory,
 } from '@/constants/registration';
-import { formatServiceCategoryDisplayName } from '@/constants/requests';
+import { formatServiceCategoryDisplayName, isExecutorServiceCategory } from '@/constants/requests';
 import { useSuccessModal } from '@/hooks/use-success-modal';
 import { api, getOfficeCompanies, getServiceCategoriesPublic } from '@/lib/api';
 import { formatPhone } from '@/lib/phone-utils';
@@ -257,10 +257,13 @@ export function useRegister() {
 
   const categoryOptions = useMemo(
     () =>
-      categories.map((c) => ({
-        value: c.id.toString(),
-        label: formatServiceCategoryDisplayName(c.name),
-      })),
+      // Категории выбирает только Исполнитель: «Администрацию» ведёт Офис-менеджер.
+      categories
+        .filter((c) => isExecutorServiceCategory(c.name))
+        .map((c) => ({
+          value: c.id.toString(),
+          label: formatServiceCategoryDisplayName(c.name),
+        })),
     [categories]
   );
 

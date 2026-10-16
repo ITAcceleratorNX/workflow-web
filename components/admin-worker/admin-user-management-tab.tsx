@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { isExecutorServiceCategory } from "@/constants/requests";
 import {
   Building2,
   ChevronRight,
@@ -97,6 +98,13 @@ function FilterPill({
   );
 }
 
+/** Категории Исполнителя для формы: «Администрацию» Исполнителю больше не назначают. */
+function executorCategoryIds(executor: ExecutorInCategory): number[] {
+  return (executor.serviceCategories ?? [])
+    .filter((c) => isExecutorServiceCategory(c.name))
+    .map((c) => c.id);
+}
+
 function applyExecutorToForm(
   executor: ExecutorInCategory,
   setters: {
@@ -107,7 +115,7 @@ function applyExecutorToForm(
   },
 ) {
   setters.setSpecialty(executor.specialty?.trim() ?? "");
-  setters.setSelectedCategoryIds(executor.serviceCategories?.map((c) => c.id) ?? []);
+  setters.setSelectedCategoryIds(executorCategoryIds(executor));
   if (setters.setFullName && executor.user?.full_name) {
     setters.setFullName(executor.user.full_name);
   }
@@ -314,8 +322,10 @@ export function AdminUserManagementTab({
         : editUser?.office_id != null
           ? Number(editUser.office_id)
           : NaN;
-    if (!Number.isFinite(oid)) return categories;
-    return categories.filter((c) => !c.office_id || Number(c.office_id) === Number(oid));
+    // «Администрацию» ведёт Офис-менеджер: Исполнителю её не назначают.
+    const forExecutor = categories.filter((c) => isExecutorServiceCategory(c.name));
+    if (!Number.isFinite(oid)) return forExecutor;
+    return forExecutor.filter((c) => !c.office_id || Number(c.office_id) === Number(oid));
   }, [categories, editUser, draftOfficeId]);
 
   const isExecutorForm = newRole === "executor";
@@ -382,7 +392,7 @@ export function AdminUserManagementTab({
     setFullName(user.full_name ?? "");
     setPhone(formatPhone(user.phone ?? ""));
     setSpecialty(executor?.specialty?.trim() ?? "");
-    setSelectedCategoryIds(executor?.serviceCategories?.map((c) => c.id) ?? []);
+    setSelectedCategoryIds(executor ? executorCategoryIds(executor) : []);
     setNewPassword("");
     setConfirmPassword("");
     setPasswordError(null);

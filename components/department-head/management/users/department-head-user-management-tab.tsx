@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { isExecutorServiceCategory } from "@/constants/requests";
 import {
   Building2,
   ChevronRight,
@@ -100,6 +101,13 @@ function FilterPill({
   );
 }
 
+/** Категории Исполнителя для формы: «Администрацию» Исполнителю больше не назначают. */
+function executorCategoryIds(executor: ExecutorInCategory): number[] {
+  return (executor.serviceCategories ?? [])
+    .filter((c) => isExecutorServiceCategory(c.name))
+    .map((c) => c.id);
+}
+
 function applyExecutorFields(
   executor: ExecutorInCategory,
   setters: {
@@ -110,7 +118,7 @@ function applyExecutorFields(
   },
 ) {
   setters.setSpecialty(executor.specialty?.trim() ?? "");
-  setters.setSelectedCategoryIds(executor.serviceCategories?.map((c) => c.id) ?? []);
+  setters.setSelectedCategoryIds(executorCategoryIds(executor));
   if (setters.setFullName && executor.user?.full_name) {
     setters.setFullName(executor.user.full_name);
   }
@@ -292,7 +300,10 @@ export function DepartmentHeadUserManagementTab() {
         byId.set(id, { id: fromExecutor.id, name: fromExecutor.name });
       }
     }
-    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    // «Администрацию» ведёт Офис-менеджер: Исполнителю её не назначают.
+    return [...byId.values()]
+      .filter((c) => isExecutorServiceCategory(c.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
   }, [categories, selectedCategoryIds, editUser]);
 
   const clearFilters = () => {
@@ -322,7 +333,7 @@ export function DepartmentHeadUserManagementTab() {
     setFullName(row.full_name ?? "");
     setPhone(formatPhone(row.phone ?? ""));
     setSpecialty(row.executor?.specialty?.trim() ?? "");
-    setSelectedCategoryIds(row.executor?.serviceCategories?.map((c) => c.id) ?? []);
+    setSelectedCategoryIds(row.executor ? executorCategoryIds(row.executor) : []);
     setDraftCompanyId(row.company_id != null ? String(row.company_id) : "");
     setNewPassword("");
     setConfirmPassword("");
