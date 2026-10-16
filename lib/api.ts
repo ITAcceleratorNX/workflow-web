@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {useAuthStore} from "@/stores/useAuthStore";
+import {isRequestStateMutation, REQUEST_ACTION_COUNT_REFRESH_EVENT} from "@/lib/request-action-count";
 
 const API_BASE_URL =
     (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) ||
@@ -27,7 +28,16 @@ if (typeof window !== 'undefined') {
 
 // Обработка ответов - если получаем 401, очищаем токен и перенаправляем на логин (кроме гостевого демо)
 api.interceptors.response.use(
-    response => response,
+    response => {
+        // Заявка сдвинулась по маршруту — бейдж «Заявки» перечитывает число.
+        if (
+            typeof window !== 'undefined' &&
+            isRequestStateMutation(response.config?.method, response.config?.url, response.config?.baseURL)
+        ) {
+            window.dispatchEvent(new Event(REQUEST_ACTION_COUNT_REFRESH_EVENT));
+        }
+        return response;
+    },
     error => {
         if (error.response?.status === 401 && !useAuthStore.getState().isGuest) {
             useAuthStore.getState().clearAuth();
