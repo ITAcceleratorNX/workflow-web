@@ -139,8 +139,8 @@ export function RedirectRequestModal({
                     isDark ? "text-white/90" : "text-gray-300"
                   )}
                 >
-                  Подзаявка будет перенаправлена руководителям категории &quot;
-                  {selectedCategory.name}&quot;
+                  Подзаявка перейдёт в категорию «{selectedCategory.name}», Исполнителя
+                  назначит Офис-менеджер
                 </span>
               </div>
             </div>

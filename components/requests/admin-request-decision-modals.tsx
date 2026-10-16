@@ -25,6 +25,10 @@ import {
   REQUESTS_DESKTOP_SELECT_TRIGGER,
 } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
+import { getExecutors, type ExecutorInCategory } from "@/lib/users-management-api";
+
+/** Значение Select «Исполнитель»: заявка уходит Офис-менеджеру. */
+const HAND_TO_DEPARTMENT_HEAD = "department-head";
 
 export type AdminAcceptRequestPayload = {
   request_type: string;
@@ -35,6 +39,8 @@ export type AdminAcceptRequestPayload = {
     sla: string | null;
     complexity: string | null;
     category_id?: number;
+    /** Прямое назначение Администратором, минуя Офис-менеджера. */
+    executors?: Array<{ id: number; role: "leader" | "executor" }>;
   }>;
 };
 
@@ -76,6 +82,10 @@ export function AdminAcceptRequestModal({
   /** category_id подзаявки в выбранном офисе (строка — значение Select). */
   const [subCategoryIds, setSubCategoryIds] = useState<Record<number, string>>({});
   const [localError, setLocalError] = useState<string | null>(null);
+  /** Исполнитель подзаявки при прямом назначении; HAND_TO_DEPARTMENT_HEAD — передать Офис-менеджеру. */
+  const [subExecutorIds, setSubExecutorIds] = useState<Record<number, string>>({});
+  /** Исполнители, которым открыт офис, по ключу `${officeId}:${categoryId}`. */
+  const [executorsByKey, setExecutorsByKey] = useState<Record<string, ExecutorInCategory[] | "loading">>({});
 
   const subRequests = useMemo(() => request?.requests ?? [], [request]);
 
@@ -120,6 +130,7 @@ export function AdminAcceptRequestModal({
     });
     setSubSettings(next);
     setSubCategoryIds({});
+    setSubExecutorIds({});
     setLocalError(null);
   }, [isOpen, request]);
 
@@ -153,7 +164,47 @@ export function AdminAcceptRequestModal({
 
   const setSubCategory = useCallback((subRequestId: number, value: string) => {
     setSubCategoryIds((prev) => ({ ...prev, [subRequestId]: value }));
+    setSubExecutorIds((prev) => ({ ...prev, [subRequestId]: HAND_TO_DEPARTMENT_HEAD }));
   }, []);
+
+  const officeNumericForExecutors = parseInt(officeId, 10);
+  const executorKeyFor = useCallback(
+    (subRequestId: number) => {
+      const categoryId = Number(subCategoryIds[subRequestId]);
+      if (!Number.isFinite(officeNumericForExecutors) || !Number.isInteger(categoryId) || categoryId <= 0) {
+        return null;
+      }
+      return `${officeNumericForExecutors}:${categoryId}`;
+    },
+    [officeNumericForExecutors, subCategoryIds],
+  );
+
+  /** Исполнители офиса заявки (выбран этот офис или «Все офисы») с категорией подзаявки. */
+  useEffect(() => {
+    if (!isOpen) return;
+    const keys = new Set(
+      subRequests.map((sr) => executorKeyFor(sr.id)).filter((k): k is string => k != null),
+    );
+    keys.forEach((key) => {
+      if (executorsByKey[key] !== undefined) return;
+      const [oid, cid] = key.split(":").map(Number);
+      setExecutorsByKey((prev) => ({ ...prev, [key]: "loading" }));
+      void getExecutors(cid, oid).then((res) => {
+        setExecutorsByKey((prev) => ({ ...prev, [key]: res.ok ? res.data : [] }));
+      });
+    });
+  }, [isOpen, subRequests, executorKeyFor, executorsByKey]);
+
+  /** При смене офиса выбранные Исполнители могут быть ему не открыты — сбрасываем выбор. */
+  useEffect(() => {
+    setSubExecutorIds({});
+  }, [officeId]);
+
+  const directAssignCount = subRequests.filter((sr) => {
+    const picked = subExecutorIds[sr.id];
+    return picked && picked !== HAND_TO_DEPARTMENT_HEAD;
+  }).length;
+  const allDirect = subRequests.length > 0 && directAssignCount === subRequests.length;
 
   if (!isOpen || !request) return null;
 
@@ -194,6 +245,9 @@ export function AdminAcceptRequestModal({
         sla: requestType === "planned" ? null : s?.sla ?? null,
         complexity: requestType === "planned" ? null : s?.complexity ?? null,
         category_id: Number(subCategoryIds[sr.id]),
+        ...(subExecutorIds[sr.id] && subExecutorIds[sr.id] !== HAND_TO_DEPARTMENT_HEAD
+          ? { executors: [{ id: Number(subExecutorIds[sr.id]), role: "leader" as const }] }
+          : {}),
       };
     });
     await onAccept({
@@ -216,7 +270,9 @@ export function AdminAcceptRequestModal({
         )}
       >
         <div className="p-4 border-b border-gray-700">
-          <DialogTitle className="text-lg font-semibold text-white">Передать Офис-менеджеру</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-white">
+            {allDirect ? "Назначить Исполнителя" : "Передать Офис-менеджеру"}
+          </DialogTitle>
           <p className="text-sm text-gray-400 mt-1">Заявка #{request.id}</p>
         </div>
         <div className="p-4 space-y-4">
@@ -282,6 +338,43 @@ export function AdminAcceptRequestModal({
                     </SelectContent>
                   </Select>
                 </div>
+                {(() => {
+                  const key = executorKeyFor(sr.id);
+                  const list = key ? executorsByKey[key] : undefined;
+                  const executorsLoading = list === "loading";
+                  const options = Array.isArray(list) ? list : [];
+                  return (
+                    <div>
+                      <Label className="text-xs text-gray-400">Исполнитель</Label>
+                      <Select
+                        value={subExecutorIds[sr.id] || HAND_TO_DEPARTMENT_HEAD}
+                        onValueChange={(v) =>
+                          setSubExecutorIds((prev) => ({ ...prev, [sr.id]: v }))
+                        }
+                        disabled={!key || executorsLoading}
+                      >
+                        <SelectTrigger className={cn(REQUESTS_DESKTOP_SELECT_TRIGGER, "h-9 mt-1")}>
+                          <SelectValue placeholder={executorsLoading ? "Загрузка..." : "Офис-менеджер"} />
+                        </SelectTrigger>
+                        <SelectContent className={REQUESTS_DESKTOP_SELECT_CONTENT}>
+                          <SelectItem value={HAND_TO_DEPARTMENT_HEAD} className={REQUESTS_DESKTOP_SELECT_ITEM}>
+                            Передать Офис-менеджеру
+                          </SelectItem>
+                          {options.map((e) => (
+                            <SelectItem key={e.id} value={String(e.id)} className={REQUESTS_DESKTOP_SELECT_ITEM}>
+                              {e.user?.full_name || `Исполнитель #${e.id}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {key && Array.isArray(list) && options.length === 0 ? (
+                        <p className="mt-1 text-xs text-gray-400">
+                          Нет Исполнителей, которым открыт этот офис и категория
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })()}
                 {requestType !== "planned" && (
                   <div className="grid grid-cols-2 gap-2">
                     <Select
@@ -347,7 +440,13 @@ export function AdminAcceptRequestModal({
             onClick={handleAccept}
             disabled={loading}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Передать"}
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : allDirect ? (
+              "Назначить"
+            ) : (
+              "Передать"
+            )}
           </Button>
         </div>
       </DialogContent>

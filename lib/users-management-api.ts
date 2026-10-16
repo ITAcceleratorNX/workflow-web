@@ -1,4 +1,5 @@
 import api, { getExecutorsByCategory as getExecutorsByCategoryRequest } from "@/lib/api";
+import { readExecutorOfficeAccess, type ExecutorOfficeAccess } from "@/lib/executor-office-access";
 
 function extractError(error: unknown): string {
   return (
@@ -16,6 +17,8 @@ export interface OfficeUser {
   office?: { id: number; name: string };
   company_id?: number | null;
   company?: { id: number; name: string } | null;
+  /** Офисы, на заявки которых Исполнителя можно назначить (только для роли executor). */
+  executor_office_access?: ExecutorOfficeAccess | null;
 }
 
 export interface ExecutorInCategory {
@@ -30,6 +33,7 @@ export interface ExecutorInCategory {
     office_id?: number;
   };
   serviceCategories?: Array<{ id: number; name: string }>;
+  office_access?: ExecutorOfficeAccess | null;
 }
 
 function normalizeManagementUser(raw: unknown): OfficeUser | null {
@@ -77,7 +81,9 @@ function normalizeManagementUser(raw: unknown): OfficeUser | null {
     const cname = typeof cc.name === "string" ? cc.name : "";
     if (Number.isFinite(cid) && cname) company = { id: cid, name: cname };
   }
-  return { id, full_name, phone, role, office_id, office, company_id, company };
+  const executor_office_access =
+    role === "executor" ? readExecutorOfficeAccess(o, office_id ?? null) : null;
+  return { id, full_name, phone, role, office_id, office, company_id, company, executor_office_access };
 }
 
 export function normalizeExecutorInCategory(raw: unknown): ExecutorInCategory | null {
@@ -139,6 +145,7 @@ export function normalizeExecutorInCategory(raw: unknown): ExecutorInCategory | 
           : undefined,
     user,
     serviceCategories,
+    office_access: readExecutorOfficeAccess(o, user?.office_id ?? null),
   };
 }
 
@@ -294,6 +301,7 @@ export async function updateUserProfile(
     office_id?: number;
     category_ids?: number[];
     company_id?: number | null;
+    office_access?: ExecutorOfficeAccess;
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
@@ -303,6 +311,7 @@ export async function updateUserProfile(
       office_id?: number;
       category_ids?: number[];
       company_id?: number | null;
+      office_access?: ExecutorOfficeAccess;
     } = {};
     if (data.full_name !== undefined) body.full_name = data.full_name.trim();
     if (data.phone !== undefined) body.phone = data.phone;
@@ -311,6 +320,7 @@ export async function updateUserProfile(
       body.category_ids = data.category_ids;
     }
     if (data.company_id !== undefined) body.company_id = data.company_id;
+    if (data.office_access !== undefined) body.office_access = data.office_access;
     await api.put(`/users/${userId}`, body);
     return { ok: true };
   } catch (error) {
@@ -345,20 +355,3 @@ export async function deleteExecutor(
   }
 }
 
-export async function changeCategoryHead(
-  categoryId: number,
-  executorId: number,
-): Promise<
-  | { ok: true; data?: { newHead?: { name: string }; processedTasks?: { message?: string } } }
-  | { ok: false; error: string }
-> {
-  try {
-    const res = await api.post<{
-      newHead?: { name: string };
-      processedTasks?: { message?: string };
-    }>(`/service-categories/${categoryId}/change-head`, { newHeadUserId: executorId });
-    return { ok: true, data: res.data };
-  } catch (error) {
-    return { ok: false, error: extractError(error) };
-  }
-}

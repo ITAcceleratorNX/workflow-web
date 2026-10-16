@@ -19,6 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 import { formatRequestDate } from "@/lib/dateTimeUtils";
 import type { Office } from "@/lib/service-categories-api";
 import {
+  isExecutorOfficeAccessValid,
+  sameExecutorOfficeAccess,
+  toggleExecutorOffice,
+  type ExecutorOfficeAccess,
+} from "@/lib/executor-office-access";
+import {
   approveRegistrationRequest,
   deleteRejectedRegistrationRequest,
   getRegistrationRequests,
@@ -108,10 +114,38 @@ export function AdminRegistrationRequestsTab({
     onRegisterRefresh?.(loadRequests);
   }, [onRegisterRefresh, loadRequests]);
 
+  // Офисы Исполнителя, выбранные до подтверждения: по умолчанию — офис из регистрации.
+  const [officeAccessByRequestId, setOfficeAccessByRequestId] = useState<
+    Record<number, ExecutorOfficeAccess>
+  >({});
+
+  const defaultOfficeAccess = useCallback(
+    (req: RegistrationRequestItem): ExecutorOfficeAccess => {
+      const oid = Number(req.office_id ?? req.office?.id);
+      return { all_offices: false, office_ids: Number.isFinite(oid) && oid > 0 ? [oid] : [] };
+    },
+    [],
+  );
+
+  const officeAccessFor = useCallback(
+    (req: RegistrationRequestItem) => officeAccessByRequestId[req.id] ?? defaultOfficeAccess(req),
+    [officeAccessByRequestId, defaultOfficeAccess],
+  );
+
   const handleApprove = useCallback(
-    async (requestId: number) => {
+    async (req: RegistrationRequestItem) => {
+      const requestId = req.id;
+      let officeAccess: ExecutorOfficeAccess | undefined;
+      if (req.role === "executor") {
+        const chosen = officeAccessFor(req);
+        if (!isExecutorOfficeAccessValid(chosen)) {
+          toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "destructive" });
+          return;
+        }
+        if (!sameExecutorOfficeAccess(chosen, defaultOfficeAccess(req))) officeAccess = chosen;
+      }
       setActionRequestId(requestId);
-      const result = await approveRegistrationRequest(requestId);
+      const result = await approveRegistrationRequest(requestId, officeAccess);
       if (result.ok) {
         toast({
           title: "Успешно",
@@ -123,7 +157,7 @@ export function AdminRegistrationRequestsTab({
       }
       setActionRequestId(null);
     },
-    [toast, loadRequests],
+    [toast, loadRequests, officeAccessFor, defaultOfficeAccess],
   );
 
   const handleReject = useCallback(
@@ -321,12 +355,52 @@ export function AdminRegistrationRequestsTab({
                 Дата: {formatRequestDate(req.created_at)}
               </p>
 
+              {req.status === "pending" && req.role === "executor" && offices.length > 0 ? (
+                <div className="mt-3">
+                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Офисы для назначения
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[{ id: 0, name: "Все офисы" }, ...offices].map((o) => {
+                      const access = officeAccessFor(req);
+                      const isAll = o.id === 0;
+                      const active = isAll
+                        ? access.all_offices
+                        : !access.all_offices && access.office_ids.includes(Number(o.id));
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() =>
+                            setOfficeAccessByRequestId((prev) => ({
+                              ...prev,
+                              [req.id]: isAll
+                                ? access.all_offices
+                                  ? defaultOfficeAccess(req)
+                                  : { all_offices: true, office_ids: [] }
+                                : toggleExecutorOffice(access, Number(o.id)),
+                            }))
+                          }
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                            active
+                              ? "border-[#F35713] bg-[rgba(243,87,19,0.2)] text-[#F35713]"
+                              : "border-border text-foreground"
+                          }`}
+                        >
+                          {o.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {req.status === "pending" ? (
                 <>
                   <div className="mt-3 flex gap-3">
                     <button
                       type="button"
-                      onClick={() => handleApprove(req.id)}
+                      onClick={() => handleApprove(req)}
                       disabled={actionRequestId === req.id}
                       className="flex flex-1 items-center justify-center rounded-xl border-[1.5px] border-green-600 bg-green-500/10 py-2.5 text-sm font-semibold text-green-600 disabled:opacity-50 dark:text-green-400"
                     >

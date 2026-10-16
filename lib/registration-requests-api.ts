@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import type { ExecutorOfficeAccess } from "@/lib/executor-office-access";
 
 function extractError(error: unknown): string {
   return (
@@ -80,9 +81,14 @@ export async function getRegistrationRequests(filters?: {
 
 export async function approveRegistrationRequest(
   requestId: number,
+  /** Офисы Исполнителя (только Администратор); без них открыт офис из регистрации. */
+  officeAccess?: ExecutorOfficeAccess,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await api.put(`/registration-requests/${requestId}/approve`);
+    await api.put(
+      `/registration-requests/${requestId}/approve`,
+      officeAccess ? { office_access: officeAccess } : undefined,
+    );
     return { ok: true };
   } catch (error) {
     return { ok: false, error: extractError(error) };

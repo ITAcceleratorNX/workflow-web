@@ -330,12 +330,22 @@ export function RequestDetails({
         location_detail: payload.location_detail,
         office_id: payload.office_id,
       });
-      toast({ title: "Заявка передана офис-менеджеру" });
+      const direct = payload.sub_requests.filter((sr) => sr.executors?.length).length;
+      toast({
+        title:
+          direct === 0
+            ? "Заявка передана офис-менеджеру"
+            : direct === payload.sub_requests.length
+              ? "Исполнитель назначен"
+              : "Исполнители назначены, остальное передано офис-менеджеру",
+      });
       setShowAcceptGroupModal(false);
       onRequestUpdated?.();
       onClose();
-    } catch {
-      setAdminModalError("Ошибка при принятии заявки");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message;
+      setAdminModalError(message || "Ошибка при принятии заявки");
     } finally {
       setIsSubmitting(false);
     }
@@ -906,7 +916,7 @@ export function RequestDetails({
                     className="h-auto min-h-11 w-full min-w-0 whitespace-normal py-3 border-white/20 text-white hover:bg-white/10"
                   >
                     <Send className="w-4 h-4" />
-                    Передать офис-менеджеру
+                    Передать или назначить
                   </Button>
                 </div>
                 <Button

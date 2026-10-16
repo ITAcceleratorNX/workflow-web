@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Building2,
-  ChevronDown,
   ChevronRight,
   Filter,
   Loader2,
   Phone,
   Search,
-  Star,
   Users,
   X,
 } from "lucide-react";
@@ -22,11 +20,9 @@ import type { Company } from "@/lib/companies-api";
 import { getOfficeCompanies } from "@/lib/companies-api";
 import type { Office, ServiceCategory } from "@/lib/service-categories-api";
 import {
-  changeCategoryHead,
   changeUserPassword,
   getExecutorByUserId,
   getExecutors,
-  getExecutorsByCategory,
   getUsersForManagement,
   updateExecutor,
   updateUserProfile,
@@ -35,6 +31,13 @@ import {
   type OfficeUser,
 } from "@/lib/users-management-api";
 import { useAuthStore } from "@/stores/useAuthStore";
+import {
+  formatExecutorOfficeAccess,
+  isExecutorOfficeAccessValid,
+  sameExecutorOfficeAccess,
+  toggleExecutorOffice,
+  type ExecutorOfficeAccess,
+} from "@/lib/executor-office-access";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Клиент",
@@ -152,14 +155,11 @@ export function AdminUserManagementTab({
   const [companyFilterId, setCompanyFilterId] = useState("");
   const [companiesByOfficeId, setCompaniesByOfficeId] = useState<Record<number, Company[]>>({});
   const [draftCompanyId, setDraftCompanyId] = useState("");
+  const [draftOfficeAccess, setDraftOfficeAccess] = useState<ExecutorOfficeAccess>({
+    all_offices: false,
+    office_ids: [],
+  });
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [executors, setExecutors] = useState<ExecutorInCategory[]>([]);
-  const [selectedExecutorId, setSelectedExecutorId] = useState<number | null>(null);
-  const [isLoadingExecutors, setIsLoadingExecutors] = useState(false);
-  const [isChangingHead, setIsChangingHead] = useState(false);
-  const [changeHeadError, setChangeHeadError] = useState<string | null>(null);
-  const [showCategoryHeadPanel, setShowCategoryHeadPanel] = useState(false);
   const isDesktop = useIsDesktop();
 
   const loadUsers = useCallback(async () => {
@@ -261,25 +261,6 @@ export function AdminUserManagementTab({
     onRegisterRefresh?.(loadUsers);
   }, [onRegisterRefresh, loadUsers]);
 
-  useEffect(() => {
-    if (!selectedCategoryId) {
-      setExecutors([]);
-      setSelectedExecutorId(null);
-      return;
-    }
-    setIsLoadingExecutors(true);
-    setChangeHeadError(null);
-    getExecutorsByCategory(selectedCategoryId).then((res) => {
-      if (res.ok) {
-        setExecutors(res.data.filter((e) => e.user?.role === "executor"));
-      } else {
-        setExecutors([]);
-        setChangeHeadError("Не удалось загрузить исполнителей");
-      }
-      setIsLoadingExecutors(false);
-    });
-  }, [selectedCategoryId]);
-
   const stats = useMemo(() => {
     const byRole: Record<string, number> = {};
     for (const u of officeUsers) {
@@ -348,8 +329,16 @@ export function AdminUserManagementTab({
 
   const selectDraftOffice = useCallback(
     (id: string) => {
+      const prevOid = Number(draftOfficeId);
       setDraftOfficeId(id);
       const oidNum = Number(id);
+      // Основной офис Исполнителя меняется и в выборе офисов, остальные офисы остаются.
+      setDraftOfficeAccess((prev) => {
+        if (prev.all_offices || !Number.isFinite(oidNum) || oidNum <= 0) return prev;
+        const ids = prev.office_ids.filter((x) => x !== prevOid);
+        if (!ids.includes(oidNum)) ids.push(oidNum);
+        return { all_offices: false, office_ids: ids.sort((a, b) => a - b) };
+      });
       setSelectedCategoryIds((prev) => {
         if (!Number.isFinite(oidNum)) return prev;
         return prev.filter((catId) => {
@@ -362,7 +351,7 @@ export function AdminUserManagementTab({
         void loadCompaniesForOffice(oidNum);
       }
     },
-    [categories, loadCompaniesForOffice],
+    [categories, draftOfficeId, loadCompaniesForOffice],
   );
 
   const selectRole = (roleId: string) => {
@@ -384,6 +373,12 @@ export function AdminUserManagementTab({
     setNewRole(user.role);
     setDraftOfficeId(user.office_id != null ? String(user.office_id) : "");
     setDraftCompanyId(user.company_id != null ? String(user.company_id) : "");
+    setDraftOfficeAccess(
+      user.executor_office_access ?? {
+        all_offices: false,
+        office_ids: user.office_id != null ? [Number(user.office_id)] : [],
+      },
+    );
     setFullName(user.full_name ?? "");
     setPhone(formatPhone(user.phone ?? ""));
     setSpecialty(executor?.specialty?.trim() ?? "");
@@ -407,6 +402,7 @@ export function AdminUserManagementTab({
     setSelectedCategoryIds([]);
     setDraftOfficeId("");
     setDraftCompanyId("");
+    setDraftOfficeAccess({ all_offices: false, office_ids: [] });
     setPasswordError(null);
     setRoleError(null);
   };
@@ -454,6 +450,10 @@ export function AdminUserManagementTab({
         });
         return;
       }
+      if (!isExecutorOfficeAccessValid(draftOfficeAccess)) {
+        toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "destructive" });
+        return;
+      }
     }
 
     const initialOfficeNumeric =
@@ -494,6 +494,25 @@ export function AdminUserManagementTab({
     const companyChanged =
       !roleChanged && newRole === "client" && draftCompanyNumeric !== initialCompanyId;
 
+    // При переводе Исполнителя в другой основной офис сервер заменяет в выборе прежний офис
+    // новым, поэтому сравниваем с тем, что получится после этой замены.
+    const accessAfterOfficeChange: ExecutorOfficeAccess | null = (() => {
+      if (initialRole !== "executor" || !editUser.executor_office_access) {
+        return Number.isFinite(draftOfficeNumeric)
+          ? { all_offices: false, office_ids: [draftOfficeNumeric] }
+          : Number.isFinite(initialOfficeNumeric)
+            ? { all_offices: false, office_ids: [initialOfficeNumeric] }
+            : null;
+      }
+      const current = editUser.executor_office_access;
+      if (!officeChanged || current.all_offices) return current;
+      const ids = current.office_ids.filter((id) => id !== initialOfficeNumeric);
+      if (!ids.includes(draftOfficeNumeric)) ids.push(draftOfficeNumeric);
+      return { all_offices: false, office_ids: ids };
+    })();
+    const officeAccessChanged =
+      isExecutorForm && !sameExecutorOfficeAccess(draftOfficeAccess, accessAfterOfficeChange);
+
     if (
       !passwordFilled &&
       !officeChanged &&
@@ -501,7 +520,8 @@ export function AdminUserManagementTab({
       !needsUserProfileUpdate &&
       !executorFieldsChanged &&
       !promotingToExecutor &&
-      !companyChanged
+      !companyChanged &&
+      !officeAccessChanged
     ) {
       toast({ title: "Нет изменений" });
       return;
@@ -585,29 +605,19 @@ export function AdminUserManagementTab({
       }
     }
 
+    if (officeAccessChanged) {
+      const accessRes = await updateUserProfile(editUser.id, { office_access: draftOfficeAccess });
+      if (!accessRes.ok) {
+        setSaving(false);
+        setRoleError(accessRes.error);
+        return;
+      }
+    }
+
     setSaving(false);
     toast({ title: "Сохранено" });
     closeEdit();
     loadUsers();
-  };
-
-  const handleChangeCategoryHead = async () => {
-    if (!selectedCategoryId || !selectedExecutorId) return;
-    setChangeHeadError(null);
-    setIsChangingHead(true);
-    const result = await changeCategoryHead(selectedCategoryId, selectedExecutorId);
-    if (result.ok) {
-      const msg = result.data?.newHead?.name
-        ? `Новый руководитель: ${result.data.newHead.name}`
-        : "Руководитель изменён";
-      toast({ title: "Готово", description: msg });
-      setSelectedCategoryId(null);
-      setSelectedExecutorId(null);
-      setExecutors([]);
-    } else {
-      setChangeHeadError(result.error);
-    }
-    setIsChangingHead(false);
   };
 
   const companyFilterList = (() => {
@@ -793,7 +803,13 @@ export function AdminUserManagementTab({
                   {user.phone}
                 </div>
               ) : null}
-              {!officeFilterId && user.office?.name ? (
+              {user.role === "executor" && user.executor_office_access ? (
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {formatExecutorOfficeAccess(user.executor_office_access, offices) ||
+                    user.office?.name}
+                </div>
+              ) : !officeFilterId && user.office?.name ? (
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Building2 className="h-3.5 w-3.5" />
                   {user.office.name}
@@ -809,95 +825,6 @@ export function AdminUserManagementTab({
           ))}
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={() => setShowCategoryHeadPanel((v) => !v)}
-        className="mt-2 flex w-full items-center justify-between rounded-xl border border-border bg-card p-3.5"
-      >
-        <div className="flex items-center gap-2.5 text-left">
-          <Star className="h-5 w-5 text-[#F35713]" />
-          <div>
-            <p className="font-semibold text-foreground">Руководитель категории</p>
-            <p className="text-xs text-muted-foreground">
-              Назначить исполнителя руководителем категории услуг
-            </p>
-          </div>
-        </div>
-        <ChevronDown
-          className={`h-5 w-5 text-muted-foreground transition-transform ${showCategoryHeadPanel ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {showCategoryHeadPanel ? (
-        <div className="space-y-3 rounded-xl border border-border bg-card p-3.5">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Категория</p>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((c) => {
-              const active = selectedCategoryId === c.id;
-              return (
-                <FilterPill
-                  key={c.id}
-                  active={active}
-                  label={c.name}
-                  onClick={() => {
-                    setSelectedCategoryId(active ? null : c.id);
-                    setSelectedExecutorId(null);
-                  }}
-                />
-              );
-            })}
-          </div>
-
-          {selectedCategoryId ? (
-            <>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Исполнитель</p>
-              {isLoadingExecutors ? (
-                <Loader2 className="mx-auto my-3 h-6 w-6 animate-spin text-[#F35713]" />
-              ) : executors.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Нет исполнителей в этой категории</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {executors.map((e) => {
-                    const active = selectedExecutorId === e.id;
-                    return (
-                      <button
-                        key={e.id}
-                        type="button"
-                        onClick={() => setSelectedExecutorId(active ? null : e.id)}
-                        className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold ${
-                          active
-                            ? "border-[#F35713] bg-[#F35713] text-white"
-                            : "border-border text-foreground"
-                        }`}
-                      >
-                        {e.user?.full_name ?? `Исполнитель #${e.id}`}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          ) : null}
-
-          {changeHeadError ? (
-            <p className="text-sm text-destructive">{changeHeadError}</p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={handleChangeCategoryHead}
-            disabled={!selectedCategoryId || !selectedExecutorId || isChangingHead}
-            className="flex w-full items-center justify-center rounded-xl bg-[#F35713] py-3 font-semibold text-white disabled:opacity-50"
-          >
-            {isChangingHead ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Назначить руководителя"
-            )}
-          </button>
-        </div>
-      ) : null}
 
       <ManagementModalShell
         open={editUser != null}
@@ -965,8 +892,54 @@ export function AdminUserManagementTab({
                 {roleError ? <p className="mt-1 text-sm text-destructive">{roleError}</p> : null}
               </div>
 
+              {isExecutorForm && sortedOffices.length > 0 ? (
+                <div>
+                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Офис</p>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    На заявки каких офисов можно назначать Исполнителя. «Все офисы» включает и
+                    новые офисы.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <FilterPill
+                      active={draftOfficeAccess.all_offices}
+                      label="Все офисы"
+                      onClick={() =>
+                        setDraftOfficeAccess((prev) =>
+                          prev.all_offices
+                            ? {
+                                all_offices: false,
+                                office_ids: draftOfficeId ? [Number(draftOfficeId)] : [],
+                              }
+                            : { all_offices: true, office_ids: [] },
+                        )
+                      }
+                    />
+                    {sortedOffices.map((o) => (
+                      <FilterPill
+                        key={o.id}
+                        active={
+                          !draftOfficeAccess.all_offices &&
+                          draftOfficeAccess.office_ids.includes(Number(o.id))
+                        }
+                        label={o.name}
+                        onClick={() =>
+                          setDraftOfficeAccess((prev) => toggleExecutorOffice(prev, Number(o.id)))
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Офис</p>
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                  {isExecutorForm ? "Основной офис" : "Офис"}
+                </p>
+                {isExecutorForm ? (
+                  <p className="-mt-1 mb-2 text-xs text-muted-foreground">
+                    Определяет категории услуг и Офис-менеджера Исполнителя.
+                  </p>
+                ) : null}
                 {["department-head", "manager", "admin-worker"].includes(editUser.role) ? (
                   <p className="text-sm text-muted-foreground">
                     Для пользователей с этой ролью смена офиса здесь недоступна.

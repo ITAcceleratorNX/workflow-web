@@ -110,9 +110,6 @@ export const getExecutorsBySpecialty = (specialty: string) =>
 export const assignExecutorToCategory = (categoryId: number, executorId: number) =>
     api.post(`/service-categories/${categoryId}/assign-executor`, { executorId });
 
-// Сменить руководителя категории
-export const changeCategoryHead = (categoryId: number, newHeadUserId: number) =>
-    api.post(`/service-categories/${categoryId}/change-head`, { newHeadUserId });
 
 
 // ==================== Offices ====================

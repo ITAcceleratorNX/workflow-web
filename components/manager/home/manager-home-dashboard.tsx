@@ -40,7 +40,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import Header from "@/app/header/Header";
-import api, { createServiceCategory, deleteServiceCategory, getExecutorsByCategory, getOfficeUsers, changeUserPassword, changeCategoryHead, type Office as ApiOffice } from "@/lib/api";
+import api, { createServiceCategory, deleteServiceCategory, getExecutorsByCategory, getOfficeUsers, changeUserPassword, type Office as ApiOffice } from "@/lib/api";
 import {CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip as TooltipForTabs} from "recharts";
 import {format, isAfter, subDays, subMonths, subYears} from "date-fns";
 import {useNotificationStore} from "@/stores/notificationStore";
@@ -381,12 +381,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const [newRole, setNewRole] = useState("");
   const [isChangingRole, setIsChangingRole] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
-  const [selectedCategoryForHead, setSelectedCategoryForHead] = useState<number | null>(null);
-  const [selectedExecutorForHead, setSelectedExecutorForHead] = useState<number | null>(null);
-  const [availableExecutorsForHead, setAvailableExecutorsForHead] = useState<{ id: number; user?: { full_name: string }; specialty: string }[]>([]);
-  const [isLoadingExecutorsForHead, setIsLoadingExecutorsForHead] = useState(false);
-  const [isChangingHead, setIsChangingHead] = useState(false);
-  const [changeHeadError, setChangeHeadError] = useState<string | null>(null);
 
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
@@ -1789,27 +1783,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       .catch(() => setOfficeUsers([]));
   }, [isDesktop, effectiveTab, user?.office_id]);
 
-  // Загрузка исполнителей категории для смены руководителя
-  useEffect(() => {
-    if (!selectedCategoryForHead) {
-      setAvailableExecutorsForHead([]);
-      setSelectedExecutorForHead(null);
-      return;
-    }
-    setIsLoadingExecutorsForHead(true);
-    setChangeHeadError(null);
-    getExecutorsByCategory(selectedCategoryForHead)
-      .then((res) => {
-        const list = (res.data || []).filter((e: any) => e.user?.role === "executor");
-        setAvailableExecutorsForHead(list);
-      })
-      .catch(() => {
-        setChangeHeadError("Не удалось загрузить исполнителей");
-        setAvailableExecutorsForHead([]);
-      })
-      .finally(() => setIsLoadingExecutorsForHead(false));
-  }, [selectedCategoryForHead]);
-
   const handleChangePasswordForUser = async () => {
     if (!selectedUserForPassword || !newPassword.trim()) return;
     if (newPassword !== confirmPassword) {
@@ -1851,28 +1824,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setRoleError(err?.response?.data?.error || "Ошибка при смене роли");
     } finally {
       setIsChangingRole(false);
-    }
-  };
-
-  const handleChangeCategoryHead = async () => {
-    if (!selectedCategoryForHead || !selectedExecutorForHead) return;
-    setIsChangingHead(true);
-    setChangeHeadError(null);
-    try {
-      const response = await changeCategoryHead(selectedCategoryForHead, selectedExecutorForHead);
-      let message = `Новый руководитель: ${response.data?.newHead?.name || "назначен"}`;
-      if (response.data?.processedTasks?.message) {
-        message += `\n\n${response.data.processedTasks.message}`;
-      }
-      toast({ title: "Руководитель изменён", description: message });
-      setSelectedCategoryForHead(null);
-      setSelectedExecutorForHead(null);
-      setAvailableExecutorsForHead([]);
-      if (token) fetchCategories(token);
-    } catch (err: any) {
-      setChangeHeadError(err?.response?.data?.message || "Не удалось сменить руководителя");
-    } finally {
-      setIsChangingHead(false);
     }
   };
 
@@ -3296,11 +3247,11 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление пользователями</CardTitle>
-                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей, смена пароля, роли и руководителя категории</CardDescription>
+                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей, смена пароля и роли</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4 mb-8">
-                  {/* Смена пароля, смена роли, руководитель категории */}
+                  {/* Смена пароля и роли */}
                   {isDesktop && (
                     <div className="space-y-6 pb-6 border-b border-white/10">
                       <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
@@ -3361,47 +3312,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                           <Button onClick={handleChangeRoleForUser} disabled={!selectedUserForRole || !newRole || isChangingRole} size="sm" className={mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}>{isChangingRole ? "..." : "Изменить роль"}</Button>
                         </div>
                         {roleError && <p className={`text-xs mt-2 ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{roleError}</p>}
-                      </div>
-
-                      <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
-                        <h4 className={`text-sm font-semibold mb-3 ${mgmtTitleCl}`}>Руководитель категории</h4>
-                        <div className="flex flex-wrap gap-3 items-end">
-                          <div className="space-y-1 min-w-[180px]">
-                            <Label className={mgmtLabelCl}>Категория</Label>
-                            <Select value={selectedCategoryForHead?.toString() || ""} onValueChange={(v) => { const id = parseInt(v); setSelectedCategoryForHead(id || null); setSelectedExecutorForHead(null); }} disabled={isLoadingExecutorsForHead || isChangingHead}>
-                              <SelectTrigger className={mgmtInputCl}><SelectValue placeholder="Выберите категорию" /></SelectTrigger>
-                              <SelectContent>
-                                {categories.map((c) => (
-                                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {selectedCategoryForHead && (
-                            <div className="space-y-1 min-w-[200px]">
-                              <Label className={mgmtLabelCl}>Новый руководитель</Label>
-                              <Select value={selectedExecutorForHead?.toString() || ""} onValueChange={(v) => setSelectedExecutorForHead(v ? parseInt(v) : null)} disabled={isLoadingExecutorsForHead}>
-                                <SelectTrigger className={mgmtInputCl}>
-                                  <SelectValue placeholder={isLoadingExecutorsForHead ? "Загрузка..." : "Исполнитель"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availableExecutorsForHead.length === 0 && !isLoadingExecutorsForHead ? (
-                                    <SelectItem value="none" disabled>Нет исполнителей</SelectItem>
-                                  ) : (
-                                    availableExecutorsForHead.map((e) => (
-                                      <SelectItem key={e.id} value={e.id.toString()}>{e.user?.full_name} — {e.specialty}</SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                          <Button onClick={handleChangeCategoryHead} disabled={!selectedCategoryForHead || !selectedExecutorForHead || isChangingHead} size="sm" className={mgmtBtnPrimary || "bg-[#E85D2B] hover:bg-[#E85D2B]/90 text-white"}>{isChangingHead ? "..." : "Сменить руководителя"}</Button>
-                          {(selectedCategoryForHead || selectedExecutorForHead) && (
-                            <Button variant="outline" size="sm" onClick={() => { setSelectedCategoryForHead(null); setSelectedExecutorForHead(null); setAvailableExecutorsForHead([]); }} disabled={isChangingHead}>Сбросить</Button>
-                          )}
-                        </div>
-                        {changeHeadError && <p className={`text-xs mt-2 ${mgmtDark ? "text-red-400" : "text-red-600"}`}>{changeHeadError}</p>}
                       </div>
                     </div>
                   )}
