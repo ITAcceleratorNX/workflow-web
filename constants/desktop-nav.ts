@@ -179,6 +179,8 @@ export function isAdminManagerDesktopNavActive(
 
   switch (item.key) {
     case 'dashboard':
+      // Задачи открываются с главной роли — общий экран /client/tasks.
+      if (path.startsWith('/client/tasks')) return true;
       return role === 'admin-worker'
         ? path === '/admin-worker'
         : role === 'manager'
