@@ -48,7 +48,7 @@ export function RequestTypeChips({ userRole, value, onChange, themeOverride }: R
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(t.value)}
-            className="px-3.5 py-2.5 rounded-[10px] border text-[13px] font-medium min-h-11 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="px-3.5 py-2.5 rounded-[10px] border text-[13px] font-medium min-h-11 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{
               borderColor: selected ? primary : border,
               backgroundColor: selected ? primary : "transparent",

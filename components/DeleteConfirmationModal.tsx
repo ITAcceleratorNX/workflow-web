@@ -67,7 +67,7 @@ export function DeleteConfirmationModal({
             </AlertDialogCancel>
             <AlertDialogAction
                 className={cn(
-                  "w-full sm:w-auto sm:min-w-[100px] h-12 sm:h-10 rounded-lg font-medium transition-all duration-200 focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 text-base sm:text-sm order-1 sm:order-2 shadow-sm",
+                  "w-full sm:w-auto sm:min-w-[100px] h-12 sm:h-10 rounded-lg font-medium transition-all duration-200 focus:ring-2 focus:ring-neutral-500 text-base sm:text-sm order-1 sm:order-2 shadow-sm",
                   confirmText.includes("Забронировать") || confirmText.includes("бронирова")
                     ? "bg-[#E85D2B] hover:bg-[#D94F15] text-white"
                     : isDark
