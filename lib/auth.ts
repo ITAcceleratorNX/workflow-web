@@ -21,6 +21,7 @@ export interface AuthUser {
   service_category_id?: number;
   company_id?: number | null;
   company?: { id: number; name: string } | null;
+  notification_email?: string | null;
 }
 
 function parseAuthError(data: unknown, fallback: string): string {
