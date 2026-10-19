@@ -14,12 +14,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
   );
 }
 
-/** Первая ошибка поля из ответа `{ error, details: [{ field, message }] }`. */
-function getFieldErrorMessage(error: unknown): string | undefined {
-  return (error as { response?: { data?: { details?: { message?: string }[] } } })?.response?.data
-    ?.details?.[0]?.message;
-}
-
 /** Свой профиль (любая роль): ФИО, телефон, должность. */
 export async function updateProfile(data: {
   full_name: string;
@@ -55,6 +49,16 @@ export async function sendEmailVerificationCode(email: string): Promise<ProfileA
   }
 }
 
+/** Удалить свой email: уведомления на почту больше не приходят. */
+export async function removeEmail(): Promise<ProfileApiResult> {
+  try {
+    await api.delete("/users/email");
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: getErrorMessage(error, "Не удалось удалить email") };
+  }
+}
+
 export async function verifyEmailCode(code: string): Promise<ProfileApiResult> {
   try {
     await verify(code);
@@ -74,40 +78,5 @@ export async function updateNotificationsSettings(data: {
     return { ok: true };
   } catch (error) {
     return { ok: false, error: "Ошибка при сохранении настроек" };
-  }
-}
-
-type NotificationEmailResult =
-  | { ok: true; notificationEmail: string | null }
-  | { ok: false; error: string };
-
-/**
- * «Email для уведомлений» администратора из `GET /users/me`.
- * undefined — запрос не удался или сервер не вернул поле: локальное значение не трогаем.
- */
-export async function fetchNotificationEmail(): Promise<string | null | undefined> {
-  try {
-    const { data } = await api.get<{ notification_email?: string | null }>("/users/me");
-    return data?.notification_email;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Администратор (admin-worker): адрес для писем о новых заявках; null — очистить. */
-export async function updateNotificationEmail(
-  email: string | null,
-): Promise<NotificationEmailResult> {
-  try {
-    const { data } = await api.put<{ notification_email: string | null }>(
-      "/users/me/notification-email",
-      { notification_email: email },
-    );
-    return { ok: true, notificationEmail: data?.notification_email ?? null };
-  } catch (error) {
-    return {
-      ok: false,
-      error: getFieldErrorMessage(error) || getErrorMessage(error, "Не удалось сохранить email"),
-    };
   }
 }

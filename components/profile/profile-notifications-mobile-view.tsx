@@ -10,7 +10,6 @@ import { createClickableRequestIds } from "@/lib/notificationUtils";
 import { formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useProfilePage } from "@/hooks/use-profile-page";
-import { NotificationEmailSection } from "./notification-email-section";
 
 /** Mobile notification settings + list — из legacy /profile notifications tab. */
 export function ProfileNotificationsMobileView() {
@@ -93,8 +92,6 @@ export function ProfileNotificationsMobileView() {
           </Button>
           {notificationError && <p className="text-sm text-[#F35713]">{notificationError}</p>}
         </div>
-
-        {user.role === "admin-worker" && <NotificationEmailSection variant="mobile" />}
 
         <div className="rounded-xl border border-[#212121] p-5 space-y-4">
           <h2 className="text-lg font-semibold text-white">Все уведомления</h2>

@@ -7,6 +7,7 @@ import {
   changePassword,
   sendEmailVerificationCode,
   updateNotificationsSettings,
+  removeEmail,
   updateProfile,
   verifyEmailCode,
 } from "@/lib/profile-api";
@@ -14,6 +15,7 @@ import { formatPhone } from "@/lib/phone-utils";
 import { getRequestNavigationUrl } from "@/lib/requestNavigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { confirmAction } from "@/stores/confirm-dialog-store";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useStatsStore } from "@/stores/statsStore";
@@ -47,6 +49,7 @@ export function useProfilePage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isRemovingEmail, setIsRemovingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [emailSuccess, setEmailSuccess] = useState("");
 
@@ -63,8 +66,10 @@ export function useProfilePage() {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
+  // Поле показывает сохранённый email и сбрасывается вслед за ним (в том числе после удаления);
+  // стёртое пользователем поле остаётся пустым, а не подставляет старый адрес.
   useEffect(() => {
-    if (user?.email) setEmail(user.email);
+    setEmail(user?.email ?? "");
   }, [user?.email]);
 
   useEffect(() => {
@@ -223,7 +228,7 @@ export function useProfilePage() {
   }, [toast, user]);
 
   const handleSendVerificationCode = useCallback(async () => {
-    const emailToSend = email || user?.email;
+    const emailToSend = email.trim();
     if (!emailToSend) {
       setEmailError("Введите email");
       return;
@@ -255,6 +260,39 @@ export function useProfilePage() {
     toast({ title: "Успешно", description: "Код верификации отправлен на email" });
   }, [email, isGuest, toast, user?.email, user?.email_verified]);
 
+  const handleRemoveEmail = useCallback(async () => {
+    if (!user?.email || isRemovingEmail) return;
+    const confirmed = await confirmAction({
+      title: "Удалить email?",
+      message:
+        role === "admin-worker"
+          ? "Письма о новых заявках и другие уведомления на почту перестанут приходить. Указать email можно снова в любой момент."
+          : "Уведомления на почту перестанут приходить. Указать email можно снова в любой момент.",
+      confirmLabel: "Удалить",
+      cancelLabel: "Отмена",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    if (!isGuest) {
+      setIsRemovingEmail(true);
+      setEmailError("");
+      setEmailSuccess("");
+      const result = await removeEmail();
+      setIsRemovingEmail(false);
+      if (!result.ok) {
+        setEmailError(result.error);
+        return;
+      }
+    }
+
+    updateUser((prev) => (prev ? { ...prev, email: undefined, email_verified: false } : null));
+    setVerificationCode("");
+    setEmailError("");
+    setEmailSuccess("");
+    toast({ title: "Успешно", description: "Email удалён" });
+  }, [isGuest, isRemovingEmail, role, toast, updateUser, user?.email]);
+
   const handleVerifyEmail = useCallback(async () => {
     if (!verificationCode || verificationCode.length !== 6) {
       setEmailError("Введите 6-значный код");
@@ -262,7 +300,7 @@ export function useProfilePage() {
     }
 
     if (isGuest) {
-      const emailToUpdate = email || user?.email;
+      const emailToUpdate = email.trim() || user?.email;
       updateUser((prev) =>
         prev ? { ...prev, email: emailToUpdate ?? "", email_verified: true } : null,
       );
@@ -282,7 +320,7 @@ export function useProfilePage() {
       return;
     }
 
-    const emailToUpdate = email || user?.email;
+    const emailToUpdate = email.trim() || user?.email;
     updateUser((prev) =>
       prev ? { ...prev, email: emailToUpdate ?? "", email_verified: true } : null,
     );
@@ -323,8 +361,14 @@ export function useProfilePage() {
     [role, router],
   );
 
+  const isEmailBusy = isSendingCode || isVerifying || isRemovingEmail;
+  /** «Код»: есть адрес и он не совпадает с уже подтверждённым. */
+  const canSendEmailCode =
+    !isEmailBusy && email.trim() !== "" && !(user?.email_verified && email.trim() === user?.email);
+  const canRemoveEmail = !isEmailBusy && Boolean(user?.email);
+
   const showEmailVerificationBlock =
-    Boolean(email || user?.email) &&
+    Boolean(email.trim() || user?.email) &&
     (!user?.email_verified || emailSuccess?.includes("Код верификации отправлен"));
 
   return {
@@ -353,6 +397,10 @@ export function useProfilePage() {
     setVerificationCode,
     isSendingCode,
     isVerifying,
+    isRemovingEmail,
+    isEmailBusy,
+    canSendEmailCode,
+    canRemoveEmail,
     emailError,
     emailSuccess,
     setEmailError,
@@ -371,6 +419,7 @@ export function useProfilePage() {
     handleSaveNotifications,
     handleSendVerificationCode,
     handleVerifyEmail,
+    handleRemoveEmail,
     handleNotificationClick,
     handleRequestClick,
     loadMoreNotifications,

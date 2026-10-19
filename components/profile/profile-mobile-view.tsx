@@ -11,6 +11,7 @@ import {
   Phone,
   Settings,
   Tag,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,10 @@ export function ProfileMobileView({
   setVerificationCode,
   isSendingCode,
   isVerifying,
+  isRemovingEmail,
+  isEmailBusy,
+  canSendEmailCode,
+  canRemoveEmail,
   emailError,
   emailSuccess,
   setEmailError,
@@ -55,6 +60,7 @@ export function ProfileMobileView({
   handleSaveProfile,
   handleSendVerificationCode,
   handleVerifyEmail,
+  handleRemoveEmail,
 }: ProfileMobileViewProps) {
   if (!user) return null;
 
@@ -182,29 +188,43 @@ export function ProfileMobileView({
                 </div>
                 <Input
                   type="email"
-                  value={email || user.email || ""}
+                  value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     setEmailError("");
                     setEmailSuccess("");
                   }}
                   className={inputClass}
-                  disabled={isSendingCode || isVerifying}
+                  placeholder="example@mail.com"
+                  disabled={isEmailBusy}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleSendVerificationCode}
-                  disabled={
-                    isSendingCode ||
-                    isVerifying ||
-                    (!email && !user.email) ||
-                    (user.email_verified && (email || user.email) === user.email)
-                  }
-                  className="h-10 border-[#3A3A3C] text-white"
-                >
-                  {isSendingCode ? "Отправка..." : "Код"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSendVerificationCode}
+                    disabled={!canSendEmailCode}
+                    className="h-10 flex-1 border-[#3A3A3C] text-white"
+                  >
+                    {isSendingCode ? "Отправка..." : "Код"}
+                  </Button>
+                  {user.email && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleRemoveEmail}
+                      disabled={!canRemoveEmail}
+                      className="h-10 border-[#3A3A3C] text-red-400 hover:text-red-300"
+                    >
+                      {isRemovingEmail ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      Удалить email
+                    </Button>
+                  )}
+                </div>
                 {emailSuccess && <p className="text-xs text-green-400">{emailSuccess}</p>}
                 {emailError && <p className="text-xs text-[#F35713]">{emailError}</p>}
                 {showEmailVerificationBlock && (

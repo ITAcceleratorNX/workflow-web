@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Loader2, Lock, Save } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogsViewer } from "@/components/logs-viewer";
 import { ROLE_TRANSLATIONS } from "@/constants/profile";
 import { useProfilePage } from "@/hooks/use-profile-page";
-import { NotificationEmailSection } from "./notification-email-section";
 
 const sectionCl = "text-sm text-white/80";
 const fieldCl =
@@ -27,6 +26,10 @@ export function ProfileDesktopSection() {
     setVerificationCode,
     isSendingCode,
     isVerifying,
+    isRemovingEmail,
+    isEmailBusy,
+    canSendEmailCode,
+    canRemoveEmail,
     emailError,
     emailSuccess,
     setEmailError,
@@ -54,6 +57,7 @@ export function ProfileDesktopSection() {
     handleSaveNotifications,
     handleSendVerificationCode,
     handleVerifyEmail,
+    handleRemoveEmail,
   } = profile;
 
   const showLogsTab = ["admin-worker", "manager", "department-head"].includes(user?.role || "");
@@ -151,7 +155,7 @@ export function ProfileDesktopSection() {
                     <div className="flex gap-2">
                       <Input
                         type="email"
-                        value={email || user.email || ""}
+                        value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           setEmailError("");
@@ -159,23 +163,32 @@ export function ProfileDesktopSection() {
                         }}
                         className={`flex-1 ${fieldCl}`}
                         placeholder="example@mail.com"
-                        disabled={isSendingCode || isVerifying}
+                        disabled={isEmailBusy}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={handleSendVerificationCode}
-                        disabled={
-                          isSendingCode ||
-                          isVerifying ||
-                          (!email && !user.email) ||
-                          (user.email_verified && (email || user.email) === user.email)
-                        }
+                        disabled={!canSendEmailCode}
                         className="shrink-0 border-[#E85D2B]/50 text-[#E85D2B] hover:bg-[#E85D2B]/10"
                       >
                         {isSendingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "Код"}
                       </Button>
+                      {user.email && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveEmail}
+                          disabled={!canRemoveEmail}
+                          aria-label="Удалить email"
+                          title="Удалить email"
+                          className="shrink-0 border-white/10 text-white/70 hover:bg-red-500/10 hover:text-red-400"
+                        >
+                          {isRemovingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      )}
                     </div>
                     {showEmailVerificationBlock && (
                       <div className="flex gap-2 mt-2">
@@ -336,7 +349,6 @@ export function ProfileDesktopSection() {
               </Button>
               {notificationError && <p className="text-sm text-[#E85D2B]">{notificationError}</p>}
             </div>
-            {user.role === "admin-worker" && <NotificationEmailSection variant="desktop" />}
           </TabsContent>
 
           {showLogsTab && (

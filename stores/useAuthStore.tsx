@@ -31,8 +31,6 @@ interface User {
     company?: Company | null;
     /** Должность — информационный текст, пользователь заполняет сам. */
     position?: string | null;
-    /** Только у admin-worker: адрес для писем о новых заявках; null — письма не отправляются. */
-    notification_email?: string | null;
 }
 
 interface AuthState {
