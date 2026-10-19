@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogsViewer } from "@/components/logs-viewer";
 import { ROLE_TRANSLATIONS } from "@/constants/profile";
 import { useProfilePage } from "@/hooks/use-profile-page";
+import { NotificationEmailSection } from "./notification-email-section";
 
 const sectionCl = "text-sm text-white/80";
 const fieldCl =
@@ -335,6 +336,7 @@ export function ProfileDesktopSection() {
               </Button>
               {notificationError && <p className="text-sm text-[#E85D2B]">{notificationError}</p>}
             </div>
+            {user.role === "admin-worker" && <NotificationEmailSection variant="desktop" />}
           </TabsContent>
 
           {showLogsTab && (
