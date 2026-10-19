@@ -7,7 +7,7 @@ import type { UseClientRequestDetailResult } from "@/hooks/use-client-request-de
 
 type ClientRequestDetailMobileProps = Pick<
   UseClientRequestDetailResult,
-  "request" | "loading" | "error" | "handleClose" | "handleRequestUpdated" | "handleDelete"
+  "request" | "loading" | "error" | "handleClose" | "handleRequestUpdated"
 >;
 
 /** Mobile detail — parity с workflow-mobile `(tabs)/requests/[id].tsx` (client). */
@@ -17,7 +17,6 @@ export function ClientRequestDetailMobile({
   error,
   handleClose,
   handleRequestUpdated,
-  handleDelete,
 }: ClientRequestDetailMobileProps) {
   if (loading) {
     return (
@@ -49,7 +48,6 @@ export function ClientRequestDetailMobile({
         hideFullModeButton
         userRole="client"
         fullModeRedirectBase="/client"
-        onDelete={handleDelete}
       />
     </div>
   );

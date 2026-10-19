@@ -24,7 +24,6 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
     clientRatings,
     handleLoadMore,
     handleRequestUpdated,
-    handleDeleteSubRequest,
     handleCardClick,
     displayRequest,
     handleClosePanel,
@@ -45,7 +44,6 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
     isDesktop,
     onViewDetails: handleCardClick,
     onRateRequest: openRateModal,
-    onDelete: handleDeleteSubRequest,
   });
 
   return (
@@ -88,7 +86,6 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
               hideFullModeButton
               userRole="client"
               fullModeRedirectBase="/client"
-              onDelete={handleDeleteSubRequest}
               onRateRequest={openRateModal}
               embedInPanel
             />

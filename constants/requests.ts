@@ -10,8 +10,10 @@ export const STATUS_LABELS: Record<string, string> = {
   in_progress: 'В обработке',
   awaiting_assignment: 'Ожидает назначения',
   execution: 'Исполнение',
+  awaiting_admin_review: 'На проверке',
+  awaiting_confirmation: 'Ожидает подтверждения',
   assigned: 'Назначена',
-  rejected: 'Отклонено',
+  rejected: 'Отклонена',
   cancelled: 'Отменено',
 };
 
@@ -70,6 +72,8 @@ export function getStatusOptionsForRole(
     { value: 'in_progress', label: 'В обработке' },
     { value: 'awaiting_assignment', label: 'Ожидает назначения' },
     { value: 'execution', label: 'Исполнение' },
+    { value: 'awaiting_admin_review', label: 'На проверке' },
+    { value: 'awaiting_confirmation', label: 'Ожидает подтверждения' },
     { value: 'completed', label: 'Завершено' },
     { value: 'overdue', label: 'Просроченные' },
   ];
@@ -78,32 +82,32 @@ export function getStatusOptionsForRole(
     case 'client':
       return [
         ...base.filter((o) => o.value !== 'overdue'),
-        { value: 'rejected', label: 'Отклонено' },
+        { value: 'rejected', label: 'Отклонена' },
       ];
     case 'admin-worker':
       return [
         ...base,
         { value: 'assigned', label: 'Назначен' },
         { value: 'long_term', label: 'Долгосрочные' },
-        { value: 'rejected', label: 'Отклонено' },
+        { value: 'rejected', label: 'Отклонена' },
       ];
     case 'department-head':
       return [
         ...base,
-        { value: 'rejected', label: 'Отклонено' },
+        { value: 'rejected', label: 'Отклонена' },
         { value: 'long_term', label: 'Долгосрочные' },
       ];
     case 'executor':
       return [
         ...base,
         { value: 'long_term', label: 'Долгосрочные' },
-        { value: 'rejected', label: 'Отклонено' },
+        { value: 'rejected', label: 'Отклонена' },
       ];
     case 'manager':
       return [
         ...base,
         { value: 'long_term', label: 'Долгосрочные' },
-        { value: 'rejected', label: 'Отклонено' },
+        { value: 'rejected', label: 'Отклонена' },
       ];
     default:
       return base;

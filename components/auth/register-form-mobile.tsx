@@ -29,7 +29,7 @@ function MobileSelect({
       aria-label={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-12 w-full appearance-none rounded-lg border border-input bg-transparent px-4 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="h-12 w-full appearance-none rounded-lg border border-input bg-transparent px-4 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <option value="" disabled className="bg-background text-muted-foreground">
         {placeholder}

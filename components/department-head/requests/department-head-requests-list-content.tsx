@@ -5,8 +5,6 @@ import { Loader2 } from "lucide-react";
 import { RequestListFeedback, type RequestListFeedbackProps } from "@/components/requests/request-list-feedback";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { RequestCard } from "@/components/requests";
-import { RequestBulkDeleteBar, RequestSelectWrapper } from "@/components/requests/request-bulk-delete-bar";
-import type { RequestBulkDelete } from "@/hooks/use-request-bulk-delete";
 import { cn } from "@/lib/utils";
 import {
   DEPARTMENT_HEAD_EMPTY_MESSAGES,
@@ -24,8 +22,6 @@ interface DepartmentHeadRequestsListContentProps extends RequestListFeedbackProp
   onLoadMore: () => void;
   variant?: "mobile" | "desktop";
   lastElementRef?: React.RefObject<HTMLDivElement | null>;
-  /** Выбор и удаление заявок; без него карточки только открываются. */
-  bulkDelete?: RequestBulkDelete;
 }
 
 export function DepartmentHeadRequestsListContent({
@@ -43,7 +39,6 @@ export function DepartmentHeadRequestsListContent({
   onLoadMore,
   variant = "mobile",
   lastElementRef,
-  bulkDelete,
 }: DepartmentHeadRequestsListContentProps) {
   const isDesktop = variant === "desktop";
   const emptyMessage = DEPARTMENT_HEAD_EMPTY_MESSAGES[activeTab] ?? "Нет заявок";
@@ -51,21 +46,17 @@ export function DepartmentHeadRequestsListContent({
   return (
     <>
       <RequestListFeedback loading={loading} error={error} isFiltered={isFiltered} onRetry={onRetry} onResetFilters={onResetFilters} count={requests.length} emptyMessage={emptyMessage} />
-      {bulkDelete && !loading ? (
-        <RequestBulkDeleteBar bulk={bulkDelete} visibleIds={requests.map((r) => r.id)} variant={variant} />
-      ) : null}
       {requests.map((request, index) => (
-        <RequestSelectWrapper key={request.id} bulk={bulkDelete} requestId={request.id}>
-          <RequestCard
-            request={request}
-            onCardClick={() => (bulkDelete?.active ? bulkDelete.toggle(request.id) : onCardClick(request))}
-            renderCardHeader={renderCardHeader}
-            isLast={index === requests.length - 1}
-            lastElementRef={index === requests.length - 1 ? lastElementRef : null}
-            userRole="department-head"
-            variant="compact"
-          />
-        </RequestSelectWrapper>
+        <RequestCard
+          key={request.id}
+          request={request}
+          onCardClick={() => onCardClick(request)}
+          renderCardHeader={renderCardHeader}
+          isLast={index === requests.length - 1}
+          lastElementRef={index === requests.length - 1 ? lastElementRef : null}
+          userRole="department-head"
+          variant="compact"
+        />
       ))}
       {hasMore && (
         <div className={cn("flex justify-center pt-4", !isDesktop && "pb-2")}>

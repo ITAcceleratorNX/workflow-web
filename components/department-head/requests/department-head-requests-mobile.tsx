@@ -39,7 +39,6 @@ function MobileTabPanel({
   isFiltered,
   onRetry,
   onResetFilters,
-  bulkDelete,
 }: {
   error: string | null;
   isFiltered: boolean;
@@ -60,7 +59,6 @@ function MobileTabPanel({
   renderCardHeader: ReturnType<typeof useDepartmentHeadRequestCardHeader>;
   onLoadMore: () => void;
   lastElementRef: React.RefObject<HTMLDivElement | null>;
-  bulkDelete: UseDepartmentHeadRequestsListResult["bulkDelete"];
 }) {
   return (
     <div className="space-y-4">
@@ -91,7 +89,6 @@ function MobileTabPanel({
           renderCardHeader={renderCardHeader}
           onLoadMore={onLoadMore}
           lastElementRef={lastElementRef}
-          bulkDelete={bulkDelete}
         />
       </div>
     </div>
@@ -120,7 +117,6 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
     handleCardClick,
     handleLoadMore,
     handleDeleteRecurringTask,
-    bulkDelete,
     lastElementRef,
   } = props;
 
@@ -163,7 +159,6 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
               renderCardHeader={renderCardHeader}
               onLoadMore={handleLoadMore}
               lastElementRef={lastElementRef}
-              bulkDelete={bulkDelete}
             />
           )}
 
@@ -188,7 +183,6 @@ export function DepartmentHeadRequestsMobile(props: DepartmentHeadRequestsMobile
               renderCardHeader={renderCardHeader}
               onLoadMore={handleLoadMore}
               lastElementRef={lastElementRef}
-              bulkDelete={bulkDelete}
             />
           )}
 

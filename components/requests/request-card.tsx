@@ -143,7 +143,7 @@ function RequestCardComponent({
     return (
       <div
         ref={isLast ? lastElementRef : null}
-        className="flex items-center gap-4 rounded-lg bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex items-center gap-4 rounded-lg bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -209,7 +209,7 @@ function RequestCardComponent({
   return (
     <Card
       ref={isLast ? lastElementRef : null}
-      className={`${cardClassName} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+      className={`${cardClassName} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
       onClick={handleClick}
       role="button"
       tabIndex={0}

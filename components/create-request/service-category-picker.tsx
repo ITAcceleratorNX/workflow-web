@@ -85,7 +85,7 @@ export function ServiceCategoryPicker({
             type="button"
             aria-pressed={selected}
             onClick={() => onSelect(c)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl border text-left min-h-11 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="w-full flex items-center gap-3 p-3 rounded-xl border text-left min-h-11 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{
               borderColor: selected ? primary : border,
               backgroundColor: selected ? `${primary}18` : cardBg,

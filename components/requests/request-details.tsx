@@ -24,9 +24,14 @@ import Executors from "@/components/Executors";
 import {
   AdminAcceptRequestModal,
   AdminRejectRequestModal,
+  ClientRemarkModal,
+  DeleteRequestModal,
   StaffCompleteModal,
   type AdminAcceptRequestPayload,
 } from "./admin-request-decision-modals";
+import { RequestRejectionInfo } from "./request-rejection-info";
+import { RequestClosureInfo } from "./request-closure-info";
+import { confirmAction } from "@/stores/confirm-dialog-store";
 import { EditRequestGroupModal, type UpdateRequestGroupPayload } from "./edit-request-group-modal";
 import { RequestActionMenu } from "./request-action-menu-sheet";
 import { RequestDetailMobileBody } from "./request-detail-mobile-body";
@@ -80,6 +85,9 @@ const getStatusIcon = (status: string) => {
     case "awaiting_assignment":
     case "awaiting_sla":
       return <Clock className="w-4 h-4 text-[#B8400E]" />;
+    case "awaiting_admin_review":
+    case "awaiting_confirmation":
+      return <Clock className="w-4 h-4 text-[#F35713]" />;
     case "assigned":
       return <User className="w-4 h-4 text-[#114A65]" />;
     case "rejected":
@@ -179,6 +187,8 @@ export function RequestDetails({
 
   const [showAcceptGroupModal, setShowAcceptGroupModal] = useState(false);
   const [showRejectGroupModal, setShowRejectGroupModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showStaffCompleteModal, setShowStaffCompleteModal] = useState(false);
   const [staffCompleteCount, setStaffCompleteCount] = useState(0);
@@ -267,6 +277,64 @@ export function RequestDetails({
     }
   };
 
+  /** Администратор подтверждает работы, отмеченные Исполнителем, — заявка уходит Клиенту. */
+  const handleAdminConfirmWork = async () => {
+    const ok = await confirmAction({
+      title: "Подтвердить выполнение?",
+      message: "Заявка уйдёт Клиенту на подтверждение. Если он не ответит в течение 24 часов, она закроется автоматически.",
+      confirmLabel: "Подтвердить",
+      cancelLabel: "Отмена",
+    });
+    if (!ok) return;
+    try {
+      setIsSubmitting(true);
+      await api.patch(`/request-groups/${selectedRequest.id}/confirm-work`);
+      toast({ title: "Выполнение подтверждено", description: "Заявка передана Клиенту на подтверждение" });
+      onRequestUpdated?.();
+    } catch (err: any) {
+      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /** Клиент принимает результат; после закрытия можно оценить работу — необязательно. */
+  const handleClientConfirm = async () => {
+    const ok = await confirmAction({
+      title: "Подтвердить выполнение?",
+      message: "Заявка будет завершена. После этого вы сможете оценить работу — это необязательно.",
+      confirmLabel: "Подтвердить",
+      cancelLabel: "Отмена",
+    });
+    if (!ok) return;
+    try {
+      setIsSubmitting(true);
+      await api.patch(`/request-groups/${selectedRequest.id}/client-confirm`);
+      toast({ title: "Заявка завершена", description: "Спасибо! Оценить работу можно в меню заявки." });
+      onRequestUpdated?.();
+    } catch (err: any) {
+      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /** «Есть замечания»: заявка возвращается на доработку. */
+  const handleClientRemark = async (remark: string) => {
+    try {
+      setIsSubmitting(true);
+      setAdminModalError(null);
+      await api.patch(`/request-groups/${selectedRequest.id}/client-remark`, { remark });
+      toast({ title: "Замечания отправлены", description: "Заявка возвращена на доработку" });
+      setShowRemarkModal(false);
+      onRequestUpdated?.();
+    } catch (err: any) {
+      setAdminModalError(err?.response?.data?.message || "Не удалось отправить замечания");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   /** Взять административную заявку в работу без назначения исполнителя. */
   const handleStaffStartRequest = async (subReq: SubRequest) => {
     try {
@@ -302,11 +370,10 @@ export function RequestDetails({
           comment: completionComment,
         });
       }
+      // Отметка выполнения заявку не закрывает: её подтверждает Клиент (или система через 24 часа).
       toast({
-        title:
-          userRoleProp === "department-head"
-            ? "Заявка завершена"
-            : "Заявка завершена администратором",
+        title: "Выполнение отмечено",
+        description: "Заявка передана Клиенту на подтверждение",
       });
       setShowStaffCompleteModal(false);
       onRequestUpdated?.();
@@ -472,14 +539,25 @@ export function RequestDetails({
     }
   };
 
-  const handleDeleteSubRequest = async (subRequestToDelete: SubRequest) => {
+  /** Удаление доступно только Руководителю: заявка удаляется логически, целиком. */
+  const openDeleteModal = () => {
+    setAdminModalError(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteRequest = async (reason: string | null) => {
     try {
-      await api.delete(`/requests/${subRequestToDelete.id}`);
-      toast({ title: "Подзаявка удалена" });
+      setIsSubmitting(true);
+      setAdminModalError(null);
+      await api.delete(`/request-groups/${selectedRequest.id}`, { data: { reason } });
+      toast({ title: "Заявка удалена", description: "Запись сохранена в журнале удалений" });
+      setShowDeleteModal(false);
       onClose();
       onRequestUpdated?.();
-    } catch (error) {
-      toast({ title: "Ошибка при удалении", variant: "destructive" });
+    } catch {
+      setAdminModalError("Не удалось удалить заявку");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -577,7 +655,7 @@ export function RequestDetails({
                 setShowClientRatingModal(true);
               }
         }
-        onDelete={onDeleteProp ?? handleDeleteSubRequest}
+        onDelete={onDeleteProp ?? openDeleteModal}
         onToggleLongTerm={onToggleLongTermProp ?? handleToggleLongTerm}
         onAssignExecutor={
           onAssignExecutorProp
@@ -602,6 +680,12 @@ export function RequestDetails({
         }
         onCompleteTask={onCompleteTaskProp ? (sr) => onCompleteTaskProp(sr) : undefined}
         onOpenComments={() => setShowComments(subRequest.id)}
+        onAdminConfirmWork={userRoleProp === "admin-worker" ? () => void handleAdminConfirmWork() : undefined}
+        onClientConfirm={() => void handleClientConfirm()}
+        onClientRemark={() => {
+          setAdminModalError(null);
+          setShowRemarkModal(true);
+        }}
         onAdminAcceptGroup={
           userRoleProp === "admin-worker" && selectedRequest.status === "in_progress"
             ? () => {
@@ -713,6 +797,9 @@ export function RequestDetails({
                 </span>
               )}
             </div>
+
+            <RequestRejectionInfo request={selectedRequest} userRole={userRoleProp} dark />
+            <RequestClosureInfo request={selectedRequest} isAuthor={selectedRequest.client_id === user?.id} dark />
 
             {selectedRequest.request_type === "planned" &&
               selectedRequest.planned_date && (
@@ -1154,6 +1241,29 @@ export function RequestDetails({
           setAdminModalError(null);
         }}
         onReject={handleAdminRejectFromModal}
+      />
+
+      <ClientRemarkModal
+        isOpen={showRemarkModal}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowRemarkModal(false);
+          setAdminModalError(null);
+        }}
+        onSubmit={handleClientRemark}
+      />
+
+      <DeleteRequestModal
+        isOpen={showDeleteModal}
+        count={1}
+        loading={isSubmitting}
+        error={adminModalError}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setAdminModalError(null);
+        }}
+        onDelete={handleDeleteRequest}
       />
 
       <StaffCompleteModal

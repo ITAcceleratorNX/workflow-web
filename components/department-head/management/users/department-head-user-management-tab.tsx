@@ -1,12 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import {
-  formatExecutorSpecialty,
-  formatServiceCategoryName,
-  isExecutorServiceCategory,
-} from "@/constants/requests";
 import {
   Building2,
   ChevronRight,
@@ -19,33 +13,30 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import {
+  FilterPill,
+  OFFICE_STAFF_ROLES,
+  USER_ROLE_LABELS as ROLE_LABELS,
+  UserEditModal,
+} from "@/components/admin-worker/management/users/user-edit-modal";
+import {
+  formatExecutorSpecialty,
+  formatServiceCategoryName,
+} from "@/constants/requests";
 import { useToast } from "@/hooks/use-toast";
-import { formatPhone } from "@/lib/phone-utils";
 import type { Company } from "@/lib/companies-api";
 import { getOfficeCompanies } from "@/lib/companies-api";
 import type { ServiceCategory } from "@/lib/service-categories-api";
 import { getServiceCategories } from "@/lib/service-categories-api";
 import {
-  changeUserPassword,
   deleteExecutor,
-  getExecutorByUserId,
   getExecutors,
   getUsersForManagement,
-  updateExecutor,
-  updateUserProfile,
-  updateUserRole,
   type ExecutorInCategory,
   type OfficeUser,
 } from "@/lib/users-management-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const ROLE_LABELS: Record<string, string> = {
-  client: "Клиент",
-  executor: "Исполнитель",
-};
-
-const OFFICE_STAFF_ROLES = ["client", "executor"] as const;
 type OfficeStaffRole = (typeof OFFICE_STAFF_ROLES)[number];
 type RoleFilter = "all" | OfficeStaffRole;
 type SortOption = "name-asc" | "name-desc" | "role";
@@ -81,56 +72,6 @@ function userMatchesSearch(row: OfficeUserRow, query: string) {
   return `${haystack} ${categoryNames}`.includes(query);
 }
 
-function FilterPill({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
-        active
-          ? "border-[#F35713] bg-[rgba(243,87,19,0.2)] text-[#F35713]"
-          : "border-border text-foreground"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-/** Категории Исполнителя для формы: «Администрацию» Исполнителю больше не назначают. */
-function executorCategoryIds(executor: ExecutorInCategory): number[] {
-  return (executor.serviceCategories ?? [])
-    .filter((c) => isExecutorServiceCategory(c.name))
-    .map((c) => c.id);
-}
-
-function applyExecutorFields(
-  executor: ExecutorInCategory,
-  setters: {
-    setSpecialty: (v: string) => void;
-    setSelectedCategoryIds: (v: number[]) => void;
-    setFullName?: (v: string) => void;
-    setPhone?: (v: string) => void;
-  },
-) {
-  setters.setSpecialty(formatExecutorSpecialty(executor.specialty));
-  setters.setSelectedCategoryIds(executorCategoryIds(executor));
-  if (setters.setFullName && executor.user?.full_name) {
-    setters.setFullName(executor.user.full_name);
-  }
-  if (setters.setPhone && executor.user?.phone) {
-    setters.setPhone(formatPhone(executor.user.phone));
-  }
-}
-
 export function DepartmentHeadUserManagementTab() {
   const { toast } = useToast();
   const officeId = useAuthStore((s) => s.user?.office_id);
@@ -148,20 +89,6 @@ export function DepartmentHeadUserManagementTab() {
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
 
   const [editUser, setEditUser] = useState<OfficeUserRow | null>(null);
-  const [selectedRole, setSelectedRole] = useState<OfficeStaffRole>("client");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("+7 ");
-  const [specialty, setSpecialty] = useState("");
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [draftCompanyId, setDraftCompanyId] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(typeof document !== "undefined");
-  }, []);
 
   const load = useCallback(async () => {
     if (!officeId) {
@@ -222,41 +149,6 @@ export function DepartmentHeadUserManagementTab() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!editUser || selectedRole !== "executor") return;
-    if (editUser.executor) {
-      applyExecutorFields(editUser.executor, {
-        setSpecialty,
-        setSelectedCategoryIds,
-        setFullName,
-        setPhone,
-      });
-      return;
-    }
-    if (editUser.role !== "executor") {
-      setSpecialty("");
-      setSelectedCategoryIds([]);
-      return;
-    }
-    let cancelled = false;
-    void getExecutorByUserId(editUser.id).then((res) => {
-      if (cancelled || !res.ok) return;
-      applyExecutorFields(res.data, {
-        setSpecialty,
-        setSelectedCategoryIds,
-        setFullName,
-        setPhone,
-      });
-      setUsers((prev) =>
-        prev.map((u) => (u.id === editUser.id ? { ...u, executor: res.data } : u)),
-      );
-      setEditUser((prev) => (prev ? { ...prev, executor: res.data } : prev));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [editUser, selectedRole]);
-
   const stats = useMemo(() => {
     const clients = users.filter((u) => u.role === "client").length;
     const executors = users.filter((u) => u.role === "executor").length;
@@ -295,21 +187,6 @@ export function DepartmentHeadUserManagementTab() {
     return list;
   }, [users, searchQuery, roleFilter, categoryFilterId, sortBy]);
 
-  const formCategories = useMemo(() => {
-    const byId = new Map(categories.map((c) => [c.id, c]));
-    for (const id of selectedCategoryIds) {
-      if (byId.has(id)) continue;
-      const fromExecutor = editUser?.executor?.serviceCategories?.find((c) => c.id === id);
-      if (fromExecutor) {
-        byId.set(id, { id: fromExecutor.id, name: fromExecutor.name });
-      }
-    }
-    // «Администрацию» ведёт Офис-менеджер: Исполнителю её не назначают.
-    return [...byId.values()]
-      .filter((c) => isExecutorServiceCategory(c.name))
-      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
-  }, [categories, selectedCategoryIds, editUser]);
-
   const clearFilters = () => {
     setSearchQuery("");
     setRoleFilter("all");
@@ -318,54 +195,7 @@ export function DepartmentHeadUserManagementTab() {
     setSortBy("name-asc");
   };
 
-  const closeEdit = () => {
-    setEditUser(null);
-    setSelectedRole("client");
-    setFullName("");
-    setPhone("+7 ");
-    setSpecialty("");
-    setSelectedCategoryIds([]);
-    setDraftCompanyId("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setPasswordError(null);
-  };
-
-  const openEdit = (row: OfficeUserRow) => {
-    setEditUser(row);
-    setSelectedRole(row.role === "executor" ? "executor" : "client");
-    setFullName(row.full_name ?? "");
-    setPhone(formatPhone(row.phone ?? ""));
-    setSpecialty(formatExecutorSpecialty(row.executor?.specialty));
-    setSelectedCategoryIds(row.executor ? executorCategoryIds(row.executor) : []);
-    setDraftCompanyId(row.company_id != null ? String(row.company_id) : "");
-    setNewPassword("");
-    setConfirmPassword("");
-    setPasswordError(null);
-  };
-
-  const selectRole = (r: OfficeStaffRole) => {
-    setSelectedRole(r);
-    if (r === "executor" && editUser) {
-      if (editUser.executor) {
-        applyExecutorFields(editUser.executor, {
-          setSpecialty,
-          setSelectedCategoryIds,
-          setFullName,
-          setPhone,
-        });
-      } else if (editUser.role !== "executor") {
-        setSpecialty("");
-        setSelectedCategoryIds([]);
-      }
-    }
-  };
-
-  const toggleCategory = (id: number) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
+  const openEdit = (row: OfficeUserRow) => setEditUser(row);
 
   const handleDelete = async (row: OfficeUserRow) => {
     if (!row.executor) return;
@@ -379,304 +209,28 @@ export function DepartmentHeadUserManagementTab() {
     }
   };
 
-  const handleSave = async () => {
-    if (!editUser) return;
-    setPasswordError(null);
+  const companiesByOfficeId = useMemo<Record<number, Company[]>>(
+    () => (officeId ? { [Number(officeId)]: companies } : {}),
+    [officeId, companies],
+  );
 
-    const passwordFilled = newPassword.trim().length > 0;
-    if (passwordFilled) {
-      if (newPassword !== confirmPassword) {
-        setPasswordError("Пароли не совпадают");
-        return;
-      }
-      if (newPassword.length < 6) {
-        setPasswordError("Пароль должен содержать минимум 6 символов");
-        return;
-      }
-    }
+  const editModal = (
+    <UserEditModal
+      user={editUser}
+      scope="office"
+      offices={[]}
+      categories={categories}
+      executor={editUser?.executor}
+      onExecutorLoaded={(userId, executor) => {
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, executor } : u)));
+        setEditUser((prev) => (prev && prev.id === userId ? { ...prev, executor } : prev));
+      }}
+      companiesByOfficeId={companiesByOfficeId}
+      onClose={() => setEditUser(null)}
+      onSaved={() => void load()}
+    />
+  );
 
-    const isExecutorForm = selectedRole === "executor";
-    const basicProfileChanged =
-      fullName.trim() !== (editUser.full_name ?? "").trim() ||
-      phone !== formatPhone(editUser.phone ?? "");
-
-    if (!fullName.trim()) {
-      toast({ title: "Укажите ФИО", variant: "destructive" });
-      return;
-    }
-
-    if (isExecutorForm) {
-      if (!specialty.trim() || selectedCategoryIds.length === 0) {
-        toast({
-          title: "Укажите специальность и хотя бы одну категорию",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    const initialRole = editUser.role as OfficeStaffRole;
-    const roleChanged = initialRole !== selectedRole;
-    const promotingToExecutor = roleChanged && selectedRole === "executor";
-    const demotingToClient = roleChanged && selectedRole === "client";
-    const needsUserProfileUpdate = basicProfileChanged && !isExecutorForm;
-
-    const initialCompanyId = editUser.company_id != null ? Number(editUser.company_id) : null;
-    const draftCompanyNumeric =
-      draftCompanyId.trim() !== "" && Number.isFinite(Number(draftCompanyId))
-        ? Number(draftCompanyId)
-        : null;
-    const companyChanged =
-      !roleChanged && selectedRole === "client" && draftCompanyNumeric !== initialCompanyId;
-
-    if (
-      !passwordFilled &&
-      !roleChanged &&
-      !needsUserProfileUpdate &&
-      !companyChanged &&
-      !(isExecutorForm && editUser.executor && !demotingToClient)
-    ) {
-      const executorOnlyProfileChange =
-        isExecutorForm && editUser.executor && !demotingToClient && basicProfileChanged;
-      if (!executorOnlyProfileChange) {
-        toast({ title: "Нет изменений" });
-        return;
-      }
-    }
-
-    setSaving(true);
-
-    if (passwordFilled) {
-      const pwdRes = await changeUserPassword(editUser.id, newPassword);
-      if (!pwdRes.ok) {
-        setSaving(false);
-        setPasswordError(pwdRes.error);
-        return;
-      }
-    }
-
-    if (roleChanged) {
-      const roleRes = await updateUserRole(editUser.id, selectedRole, {
-        category_ids: promotingToExecutor ? selectedCategoryIds : undefined,
-        specialty: promotingToExecutor ? specialty.trim() : undefined,
-      });
-      if (!roleRes.ok) {
-        setSaving(false);
-        toast({ title: "Ошибка", description: roleRes.error, variant: "destructive" });
-        return;
-      }
-    }
-
-    if (needsUserProfileUpdate || companyChanged) {
-      const profileBody: {
-        full_name?: string;
-        phone?: string;
-        company_id?: number | null;
-      } = {};
-      if (needsUserProfileUpdate) {
-        profileBody.full_name = fullName.trim();
-        profileBody.phone = phone;
-      }
-      if (companyChanged) profileBody.company_id = draftCompanyNumeric;
-      const profileRes = await updateUserProfile(editUser.id, profileBody);
-      if (!profileRes.ok) {
-        setSaving(false);
-        toast({ title: "Ошибка", description: profileRes.error, variant: "destructive" });
-        return;
-      }
-    }
-
-    if (isExecutorForm && !demotingToClient) {
-      let executorId = editUser.executor?.id;
-      if (!executorId && promotingToExecutor && officeId) {
-        const execListRes = await getExecutors(undefined, Number(officeId));
-        if (execListRes.ok) {
-          executorId = execListRes.data.find((e) => e.user?.id === editUser.id)?.id;
-        }
-      }
-      if (executorId) {
-        const execRes = await updateExecutor(executorId, {
-          full_name: fullName.trim(),
-          phone,
-          specialty: specialty.trim(),
-          category_ids: selectedCategoryIds,
-        });
-        if (!execRes.ok) {
-          setSaving(false);
-          toast({ title: "Ошибка", description: execRes.error, variant: "destructive" });
-          return;
-        }
-      }
-    }
-
-    setSaving(false);
-    toast({ title: "Изменения сохранены" });
-    closeEdit();
-    void load();
-  };
-
-  const isExecutorForm = selectedRole === "executor";
-
-  const editModal =
-    editUser && portalReady
-      ? createPortal(
-          <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center">
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/50"
-              aria-label="Закрыть"
-              onClick={() => !saving && closeEdit()}
-            />
-            <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-t border-border bg-background px-4 pb-8 pt-4 sm:rounded-2xl sm:border">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <h2 className="text-lg font-semibold text-foreground">Редактировать</h2>
-                <button
-                  type="button"
-                  onClick={() => !saving && closeEdit()}
-                  className="rounded-lg p-2 active:opacity-70"
-                  aria-label="Закрыть"
-                >
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Роль</p>
-                  <div className="flex flex-wrap gap-2">
-                    {OFFICE_STAFF_ROLES.map((r) => (
-                      <FilterPill
-                        key={r}
-                        active={selectedRole === r}
-                        label={ROLE_LABELS[r]}
-                        onClick={() => selectRole(r)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                    Новый пароль
-                  </p>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Оставьте пустым, если не меняете"
-                  />
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Подтверждение пароля"
-                    className="mt-2"
-                  />
-                  {passwordError ? (
-                    <p className="mt-1 text-sm text-destructive">{passwordError}</p>
-                  ) : null}
-                </div>
-
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="ФИО"
-                />
-                <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                    Телефон
-                  </p>
-                  <Input
-                    value={phone}
-                    onChange={(e) => setPhone(formatPhone(e.target.value))}
-                    placeholder="+7 XXX XXX XX XX"
-                    maxLength={19}
-                  />
-                </div>
-
-                {selectedRole === "client" && companies.length > 0 ? (
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                      Компания
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <FilterPill
-                        active={draftCompanyId === ""}
-                        label="Не указана"
-                        onClick={() => setDraftCompanyId("")}
-                      />
-                      {companies.map((c) => (
-                        <FilterPill
-                          key={c.id}
-                          active={draftCompanyId === String(c.id)}
-                          label={c.name}
-                          onClick={() => setDraftCompanyId(String(c.id))}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {isExecutorForm ? (
-                  <>
-                    <div>
-                      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                        Специальность
-                      </p>
-                      <Input
-                        value={specialty}
-                        onChange={(e) => setSpecialty(e.target.value)}
-                        placeholder="Например: электрик"
-                      />
-                    </div>
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                        Категории услуг
-                      </p>
-                      {formCategories.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          Нет категорий для вашего офиса
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {formCategories.map((c) => (
-                            <FilterPill
-                              key={c.id}
-                              active={selectedCategoryIds.includes(c.id)}
-                              label={formatServiceCategoryName(c.name)}
-                              onClick={() => toggleCategory(c.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : null}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={closeEdit}
-                    disabled={saving}
-                    className="flex-1 rounded-xl border border-border py-3 text-foreground disabled:opacity-50"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex flex-1 items-center justify-center rounded-xl bg-[#F35713] py-3 font-semibold text-white disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )
-      : null;
 
   if (!officeId) {
     return (

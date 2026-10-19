@@ -30,6 +30,8 @@ interface AdminWorkerRequestsFiltersProps {
   onFilterOfficeChange: (value: string) => void;
   offices: AdminWorkerOffice[];
   statusFilterOptions: FilterOption[];
+  /** Вкладка «Отклонённые»: статус у всех заявок один — фильтр не нужен. */
+  hideStatusFilter?: boolean;
   variant?: "mobile" | "desktop";
 }
 
@@ -42,6 +44,7 @@ export function AdminWorkerRequestsFilters({
   onFilterOfficeChange,
   offices,
   statusFilterOptions,
+  hideStatusFilter = false,
   variant = "mobile",
 }: AdminWorkerRequestsFiltersProps) {
   const isDesktop = variant === "desktop";
@@ -52,18 +55,20 @@ export function AdminWorkerRequestsFilters({
   return (
     <div className={cn("space-y-2", isDesktop ? "flex flex-wrap gap-2 space-y-0" : undefined)}>
       <div className={cn("flex gap-2", isDesktop && "contents")}>
-        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-          <SelectTrigger className={triggerClass}>
-            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            {statusFilterOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value} className={itemClass}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!hideStatusFilter && (
+          <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+            <SelectTrigger className={triggerClass}>
+              <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
+            </SelectTrigger>
+            <SelectContent className={contentClass}>
+              {statusFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className={itemClass}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={filterType} onValueChange={onFilterTypeChange}>
           <SelectTrigger className={triggerClass}>
             <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>

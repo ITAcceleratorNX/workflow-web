@@ -588,13 +588,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     setDistribution(getRequestsDistribution(stats, office, period));
   }, [stats, office, period]);
 
-  // Данные графика для таба «Заявки»: при выборе диапазона дат — по нему, иначе по period
-  const requestsChartData = useMemo(() => {
-    if (!stats.length) return chartData;
-    if (startDate && endDate) return prepareChartData(stats, office, period, startDate, endDate);
-    return chartData;
-  }, [chartData, stats, office, period, startDate, endDate]);
-
   const getRequestsDistribution = (stats: Stats[], selectedOffice: string, selectedPeriod: string) => {
     let filteredStats = stats;
 
@@ -725,6 +718,14 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
+
+  // useMemo выполняет расчёт во время рендера, поэтому prepareChartData уже должна быть инициализирована.
+  // Данные графика для таба «Заявки»: при выборе диапазона дат — по нему, иначе по period.
+  const requestsChartData = useMemo(() => {
+    if (!stats.length) return chartData;
+    if (startDate && endDate) return prepareChartData(stats, office, period, startDate, endDate);
+    return chartData;
+  }, [chartData, stats, office, period, startDate, endDate]);
 
   const fetchUsers = useCallback(async (page: number = 1) => {
     try {

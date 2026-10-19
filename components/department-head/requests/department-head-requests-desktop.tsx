@@ -30,7 +30,6 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
     handleRequestUpdated,
     handleLoadMore,
     handleDeleteRecurringTask,
-    bulkDelete,
     handleAssignExecutors,
     handleChangeExecutors,
     handleOpenRedirectModal,
@@ -56,7 +55,6 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
         onCardClick={handleCardClick}
         renderCardHeader={renderCardHeader}
         onLoadMore={handleLoadMore}
-        bulkDelete={bulkDelete}
       />
     );
 

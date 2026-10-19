@@ -109,30 +109,6 @@ export function useClientRequestsList() {
     router.replace(buildRequestsUrlWithoutFilters(pathname, searchParams.toString()), { scroll: false });
   };
 
-  const handleDeleteSubRequest = useCallback(
-    async (subRequest: SubRequest) => {
-      try {
-        await api.delete(`/requests/${subRequest.id}`);
-        if (displayRequest) {
-          const updated = displayRequest.requests.filter((r) => r.id !== subRequest.id);
-          const next = { ...displayRequest, requests: updated };
-          setSelectedRequest(next);
-          const updatedList = requests
-            .map((r) => (r.id === displayRequest.id ? next : r))
-            .filter((r) => r.requests.length > 0);
-          setRequests(updatedList);
-          if (updated.length === 0) {
-            handleClosePanel();
-          }
-        }
-        toast({ title: "Подзаявка удалена" });
-      } catch {
-        toast({ title: "Ошибка удаления", variant: "destructive" });
-      }
-    },
-    [displayRequest, requests, setRequests, setSelectedRequest, handleClosePanel, toast]
-  );
-
   const openRateModal = useCallback(
     (subReq: SubRequest) => {
       setRequestToRate(subReq);
@@ -187,7 +163,6 @@ export function useClientRequestsList() {
     fetchRequests,
     handleLoadMore,
     handleRequestUpdated,
-    handleDeleteSubRequest,
     handleCardClick,
     displayRequest,
     handleClosePanel,

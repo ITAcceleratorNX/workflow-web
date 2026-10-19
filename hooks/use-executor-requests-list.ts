@@ -296,7 +296,7 @@ export function useExecutorRequestsList() {
           });
         }
         closeCompleteTaskModal();
-        toast({ title: "Успешно", description: "Заявка успешно завершена" });
+        toast({ title: "Работы отмечены выполненными", description: "Администратор подтвердит выполнение, затем заявку примет Клиент" });
         await fetchRequests();
         const groupId = selectedTaskForComplete.request_group_id ?? displayRequestIdRef.current;
         if (groupId) {

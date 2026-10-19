@@ -91,6 +91,20 @@ export interface RequestGroup {
   status: string;
   request_type: string;
   rejection_reason?: string;
+  /** Администратор, отклонивший заявку, и время отклонения. */
+  rejected_by?: number | null;
+  rejected_at?: string | null;
+  rejectedBy?: (RequestUser & { role?: string }) | null;
+  /** Когда все подзаявки отмечены выполненными (статус «На проверке»). */
+  work_done_at?: string | null;
+  /** Передана Клиенту на подтверждение: через 24 часа без ответа закроется сама. */
+  confirmation_requested_at?: string | null;
+  closed_at?: string | null;
+  /** 'client' — подтвердил Клиент, 'auto' — закрыта автоматически. */
+  close_method?: "client" | "auto" | null;
+  /** Последнее замечание Клиента при возврате на доработку. */
+  last_remark?: string | null;
+  last_remark_at?: string | null;
   planned_date?: string;
   created_date: string;
   client?: RequestClient;
