@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Users, User, Trash2, CheckCircle, AlertTriangle, X, Crown } from "lucide-react"
 import api from "@/lib/api"
+import { formatExecutorSpecialty } from "@/constants/requests"
 import { useRequestStore } from "@/stores/useRequestStore"
 
 interface User {
@@ -250,7 +251,7 @@ export function ChangeExecutorsModal({
                             <User className="h-4 w-4 text-gray-500" />
                             <span className="font-medium">{executor.user.full_name}</span>
                             <Badge variant="secondary" className="text-xs">
-                              {executor.specialty}
+                              {formatExecutorSpecialty(executor.specialty)}
                             </Badge>
                           </div>
                         </SelectItem>
@@ -287,7 +288,7 @@ export function ChangeExecutorsModal({
                               </p>
                               {executor?.specialty && (
                                 <p className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                                  {executor.specialty}
+                                  {formatExecutorSpecialty(executor.specialty)}
                                 </p>
                               )}
                             </div>

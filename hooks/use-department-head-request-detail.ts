@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useToast } from "@/hooks/use-toast";
 import type { RequestGroup } from "@/stores/useRequestStore";
+import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import {
   mapExecutorInCategoryToAssignModal,
   type DepartmentHeadExecutor,
@@ -173,7 +174,9 @@ export function useDepartmentHeadRequestDetail() {
         category_id: selectedCategoryId,
         patch_code: 1,
       });
-      const categoryName = categories.find((c) => c.id === selectedCategoryId)?.name;
+      const categoryName = formatServiceCategoryDisplayName(
+        categories.find((c) => c.id === selectedCategoryId)?.name
+      );
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,

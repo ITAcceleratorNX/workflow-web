@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { isExecutorServiceCategory } from "@/constants/requests";
+import {
+  formatExecutorSpecialty,
+  formatServiceCategoryName,
+  isExecutorServiceCategory,
+} from "@/constants/requests";
 import {
   Building2,
   ChevronRight,
@@ -114,7 +118,7 @@ function applyExecutorToForm(
     setPhone?: (v: string) => void;
   },
 ) {
-  setters.setSpecialty(executor.specialty?.trim() ?? "");
+  setters.setSpecialty(formatExecutorSpecialty(executor.specialty));
   setters.setSelectedCategoryIds(executorCategoryIds(executor));
   if (setters.setFullName && executor.user?.full_name) {
     setters.setFullName(executor.user.full_name);
@@ -391,7 +395,7 @@ export function AdminUserManagementTab({
     );
     setFullName(user.full_name ?? "");
     setPhone(formatPhone(user.phone ?? ""));
-    setSpecialty(executor?.specialty?.trim() ?? "");
+    setSpecialty(formatExecutorSpecialty(executor?.specialty));
     setSelectedCategoryIds(executor ? executorCategoryIds(executor) : []);
     setNewPassword("");
     setConfirmPassword("");
@@ -489,7 +493,7 @@ export function AdminUserManagementTab({
     const executorFieldsChanged =
       useExecutorApiForProfile &&
       editingExecutor &&
-      (specialty.trim() !== (editingExecutor.specialty ?? "").trim() ||
+      (specialty.trim() !== formatExecutorSpecialty(editingExecutor.specialty) ||
         JSON.stringify([...selectedCategoryIds].sort()) !==
           JSON.stringify((editingExecutor.serviceCategories?.map((c) => c.id) ?? []).sort()) ||
         basicProfileChanged);
@@ -1050,7 +1054,7 @@ export function AdminUserManagementTab({
                           <FilterPill
                             key={c.id}
                             active={selectedCategoryIds.includes(c.id)}
-                            label={c.name}
+                            label={formatServiceCategoryName(c.name)}
                             onClick={() => toggleCategory(c.id)}
                           />
                         ))}

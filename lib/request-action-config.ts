@@ -59,7 +59,7 @@ export interface GetActionsParams {
   onAdminAcceptGroup?: () => void;
   onAdminRejectGroup?: () => void;
   onStaffStartGroup?: (subReq: SubRequest) => void;
-  /** «Взять в работу» — администратор закрепляет КТО/Клининг заявку за собой. */
+  /** «Взять в работу» — администратор закрепляет Техника/Клининг заявку за собой. */
   onAdminTakeGroup?: () => void;
   onEditRequestGroup?: () => void;
   onOpenComments?: () => void;
@@ -86,7 +86,7 @@ export function isStaffCompletableSubRequest(subRequest: SubRequest): boolean {
 }
 
 /**
- * КТО/Клининг заявка ждёт решения администратора: взять в работу или передать
+ * Техника/Клининг заявка ждёт решения администратора: взять в работу или передать
  * офис-менеджеру. До этого решения других действий по обработке у него нет.
  */
 function isAwaitingAdminRouting(

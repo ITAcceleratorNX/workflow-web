@@ -22,6 +22,7 @@ import {
   REQUESTS_DESKTOP_SELECT_ITEM,
   REQUESTS_DESKTOP_SELECT_TRIGGER,
 } from "@/constants/mobile-requests-ui";
+import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
@@ -248,7 +249,7 @@ function SubRequestRejectForm({
           <div className="flex items-center gap-2">
             <span className={cn("text-xs", dark ? "text-[#8E8E93]" : "text-gray-500")}>Категория:</span>
             <span className={cn("text-xs font-medium", dark ? "text-white" : "text-gray-700")}>
-              {request.category?.name || "Не указана"}
+              {request.category?.name ? formatServiceCategoryDisplayName(request.category.name) : "Не указана"}
             </span>
           </div>
         </div>

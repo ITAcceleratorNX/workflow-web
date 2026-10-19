@@ -9,6 +9,7 @@ import { BarChart3, Clock, Star, TrendingUp, TrendingDown, AlertTriangle } from 
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import api from "@/lib/api";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { formatServiceCategoryName } from "@/constants/requests";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 
 interface SLAStats {
@@ -200,7 +201,7 @@ export default function ManagerAnalytics() {
   const getCategoryName = (categoryId: number) => {
     if (!categories.length) return `Категория ${categoryId}`;
     const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : `Категория ${categoryId}`;
+    return category ? formatServiceCategoryName(category.name) : `Категория ${categoryId}`;
   };
 
   const getOfficeName = (officeId: number) => {

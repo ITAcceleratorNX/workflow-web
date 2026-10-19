@@ -19,6 +19,7 @@ import { RoleBasedActionMenu } from '@/components/action-menu';
 import { TaskInstancesList } from './TaskInstancesList';
 import { AssignExecutorsModal } from '@/components/AssignExecutorsModal';
 import { CommentsModal } from '@/components/CommentsModal';
+import { formatServiceCategoryDisplayName } from '@/constants/requests';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getSubRequestDisplayId } from '@/lib/subRequestUtils';
@@ -437,7 +438,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                             <div className={`${isDesktop ? 'flex items-center gap-3' : 'flex flex-col gap-1'} text-gray-600 ${isDesktop ? 'text-sm' : 'text-base'}`}>
                               <span className={`${isDesktop ? 'truncate' : ''} flex items-center gap-1`}>
                                 <span className="w-2 h-2 bg-[#114A65] rounded-full"></span>
-                                {subRequest.category?.name || 'Без категории'}
+                                {subRequest.category?.name ? formatServiceCategoryDisplayName(subRequest.category.name) : 'Без категории'}
                               </span>
                             </div>
                           </div>
@@ -531,7 +532,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                              </div>
                              <div className="flex justify-between text-sm">
                                <span className="text-gray-500">Категория:</span>
-                               <span className="font-medium">{subRequest.category?.name || 'Не указана'}</span>
+                               <span className="font-medium">{subRequest.category?.name ? formatServiceCategoryDisplayName(subRequest.category.name) : 'Не указана'}</span>
                              </div>
                              {/* Скрываем информацию о долгосрочных задачах для повторяющихся задач */}
                            </div>

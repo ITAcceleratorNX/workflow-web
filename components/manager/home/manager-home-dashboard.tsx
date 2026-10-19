@@ -45,6 +45,10 @@ import {CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Toolt
 import {format, isAfter, subDays, subMonths, subYears} from "date-fns";
 import {useNotificationStore} from "@/stores/notificationStore";
 import { useToast } from "@/hooks/use-toast";
+import {
+  formatServiceCategoryDisplayName,
+  formatServiceCategoryName,
+} from "@/constants/requests";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useBottomNavUiStore } from "@/stores/bottom-nav-ui-store";
 import {AcceptRequestModal} from "@/components/AcceptRequestModal";
@@ -3066,7 +3070,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                                 className={hasExecutors ? "text-gray-400" : ""}
                               >
                                 <div className="flex items-center gap-2">
-                                  <span>{category.name}</span>
+                                  <span>{formatServiceCategoryName(category.name)}</span>
                                   {hasExecutors && (
                                     <span className="text-xs text-gray-500">(есть исполнители)</span>
                                   )}
@@ -3121,7 +3125,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                               className={`flex justify-between items-center p-3 rounded-lg border ${mgmtRowCl}`}
                             >
                               <div className={mgmtTextCl}>
-                                <div className="text-lg font-semibold">{category.name}</div>
+                                <div className="text-lg font-semibold">{formatServiceCategoryName(category.name)}</div>
                                 {hasExecutors && (
                                   <div className={`text-sm ${mgmtMutedCl}`}>Есть исполнители</div>
                                 )}
@@ -3157,7 +3161,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                         <SelectContent>
                           {categories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.id.toString()}>
-                              {cat.name}
+                              {formatServiceCategoryName(cat.name)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -3201,7 +3205,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                           {categories.flatMap((cat) =>
                             (cat.subcategories || []).map((sub) => (
                               <SelectItem key={sub.id} value={sub.id.toString()}>
-                                {cat.name} → {sub.name}
+                                {formatServiceCategoryName(cat.name)} → {sub.name}
                               </SelectItem>
                             ))
                           )}
@@ -3788,7 +3792,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                                   <div className={`${isDesktop ? 'flex items-center gap-3' : 'flex flex-col gap-1'} text-gray-600 ${isDesktop ? 'text-sm' : 'text-base'}`}>
                                       <span className={`${isDesktop ? 'truncate' : ''} flex items-center gap-1`}>
                                         <span className="w-2 h-2 bg-[#114A65] rounded-full"></span>
-                                        {subRequest.category?.name || 'Без категории'}
+                                        {subRequest.category?.name ? formatServiceCategoryDisplayName(subRequest.category.name) : 'Без категории'}
                                       </span>
                   </div>
                 </div>

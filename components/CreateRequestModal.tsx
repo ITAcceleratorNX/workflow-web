@@ -23,6 +23,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { MOBILE_COLORS } from "@/constants/mobile-theme";
 import { confirmAction } from "@/stores/confirm-dialog-store";
 import { RequestModalShell } from "@/components/requests/request-modal-shell";
+import { formatExecutorSpecialty } from "@/constants/requests";
 import {
   clearCreateRequestDraft, createRequestDraftScope, createRequestSubmitGate,
   readCreateRequestDraft, saveCreateRequestDraft, type CreateRequestDraft,
@@ -1861,7 +1862,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                                           <div className="flex flex-col">
                                             <span className="font-medium">{executor.user.full_name}</span>
                                             <span className="text-xs text-gray-500">
-                                              {executor.specialty} • Загрузка: {executor.workload}
+                                              {formatExecutorSpecialty(executor.specialty)} • Загрузка: {executor.workload}
                                             </span>
                                           </div>
                                         </SelectItem>
@@ -1894,7 +1895,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                                             )}
                                           </div>
                                           <p className="text-sm text-gray-600 mt-1">
-                                            {executor.specialty} • Загрузка: {executor.workload}
+                                            {formatExecutorSpecialty(executor.specialty)} • Загрузка: {executor.workload}
                                           </p>
                                           {executor.user.phone && (
                                             <p className="text-xs text-gray-500 mt-1">

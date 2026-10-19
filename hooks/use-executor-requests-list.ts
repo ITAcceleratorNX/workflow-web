@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
-import { getStatusOptionsForRole } from "@/constants/requests";
+import { formatServiceCategoryDisplayName, getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups, matchesRequestTypeFilter } from "@/lib/request-utils";
 import {
   sortAssignedTasksByType,
@@ -222,7 +222,9 @@ export function useExecutorRequestsList() {
         category_id: selectedCategoryId,
         patch_code: 1,
       });
-      const categoryName = categories.find((c) => c.id === selectedCategoryId)?.name;
+      const categoryName = formatServiceCategoryDisplayName(
+        categories.find((c) => c.id === selectedCategoryId)?.name
+      );
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,

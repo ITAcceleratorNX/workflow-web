@@ -51,6 +51,7 @@ import {
   type RequestUserRole,
 } from "@/lib/request-action-config";
 import {
+  formatServiceCategoryDisplayName,
   getStatusLabel,
   getTypeLabel,
   isAdministrativeRequestGroup,
@@ -249,7 +250,7 @@ export function RequestDetails({
       ? "Завершено офис-менеджером"
       : "Завершено администратором";
 
-  /** «Взять в работу»: администратор закрепляет КТО/Клининг заявку за собой. */
+  /** «Взять в работу»: администратор закрепляет Техника/Клининг заявку за собой. */
   const handleAdminTakeGroup = async () => {
     try {
       setIsSubmitting(true);
@@ -488,7 +489,7 @@ export function RequestDetails({
     onClose();
   };
 
-  // КТО/Клининг ждёт решения администратора: взять в работу или передать офис-менеджеру.
+  // Техника/Клининг ждёт решения администратора: взять в работу или передать офис-менеджеру.
   // Административную заявку он не обрабатывает — её ведёт офис-менеджер.
   const showAcceptReject =
     embedInPanel &&
@@ -732,7 +733,7 @@ export function RequestDetails({
                 <p className="text-white font-medium">{subRequest.title}</p>
                 {subRequest.category?.name && (
                   <p className="text-gray-400 text-sm mt-1">
-                    {subRequest.category.name}
+                    {formatServiceCategoryDisplayName(subRequest.category.name)}
                   </p>
                 )}
               </div>
@@ -741,7 +742,7 @@ export function RequestDetails({
             {!subRequest.title && subRequest.category?.name && (
               <div className="bg-[#1C1C1E] rounded-xl p-4">
                 <p className="text-gray-400 text-sm mb-1">Категория</p>
-                <p className="text-white">{subRequest.category.name}</p>
+                <p className="text-white">{formatServiceCategoryDisplayName(subRequest.category.name)}</p>
               </div>
             )}
 

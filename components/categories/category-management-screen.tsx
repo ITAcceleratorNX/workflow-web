@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatServiceCategoryName } from "@/constants/requests";
 import { useToast } from "@/hooks/use-toast";
 import {
   createServiceCategory,
@@ -362,7 +363,7 @@ export function CategoryManagementScreen({
                   <Label htmlFor="new-category-name">Название</Label>
                   <Input
                     id="new-category-name"
-                    placeholder="Например: КТО"
+                    placeholder="Например: Техника"
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     disabled={isCreatingCategory || editingKey != null}
@@ -413,12 +414,12 @@ export function CategoryManagementScreen({
                       <EditableCatalogRow
                         key={cat.id}
                         icon="category"
-                        name={cat.name}
+                        name={formatServiceCategoryName(cat.name)}
                         subtitle={subcategoryCountLabel(subCount)}
                         isEditing={editingKey === key}
-                        draft={editingKey === key ? editDraft : cat.name}
+                        draft={editingKey === key ? editDraft : formatServiceCategoryName(cat.name)}
                         isSaving={savingKey === key}
-                        onStartEdit={() => startEdit(key, cat.name)}
+                        onStartEdit={() => startEdit(key, formatServiceCategoryName(cat.name))}
                         onChangeDraft={setEditDraft}
                         onSave={() => void handleSaveEdit()}
                         onCancel={cancelEdit}
@@ -449,7 +450,7 @@ export function CategoryManagementScreen({
                   <SelectContent>
                     {categories.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
-                        {c.name}
+                        {formatServiceCategoryName(c.name)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -472,7 +473,7 @@ export function CategoryManagementScreen({
                       <p className="text-base font-semibold text-foreground">
                         Новая подкатегория
                       </p>
-                      <p className="text-sm text-muted-foreground">в «{selectedCategory.name}»</p>
+                      <p className="text-sm text-muted-foreground">в «{formatServiceCategoryName(selectedCategory.name)}»</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-subcategory-name">Название</Label>
@@ -573,7 +574,7 @@ export function CategoryManagementScreen({
             <ManagementAlertDialogDescription>
               {deleteTarget?.type === "category" ? (
                 <>
-                  {deleteTarget.item.name}
+                  {formatServiceCategoryName(deleteTarget.item.name)}
                   <br />
                   <br />
                   Категория будет снята у исполнителей и в существующих заявках (поле станет

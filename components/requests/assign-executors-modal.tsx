@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Users, User, Trash2, CheckCircle, AlertTriangle, X, Plus, Crown } from "lucide-react"
 import api from "@/lib/api"
+import { formatExecutorSpecialty } from "@/constants/requests"
 import { useRequestStore } from "@/stores/useRequestStore"
 
 interface User {
@@ -288,7 +289,7 @@ export function AssignExecutorsModal({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className={`font-medium text-sm truncate ${isDark ? "text-white" : "text-gray-900"}`}>{executor.user.full_name}</div>
-                                  <div className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>{executor.specialty}</div>
+                                  <div className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>{formatExecutorSpecialty(executor.specialty)}</div>
                                 </div>
                               </div>
                             </SelectItem>
@@ -329,7 +330,7 @@ export function AssignExecutorsModal({
                                       )}
                                     </div>
                                     <div className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-                                      <p className="truncate">{executor.specialty}</p>
+                                      <p className="truncate">{formatExecutorSpecialty(executor.specialty)}</p>
                                       {executor.user.phone && (
                                         <p className="text-gray-500 truncate">{executor.user.phone}</p>
                                       )}

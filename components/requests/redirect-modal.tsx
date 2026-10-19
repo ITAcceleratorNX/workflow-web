@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import { cn } from "@/lib/utils";
 import { RequestModalShell } from "./request-modal-shell";
 
@@ -110,7 +111,7 @@ export function RedirectRequestModal({
                         isDark && "text-white focus:bg-[#F35713]/20"
                       )}
                     >
-                      {category.name}
+                      {formatServiceCategoryDisplayName(category.name)}
                     </SelectItem>
                   ))}
               </SelectContent>

@@ -6,6 +6,7 @@ import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavi
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
 import type { RequestGroup } from "@/stores/useRequestStore";
+import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
@@ -160,7 +161,9 @@ export function useExecutorRequestDetail() {
         category_id: selectedCategoryId,
         patch_code: 1,
       });
-      const categoryName = categories.find((c) => c.id === selectedCategoryId)?.name;
+      const categoryName = formatServiceCategoryDisplayName(
+        categories.find((c) => c.id === selectedCategoryId)?.name
+      );
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,

@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {useAuthStore} from "@/stores/useAuthStore";
 import { useIsMobile } from "@/hooks/use-media-query";
+import { formatServiceCategoryDisplayName } from "@/constants/requests";
 interface RegistrationRequest {
     id: number;
     phone: string;
@@ -395,7 +396,7 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                                                     <p>Офис: {request.office.name}</p>
                                                     <p>Роль: {getRoleLabel(request.role)}</p>
                                                     {request.role === 'executor' && request.service_category && (
-                                                        <p>Категория: {request.service_category.name}</p>
+                                                        <p>Категория: {formatServiceCategoryDisplayName(request.service_category.name)}</p>
                                                     )}
                                                     {request.role === 'client' && (
                                                         <p>

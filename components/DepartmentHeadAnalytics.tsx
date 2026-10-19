@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import api from "@/lib/api";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { formatServiceCategoryName } from "@/constants/requests";
 import { MeetingRoomStatistics } from "@/components/meeting-rooms/MeetingRoomStatistics";
 import { useStatsStore } from "@/stores/statsStore";
 
@@ -154,7 +155,7 @@ export default function DepartmentHeadAnalytics() {
   const getCategoryName = (categoryId: number) => {
     if (!categories.length) return `Категория ${categoryId}`;
     const category = categories.find((cat) => cat.id === categoryId);
-    return category ? category.name : `Категория ${categoryId}`;
+    return category ? formatServiceCategoryName(category.name) : `Категория ${categoryId}`;
   };
 
   const getOfficeName = (officeId: number) => {

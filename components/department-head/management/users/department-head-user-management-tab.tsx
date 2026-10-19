@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { isExecutorServiceCategory } from "@/constants/requests";
+import {
+  formatExecutorSpecialty,
+  formatServiceCategoryName,
+  isExecutorServiceCategory,
+} from "@/constants/requests";
 import {
   Building2,
   ChevronRight,
@@ -66,12 +70,12 @@ function normalizeSearchText(value: string) {
 
 function userMatchesSearch(row: OfficeUserRow, query: string) {
   if (!query) return true;
-  const haystack = [row.full_name, row.phone, row.executor?.specialty]
+  const haystack = [row.full_name, row.phone, formatExecutorSpecialty(row.executor?.specialty)]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
   const categoryNames = (row.executor?.serviceCategories ?? [])
-    .map((c) => c.name)
+    .map((c) => formatServiceCategoryName(c.name))
     .join(" ")
     .toLowerCase();
   return `${haystack} ${categoryNames}`.includes(query);
@@ -117,7 +121,7 @@ function applyExecutorFields(
     setPhone?: (v: string) => void;
   },
 ) {
-  setters.setSpecialty(executor.specialty?.trim() ?? "");
+  setters.setSpecialty(formatExecutorSpecialty(executor.specialty));
   setters.setSelectedCategoryIds(executorCategoryIds(executor));
   if (setters.setFullName && executor.user?.full_name) {
     setters.setFullName(executor.user.full_name);
@@ -332,7 +336,7 @@ export function DepartmentHeadUserManagementTab() {
     setSelectedRole(row.role === "executor" ? "executor" : "client");
     setFullName(row.full_name ?? "");
     setPhone(formatPhone(row.phone ?? ""));
-    setSpecialty(row.executor?.specialty?.trim() ?? "");
+    setSpecialty(formatExecutorSpecialty(row.executor?.specialty));
     setSelectedCategoryIds(row.executor ? executorCategoryIds(row.executor) : []);
     setDraftCompanyId(row.company_id != null ? String(row.company_id) : "");
     setNewPassword("");
@@ -639,7 +643,7 @@ export function DepartmentHeadUserManagementTab() {
                             <FilterPill
                               key={c.id}
                               active={selectedCategoryIds.includes(c.id)}
-                              label={c.name}
+                              label={formatServiceCategoryName(c.name)}
                               onClick={() => toggleCategory(c.id)}
                             />
                           ))}
@@ -780,7 +784,7 @@ export function DepartmentHeadUserManagementTab() {
                 <FilterPill
                   key={c.id}
                   active={active}
-                  label={c.name}
+                  label={formatServiceCategoryName(c.name)}
                   onClick={() => setCategoryFilterId(active ? null : c.id)}
                 />
               );
@@ -895,7 +899,7 @@ export function DepartmentHeadUserManagementTab() {
                   {row.executor?.specialty ? (
                     <div className="mt-1 flex items-center gap-1.5 text-sm text-foreground">
                       <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                      {row.executor.specialty}
+                      {formatExecutorSpecialty(row.executor.specialty)}
                     </div>
                   ) : null}
                   {(row.executor?.serviceCategories ?? []).length > 0 ? (
@@ -905,7 +909,7 @@ export function DepartmentHeadUserManagementTab() {
                           key={c.id}
                           className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground"
                         >
-                          {c.name}
+                          {formatServiceCategoryName(c.name)}
                         </span>
                       ))}
                     </div>
