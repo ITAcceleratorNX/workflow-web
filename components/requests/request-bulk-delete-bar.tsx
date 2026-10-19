@@ -3,6 +3,7 @@
 import { Check, ListChecks, Loader2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RequestBulkDelete } from "@/hooks/use-request-bulk-delete";
+import { DeleteRequestModal } from "./admin-request-decision-modals";
 import { cn } from "@/lib/utils";
 
 interface RequestBulkDeleteBarProps {
@@ -12,7 +13,7 @@ interface RequestBulkDeleteBarProps {
   variant?: "mobile" | "desktop";
 }
 
-/** Панель над списком заявок: «Выбрать» → выбор карточек → «Удалить». */
+/** Панель над списком заявок Руководителя: «Выбрать» → выбор карточек → «Удалить» (с необязательной причиной). */
 export function RequestBulkDeleteBar({ bulk, visibleIds, variant = "mobile" }: RequestBulkDeleteBarProps) {
   const isDesktop = variant === "desktop";
   const muted = isDesktop ? "text-white/70 hover:text-white hover:bg-white/10" : "text-muted-foreground";
@@ -33,37 +34,47 @@ export function RequestBulkDeleteBar({ bulk, visibleIds, variant = "mobile" }: R
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => bulk.selectedIds.has(id));
 
   return (
-    <div
-      className={cn(
-        "sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2",
-        isDesktop ? "border-white/10 bg-[#1A1A1A] text-white" : "border-border bg-card text-foreground",
-      )}
-    >
-      <span className="mr-auto text-sm font-medium">Выбрано: {count}</span>
-      <Button variant="ghost" size="sm" onClick={() => bulk.toggleAll(visibleIds)} className={muted}>
-        {allSelected ? "Снять выбор" : "Выбрать все"}
-      </Button>
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled={count === 0 || bulk.deleting}
-        onClick={() => void bulk.deleteSelected()}
-        className="gap-2"
+    <>
+      <div
+        className={cn(
+          "sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2",
+          isDesktop ? "border-white/10 bg-[#1A1A1A] text-white" : "border-border bg-card text-foreground",
+        )}
       >
-        {bulk.deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-        Удалить
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Отменить выбор"
-        onClick={bulk.cancel}
-        disabled={bulk.deleting}
-        className={cn("h-8 w-8", muted)}
-      >
-        <X className="h-4 w-4" />
-      </Button>
-    </div>
+        <span className="mr-auto text-sm font-medium">Выбрано: {count}</span>
+        <Button variant="ghost" size="sm" onClick={() => bulk.toggleAll(visibleIds)} className={muted}>
+          {allSelected ? "Снять выбор" : "Выбрать все"}
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={count === 0 || bulk.deleting}
+          onClick={() => void bulk.deleteSelected()}
+          className="gap-2"
+        >
+          {bulk.deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          Удалить
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Отменить выбор"
+          onClick={bulk.cancel}
+          disabled={bulk.deleting}
+          className={cn("h-8 w-8", muted)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <DeleteRequestModal
+        isOpen={bulk.pendingIds !== null}
+        count={bulk.pendingIds?.length ?? 0}
+        loading={bulk.deleting}
+        error={bulk.error}
+        onClose={bulk.closeDialog}
+        onDelete={bulk.confirmDelete}
+      />
+    </>
   );
 }
 

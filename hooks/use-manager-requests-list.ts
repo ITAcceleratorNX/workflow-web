@@ -13,9 +13,12 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import { filterRequestGroups } from "@/lib/request-utils";
+import { isRejectedRequest } from "@/lib/request-permissions";
+import { useRequestBulkDelete } from "@/hooks/use-request-bulk-delete";
 import type {
   ManagerOffice,
   ManagerRequestPeriod,
+  ManagerRequestsTab,
 } from "@/components/manager/requests/manager-requests-constants";
 
 export function useManagerRequestsList() {
@@ -26,6 +29,7 @@ export function useManagerRequestsList() {
   const { token } = useAuthStore();
   const { requests, setRequests } = useRequestStore();
 
+  const [activeTab, setActiveTab] = useState<ManagerRequestsTab>("all");
   const [offices, setOffices] = useState<ManagerOffice[]>([]);
   const [office, setOffice] = useState("all");
   const [period, setPeriod] = useState<ManagerRequestPeriod>("all");
@@ -92,17 +96,17 @@ export function useManagerRequestsList() {
 
   const filteredRequests = useMemo(
     () =>
-      filterRequestGroups(requests, {
-        status: filterStatus,
+      filterRequestGroups(activeTab === "rejected" ? requests.filter(isRejectedRequest) : requests, {
+        status: activeTab === "rejected" ? "all" : filterStatus,
         type: filterType,
         officeId: office,
         period,
       }),
-    [requests, filterStatus, filterType, office, period]
+    [requests, activeTab, filterStatus, filterType, office, period]
   );
 
   const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
-    filteredRequests, `${filterStatus}:${filterType}:${office}:${period}`,
+    filteredRequests, `${activeTab}:${filterStatus}:${filterType}:${office}:${period}`,
   );
   const isFiltered = filterStatus !== "all" || filterType !== "all" || office !== "all" || period !== "all";
   const resetFilters = () => {
@@ -123,6 +127,20 @@ export function useManagerRequestsList() {
     isDataReady: !loading,
   });
 
+  const handleBulkDeleted = useCallback(
+    (ids: number[]) => {
+      const gone = new Set(ids);
+      setRequests((prev) => prev.filter((r) => !gone.has(r.id)));
+      if (displayRequest && gone.has(displayRequest.id)) handleClosePanel();
+    },
+    [setRequests, displayRequest, handleClosePanel],
+  );
+  const bulkDelete = useRequestBulkDelete(handleBulkDeleted);
+  const cancelBulkDelete = bulkDelete.cancel;
+  useEffect(() => {
+    cancelBulkDelete();
+  }, [activeTab, cancelBulkDelete]);
+
   const handleRefresh = useCallback(async () => {
     await Promise.all([fetchRequests(), fetchOffices()]);
   }, [fetchRequests, fetchOffices]);
@@ -134,6 +152,8 @@ export function useManagerRequestsList() {
 
   return {
     isDesktop,
+    activeTab,
+    setActiveTab,
     offices,
     office,
     setOffice,
@@ -157,6 +177,7 @@ export function useManagerRequestsList() {
     displayRequest,
     handleClosePanel,
     handleRequestUpdated,
+    bulkDelete,
     lastElementRef,
   };
 }

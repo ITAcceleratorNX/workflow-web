@@ -35,6 +35,8 @@ interface ManagerRequestsFiltersProps {
   onFilterTypeChange: (value: string) => void;
   offices: ManagerOffice[];
   statusFilterOptions: FilterOption[];
+  /** Вкладка «Отклонённые»: статус у всех заявок один — фильтр не нужен. */
+  hideStatusFilter?: boolean;
   variant?: "mobile" | "desktop";
 }
 
@@ -49,6 +51,7 @@ export function ManagerRequestsFilters({
   onFilterTypeChange,
   offices,
   statusFilterOptions,
+  hideStatusFilter = false,
   variant = "mobile",
 }: ManagerRequestsFiltersProps) {
   const officeTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
@@ -89,18 +92,20 @@ export function ManagerRequestsFilters({
           ))}
         </SelectContent>
       </Select>
-      <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-        <SelectTrigger className={filterTriggerClass}>
-          <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          {statusFilterOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {!hideStatusFilter && (
+        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+          <SelectTrigger className={filterTriggerClass}>
+            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
+          </SelectTrigger>
+          <SelectContent className={contentClass}>
+            {statusFilterOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value} className={itemClass}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <Select value={filterType} onValueChange={onFilterTypeChange}>
         <SelectTrigger className={filterTriggerClass}>
           <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>

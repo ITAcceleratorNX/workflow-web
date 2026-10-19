@@ -11,6 +11,9 @@ import {
 import { Eye } from "lucide-react";
 import { LongTermBadge } from "./long-term-badge";
 import { RequestDetailPhotoGrid } from "./request-detail-photo-grid";
+import { RequestRejectionInfo } from "./request-rejection-info";
+import { RequestClosureInfo } from "./request-closure-info";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 function DetailBlock({
   label,
@@ -94,6 +97,7 @@ export function RequestDetailMobileBody({
   const subRequests = request.requests ?? [];
   const allPhotos = collectAllPhotos(request);
   const isLongTerm = isLongTermRequestGroup(request);
+  const userId = useAuthStore((s) => s.user?.id);
   const showAdminObserverNotice =
     userRole === "admin-worker" && isAdministrativeRequestGroup(request);
 
@@ -108,6 +112,9 @@ export function RequestDetailMobileBody({
         </span>
         {isLongTerm ? <LongTermBadge detail /> : null}
       </div>
+
+      <RequestRejectionInfo request={request} userRole={userRole ?? ""} />
+      <RequestClosureInfo request={request} isAuthor={request.client_id === userId} />
 
       {showAdminObserverNotice ? (
         <div className="flex items-start gap-3 rounded-xl border border-[#114A65]/40 bg-[#114A65]/15 p-3">

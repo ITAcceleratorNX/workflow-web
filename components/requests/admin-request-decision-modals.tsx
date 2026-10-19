@@ -494,7 +494,8 @@ export function AdminRejectRequestModal({
           <DialogTitle className="text-lg font-semibold text-white">Отклонить заявку</DialogTitle>
         </div>
         <div className="p-4 space-y-3">
-          <Label className="text-xs text-gray-400">Причина отклонения</Label>
+          <Label className="text-xs text-gray-400">Причина отклонения (обязательно)</Label>
+          <p className="text-xs text-gray-500">Клиент увидит причину в карточке заявки и в уведомлении.</p>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -525,6 +526,154 @@ export function AdminRejectRequestModal({
   );
 
   return content;
+}
+
+interface ClientRemarkModalProps {
+  isOpen: boolean;
+  loading?: boolean;
+  error?: string | null;
+  onClose: () => void;
+  onSubmit: (remark: string) => Promise<void> | void;
+}
+
+/** «Есть замечания»: Клиент описывает, что не так, и заявка возвращается на доработку. */
+export function ClientRemarkModal({ isOpen, loading = false, error, onClose, onSubmit }: ClientRemarkModalProps) {
+  const [remark, setRemark] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setRemark("");
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !loading) onClose(); }}>
+      <DialogContent
+        layer={110}
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className={cn(
+          "left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl p-0 gap-0",
+          MANAGEMENT_MODAL_DARK_CLASS,
+        )}
+      >
+        <div className="p-4 border-b border-gray-700">
+          <DialogTitle className="text-lg font-semibold text-white">Есть замечания</DialogTitle>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-gray-300">
+            Заявка не закроется и вернётся на доработку. Когда работы выполнят повторно, вы снова получите её на подтверждение.
+          </p>
+          <Label className="text-xs text-gray-400">Замечание (обязательно)</Label>
+          <Textarea
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            maxLength={2000}
+            placeholder="Что осталось не сделано?"
+            className="bg-[#262626] border-[#3A3A3C] text-white min-h-[100px]"
+          />
+          {error && <p className="text-[#F35713] text-sm">{error}</p>}
+        </div>
+        <div className="p-4 border-t border-gray-700 flex gap-3">
+          <Button
+            variant="outline"
+            className={cn("flex-1 h-auto min-h-11 min-w-0 whitespace-normal", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            onClick={onClose}
+            disabled={loading}
+          >
+            Отмена
+          </Button>
+          <Button
+            className="flex-1 h-auto min-h-11 min-w-0 whitespace-normal bg-[#F35713] hover:bg-[#E04A0A] text-white"
+            disabled={loading || !remark.trim()}
+            onClick={() => void onSubmit(remark.trim())}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface DeleteRequestModalProps {
+  isOpen: boolean;
+  /** Сколько заявок удаляется: 1 — одна заявка, больше — массовое удаление. */
+  count: number;
+  loading?: boolean;
+  error?: string | null;
+  onClose: () => void;
+  /** reason — null, если причина не указана: она необязательна. */
+  onDelete: (reason: string | null) => Promise<void> | void;
+}
+
+/** Логическое удаление заявки Руководителем платформы; причина необязательна. */
+export function DeleteRequestModal({
+  isOpen,
+  count,
+  loading = false,
+  error,
+  onClose,
+  onDelete,
+}: DeleteRequestModalProps) {
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setReason("");
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !loading) onClose(); }}>
+      <DialogContent
+        layer={110}
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className={cn(
+          "left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#1C1C1E] border border-[#3A3A3C] shadow-2xl p-0 gap-0",
+          MANAGEMENT_MODAL_DARK_CLASS,
+        )}
+      >
+        <div className="p-4 border-b border-gray-700">
+          <DialogTitle className="text-lg font-semibold text-white">
+            {count === 1 ? "Удалить заявку?" : `Удалить заявки (${count})?`}
+          </DialogTitle>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-gray-300">
+            Заявки исчезнут из списков. Запись, история и факт удаления сохранятся в журнале удалений.
+          </p>
+          <Label className="text-xs text-gray-400">Причина удаления (необязательно)</Label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={1000}
+            placeholder="Например: дубликат заявки"
+            className="bg-[#262626] border-[#3A3A3C] text-white min-h-[80px]"
+          />
+          {error && <p className="text-[#F35713] text-sm">{error}</p>}
+        </div>
+        <div className="p-4 border-t border-gray-700 flex gap-3">
+          <Button
+            variant="outline"
+            className={cn("flex-1 h-auto min-h-11 min-w-0 whitespace-normal", REQUESTS_DESKTOP_OUTLINE_BTN)}
+            onClick={onClose}
+            disabled={loading}
+          >
+            Отмена
+          </Button>
+          <Button
+            className="flex-1 h-auto min-h-11 min-w-0 whitespace-normal bg-red-600 hover:bg-red-700 text-white"
+            disabled={loading}
+            onClick={() => void onDelete(reason.trim() || null)}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Удалить"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 interface StaffCompleteModalProps {
@@ -570,6 +719,9 @@ export function StaffCompleteModal({
           <p className="text-sm text-gray-400 mt-1">
             Заявка #{requestId}
             {subCount > 1 ? ` · подзаявок: ${subCount}` : ""}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            Заявка уйдёт Клиенту на подтверждение; без ответа закроется автоматически через 24 часа.
           </p>
         </div>
         <div className="p-4 space-y-3">

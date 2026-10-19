@@ -66,7 +66,7 @@ export const IconInfoModal: React.FC<IconInfoModalProps> = ({ isOpen, onClose, i
                                 ? "in_progress"
                                 : iconInfo.value === "Завершено"
                                     ? "completed"
-                                    : iconInfo.value === "Отклонено"
+                                    : iconInfo.value === "Отклонена" || iconInfo.value === "Отклонено"
                                         ? "rejected"
                                         : "pending",
                     )

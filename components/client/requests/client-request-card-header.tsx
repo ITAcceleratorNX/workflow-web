@@ -18,6 +18,10 @@ const getStatusIcon = (status: string) => {
     case "awaiting_assignment":
     case "awaiting_sla":
       return <Clock className="w-3 h-3" />;
+    case "awaiting_admin_review":
+      return <Clock className="w-4 h-4 text-[#114A65]" />;
+    case "awaiting_confirmation":
+      return <Clock className="w-4 h-4 text-[#F35713]" />;
     case "assigned":
       return <User className="w-3 h-3" />;
     case "rejected":
@@ -32,7 +36,6 @@ interface ClientRequestCardHeaderProps {
   isDesktop: boolean;
   onViewDetails: (request: RequestGroup) => void;
   onRateRequest: (subRequest: SubRequest) => void;
-  onDelete: (subRequest: SubRequest) => void;
 }
 
 export function ClientRequestCardHeader({
@@ -40,7 +43,6 @@ export function ClientRequestCardHeader({
   isDesktop,
   onViewDetails,
   onRateRequest,
-  onDelete,
 }: ClientRequestCardHeaderProps) {
   const userId = useAuthStore((s) => s.user?.id);
   const primarySub =
@@ -74,7 +76,6 @@ export function ClientRequestCardHeader({
             userId={userId}
             variant={isDesktop ? "dialog" : "sheet"}
             onRateRequest={onRateRequest}
-            onDelete={onDelete}
             onOpenComments={() => onViewDetails(requestGroup)}
           />
         </div>
@@ -87,7 +88,6 @@ export function useClientRequestCardHeader({
   isDesktop,
   onViewDetails,
   onRateRequest,
-  onDelete,
 }: Omit<ClientRequestCardHeaderProps, "requestGroup">) {
   return useCallback(
     (requestGroup: RequestGroup) => (
@@ -96,9 +96,8 @@ export function useClientRequestCardHeader({
         isDesktop={isDesktop}
         onViewDetails={onViewDetails}
         onRateRequest={onRateRequest}
-        onDelete={onDelete}
       />
     ),
-    [isDesktop, onViewDetails, onRateRequest, onDelete],
+    [isDesktop, onViewDetails, onRateRequest],
   );
 }

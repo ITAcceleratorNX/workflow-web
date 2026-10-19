@@ -6,13 +6,12 @@ import { collectRequestPages, listLoadError } from "@/lib/request-list-loading";
 import { useRequestListWindow } from "@/hooks/use-request-list-window";
 import { buildRequestsUrlWithoutFilters } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import api, { deleteRecurringTask } from "@/lib/api";
+import api from "@/lib/api";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useToast } from "@/hooks/use-toast";
 import { useRequestSelectionFromUrl } from "@/hooks/useRequestSelectionFromUrl";
-import { useRequestBulkDelete } from "@/hooks/use-request-bulk-delete";
+import { isRejectedRequest } from "@/lib/request-permissions";
 import { getStatusOptionsForRole } from "@/constants/requests";
 import {
   filterRequestGroups,
@@ -28,7 +27,6 @@ export function useAdminWorkerRequestsList() {
   const isDesktop = useIsDesktop();
   const searchParams = useSearchParams();
   const { token } = useAuthStore();
-  const { toast } = useToast();
   const { incomingRequests, setIncomingRequests, myRequests, setMyRequests } = useRequestStore();
 
   /** Единые фильтры для всех вкладок — parity с workflow-mobile requests index (admin-worker). */
@@ -130,11 +128,22 @@ export function useAdminWorkerRequestsList() {
     [myRequests, applyFilters],
   );
 
+  /** «Отклонённые»: все отклонённые заявки из обоих списков, без повторов. */
+  const filteredRejectedRequests = useMemo(() => {
+    const byId = new Map<number, RequestGroup>();
+    for (const request of [...incomingRequests, ...myRequests]) {
+      if (isRejectedRequest(request)) byId.set(request.id, request);
+    }
+    return sortRequestGroupsByCreatedDate(
+      filterRequestGroups([...byId.values()], { status: "all", type: filterType, officeId: filterOffice }),
+    );
+  }, [incomingRequests, myRequests, filterType, filterOffice]);
+
   const activeList = useMemo(() => {
     if (activeTab === "incoming") return filteredIncomingRequests;
     if (activeTab === "my-requests") return filteredMyRequests;
-    return [];
-  }, [activeTab, filteredIncomingRequests, filteredMyRequests]);
+    return filteredRejectedRequests;
+  }, [activeTab, filteredIncomingRequests, filteredMyRequests, filteredRejectedRequests]);
 
   const { visibleRequests, hasMore, loadingMore, handleLoadMore } = useRequestListWindow(
     activeList, `${activeTab}:${filterStatus}:${filterType}:${filterOffice}`,
@@ -158,18 +167,6 @@ export function useAdminWorkerRequestsList() {
     isDataReady: !loading,
   });
 
-  const handleBulkDeleted = useCallback(
-    (ids: number[]) => {
-      if (displayRequest && ids.includes(displayRequest.id)) handleClosePanel();
-    },
-    [displayRequest, handleClosePanel],
-  );
-  const bulkDelete = useRequestBulkDelete(handleBulkDeleted);
-  const cancelBulkDelete = bulkDelete.cancel;
-  useEffect(() => {
-    cancelBulkDelete();
-  }, [activeTab, cancelBulkDelete]);
-
   const handleRefresh = useCallback(async () => {
     await Promise.all([fetchRequests(), fetchOffices()]);
   }, [fetchRequests, fetchOffices]);
@@ -178,18 +175,6 @@ export function useAdminWorkerRequestsList() {
     void fetchRequests();
     clearAfterUpdate();
   }, [fetchRequests, clearAfterUpdate]);
-
-  const handleDeleteRecurringTask = useCallback(
-    async (id: number) => {
-      try {
-        await deleteRecurringTask(id);
-        toast({ title: "Задача удалена" });
-      } catch {
-        toast({ title: "Ошибка", variant: "destructive" });
-      }
-    },
-    [toast],
-  );
 
   return {
     isDesktop,
@@ -218,8 +203,6 @@ export function useAdminWorkerRequestsList() {
     displayRequest,
     handleClosePanel,
     handleRequestUpdated,
-    handleDeleteRecurringTask,
-    bulkDelete,
     lastElementRef,
   };
 }

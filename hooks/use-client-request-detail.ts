@@ -5,10 +5,9 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import api from "@/lib/api";
-import type { RequestGroup, SubRequest } from "@/stores/useRequestStore";
+import type { RequestGroup } from "@/stores/useRequestStore";
 import { useRequestStore } from "@/stores/useRequestStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useToast } from "@/hooks/use-toast";
 
 export function useClientRequestDetail() {
   const router = useRouter();
@@ -20,9 +19,6 @@ export function useClientRequestDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requests = useRequestStore((s) => s.requests);
-  const removeRequest = useRequestStore((s) => s.removeRequest);
-  const isGuest = useAuthStore((s) => s.isGuest);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isDesktop && id) {
@@ -69,28 +65,6 @@ export function useClientRequestDetail() {
     router.push(getBackUrl());
   }, [router, getBackUrl]);
 
-  const handleDelete = useCallback(
-    async (subRequest: SubRequest) => {
-      if (isGuest && request) {
-        removeRequest(request.id);
-        router.push(getBackUrl());
-        return;
-      }
-      try {
-        await api.delete(`/requests/${subRequest.id}`);
-        toast({ title: "Подзаявка удалена" });
-        router.push(getBackUrl());
-      } catch {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось удалить подзаявку",
-          variant: "destructive",
-        });
-      }
-    },
-    [isGuest, request, removeRequest, router, getBackUrl, toast]
-  );
-
   return {
     isDesktop,
     request,
@@ -98,7 +72,6 @@ export function useClientRequestDetail() {
     error,
     handleClose,
     handleRequestUpdated,
-    handleDelete,
   };
 }
 

@@ -7,15 +7,21 @@ import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-list";
+import { RequestsTabs } from "@/components/requests/requests-tabs";
 import { useManagerRequestCardHeader } from "./manager-request-card-header";
 import { ManagerRequestsFilters } from "./manager-requests-filters";
 import { ManagerRequestsListContent } from "./manager-requests-list-content";
+import { ManagerDeletionAuditList } from "./manager-deletion-audit-list";
+import { MANAGER_REQUEST_TABS } from "./manager-requests-constants";
 
 type ManagerRequestsMobileProps = UseManagerRequestsListResult;
 
 /** Mobile list — parity с workflow-mobile requests index (manager). */
 export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
   const {
+    activeTab,
+    setActiveTab,
+    bulkDelete,
     offices,
     office,
     setOffice,
@@ -53,41 +59,52 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
             </Link>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-1">
-              <ManagerRequestsFilters
-                variant="mobile"
-                office={office}
-                onOfficeChange={setOffice}
-                period={period}
-                onPeriodChange={setPeriod}
-                filterStatus={filterStatus}
-                onFilterStatusChange={setFilterStatus}
-                filterType={filterType}
-                onFilterTypeChange={setFilterType}
-                offices={offices}
-                statusFilterOptions={statusFilterOptions}
-              />
-            </div>
+          <RequestsTabs tabs={MANAGER_REQUEST_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
-            <div className="space-y-4 pb-40">
-              <ManagerRequestsListContent
-                variant="mobile"
-                error={props.error}
-                isFiltered={props.isFiltered}
-                onRetry={props.handleRefresh}
-                onResetFilters={props.resetFilters}
-                loading={loading}
-                loadingMore={loadingMore}
-                hasMore={hasMore}
-                requests={filteredRequests}
-                onCardClick={handleCardClick}
-                renderCardHeader={renderCardHeader}
-                onLoadMore={handleLoadMore}
-                lastElementRef={lastElementRef}
-              />
+          {activeTab === "deleted" ? (
+            <div className="mt-4 pb-40">
+              <ManagerDeletionAuditList variant="mobile" />
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap gap-1">
+                <ManagerRequestsFilters
+                  variant="mobile"
+                  office={office}
+                  onOfficeChange={setOffice}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  filterStatus={filterStatus}
+                  onFilterStatusChange={setFilterStatus}
+                  filterType={filterType}
+                  onFilterTypeChange={setFilterType}
+                  offices={offices}
+                  statusFilterOptions={statusFilterOptions}
+                  hideStatusFilter={activeTab === "rejected"}
+                />
+              </div>
+
+              <div className="space-y-4 pb-40">
+                <ManagerRequestsListContent
+                  variant="mobile"
+                  error={props.error}
+                  isFiltered={props.isFiltered}
+                  onRetry={props.handleRefresh}
+                  onResetFilters={props.resetFilters}
+                  loading={loading}
+                  loadingMore={loadingMore}
+                  hasMore={hasMore}
+                  requests={filteredRequests}
+                  onCardClick={handleCardClick}
+                  renderCardHeader={renderCardHeader}
+                  onLoadMore={handleLoadMore}
+                  lastElementRef={lastElementRef}
+                  bulkDelete={bulkDelete}
+                  emptyMessage={activeTab === "rejected" ? "Отклонённых заявок нет" : undefined}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </PullToRefresh>
     </>

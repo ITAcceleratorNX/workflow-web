@@ -90,6 +90,9 @@ export interface RequestActionMenuProps {
   onAdminTakeGroup?: () => void;
   onEditRequestGroup?: () => void;
   onOpenComments?: () => void;
+  onAdminConfirmWork?: () => void;
+  onClientConfirm?: () => void;
+  onClientRemark?: () => void;
 }
 
 function actionButtonClass(action: ActionItem, isDialog: boolean) {
@@ -181,6 +184,9 @@ export function RequestActionMenu({
   onAdminTakeGroup,
   onEditRequestGroup,
   onOpenComments,
+  onAdminConfirmWork,
+  onClientConfirm,
+  onClientRemark,
 }: RequestActionMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -224,6 +230,9 @@ export function RequestActionMenu({
     onAdminTakeGroup,
     onEditRequestGroup,
     onOpenComments,
+    onAdminConfirmWork,
+    onClientConfirm,
+    onClientRemark,
   });
 
   if (actions.length === 0) return null;

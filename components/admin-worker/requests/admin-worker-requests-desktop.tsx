@@ -6,7 +6,6 @@ import type { UseAdminWorkerRequestsListResult } from "@/hooks/use-admin-worker-
 import { useAdminWorkerRequestCardHeader } from "./admin-worker-request-card-header";
 import { AdminWorkerRequestsFilters } from "./admin-worker-requests-filters";
 import { AdminWorkerRequestsListContent } from "./admin-worker-requests-list-content";
-import { AdminWorkerRequestsRecurringTab } from "./admin-worker-requests-recurring-tab";
 import { AdminWorkerRequestsTabs } from "./admin-worker-requests-tabs";
 
 type AdminWorkerRequestsDesktopProps = UseAdminWorkerRequestsListResult;
@@ -32,33 +31,27 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
     handleClosePanel,
     handleRequestUpdated,
     handleLoadMore,
-    handleDeleteRecurringTask,
-    bulkDelete,
   } = props;
 
   const renderCardHeader = useAdminWorkerRequestCardHeader();
 
-  const listContent =
-    activeTab === "recurring" ? (
-      <AdminWorkerRequestsRecurringTab isDesktop onDeleteTask={handleDeleteRecurringTask} />
-    ) : (
-      <AdminWorkerRequestsListContent
-        variant="desktop"
-        error={props.error}
-        isFiltered={props.isFiltered}
-        onRetry={props.handleRefresh}
-        onResetFilters={props.resetFilters}
-        loading={loading}
-        loadingMore={loadingMore}
-        hasMore={hasMore}
-        requests={activeList}
-        activeTab={activeTab}
-        onCardClick={handleCardClick}
-        renderCardHeader={renderCardHeader}
-        onLoadMore={handleLoadMore}
-        bulkDelete={bulkDelete}
-      />
-    );
+  const listContent = (
+    <AdminWorkerRequestsListContent
+      variant="desktop"
+      error={props.error}
+      isFiltered={props.isFiltered}
+      onRetry={props.handleRefresh}
+      onResetFilters={props.resetFilters}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      requests={activeList}
+      activeTab={activeTab}
+      onCardClick={handleCardClick}
+      renderCardHeader={renderCardHeader}
+      onLoadMore={handleLoadMore}
+    />
+  );
 
   return (
     <AdminManagerRequestsDesktopFrame
@@ -73,6 +66,7 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
           onFilterOfficeChange={setFilterOffice}
           offices={offices}
           statusFilterOptions={statusFilterOptions}
+          hideStatusFilter={activeTab === "rejected"}
         />
       }
       tabsSlot={

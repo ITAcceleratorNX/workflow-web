@@ -2,6 +2,13 @@
  * Действия по заявке — parity с workflow-mobile/components/requests/request-action-config.ts
  */
 import { isAdministrativeRequestGroup } from "@/constants/requests";
+import {
+  canRateWork,
+  canClientRespond,
+  canConfirmWork,
+  canDeleteRequests,
+  canRejectRequest,
+} from "@/lib/request-permissions";
 import type { RequestGroup, SubRequest } from "@/lib/types/request";
 
 export type RequestUserRole =
@@ -63,6 +70,12 @@ export interface GetActionsParams {
   onAdminTakeGroup?: () => void;
   onEditRequestGroup?: () => void;
   onOpenComments?: () => void;
+  /** Администратор подтверждает работы, отмеченные Исполнителем выполненными. */
+  onAdminConfirmWork?: () => void;
+  /** Автор заявки принимает результат («Подтвердить»). */
+  onClientConfirm?: () => void;
+  /** Автор заявки возвращает её на доработку («Есть замечания»). */
+  onClientRemark?: () => void;
 }
 
 const STAFF_COMPLETE_SUB_STATUSES = ["in_progress", "awaiting_assignment", "assigned"];
@@ -132,6 +145,9 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
     onAdminTakeGroup,
     onEditRequestGroup,
     onOpenComments,
+    onAdminConfirmWork,
+    onClientConfirm,
+    onClientRemark,
     isExecutorLeader,
   } = params;
 
@@ -166,32 +182,35 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
     });
   }
 
+  // Выполненная заявка ждёт автора: закрыть её вместо него другие роли не могут.
+  if (canClientRespond(params.userId, request)) {
+    if (onClientConfirm) {
+      actions.push({
+        icon: "check-circle",
+        label: "Подтвердить",
+        onClick: onClientConfirm,
+        variant: "primary",
+      });
+    }
+    if (onClientRemark) {
+      actions.push({
+        icon: "chat-bubble-outline",
+        label: "Есть замечания",
+        onClick: onClientRemark,
+        variant: "default",
+      });
+    }
+  }
+
   if (userRole === "client") {
     if (isSub && subRequest) {
-      if (subRequest.status === "completed" && onRateRequest) {
+      // Оценка необязательна и доступна после закрытия заявки.
+      if (subRequest.status === "completed" && canRateWork(request) && onRateRequest) {
         actions.push({
           icon: "star",
           label: subRequest.rating ? "Изменить оценку" : "Оценить работу",
           onClick: () => onRateRequest(subRequest),
           variant: "primary",
-        });
-      }
-      if (subRequest.status === "in_progress" && onDelete) {
-        actions.push({
-          icon: "delete",
-          label: "Удалить заявку",
-          onClick: () => onDelete(subRequest),
-          variant: "destructive",
-        });
-      }
-    } else if (!isSub && request.status === "in_progress" && onDelete) {
-      const target = request.requests?.[0];
-      if (target) {
-        actions.push({
-          icon: "delete",
-          label: "Удалить заявку",
-          onClick: () => onDelete(target),
-          variant: "destructive",
         });
       }
     }
@@ -244,7 +263,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
   }
 
   if (userRole === "manager") {
-    if (isSub && subRequest?.status === "completed" && onRateRequest) {
+    if (isSub && subRequest?.status === "completed" && canRateWork(request) && onRateRequest) {
       actions.push({
         icon: "star",
         label: subRequest.rating ? "Изменить оценку" : "Оценить работу",
@@ -252,11 +271,12 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "primary",
       });
     }
+    // Удалять заявки может только Руководитель платформы — логически, с записью в журнале.
     const deleteTarget = isSub && subRequest ? subRequest : request.requests?.[0];
-    if (onDelete && deleteTarget) {
+    if (onDelete && deleteTarget && canDeleteRequests(userRole)) {
       actions.push({
         icon: "delete",
-        label: "Удалить",
+        label: "Удалить заявку",
         onClick: () => onDelete(deleteTarget),
         variant: "destructive",
       });
@@ -315,14 +335,6 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "primary",
       });
     }
-    if (onDelete) {
-      actions.push({
-        icon: "delete",
-        label: "Удалить заявку",
-        onClick: () => onDelete(subRequest),
-        variant: "destructive",
-      });
-    }
   }
 
   if (userRole === "admin-worker" && isSub && subRequest) {
@@ -330,6 +342,14 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
     // не завершает и не редактирует — она закреплена за офис-менеджером.
     const canProcessGroup = request.status === "in_progress" && !isAdministrative;
 
+    if (onAdminConfirmWork && canConfirmWork(userRole, request)) {
+      actions.push({
+        icon: "check-circle",
+        label: "Подтвердить выполнение",
+        onClick: onAdminConfirmWork,
+        variant: "primary",
+      });
+    }
     if (onAdminTakeGroup && canProcessGroup && !request.taken_by_admin_id) {
       actions.push({
         icon: "play-arrow",
@@ -346,7 +366,8 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "primary",
       });
     }
-    if (onAdminRejectGroup && canProcessGroup) {
+    // Отклонить можно только новую заявку до первоначального подтверждения.
+    if (onAdminRejectGroup && canProcessGroup && canRejectRequest(userRole, request)) {
       actions.push({
         icon: "cancel",
         label: "Отклонить заявку",
@@ -367,7 +388,7 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "primary",
       });
     }
-    if (subRequest.status === "completed" && onRateRequest) {
+    if (subRequest.status === "completed" && canRateWork(request) && onRateRequest) {
       actions.push({
         icon: "star",
         label: subRequest.rating ? "Изменить оценку" : "Оценить работу",
@@ -392,14 +413,6 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         variant: "default",
       });
     }
-    if (!isAdministrative && onDelete) {
-      actions.push({
-        icon: "delete",
-        label: "Удалить заявку",
-        onClick: () => onDelete(subRequest),
-        variant: "destructive",
-      });
-    }
     if (!isAdministrative && request.status !== "completed" && onEditRequestGroup) {
       actions.push({
         icon: "edit",
@@ -415,15 +428,6 @@ export function getRequestActions(params: GetActionsParams): ActionItem[] {
         label: "Оценить клиента",
         onClick: onRateClient,
         variant: "default",
-      });
-    }
-    const deleteTarget = request.requests?.[0];
-    if (!isAdministrative && onDelete && deleteTarget) {
-      actions.push({
-        icon: "delete",
-        label: "Удалить",
-        onClick: () => onDelete(deleteTarget),
-        variant: "destructive",
       });
     }
   }

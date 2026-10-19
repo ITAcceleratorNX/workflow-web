@@ -29,7 +29,6 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
     clientRatings,
     fetchRequests,
     handleLoadMore,
-    handleDeleteSubRequest,
     handleCardClick,
     openRateModal,
     showRatingModal,
@@ -48,7 +47,6 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
     isDesktop,
     onViewDetails: handleCardClick,
     onRateRequest: openRateModal,
-    onDelete: handleDeleteSubRequest,
   });
 
   return (
