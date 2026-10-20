@@ -1,7 +1,7 @@
 "use client";
 
-import { DepartmentHeadBookingView } from "@/components/booking/department-head-booking-view";
+import { StaffBookingView } from "@/components/booking/staff-booking-view";
 
 export default function DepartmentHeadBookingPage() {
-  return <DepartmentHeadBookingView />;
+  return <StaffBookingView />;
 }

@@ -377,6 +377,7 @@ export interface MeetingRoomBooking {
         id: number;
         full_name?: string | null;
         phone?: string | null;
+        role?: string | null;
     };
 }
 
@@ -388,12 +389,6 @@ export const createMeetingRoomBooking = (data: {
     end_time: string;
     company_name?: string | null;
 }) => api.post<MeetingRoomBooking>('/meeting-room-bookings', data);
-
-// Получить бронирования переговорной комнаты
-export const getMeetingRoomBookings = (meetingRoomId?: number) => {
-    const params = meetingRoomId ? `?meeting_room_id=${meetingRoomId}` : '';
-    return api.get<MeetingRoomBooking[]>(`/meeting-room-bookings${params}`);
-};
 
 // Фильтр статуса для «мои бронирования» (как в бэкенде и мобилке)
 export type MyBookingsStatusFilter = 'active' | 'completed' | 'cancelled';
@@ -421,6 +416,25 @@ export const getMyBookings = (params?: GetMyBookingsParams) => {
     const qs = search.toString();
     return api.get<GetMyBookingsResponse>(
         qs ? `/meeting-room-bookings/my?${qs}` : '/meeting-room-bookings/my'
+    );
+};
+
+export interface GetOfficeBookingsParams extends GetMyBookingsParams {
+    /** Только для Администратора: Офис-менеджеру бэкенд всегда отдаёт его офис. */
+    officeId?: number | null;
+}
+
+// Бронирования офисов для персонала (включая брони Клиентов):
+// Администратор — все офисы, Офис-менеджер — только свой офис.
+export const getOfficeBookings = (params?: GetOfficeBookingsParams) => {
+    const search = new URLSearchParams();
+    if (params?.status) search.set('status', params.status);
+    if (params?.page != null) search.set('page', String(params.page));
+    if (params?.pageSize != null) search.set('pageSize', String(params.pageSize));
+    if (params?.officeId) search.set('office_id', String(params.officeId));
+    const qs = search.toString();
+    return api.get<GetMyBookingsResponse>(
+        qs ? `/meeting-room-bookings?${qs}` : '/meeting-room-bookings'
     );
 };
 

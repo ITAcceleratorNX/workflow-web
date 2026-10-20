@@ -21,6 +21,8 @@ interface MeetingRoomsCatalogProps {
   onOfficeChange?: (office: Office | null) => void;
   initialTab?: "book" | "my-bookings";
   onTabChange?: (tab: "book" | "my-bookings") => void;
+  /** Тёмные карточки комнат без CSS-обёртки client-desktop-content (она работает только на desktop). */
+  darkTheme?: boolean;
 }
 
 export function MeetingRoomsCatalog({
@@ -28,6 +30,7 @@ export function MeetingRoomsCatalog({
   onOfficeChange,
   initialTab = "book",
   onTabChange,
+  darkTheme = false,
 }: MeetingRoomsCatalogProps) {
   const rooms = useMeetingRoomsStore((state) => state.rooms);
   const fetchRooms = useMeetingRoomsStore((state) => state.fetchRooms);
@@ -157,7 +160,7 @@ export function MeetingRoomsCatalog({
                 onClick={() => handleRoomClick(room)}
                 className="cursor-pointer"
               >
-                <MeetingRoomCard room={room} showOffice />
+                <MeetingRoomCard room={room} showOffice darkTheme={darkTheme} />
               </div>
             ))}
           </div>
