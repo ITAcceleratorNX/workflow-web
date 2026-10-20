@@ -59,10 +59,15 @@ export function MeetingRoomPhotoCarousel({
   }
 
   return (
-    <Carousel opts={{ loop: true, align: "start" }} className={cn("absolute inset-0 w-full h-full", className)}>
+    <Carousel
+      opts={{ loop: true, align: "start" }}
+      // Окно карусели (div.overflow-hidden из ui/carousel) без высоты сжимает слайды до 0 —
+      // фото с fill не видно, остаются только стрелки и счётчик.
+      className={cn("absolute inset-0 w-full h-full [&>.overflow-hidden]:h-full", className)}
+    >
       <CarouselContent className="-ml-0 h-full">
         {photos.map((photo, index) => (
-          <CarouselItem key={index} className="pl-0 basis-full">
+          <CarouselItem key={index} className="pl-0 basis-full h-full">
             <div className="relative w-full h-full">
               <Image
                 src={photo}

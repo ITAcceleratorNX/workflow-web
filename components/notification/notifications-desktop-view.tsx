@@ -47,15 +47,91 @@ export function NotificationsDesktopList({
   hasMore,
   onNotificationPress,
   onRequestClick,
+  dark = false,
 }: {
   notifications: AppNotification[];
   isLoading: boolean;
   hasMore: boolean;
   onNotificationPress: (notification: AppNotification) => void;
   onRequestClick: (requestId: string) => void;
+  /**
+   * Тёмная страница (client-desktop-dark): без bg-gradient-to-r и border — глобальные правила
+   * той обёртки красят такие элементы в сплошной оранжевый / цвет карточки.
+   */
+  dark?: boolean;
 }) {
   if (notifications.length === 0 && !isLoading) {
     return <NotificationsEmptyState />;
+  }
+
+  if (dark) {
+    return (
+      <div className="space-y-2">
+        {notifications.map((notification) => {
+          const unread = !notification.is_read;
+          return (
+            <div
+              key={notification.id}
+              onClick={() => onNotificationPress(notification)}
+              className={`relative overflow-hidden rounded-xl p-4 pl-5 cursor-pointer ring-1 transition-colors ${
+                unread
+                  ? "bg-[#2C2C2E] ring-white/10 hover:bg-[#333336]"
+                  : "bg-[#212123] ring-white/5 hover:bg-[#28282A]"
+              }`}
+            >
+              {unread && <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[#E85D2B]" />}
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">{getNotificationIcon(notification.title)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3
+                      className={`text-sm leading-tight line-clamp-2 ${
+                        unread ? "font-semibold text-[#F5F5F7]" : "font-medium text-[#C7C7CC]"
+                      }`}
+                    >
+                      {notification.title}
+                    </h3>
+                    {unread && (
+                      <span className="flex-shrink-0 rounded-full bg-[#E85D2B]/15 px-2 py-0.5 text-xs font-medium text-[#FF8A5B] whitespace-nowrap">
+                        Новое
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[#8E8E93]">
+                    <Clock className="w-3 h-3" />
+                    {formatTimeAgo(notification.created_at)}
+                  </p>
+                  <p
+                    className={`mt-2 text-sm leading-relaxed line-clamp-3 ${
+                      unread ? "text-[#D1D1D6]" : "text-[#9A9AA0]"
+                    }`}
+                  >
+                    {createClickableRequestIds(
+                      notification.content,
+                      onRequestClick,
+                      "cursor-pointer font-medium text-[#FF8A5B] underline underline-offset-2 hover:text-[#FFA27F]",
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {isLoading && (
+          <div className="flex justify-center py-6">
+            <div className="flex items-center gap-2 text-[#8E8E93]">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Загрузка...</span>
+            </div>
+          </div>
+        )}
+
+        {!hasMore && notifications.length > 0 && !isLoading && (
+          <p className="py-4 text-center text-xs text-[#636366]">Вы достигли конца списка</p>
+        )}
+      </div>
+    );
   }
 
   return (
