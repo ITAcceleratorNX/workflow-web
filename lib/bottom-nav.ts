@@ -72,6 +72,18 @@ function getHomeHref(role: string | null | undefined): string {
   }
 }
 
+/** Персонал бронирует и видит брони офисов на своём экране; остальные роли — общий /meeting-rooms. */
+function getBookingHref(role: string | null | undefined): string {
+  switch (role) {
+    case "admin-worker":
+    case "department-head":
+    case "manager":
+      return `/${role}/booking`;
+    default:
+      return "/meeting-rooms";
+  }
+}
+
 function getHelpHref(role: string | null | undefined): string {
   return role === "admin-worker" ? "/admin-worker/messages" : "/chat-bot";
 }
@@ -93,7 +105,7 @@ export function getNavItems(role: string | null | undefined): BottomNavItem[] {
   const keys: BottomNavTabKey[] = ["home", "booking", "requests", "help", "profile"];
   const hrefByKey: Record<BottomNavTabKey, string> = {
     home: getHomeHref(role),
-    booking: "/meeting-rooms",
+    booking: getBookingHref(role),
     requests: getRequestsListPath(role),
     help: getHelpHref(role),
     profile: getProfileHref(role),
@@ -125,7 +137,7 @@ export function getActiveTabFromPath(
 ): BottomNavTabKey | undefined {
   const path = pathname?.split("?")[0] || "";
   const homeHref = getHomeHref(role);
-  const bookingHref = "/meeting-rooms";
+  const bookingHref = getBookingHref(role);
   const requestsHref = getRequestsListPath(role);
   const helpHref = getHelpHref(role);
   const profileHref = getProfileHref(role);
@@ -148,7 +160,9 @@ export function getActiveTabFromPath(
     path.startsWith("/manager/statistics");
 
   if (isHomePath) return "home";
-  if (path === bookingHref || path.startsWith("/meeting-rooms")) return "booking";
+  if (path === bookingHref || path.startsWith("/meeting-rooms") || path.startsWith(`${bookingHref}/`)) {
+    return "booking";
+  }
   if (
     path === requestsHref ||
     path === "/requests" ||

@@ -99,7 +99,8 @@ export const useMeetingRoomsStore = create<MeetingRoomsState>((set, get) => ({
       const response = await createMeetingRoom({
         ...roomWithoutPhotos,
         photos: [],
-        office_id: user?.office_id || null,
+        // Офис из формы; без него — офис текущего пользователя (как раньше).
+        office_id: roomWithoutPhotos.office_id ?? user?.office_id ?? null,
       });
       const newRoom = convertApiRoomToStoreRoom(response.data);
       set((state) => ({

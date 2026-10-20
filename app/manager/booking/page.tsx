@@ -1,7 +1,7 @@
 "use client";
 
-import { ManagerBookingView } from "@/components/booking/manager-booking-view";
+import { StaffBookingView } from "@/components/booking/staff-booking-view";
 
 export default function ManagerBookingPage() {
-  return <ManagerBookingView />;
+  return <StaffBookingView />;
 }

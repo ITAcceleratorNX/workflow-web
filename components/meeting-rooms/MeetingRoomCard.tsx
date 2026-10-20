@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { MeetingRoom } from "@/stores/meetingRoomsStore";
@@ -118,8 +117,7 @@ export function MeetingRoomCard({
         </CardHeader>
 
         {isExpanded && footer ? (
-          <div className="px-3 pb-3 pt-0 mt-auto">
-            <Separator className="mb-2" />
+          <div className="px-3 pb-3 pt-1 mt-auto">
             {footer}
           </div>
         ) : null}
