@@ -64,6 +64,7 @@ export function NotificationsPageDesktopView({
           hasMore={hasMore}
           onNotificationPress={handleNotificationPress}
           onRequestClick={handleRequestClick}
+          dark
         />
       </div>
     </DesktopContentPage>
