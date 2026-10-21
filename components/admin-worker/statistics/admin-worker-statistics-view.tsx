@@ -3,7 +3,7 @@
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useAdminWorkerStatisticsPage } from "@/hooks/use-admin-worker-statistics-page";
 import { AdminWorkerStatisticsDesktopView } from "./admin-worker-statistics-desktop-view";
-import { AdminWorkerStatisticsMobileView } from "./admin-worker-statistics-mobile-view";
+import { OfficeStatisticsMobileView } from "@/components/statistics/office-statistics-mobile-view";
 
 export function AdminWorkerStatisticsView() {
   const isDesktop = useIsDesktop();
@@ -14,7 +14,8 @@ export function AdminWorkerStatisticsView() {
   }
 
   return (
-    <AdminWorkerStatisticsMobileView
+    <OfficeStatisticsMobileView
+      role="admin-worker"
       stats={stats}
       loading={loading}
       error={error}

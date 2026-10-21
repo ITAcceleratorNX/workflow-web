@@ -2,7 +2,8 @@
 
 import { useDepartmentHeadHome } from "@/hooks/use-department-head-home";
 import { DepartmentHeadHomeDesktop } from "./department-head-home-desktop";
-import { DepartmentHeadHomeMobile } from "./department-head-home-mobile";
+import { ManagementHomeMobile } from "@/components/layout/management-home-mobile";
+import { DEPARTMENT_HEAD_HOME_CARDS } from "./department-head-home-constants";
 
 export function DepartmentHeadHomeView() {
   const state = useDepartmentHeadHome();
@@ -11,5 +12,12 @@ export function DepartmentHeadHomeView() {
     return <DepartmentHeadHomeDesktop />;
   }
 
-  return <DepartmentHeadHomeMobile {...state} />;
+  return (
+    <ManagementHomeMobile
+      title="Управление"
+      subtitle="Выберите раздел"
+      cards={DEPARTMENT_HEAD_HOME_CARDS}
+      onRefresh={state.handleRefresh}
+    />
+  );
 }

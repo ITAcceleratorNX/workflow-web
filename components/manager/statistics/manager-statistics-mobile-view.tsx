@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle,
@@ -14,28 +13,9 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { StatRow } from "@/components/ui/stat-row";
 import { cn } from "@/lib/utils";
 import type { UseManagerStatisticsMobilePageResult } from "@/hooks/use-manager-statistics-mobile-page";
+import { QuickStatCard } from "@/components/statistics/quick-stat-card";
 
 type ManagerStatisticsMobileViewProps = UseManagerStatisticsMobilePageResult;
-
-function QuickStatCard({
-  icon,
-  value,
-  label,
-  className,
-}: {
-  icon: ReactNode;
-  value: number;
-  label: string;
-  className: string;
-}) {
-  return (
-    <div className={`flex-1 min-w-[47%] max-w-[48%] rounded-xl p-3.5 ${className}`}>
-      {icon}
-      <p className="text-[22px] font-bold text-foreground mt-1.5">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-    </div>
-  );
-}
 
 function TabButton({
   active,

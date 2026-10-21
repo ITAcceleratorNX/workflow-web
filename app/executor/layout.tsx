@@ -1,41 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { useIsDesktop } from "@/hooks/use-media-query";
+import type { ReactNode } from "react";
 import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
+import { useRoleGuard } from "@/hooks/use-role-guard";
 
-export default function ExecutorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const { user, clearAuth } = useAuthStore();
-  const isDesktop = useIsDesktop();
-  const [hydrated, setHydrated] = useState(false);
+export default function ExecutorLayout({ children }: { children: ReactNode }) {
+  const { ready, isDesktop } = useRoleGuard((role) => role === "executor");
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-
-    if (!user || user.role !== "executor") {
-      clearAuth();
-      router.push("/login");
-    }
-  }, [hydrated, user, router, clearAuth]);
-
-  if (!hydrated || !user) {
-    return null;
-  }
-
-  if (isDesktop) {
-    return <>{children}</>;
-  }
-
+  if (!ready) return null;
+  if (isDesktop) return <>{children}</>;
   return <MobileRoleShell>{children}</MobileRoleShell>;
 }

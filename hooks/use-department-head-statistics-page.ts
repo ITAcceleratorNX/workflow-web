@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  getDepartmentHeadStats,
-  type DepartmentHeadStats,
-} from "@/lib/department-head-stats-api";
+import { getOfficeStats, type OfficeStats } from "@/lib/office-stats-api";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useStatsStore } from "@/stores/statsStore";
@@ -13,7 +10,7 @@ export function useDepartmentHeadStatisticsPage() {
   const token = useAuthStore((s) => s.token);
   const isDesktop = useIsDesktop();
   const { fetchStats, resetStats } = useStatsStore();
-  const [stats, setStats] = useState<DepartmentHeadStats | null>(null);
+  const [stats, setStats] = useState<OfficeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +24,7 @@ export function useDepartmentHeadStatisticsPage() {
     setLoading(true);
     setError(null);
 
-    const result = await getDepartmentHeadStats();
+    const result = await getOfficeStats("department-head");
     if (result.ok) {
       setStats(result.data);
     } else {

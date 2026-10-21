@@ -1,23 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import { Bell, ChevronRight } from "lucide-react";
 import { TasksSection } from "@/components/tasks/tasks-section";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
-import type { UseAdminWorkerHomeResult } from "@/hooks/use-admin-worker-home";
-import { adminWorkerHomeCardsFor } from "./admin-worker-home-constants";
 
-type AdminWorkerHomeMobileProps = UseAdminWorkerHomeResult;
+export interface ManagementHomeCard {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  href: string;
+}
 
-/** Mobile home — parity с workflow-mobile AdminWorkerManagementScreen. */
-export function AdminWorkerHomeMobile({ handleRefresh }: AdminWorkerHomeMobileProps) {
+interface ManagementHomeMobileProps {
+  title: string;
+  subtitle: string;
+  cards: readonly ManagementHomeCard[];
+  onRefresh: () => Promise<void>;
+}
+
+/**
+ * Mobile главная Администратора, Офис-менеджера и Исполнителя — parity с workflow-mobile
+ * Management/Cabinet screens: заголовок с уведомлениями, плитки разделов, задачи.
+ */
+export function ManagementHomeMobile({ title, subtitle, cards, onRefresh }: ManagementHomeMobileProps) {
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
+    <PullToRefresh onRefresh={onRefresh}>
       <div className="min-h-screen px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="mb-4">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-foreground">Управление системой</h1>
+            <h1 className="text-2xl font-bold text-foreground">{title}</h1>
             <Link
               href="/notifications"
               className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -26,11 +41,11 @@ export function AdminWorkerHomeMobile({ handleRefresh }: AdminWorkerHomeMobilePr
               <Bell className="w-6 h-6 text-white" />
             </Link>
           </div>
-          <p className="text-sm text-white/60">Выберите раздел для управления</p>
+          <p className="text-sm text-white/60">{subtitle}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {adminWorkerHomeCardsFor("mobile").map((card) => {
+          {cards.map((card) => {
             const Icon = card.icon;
             return (
               <Link

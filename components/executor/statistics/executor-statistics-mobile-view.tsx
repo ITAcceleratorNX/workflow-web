@@ -1,12 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle, Clock, Loader2, Users } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { StatRow } from "@/components/ui/stat-row";
 import type { ExecutorStats } from "@/lib/executor-stats-api";
+import { QuickStatCard } from "@/components/statistics/quick-stat-card";
 
 interface ExecutorStatisticsMobileViewProps {
   stats: ExecutorStats | null;
@@ -14,26 +14,6 @@ interface ExecutorStatisticsMobileViewProps {
   error: string | null;
   onRefresh: () => Promise<void>;
   onRetry: () => void;
-}
-
-function QuickStatCard({
-  icon,
-  value,
-  label,
-  className,
-}: {
-  icon: ReactNode;
-  value: number;
-  label: string;
-  className: string;
-}) {
-  return (
-    <div className={`flex-1 min-w-[47%] max-w-[48%] rounded-xl p-3.5 ${className}`}>
-      {icon}
-      <p className="text-[22px] font-bold text-foreground mt-1.5">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-    </div>
-  );
 }
 
 /** Mobile executor statistics — parity с workflow-mobile app/executor/statistics.tsx. */
