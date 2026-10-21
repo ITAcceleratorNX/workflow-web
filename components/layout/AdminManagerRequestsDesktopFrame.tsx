@@ -29,7 +29,9 @@ export function AdminManagerRequestsDesktopFrame({
   onCloseDetail,
 }: AdminManagerRequestsDesktopFrameProps) {
   return (
-    <div className={`dark h-full flex flex-col bg-[#1A1A1A] ${REQUESTS_DESKTOP_DARK_CLASS}`}>
+    // Высота окна минус шапка (h-16 + граница): страница не растёт по списку, поэтому список и
+    // открытая заявка прокручиваются каждая в своей колонке — панель заявки остаётся на месте.
+    <div className={`dark h-[calc(100dvh-4rem-1px)] flex flex-col bg-[#1A1A1A] ${REQUESTS_DESKTOP_DARK_CLASS}`}>
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="p-4 border-b border-white/10 flex justify-between items-center">
@@ -49,7 +51,8 @@ export function AdminManagerRequestsDesktopFrame({
               {tabsSlot}
             </div>
           )}
-          <div className="flex-1 overflow-auto p-4 space-y-4 min-h-0">{listSlot}</div>
+          {/* relative: absolute-элементы карточек (sr-only) остаются внутри прокрутки и не растягивают страницу */}
+          <div className="relative flex-1 overflow-auto p-4 space-y-4 min-h-0">{listSlot}</div>
         </div>
         {detailSlot && (
           <div className="w-[420px] shrink-0 border-l border-white/10 flex flex-col bg-[#1A1A1A]">
@@ -66,7 +69,7 @@ export function AdminManagerRequestsDesktopFrame({
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="flex-1 overflow-auto min-h-0">{detailSlot}</div>
+            <div className="relative flex-1 overflow-auto min-h-0">{detailSlot}</div>
           </div>
         )}
       </div>
