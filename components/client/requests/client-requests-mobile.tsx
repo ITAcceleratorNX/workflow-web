@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { UseClientRequestsListResult } from "@/hooks/use-client-requests-list";
 import { useClientRequestCardHeader } from "./client-request-card-header";
-import { ClientRequestsFilters } from "./client-requests-filters";
-import { ClientRequestsListContent } from "./client-requests-list-content";
+import { RequestStatusTypeFilters } from "@/components/requests/requests-filter-select";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { ClientRequestsRatingModal } from "./client-requests-rating-modal";
 
 type ClientRequestsMobileProps = UseClientRequestsListResult;
@@ -55,7 +55,8 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
         <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
 
         <div className="flex gap-2 mb-4">
-          <ClientRequestsFilters
+          <RequestStatusTypeFilters
+            mobileItemClassName="text-white"
             variant="mobile"
             filterStatus={filterStatus}
             onFilterStatusChange={setFilterStatus}
@@ -73,7 +74,9 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
         </Link>
 
         <div className="space-y-4">
-          <ClientRequestsListContent
+          <RequestsListContent
+            userRole="client"
+            emptyMessage="У вас пока нет заявок"
             variant="mobile"
             error={props.error}
               isFiltered={props.isFiltered}

@@ -10,7 +10,7 @@ import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-
 import { RequestsTabs } from "@/components/requests/requests-tabs";
 import { useManagerRequestCardHeader } from "./manager-request-card-header";
 import { ManagerRequestsFilters } from "./manager-requests-filters";
-import { ManagerRequestsListContent } from "./manager-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { ManagerDeletionAuditList } from "./manager-deletion-audit-list";
 import { MANAGER_REQUEST_TABS } from "./manager-requests-constants";
 
@@ -85,7 +85,8 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
               </div>
 
               <div className="space-y-4 pb-40">
-                <ManagerRequestsListContent
+                <RequestsListContent
+                  userRole="manager"
                   variant="mobile"
                   error={props.error}
                   isFiltered={props.isFiltered}

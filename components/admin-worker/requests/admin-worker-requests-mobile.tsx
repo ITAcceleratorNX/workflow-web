@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { UseAdminWorkerRequestsListResult } from "@/hooks/use-admin-worker-requests-list";
 import { useAdminWorkerRequestCardHeader } from "./admin-worker-request-card-header";
-import { ADMIN_WORKER_TAB_TITLES } from "./admin-worker-requests-constants";
+import { ADMIN_WORKER_TAB_TITLES, ADMIN_WORKER_EMPTY_MESSAGES } from "./admin-worker-requests-constants";
 import { AdminWorkerRequestsFilters } from "./admin-worker-requests-filters";
-import { AdminWorkerRequestsListContent } from "./admin-worker-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { AdminWorkerRequestsTabs } from "./admin-worker-requests-tabs";
 
 type AdminWorkerRequestsMobileProps = UseAdminWorkerRequestsListResult;
@@ -74,7 +74,8 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
 
           <div className="space-y-4 pb-40">
             <h2 className="text-lg font-bold text-foreground">{tabTitle}</h2>
-            <AdminWorkerRequestsListContent
+            <RequestsListContent
+              userRole="admin-worker"
               variant="mobile"
               error={props.error}
               isFiltered={props.isFiltered}
@@ -84,7 +85,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
               loadingMore={loadingMore}
               hasMore={hasMore}
               requests={activeList}
-              activeTab={activeTab}
+              emptyMessage={ADMIN_WORKER_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}
               onLoadMore={handleLoadMore}

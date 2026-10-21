@@ -1,24 +1,11 @@
 "use client";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  mobileRequestsFilterContent,
-  mobileRequestsFilterItem,
-  mobileRequestsFilterTrigger,
-} from "@/constants/mobile-requests-ui";
-import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+  RequestStatusTypeFilters,
+  RequestTypeFilter,
+  type RequestsFilterOption,
+} from "@/components/requests/requests-filter-select";
 import type { ExecutorRequestsTab } from "./executor-requests-constants";
-
-interface FilterOption {
-  value: string;
-  label: string;
-}
 
 interface ExecutorRequestsFiltersProps {
   activeTab: ExecutorRequestsTab;
@@ -28,7 +15,7 @@ interface ExecutorRequestsFiltersProps {
   onFilterMyStatusChange: (value: string) => void;
   filterMyType: string;
   onFilterMyTypeChange: (value: string) => void;
-  statusFilterOptions: FilterOption[];
+  statusFilterOptions: RequestsFilterOption[];
   variant?: "mobile" | "desktop";
 }
 
@@ -43,53 +30,18 @@ export function ExecutorRequestsFilters({
   statusFilterOptions,
   variant = "mobile",
 }: ExecutorRequestsFiltersProps) {
-  const triggerClass = mobileRequestsFilterTrigger(variant);
-  const contentClass = mobileRequestsFilterContent(variant);
-  const itemClass = mobileRequestsFilterItem(variant);
-
   if (activeTab === "myTasks") {
     return (
-      <>
-        <Select value={filterMyStatus} onValueChange={onFilterMyStatusChange}>
-          <SelectTrigger className={triggerClass}>
-            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            {statusFilterOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value} className={itemClass}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterMyType} onValueChange={onFilterMyTypeChange}>
-          <SelectTrigger className={triggerClass}>
-            <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className={itemClass}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </>
+      <RequestStatusTypeFilters
+        filterStatus={filterMyStatus}
+        onFilterStatusChange={onFilterMyStatusChange}
+        filterType={filterMyType}
+        onFilterTypeChange={onFilterMyTypeChange}
+        statusFilterOptions={statusFilterOptions}
+        variant={variant}
+      />
     );
   }
 
-  return (
-    <Select value={filterType} onValueChange={onFilterTypeChange}>
-      <SelectTrigger className={triggerClass}>
-        <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
-      </SelectTrigger>
-      <SelectContent className={contentClass}>
-        {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-          <SelectItem key={option.value} value={option.value} className={itemClass}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+  return <RequestTypeFilter value={filterType} onChange={onFilterTypeChange} variant={variant} />;
 }

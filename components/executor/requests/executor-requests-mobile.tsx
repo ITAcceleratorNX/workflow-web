@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ExecutorMobileCardHeader } from "@/components/executor-mobile/ExecutorMobileCardHeader";
 import type { RequestGroup } from "@/stores/useRequestStore";
 import type { UseExecutorRequestsListResult } from "@/hooks/use-executor-requests-list";
-import { EXECUTOR_REQUEST_TABS } from "./executor-requests-constants";
+import { EXECUTOR_REQUEST_TABS, EXECUTOR_EMPTY_MESSAGES } from "./executor-requests-constants";
 import { ExecutorRequestsFilters } from "./executor-requests-filters";
-import { ExecutorRequestsListContent } from "./executor-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { ExecutorRequestsTabs } from "./executor-requests-tabs";
 
 type ExecutorRequestsMobileProps = UseExecutorRequestsListResult;
@@ -75,7 +75,8 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
           </Link>
 
           <div className="space-y-4 pb-8">
-            <ExecutorRequestsListContent
+            <RequestsListContent
+              userRole="executor"
               variant="mobile"
               error={props.error}
               isFiltered={props.isFiltered}
@@ -85,7 +86,7 @@ export function ExecutorRequestsMobile(props: ExecutorRequestsMobileProps) {
               hasMore={props.hasMore}
               onLoadMore={props.handleLoadMore}
               requests={activeList}
-              activeTab={activeTab}
+              emptyMessage={EXECUTOR_EMPTY_MESSAGES[activeTab]}
               clientRatings={clientRatings}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}

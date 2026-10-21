@@ -4,8 +4,8 @@ import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManag
 import { RequestDetails } from "@/components/requests";
 import type { UseClientRequestsListResult } from "@/hooks/use-client-requests-list";
 import { useClientRequestCardHeader } from "./client-request-card-header";
-import { ClientRequestsFilters } from "./client-requests-filters";
-import { ClientRequestsListContent } from "./client-requests-list-content";
+import { RequestStatusTypeFilters } from "@/components/requests/requests-filter-select";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { ClientRequestsRatingModal } from "./client-requests-rating-modal";
 
 type ClientRequestsDesktopProps = UseClientRequestsListResult;
@@ -50,7 +50,7 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
     <>
       <AdminManagerRequestsDesktopFrame
         filtersSlot={
-          <ClientRequestsFilters
+          <RequestStatusTypeFilters
             variant="desktop"
             filterStatus={filterStatus}
             onFilterStatusChange={setFilterStatus}
@@ -60,7 +60,9 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
           />
         }
         listSlot={
-          <ClientRequestsListContent
+          <RequestsListContent
+            userRole="client"
+            emptyMessage="У вас пока нет заявок"
             variant="desktop"
             error={props.error}
               isFiltered={props.isFiltered}

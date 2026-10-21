@@ -1,25 +1,13 @@
 "use client";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  mobileRequestsFilterContent,
-  mobileRequestsFilterItem,
-  mobileRequestsFilterTrigger,
-} from "@/constants/mobile-requests-ui";
-import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+  RequestOfficeFilter,
+  RequestStatusFilter,
+  RequestTypeFilter,
+  type RequestsFilterOption,
+} from "@/components/requests/requests-filter-select";
 import type { AdminWorkerOffice } from "@/hooks/use-admin-worker-requests-list";
 import { cn } from "@/lib/utils";
-
-interface FilterOption {
-  value: string;
-  label: string;
-}
 
 interface AdminWorkerRequestsFiltersProps {
   filterStatus: string;
@@ -29,7 +17,7 @@ interface AdminWorkerRequestsFiltersProps {
   filterOffice: string;
   onFilterOfficeChange: (value: string) => void;
   offices: AdminWorkerOffice[];
-  statusFilterOptions: FilterOption[];
+  statusFilterOptions: RequestsFilterOption[];
   /** Вкладка «Отклонённые»: статус у всех заявок один — фильтр не нужен. */
   hideStatusFilter?: boolean;
   variant?: "mobile" | "desktop";
@@ -48,56 +36,22 @@ export function AdminWorkerRequestsFilters({
   variant = "mobile",
 }: AdminWorkerRequestsFiltersProps) {
   const isDesktop = variant === "desktop";
-  const triggerClass = mobileRequestsFilterTrigger(variant);
-  const contentClass = mobileRequestsFilterContent(variant);
-  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <div className={cn("space-y-2", isDesktop ? "flex flex-wrap gap-2 space-y-0" : undefined)}>
       <div className={cn("flex gap-2", isDesktop && "contents")}>
         {!hideStatusFilter && (
-          <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-            <SelectTrigger className={triggerClass}>
-              <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
-            </SelectTrigger>
-            <SelectContent className={contentClass}>
-              {statusFilterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value} className={itemClass}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <RequestStatusFilter
+            value={filterStatus}
+            onChange={onFilterStatusChange}
+            options={statusFilterOptions}
+            variant={variant}
+          />
         )}
-        <Select value={filterType} onValueChange={onFilterTypeChange}>
-          <SelectTrigger className={triggerClass}>
-            <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className={itemClass}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <RequestTypeFilter value={filterType} onChange={onFilterTypeChange} variant={variant} />
       </div>
       <div className={cn("flex gap-2", isDesktop && "contents")}>
-        <Select value={filterOffice} onValueChange={onFilterOfficeChange}>
-          <SelectTrigger className={triggerClass}>
-            <SelectValue placeholder="Офис" />
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            <SelectItem value="all" className={itemClass}>
-              Все офисы
-            </SelectItem>
-            {offices.map((office) => (
-              <SelectItem key={office.id} value={String(office.id)} className={itemClass}>
-                {office.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <RequestOfficeFilter value={filterOffice} onChange={onFilterOfficeChange} offices={offices} variant={variant} />
       </div>
     </div>
   );

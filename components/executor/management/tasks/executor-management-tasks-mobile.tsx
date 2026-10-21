@@ -8,9 +8,10 @@ import { EXECUTOR_MANAGEMENT_TASKS_BACK_HREF } from "@/hooks/use-executor-manage
 import {
   EXECUTOR_REQUEST_TABS,
   type ExecutorRequestsTab,
+  EXECUTOR_EMPTY_MESSAGES,
 } from "@/components/executor/requests/executor-requests-constants";
 import { ExecutorRequestsFilters } from "@/components/executor/requests/executor-requests-filters";
-import { ExecutorRequestsListContent } from "@/components/executor/requests/executor-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 
 type ExecutorManagementTasksMobileProps = UseExecutorManagementTasksResult;
 
@@ -62,7 +63,8 @@ export function ExecutorManagementTasksMobile(props: ExecutorManagementTasksMobi
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          <ExecutorRequestsListContent
+          <RequestsListContent
+            userRole="executor"
             variant="mobile"
             loading={loading}
             hasMore={props.hasMore}
@@ -72,7 +74,7 @@ export function ExecutorManagementTasksMobile(props: ExecutorManagementTasksMobi
             onRetry={handleRefresh}
             onResetFilters={props.resetFilters}
             requests={filteredList}
-            activeTab={tab}
+            emptyMessage={EXECUTOR_EMPTY_MESSAGES[tab]}
             clientRatings={clientRatings}
             onCardClick={handleCardClick}
             renderCardHeader={renderCardHeader}

@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { buildRequestsListPath, buildRequestsUrlWithId } from "@/lib/requestNavigation";
-import { useIsDesktop } from "@/hooks/use-media-query";
+import { useRoleRequestDetail } from "@/hooks/use-role-request-detail";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useToast } from "@/hooks/use-toast";
-import type { RequestGroup } from "@/stores/useRequestStore";
 import { formatServiceCategoryDisplayName } from "@/constants/requests";
 import {
   mapExecutorInCategoryToAssignModal,
@@ -17,18 +14,18 @@ import {
 import { getExecutorsForSubRequestAssignment } from "@/lib/users-management-api";
 
 export function useDepartmentHeadRequestDetail() {
-  const router = useRouter();
-  const params = useParams();
-  const currentSearch = useSearchParams().toString();
-  const id = params?.id as string;
-  const isDesktop = useIsDesktop();
+  const {
+    isDesktop,
+    request,
+    loading,
+    error,
+    reload: fetchRequest,
+    handleClose,
+  } = useRoleRequestDetail("/department-head/requests");
   const { user, token } = useAuthStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { toast } = useToast();
 
-  const [request, setRequest] = useState<RequestGroup | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [executors, setExecutors] = useState<DepartmentHeadExecutor[]>([]);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -40,32 +37,6 @@ export function useDepartmentHeadRequestDetail() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [redirectError, setRedirectError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  useEffect(() => {
-    if (isDesktop && id) {
-      router.replace(buildRequestsUrlWithId("/department-head/requests", id, currentSearch));
-    }
-  }, [isDesktop, router, id, currentSearch]);
-
-  const fetchRequest = useCallback(async () => {
-    if (!id) return;
-    try {
-      const response = await api.get(`/request-groups/${id}`);
-      setRequest(response.data);
-    } catch (err) {
-      console.error("Ошибка загрузки заявки:", err);
-      setError("Не удалось загрузить заявку");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (!id || isDesktop) return;
-    setLoading(true);
-    setError(null);
-    fetchRequest();
-  }, [id, isDesktop, fetchRequest]);
 
   useEffect(() => {
     if (token) fetchCategories(token);
@@ -98,10 +69,6 @@ export function useDepartmentHeadRequestDetail() {
       cancelled = true;
     };
   }, [isDesktop, subForExecutorList, request?.office_id, request?.office?.id]);
-
-  const handleClose = useCallback(() => {
-    router.push(buildRequestsListPath("/department-head/requests", currentSearch));
-  }, [router, currentSearch]);
 
   const handleRequestUpdated = useCallback(() => {
     fetchRequest();

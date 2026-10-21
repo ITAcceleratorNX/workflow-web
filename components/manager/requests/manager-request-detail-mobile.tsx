@@ -3,9 +3,9 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequestDetails } from "@/components/requests";
-import type { UseManagerRequestDetailResult } from "@/hooks/use-manager-request-detail";
+import type { UseRoleRequestDetailResult } from "@/hooks/use-role-request-detail";
 
-type ManagerRequestDetailMobileProps = UseManagerRequestDetailResult;
+type ManagerRequestDetailMobileProps = UseRoleRequestDetailResult;
 
 /** Mobile detail — parity с workflow-mobile requests detail (manager). */
 export function ManagerRequestDetailMobile({

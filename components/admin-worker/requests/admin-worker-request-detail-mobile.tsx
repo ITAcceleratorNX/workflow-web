@@ -3,9 +3,9 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdminRequestDetailsModal } from "@/components/AdminRequestDetailsModal";
-import type { UseAdminWorkerRequestDetailResult } from "@/hooks/use-admin-worker-request-detail";
+import type { UseRoleRequestDetailResult } from "@/hooks/use-role-request-detail";
 
-type AdminWorkerRequestDetailMobileProps = UseAdminWorkerRequestDetailResult;
+type AdminWorkerRequestDetailMobileProps = UseRoleRequestDetailResult;
 
 export function AdminWorkerRequestDetailMobile({
   request,
