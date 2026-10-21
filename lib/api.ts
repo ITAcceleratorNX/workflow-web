@@ -273,15 +273,29 @@ export interface MeetingRoom {
     status: 'available' | 'booked';
     isActive: boolean;
     description?: string | null;
+    /** Оснащение переговорной (названия; общий справочник — /meeting-rooms/equipment). */
+    equipment?: string[];
     office_id?: number | null;
     office?: {
         id: number;
         name: string;
         city: string;
+        address?: string;
+        working_hours_start?: string | null;
+        working_hours_end?: string | null;
     };
     created_at?: string;
     updated_at?: string;
 }
+
+/** Общий справочник оборудования переговорных (Администратор, Руководитель). */
+export interface MeetingRoomEquipmentItem {
+    id: number;
+    name: string;
+}
+
+export const getMeetingRoomEquipmentCatalog = () =>
+    api.get<MeetingRoomEquipmentItem[]>('/meeting-rooms/equipment');
 
 // Получить все переговорные комнаты
 export const getMeetingRooms = (officeId?: number) => {
@@ -336,6 +350,8 @@ export interface MeetingRoomBooking {
     end_time: string | Date;
     status?: string;
     company_name?: string | null;
+    /** Пожелания к подготовке переговорной (необязательно). */
+    comment?: string | null;
     created_at?: string;
     updated_at?: string;
     tables_remaining?: number;
@@ -345,6 +361,7 @@ export interface MeetingRoomBooking {
         floor: number;
         capacity: number;
         photos?: string[];
+        equipment?: string[];
         office_id?: number | null;
         office?: {
             id: number;
@@ -359,6 +376,7 @@ export interface MeetingRoomBooking {
         floor: number;
         capacity: number;
         photos?: string[];
+        equipment?: string[];
         office_id?: number | null;
         office?: {
             id: number;
@@ -384,10 +402,12 @@ export interface MeetingRoomBooking {
 // Создать бронирование переговорной комнаты
 export const createMeetingRoomBooking = (data: {
     meeting_room_id: number;
-    booking_date: string;
+    /** Полные ISO-моменты (с часовым поясом). */
     start_time: string;
     end_time: string;
+    /** Пусто — бэкенд подставит компанию из профиля Клиента. */
     company_name?: string | null;
+    comment?: string | null;
 }) => api.post<MeetingRoomBooking>('/meeting-room-bookings', data);
 
 // Фильтр статуса для «мои бронирования» (как в бэкенде и мобилке)

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { RoomEquipmentEditor } from "@/components/meeting-rooms/room-equipment-editor";
 import type { Office } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +34,8 @@ export interface RoomFormState {
   isActive: boolean;
   photos: FormPhotoItem[];
   description: string;
+  /** Оснащение: готовые пункты и свои названия. */
+  equipment: string[];
 }
 
 export type RoomFormErrors = Partial<Record<"office" | "name" | "floor" | "capacity" | "photos", string>>;
@@ -194,6 +197,12 @@ export function MeetingRoomFormDialog({
               </p>
             </Field>
           </FormSection>
+
+          {!isCabinet && (
+            <FormSection title="Оборудование" hint={`выбрано ${form.equipment.length}`} dark={dark}>
+              <RoomEquipmentEditor value={form.equipment} onChange={(equipment) => onChange({ equipment })} dark={dark} />
+            </FormSection>
+          )}
 
           <FormSection
             title="Фотографии"

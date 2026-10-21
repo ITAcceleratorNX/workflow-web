@@ -9,6 +9,7 @@ import React from "react";
 import { MeetingRoomMetaRow } from "./meeting-room-meta-row";
 import { MeetingRoomPhotoCarousel } from "./meeting-room-photo-carousel";
 import { MeetingRoomStatusBadge } from "./meeting-room-status-badge";
+import { EquipmentChips } from "./booking-flow/equipment-chips";
 
 interface MeetingRoomCardProps {
   room: MeetingRoom;
@@ -104,6 +105,7 @@ export function MeetingRoomCard({
             showOffice={showOffice}
             darkTheme={darkTheme}
           />
+          <EquipmentChips items={room.equipment} tone="desktop" max={3} className="pt-1.5 [&_li]:py-1 [&_li]:text-xs" />
           {isExpanded && room.description && (
             <p
               className={cn(

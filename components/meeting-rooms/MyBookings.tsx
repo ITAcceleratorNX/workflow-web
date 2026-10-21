@@ -16,6 +16,7 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useMyBookings } from "@/hooks/use-my-bookings";
+import { BookingCard, BookingDetailsDialog } from "./booking-flow/booking-card";
 import {
   getBookingStatusText,
   MY_BOOKINGS_FILTERS,
@@ -33,6 +34,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<MeetingRoomBooking | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [detail, setDetail] = useState<MeetingRoomBooking | null>(null);
   const { toast } = useToast();
   const rejectModal = useRejectRequestModal();
   const router = useRouter();
@@ -51,6 +53,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
   } = useMyBookings();
 
   const handleCancelClick = (booking: MeetingRoomBooking) => {
+    setDetail(null);
     setBookingToCancel(booking);
     setShowCancelModal(true);
   };
@@ -159,6 +162,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
             )}
           >
             {f.label}
+            {!isMobile && f.value === "active" && activeCount > 0 && ` · ${activeCount}`}
             {isMobile && f.value === "active" && activeCount > 0 && (
               <span
                 className={cn(
@@ -204,6 +208,14 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
         duration={rejectModal.duration}
       />
 
+      <BookingDetailsDialog
+        booking={detail}
+        onClose={() => setDetail(null)}
+        onQr={() => detail && handleOpenBookingPage(detail.id)}
+        onCancel={() => detail && handleCancelClick(detail)}
+        cancelling={detail ? cancellingId === detail.id : false}
+      />
+
       <DeleteConfirmationModal
         isOpen={showCancelModal}
         onClose={() => {
@@ -226,66 +238,18 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
       {currentList.length === 0 ? (
         <p className={cn("text-center py-8 text-sm", "text-white/70")}>{emptyMessage}</p>
       ) : (
-        <div className="space-y-4">
-          {currentList.map((booking) => {
-            const roomName =
-              booking.meetingRoom?.name ||
-              booking.meeting_room?.name ||
-              `Комната #${booking.meeting_room_id}`;
-            const canCancel = !isBookingCancelled(booking) && !isBookingCompleted(booking);
-            return (
-              <div
-                key={booking.id}
-                className={cn(
-                  "rounded-xl p-4",
-                  isMobile
-                    ? "bg-[#1C1C1E]/90 border border-white/10"
-                    : "bg-white/[0.12] border border-white/20",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <h3 className="font-semibold text-white line-clamp-2">{roomName}</h3>
-                  <span className="shrink-0 rounded-lg border border-white/30 bg-white/10 px-2 py-1 text-xs text-white/90">
-                    {getBookingStatusText(booking.status)}
-                  </span>
-                </div>
-                <p className="text-sm text-white/80">
-                  {formatDateOnly(booking.start_time)} • {formatTimeOnly(booking.start_time)}–
-                  {formatTimeOnly(booking.end_time)}
-                </p>
-                {booking.company_name && (
-                  <p className="text-sm text-white/70 mt-1">{booking.company_name}</p>
-                )}
-                {(booking.meetingRoom?.office || booking.office) && (
-                  <p className="text-sm text-white/70 mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#E85D2B]" />
-                    {(booking.meetingRoom?.office || booking.office)?.name}
-                  </p>
-                )}
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-[#E85D2B] hover:bg-[#D94F15] text-white border-0"
-                    onClick={() => handleOpenBookingPage(booking.id)}
-                  >
-                    <QrCode className="w-4 h-4 mr-2" />
-                    QR код
-                  </Button>
-                  {canCancel && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 border-white/50 text-white bg-transparent hover:bg-white/10"
-                      onClick={() => handleCancelClick(booking)}
-                      disabled={cancellingId === booking.id}
-                    >
-                      {cancellingId === booking.id ? "Отмена..." : "Отменить"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className={isMobile ? "space-y-4" : "grid gap-4 lg:grid-cols-2"}>
+          {currentList.map((booking) => (
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              tone={isMobile ? "mobile" : "desktop"}
+              onOpen={() => setDetail(booking)}
+              onQr={() => handleOpenBookingPage(booking.id)}
+              onCancel={() => handleCancelClick(booking)}
+              cancelling={cancellingId === booking.id}
+            />
+          ))}
         </div>
       )}
 

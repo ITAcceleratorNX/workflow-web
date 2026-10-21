@@ -48,6 +48,7 @@ const EMPTY_FORM: RoomFormState = {
   isActive: true,
   photos: [],
   description: "",
+  equipment: [],
 };
 
 const toFormState = (room: MeetingRoom): RoomFormState => {
@@ -72,6 +73,7 @@ const toFormState = (room: MeetingRoom): RoomFormState => {
     isActive: room.isActive,
     photos,
     description: room.description ?? "",
+    equipment: room.equipment ?? [],
   };
 };
 
@@ -364,6 +366,8 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       isActive: formState.isActive,
       photos: [] as string[],
       description: formState.description.trim(),
+      // У кабинетов редактор скрыт, но их набор (рабочие места и т.п.) сохраняется как был.
+      equipment: formState.equipment,
     };
 
     const newFiles = formState.photos.filter((p): p is { type: "new"; file: File; preview: string } => p.type === "new");

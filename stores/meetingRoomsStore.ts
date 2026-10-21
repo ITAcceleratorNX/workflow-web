@@ -31,6 +31,7 @@ export interface MeetingRoom {
   status: MeetingRoomStatus;
   isActive: boolean;
   description?: string;
+  equipment?: string[];
   office_id?: number | null;
   office?: ApiMeetingRoom["office"];
 }
@@ -65,6 +66,7 @@ export function mapApiMeetingRoomToStore(apiRoom: ApiMeetingRoom): MeetingRoom {
     status: apiRoom.status,
     isActive: apiRoom.isActive,
     description: apiRoom.description || undefined,
+    equipment: Array.isArray(apiRoom.equipment) ? apiRoom.equipment : [],
     office_id: apiRoom.office_id ?? apiRoom.office?.id ?? null,
     office: apiRoom.office,
   };
