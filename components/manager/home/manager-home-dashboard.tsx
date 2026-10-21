@@ -51,7 +51,7 @@ import {
 } from "@/constants/requests";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useBottomNavUiStore } from "@/stores/bottom-nav-ui-store";
-import {AcceptRequestModal} from "@/components/AcceptRequestModal";
+import { SuccessModal } from "@/components/success-model";
 import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
 import {Request, RequestGroup, SubRequest, useRequestStore} from "@/stores/useRequestStore";
@@ -60,7 +60,7 @@ import Link from "next/link";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
 import {useCategoryStore} from "@/stores/useCategoryStore";
-import {RoleBasedActionMenu} from "@/components/action-menu/RoleBasedActionMenu";
+import {RoleBasedActionMenu} from "@/components/requests";
 const LogsViewer = dynamic(() => import("@/components/logs-viewer").then(mod => ({ default: mod.LogsViewer })), {
   loading: () => <div className="text-center py-8">Загрузка логов...</div>
 });
@@ -71,11 +71,11 @@ import { createClickableRequestIds } from '@/lib/notificationUtils';
 import { RequestNotFoundModal } from '@/components/RequestNotFoundModal';
 import { formatDateLong, formatDateTime, formatNotificationDateTime } from "@/lib/dateTimeUtils";
 import {RejectRequestModal} from "@/components/requests";
-import {CommentsModal} from "@/components/CommentsModal";
+import {CommentsModal} from "@/components/requests";
 import {CreateRequestModal} from "@/components/CreateRequestModal";
 import {MapModal} from "@/components/MapModal";
 import {CompletedTaskReport} from "@/components/CompletedTaskReport";
-import {RequestCard} from "@/components/RequestCard";
+import {RequestCard} from "@/components/requests";
 import {useRejectRequestModal} from "@/hooks/use-reject-modal";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import dynamic from 'next/dynamic';
@@ -4194,7 +4194,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           message={rejectModal.message}
           duration={rejectModal.duration}
       />
-      <AcceptRequestModal
+      <SuccessModal
           isOpen={approveModal.isOpen}
           onClose={approveModal.hideAccept}
           title='Заявка удалена'

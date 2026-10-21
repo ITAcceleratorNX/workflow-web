@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import api from "@/lib/api";
-import { RequestCard } from "@/components/RequestCard";
+import { RequestCard } from "@/components/requests";
 import { DashboardKpiCards } from "@/components/dashboard/DashboardKpiCards";
 import { DesktopHubCards } from "@/components/layout/desktop-hub-cards";
 import { TasksSection } from "@/components/tasks/tasks-section";

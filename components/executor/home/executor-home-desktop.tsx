@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle, CheckCircle, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RequestCard } from "@/components/RequestCard";
+import { RequestCard } from "@/components/requests";
 import { TasksSection } from "@/components/tasks/tasks-section";
 import { ExecutorRoomsRequestsView } from "@/components/meeting-rooms/ExecutorRoomsRequestsView";
 import { useExecutorRequestCardHeader } from "@/components/executor/requests/executor-request-card-header";
