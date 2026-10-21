@@ -1,28 +1,18 @@
 "use client";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  mobileRequestsFilterContent,
-  mobileRequestsFilterItem,
-  mobileRequestsFilterTrigger,
-} from "@/constants/mobile-requests-ui";
-import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+  RequestOfficeFilter,
+  RequestStatusFilter,
+  RequestsFilterSelect,
+  RequestTypeFilter,
+  type RequestsFilterOption,
+} from "@/components/requests/requests-filter-select";
+import { mobileRequestsFilterTrigger } from "@/constants/mobile-requests-ui";
 import {
   MANAGER_PERIOD_OPTIONS,
   type ManagerOffice,
   type ManagerRequestPeriod,
 } from "./manager-requests-constants";
-
-interface FilterOption {
-  value: string;
-  label: string;
-}
 
 interface ManagerRequestsFiltersProps {
   office: string;
@@ -34,7 +24,7 @@ interface ManagerRequestsFiltersProps {
   filterType: string;
   onFilterTypeChange: (value: string) => void;
   offices: ManagerOffice[];
-  statusFilterOptions: FilterOption[];
+  statusFilterOptions: RequestsFilterOption[];
   /** Вкладка «Отклонённые»: статус у всех заявок один — фильтр не нужен. */
   hideStatusFilter?: boolean;
   variant?: "mobile" | "desktop";
@@ -54,70 +44,44 @@ export function ManagerRequestsFilters({
   hideStatusFilter = false,
   variant = "mobile",
 }: ManagerRequestsFiltersProps) {
-  const officeTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
+  const filterTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
   const periodTriggerClass = mobileRequestsFilterTrigger(
     variant,
     variant === "desktop" ? "w-[120px]" : "min-w-[120px]",
   );
-  const filterTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
-  const contentClass = mobileRequestsFilterContent(variant);
-  const itemClass = mobileRequestsFilterItem(variant);
 
   return (
     <>
-      <Select value={office} onValueChange={onOfficeChange}>
-        <SelectTrigger className={officeTriggerClass}>
-          <SelectValue placeholder="Офис" />
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          <SelectItem value="all" className={itemClass}>
-            Все офисы
-          </SelectItem>
-          {offices.map((o) => (
-            <SelectItem key={o.id} value={String(o.id)} className={itemClass}>
-              {o.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={period} onValueChange={(v) => onPeriodChange(v as ManagerRequestPeriod)}>
-        <SelectTrigger className={periodTriggerClass}>
-          <SelectValue placeholder="Период" />
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          {MANAGER_PERIOD_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <RequestOfficeFilter
+        value={office}
+        onChange={onOfficeChange}
+        offices={offices}
+        variant={variant}
+        triggerClassName={filterTriggerClass}
+      />
+      <RequestsFilterSelect
+        value={period}
+        onChange={(v) => onPeriodChange(v as ManagerRequestPeriod)}
+        options={MANAGER_PERIOD_OPTIONS}
+        placeholder="Период"
+        variant={variant}
+        triggerClassName={periodTriggerClass}
+      />
       {!hideStatusFilter && (
-        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-          <SelectTrigger className={filterTriggerClass}>
-            <span className="min-w-0 truncate">Статус: <SelectValue placeholder="Все" /></span>
-          </SelectTrigger>
-          <SelectContent className={contentClass}>
-            {statusFilterOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value} className={itemClass}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <RequestStatusFilter
+          value={filterStatus}
+          onChange={onFilterStatusChange}
+          options={statusFilterOptions}
+          variant={variant}
+          triggerClassName={filterTriggerClass}
+        />
       )}
-      <Select value={filterType} onValueChange={onFilterTypeChange}>
-        <SelectTrigger className={filterTriggerClass}>
-          <span className="min-w-0 truncate">Тип: <SelectValue placeholder="Все" /></span>
-        </SelectTrigger>
-        <SelectContent className={contentClass}>
-          {REQUEST_TYPE_FILTER_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className={itemClass}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <RequestTypeFilter
+        value={filterType}
+        onChange={onFilterTypeChange}
+        variant={variant}
+        triggerClassName={filterTriggerClass}
+      />
     </>
   );
 }

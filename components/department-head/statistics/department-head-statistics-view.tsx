@@ -3,7 +3,7 @@
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useDepartmentHeadStatisticsPage } from "@/hooks/use-department-head-statistics-page";
 import { DepartmentHeadStatisticsDesktopView } from "./department-head-statistics-desktop-view";
-import { DepartmentHeadStatisticsMobileView } from "./department-head-statistics-mobile-view";
+import { OfficeStatisticsMobileView } from "@/components/statistics/office-statistics-mobile-view";
 
 export function DepartmentHeadStatisticsView() {
   const isDesktop = useIsDesktop();
@@ -14,7 +14,8 @@ export function DepartmentHeadStatisticsView() {
   }
 
   return (
-    <DepartmentHeadStatisticsMobileView
+    <OfficeStatisticsMobileView
+      role="department-head"
       stats={stats}
       loading={loading}
       error={error}

@@ -11,9 +11,10 @@ import { useDepartmentHeadRequestCardHeader } from "./department-head-request-ca
 import {
   DEPARTMENT_HEAD_TAB_TITLES,
   type DepartmentHeadRequestsTab,
+  DEPARTMENT_HEAD_EMPTY_MESSAGES,
 } from "./department-head-requests-constants";
-import { DepartmentHeadRequestsFilters } from "./department-head-requests-filters";
-import { DepartmentHeadRequestsListContent } from "./department-head-requests-list-content";
+import { RequestStatusTypeFilters } from "@/components/requests/requests-filter-select";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { DepartmentHeadRequestsRecurringTab } from "./department-head-requests-recurring-tab";
 import { DepartmentHeadRequestsTabs } from "./department-head-requests-tabs";
 
@@ -64,7 +65,7 @@ function MobileTabPanel({
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-foreground">{title}</h2>
       <div className="flex gap-2">
-        <DepartmentHeadRequestsFilters
+        <RequestStatusTypeFilters
           variant="mobile"
           filterStatus={filterStatus}
           onFilterStatusChange={onFilterStatusChange}
@@ -74,7 +75,8 @@ function MobileTabPanel({
         />
       </div>
       <div className="space-y-4 pb-40">
-        <DepartmentHeadRequestsListContent
+        <RequestsListContent
+          userRole="department-head"
           variant="mobile"
           error={error}
           isFiltered={isFiltered}
@@ -84,7 +86,7 @@ function MobileTabPanel({
           loadingMore={loadingMore}
           hasMore={hasMore}
           requests={requests}
-          activeTab={activeTab}
+          emptyMessage={DEPARTMENT_HEAD_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
           onCardClick={onCardClick}
           renderCardHeader={renderCardHeader}
           onLoadMore={onLoadMore}

@@ -4,8 +4,9 @@ import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManag
 import { RequestDetails } from "@/components/requests";
 import type { UseDepartmentHeadRequestsListResult } from "@/hooks/use-department-head-requests-list";
 import { useDepartmentHeadRequestCardHeader } from "./department-head-request-card-header";
-import { DepartmentHeadRequestsFilters } from "./department-head-requests-filters";
-import { DepartmentHeadRequestsListContent } from "./department-head-requests-list-content";
+import { RequestStatusTypeFilters } from "@/components/requests/requests-filter-select";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
+import { DEPARTMENT_HEAD_EMPTY_MESSAGES } from "./department-head-requests-constants";
 import { DepartmentHeadRequestsRecurringTab } from "./department-head-requests-recurring-tab";
 import { DepartmentHeadRequestsTabs } from "./department-head-requests-tabs";
 
@@ -41,7 +42,8 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
     activeTab === "recurring" ? (
       <DepartmentHeadRequestsRecurringTab isDesktop onDeleteTask={handleDeleteRecurringTask} />
     ) : (
-      <DepartmentHeadRequestsListContent
+      <RequestsListContent
+        userRole="department-head"
         variant="desktop"
         error={props.error}
               isFiltered={props.isFiltered}
@@ -51,7 +53,7 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
         loadingMore={loadingMore}
         hasMore={hasMore}
         requests={activeList}
-        activeTab={activeTab}
+        emptyMessage={DEPARTMENT_HEAD_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
         onCardClick={handleCardClick}
         renderCardHeader={renderCardHeader}
         onLoadMore={handleLoadMore}
@@ -61,7 +63,7 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
   return (
     <AdminManagerRequestsDesktopFrame
       filtersSlot={
-        <DepartmentHeadRequestsFilters
+        <RequestStatusTypeFilters
           variant="desktop"
           filterStatus={activeTab === "my-requests" ? props.filterMyStatus : filterIncomingStatus}
           onFilterStatusChange={activeTab === "my-requests" ? props.setFilterMyStatus : setFilterIncomingStatus}

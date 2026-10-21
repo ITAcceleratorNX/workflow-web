@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle,
@@ -12,51 +11,36 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { StatRow } from "@/components/ui/stat-row";
-import type { DepartmentHeadStats } from "@/lib/department-head-stats-api";
+import type { OfficeStats, OfficeStatsRole } from "@/lib/office-stats-api";
+import { QuickStatCard } from "@/components/statistics/quick-stat-card";
 
-interface DepartmentHeadStatisticsMobileViewProps {
-  stats: DepartmentHeadStats | null;
+interface OfficeStatisticsMobileViewProps {
+  /** Администратор видит «Новые», Офис-менеджер — «Ожидает назначения». */
+  role: OfficeStatsRole;
+  stats: OfficeStats | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => Promise<void>;
   onRetry: () => void;
 }
 
-function QuickStatCard({
-  icon,
-  value,
-  label,
-  className,
-}: {
-  icon: ReactNode;
-  value: number;
-  label: string;
-  className: string;
-}) {
-  return (
-    <div className={`flex-1 min-w-[47%] max-w-[48%] rounded-xl p-3.5 ${className}`}>
-      {icon}
-      <p className="text-[22px] font-bold text-white mt-1.5">{value}</p>
-      <p className="text-xs text-[#8E8E93] mt-0.5">{label}</p>
-    </div>
-  );
-}
-
-/** Mobile department-head statistics — parity с workflow-mobile app/department-head/statistics.tsx. */
-export function DepartmentHeadStatisticsMobileView({
+/** Mobile statistics of the administrator and the office manager — parity с workflow-mobile app/<role>/statistics.tsx. */
+export function OfficeStatisticsMobileView({
+  role,
   stats,
   loading,
   error,
   onRefresh,
   onRetry,
-}: DepartmentHeadStatisticsMobileViewProps) {
+}: OfficeStatisticsMobileViewProps) {
+  const isOfficeManager = role === "department-head";
   const sc = stats?.statusCounts;
   const rts = stats?.requestTypeSummary ?? {};
 
   return (
     <PullToRefresh onRefresh={onRefresh}>
       <div className="min-h-screen bg-background flex flex-col">
-        <ScreenHeader title="Аналитика" />
+        <ScreenHeader title={isOfficeManager ? "Аналитика" : "Статистика"} />
 
         {loading && !stats ? (
           <div className="flex flex-col items-center justify-center flex-1 py-12 gap-3">
@@ -101,11 +85,13 @@ export function DepartmentHeadStatisticsMobileView({
 
             <div className="rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4 mb-4">
               <h2 className="text-[17px] font-semibold text-white mb-4">Статистика по заявкам</h2>
-              <StatRow
-                label="Ожидает назначения"
-                value={sc?.awaitingAssignment ?? 0}
-                valueClassName="text-[#F35713]"
-              />
+              {isOfficeManager && (
+                <StatRow
+                  label="Ожидает назначения"
+                  value={sc?.awaitingAssignment ?? 0}
+                  valueClassName="text-[#F35713]"
+                />
+              )}
               <StatRow label="Всего заявок" value={stats?.totalRequests ?? 0} />
               <StatRow
                 label="Завершено"
@@ -113,6 +99,9 @@ export function DepartmentHeadStatisticsMobileView({
                 valueClassName="text-green-600"
               />
               <StatRow label="В работе" value={sc?.inWork ?? 0} valueClassName="text-blue-500" />
+              {!isOfficeManager && (
+                <StatRow label="Новые" value={sc?.new ?? 0} valueClassName="text-[#F35713]" />
+              )}
               <StatRow
                 label="Просрочено"
                 value={sc?.overdue ?? 0}

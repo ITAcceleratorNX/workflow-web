@@ -1,6 +1,6 @@
 "use client";
 
-import { RequestDetails, type RequestDetailsProps, type RequestDetailsUserRole } from "@/components/RequestDetails";
+import { RequestDetails, type RequestDetailsProps, type RequestDetailsUserRole } from "@/components/requests";
 
 export type { RequestDetailsUserRole };
 

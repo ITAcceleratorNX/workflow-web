@@ -15,6 +15,9 @@ interface RatingModalProps {
   onCommentChange?: (comment: string) => void
   /** Тёмный стиль для админ-мобилки */
   variant?: "default" | "dark"
+  /** Тексты поля причины низкой оценки (у оценки клиента — про сотрудничество). */
+  commentPlaceholder?: string
+  commentHint?: string
 }
 
 export function RatingModal({
@@ -29,6 +32,8 @@ export function RatingModal({
   comment = "",
   onCommentChange,
   variant = "default",
+  commentPlaceholder = "Опишите, что именно вас не устроило...",
+  commentHint = "Это поможет нам улучшить качество обслуживания",
 }: RatingModalProps) {
   if (!isOpen) return null
 
@@ -91,7 +96,7 @@ export function RatingModal({
               <textarea
                 value={comment}
                 onChange={(e) => onCommentChange?.(e.target.value)}
-                placeholder="Опишите, что именно вас не устроило..."
+                placeholder={commentPlaceholder}
                 className={`w-full max-w-full px-3 py-2 rounded-xl resize-none break-words focus:outline-none focus:ring-2 ${
                   dark
                     ? "bg-[#1C1C1E] border border-[#3A3A3C] text-white placeholder:text-[#6E6E6E] focus:ring-[#F35713]"
@@ -101,7 +106,7 @@ export function RatingModal({
                 required
               />
               <p className={`text-xs mt-1 text-left ${dark ? "text-[#8E8E93]" : "text-gray-500"}`}>
-                Это поможет нам улучшить качество обслуживания
+                {commentHint}
               </p>
             </div>
           )}

@@ -46,7 +46,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RatingModal } from "@/components/RatingModal";
-import ClientRatingModal from "@/components/ClientRatingModal";
 import api, { getOffices } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -1197,7 +1196,7 @@ export function RequestDetails({
         variant="dark"
       />
 
-      <ClientRatingModal
+      <RatingModal
         isOpen={showClientRatingModal}
         onClose={() => {
           setShowClientRatingModal(false);
@@ -1212,6 +1211,8 @@ export function RequestDetails({
         onCommentChange={setClientRatingComment}
         title="Оценить клиента"
         description="Поставьте оценку клиенту за сотрудничество"
+        commentPlaceholder="Опишите, что именно вас не устроило в сотрудничестве..."
+        commentHint="Это поможет улучшить качество обслуживания"
         variant="dark"
       />
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useManagerRequestDetail } from "@/hooks/use-manager-request-detail";
+import { useRoleRequestDetail } from "@/hooks/use-role-request-detail";
 import { ManagerRequestDetailMobile } from "./manager-request-detail-mobile";
 
 export function ManagerRequestDetailView() {
-  const state = useManagerRequestDetail();
+  const state = useRoleRequestDetail("/manager/requests");
 
   if (state.isDesktop) {
     return null;

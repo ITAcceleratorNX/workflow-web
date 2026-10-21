@@ -2,7 +2,8 @@
 
 import { useAdminWorkerHome } from "@/hooks/use-admin-worker-home";
 import { AdminWorkerHomeDesktop } from "./admin-worker-home-desktop";
-import { AdminWorkerHomeMobile } from "./admin-worker-home-mobile";
+import { ManagementHomeMobile } from "@/components/layout/management-home-mobile";
+import { adminWorkerHomeCardsFor } from "./admin-worker-home-constants";
 
 export function AdminWorkerHomeView() {
   const state = useAdminWorkerHome();
@@ -11,5 +12,12 @@ export function AdminWorkerHomeView() {
     return <AdminWorkerHomeDesktop />;
   }
 
-  return <AdminWorkerHomeMobile {...state} />;
+  return (
+    <ManagementHomeMobile
+      title="Управление системой"
+      subtitle="Выберите раздел для управления"
+      cards={adminWorkerHomeCardsFor("mobile")}
+      onRefresh={state.handleRefresh}
+    />
+  );
 }

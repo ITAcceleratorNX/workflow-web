@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import React from "react";
+import { usePathname } from "next/navigation";
 import { isClientSharedStackPath } from "@/lib/client-shared-stack";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { useIsDesktop } from "@/hooks/use-media-query";
+import { useRoleGuard } from "@/hooks/use-role-guard";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
 import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
@@ -16,34 +15,12 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const { user, clearAuth } = useAuthStore();
-  const isDesktop = useIsDesktop();
-  const [hydrated, setHydrated] = useState(false);
   const isSharedStack = isClientSharedStackPath(pathname);
+  // Общие экраны (задачи, статистика) открываются и другим ролям; остальное — только Клиенту.
+  const { ready, user, isDesktop } = useRoleGuard((role) => isSharedStack || role === "client");
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-
-    if (!user) {
-      clearAuth();
-      router.push("/login");
-      return;
-    }
-
-    if (!isSharedStack && user.role !== "client") {
-      clearAuth();
-      router.push("/login");
-      return;
-    }
-  }, [hydrated, user, router, clearAuth, isSharedStack]);
-
-  if (!hydrated || !user) {
+  if (!ready || !user) {
     return null;
   }
 

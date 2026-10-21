@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import DepartmentHeadAnalytics from "@/components/DepartmentHeadAnalytics";
-import type { DepartmentHeadStats } from "@/lib/department-head-stats-api";
+import type { OfficeStats } from "@/lib/office-stats-api";
 
 interface DepartmentHeadStatisticsDesktopViewProps {
-  stats: DepartmentHeadStats | null;
+  stats: OfficeStats | null;
 }
 
 const GRADIENT =

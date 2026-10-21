@@ -23,7 +23,6 @@ export { RedirectRequestModal } from "./redirect-modal";
 
 export { AssignExecutorsModal } from "./assign-executors-modal";
 
-export { ActionMenu } from "./request-action-menu";
 export { RoleBasedActionMenu } from "./role-based-action-menu";
 export { RequestActionMenu } from "./request-action-menu-sheet";
 export type { RequestUserRole } from "./request-action-menu-sheet";

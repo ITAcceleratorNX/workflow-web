@@ -5,7 +5,8 @@ import { RequestDetails } from "@/components/requests";
 import type { UseAdminWorkerRequestsListResult } from "@/hooks/use-admin-worker-requests-list";
 import { useAdminWorkerRequestCardHeader } from "./admin-worker-request-card-header";
 import { AdminWorkerRequestsFilters } from "./admin-worker-requests-filters";
-import { AdminWorkerRequestsListContent } from "./admin-worker-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
+import { ADMIN_WORKER_EMPTY_MESSAGES } from "./admin-worker-requests-constants";
 import { AdminWorkerRequestsTabs } from "./admin-worker-requests-tabs";
 
 type AdminWorkerRequestsDesktopProps = UseAdminWorkerRequestsListResult;
@@ -36,7 +37,8 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
   const renderCardHeader = useAdminWorkerRequestCardHeader();
 
   const listContent = (
-    <AdminWorkerRequestsListContent
+    <RequestsListContent
+      userRole="admin-worker"
       variant="desktop"
       error={props.error}
       isFiltered={props.isFiltered}
@@ -46,7 +48,7 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
       loadingMore={loadingMore}
       hasMore={hasMore}
       requests={activeList}
-      activeTab={activeTab}
+      emptyMessage={ADMIN_WORKER_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
       onCardClick={handleCardClick}
       renderCardHeader={renderCardHeader}
       onLoadMore={handleLoadMore}

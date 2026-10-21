@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CommentsModal } from "@/components/CommentsModal";
+import { CommentsModal } from "@/components/requests";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRecurringTasksList } from "@/hooks/use-recurring-tasks-list";
 import type { RecurringTask } from "@/lib/recurring-tasks-api";

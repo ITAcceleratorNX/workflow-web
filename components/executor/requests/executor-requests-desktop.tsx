@@ -6,7 +6,8 @@ import { RequestDetails } from "@/components/requests";
 import type { UseExecutorRequestsListResult } from "@/hooks/use-executor-requests-list";
 import { useExecutorRequestCardHeader } from "./executor-request-card-header";
 import { ExecutorRequestsFilters } from "./executor-requests-filters";
-import { ExecutorRequestsListContent } from "./executor-requests-list-content";
+import { RequestsListContent } from "@/components/requests/requests-list-content";
+import { EXECUTOR_EMPTY_MESSAGES } from "./executor-requests-constants";
 import { ExecutorRequestsModals } from "./executor-requests-modals";
 import { ExecutorRequestsTabs } from "./executor-requests-tabs";
 
@@ -65,7 +66,8 @@ export function ExecutorRequestsDesktop(props: ExecutorRequestsDesktopProps) {
             />
           }
           listSlot={
-            <ExecutorRequestsListContent
+            <RequestsListContent
+              userRole="executor"
               variant="desktop"
               error={props.error}
               isFiltered={props.isFiltered}
@@ -75,7 +77,7 @@ export function ExecutorRequestsDesktop(props: ExecutorRequestsDesktopProps) {
               hasMore={props.hasMore}
               onLoadMore={props.handleLoadMore}
               requests={activeList}
-              activeTab={activeTab}
+              emptyMessage={EXECUTOR_EMPTY_MESSAGES[activeTab]}
               clientRatings={clientRatings}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}

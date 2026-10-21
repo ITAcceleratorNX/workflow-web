@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAdminWorkerStats, type AdminWorkerStats } from "@/lib/admin-worker-stats-api";
+import { getOfficeStats, type OfficeStats } from "@/lib/office-stats-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function useAdminWorkerStatisticsPage() {
   const token = useAuthStore((s) => s.token);
-  const [stats, setStats] = useState<AdminWorkerStats | null>(null);
+  const [stats, setStats] = useState<OfficeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ export function useAdminWorkerStatisticsPage() {
     setLoading(true);
     setError(null);
 
-    const result = await getAdminWorkerStats();
+    const result = await getOfficeStats("admin-worker");
     if (result.ok) {
       setStats(result.data);
     } else {
