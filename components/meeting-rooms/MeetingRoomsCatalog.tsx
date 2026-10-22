@@ -6,7 +6,7 @@ import { MeetingRoom, useMeetingRoomsStore } from "@/stores/meetingRoomsStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { BookingModal } from "@/components/meeting-rooms/BookingModal";
+import { RoomBookingDialog, RoomBookingSheet } from "@/components/meeting-rooms/booking-flow/room-booking";
 import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { OfficePickerSidebar } from "@/components/meeting-rooms/office-picker-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,23 +103,17 @@ export function MeetingRoomsCatalog({
   );
 
   const handleRoomClick = (room: MeetingRoom) => {
-    if (isMobile) {
-      router.push(`/meeting-rooms/booking?roomId=${room.id}`);
-    } else {
-      setSelectedRoom(room);
-      setIsBookingModalOpen(true);
-    }
+    setSelectedRoom(room);
   };
 
-  const handleBookingSuccess = () => {
-    if (selectedOffice) {
-      fetchRooms(selectedOffice.id);
-    }
-  };
-
-  const closeBookingModal = () => {
-    setIsBookingModalOpen(false);
+  const closeBooking = () => {
     setSelectedRoom(null);
+  };
+
+  // После брони — к «Моим бронированиям» (у персонала это внешняя вкладка через onTabChange).
+  const handleBooked = () => {
+    if (selectedOffice) fetchRooms(selectedOffice.id);
+    handleTabChange("my-bookings");
   };
 
   const roomListBlock = (
@@ -248,15 +242,10 @@ export function MeetingRoomsCatalog({
         </TabsContent>
       </Tabs>
 
-      {!isMobile && (
-        <BookingModal
-          isOpen={isBookingModalOpen}
-          onClose={closeBookingModal}
-          room={selectedRoom}
-          onBookingSuccess={handleBookingSuccess}
-          // Десктопная оболочка всегда тёмная: светлый вариант давал чёрный текст на тёмном фоне.
-          variant="dark"
-        />
+      {isMobile ? (
+        <RoomBookingSheet room={selectedRoom} office={selectedOffice} onClose={closeBooking} onBooked={handleBooked} />
+      ) : (
+        <RoomBookingDialog room={selectedRoom} office={selectedOffice} onClose={closeBooking} onBooked={handleBooked} />
       )}
     </div>
   );

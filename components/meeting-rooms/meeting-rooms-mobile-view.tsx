@@ -12,7 +12,7 @@ import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { DeskHeightCalculatorMobile } from "@/components/meeting-rooms/desk-height-calculator-mobile";
 import { MeetingRoomsMobileOfficeGrid } from "@/components/meeting-rooms/meeting-rooms-mobile-office-grid";
 import { MeetingRoomsMobileOfficeRoomsModal } from "@/components/meeting-rooms/meeting-rooms-mobile-office-rooms-modal";
-import { MeetingRoomsMobileRoomBookingModal } from "@/components/meeting-rooms/meeting-rooms-mobile-room-booking-modal";
+import { RoomBookingSheet } from "@/components/meeting-rooms/booking-flow/room-booking";
 import { MEETING_ROOMS_MOBILE_SUB_TABS } from "@/components/meeting-rooms/meeting-rooms-constants";
 import { useMeetingRoomsMobilePage } from "@/hooks/use-meeting-rooms-mobile-page";
 import { useIsDesktop } from "@/hooks/use-media-query";
@@ -41,6 +41,7 @@ export function MeetingRoomsMobileView() {
     handleRoomClick,
     closeOfficeModal,
     closeRoomModal,
+    handleBooked,
   } = page;
 
   useEffect(() => {
@@ -156,13 +157,7 @@ export function MeetingRoomsMobileView() {
         />
       )}
 
-      {selectedRoom && (
-        <MeetingRoomsMobileRoomBookingModal
-          office={selectedOffice}
-          room={selectedRoom}
-          page={page}
-        />
-      )}
+      <RoomBookingSheet room={selectedRoom} office={selectedOffice} onClose={closeRoomModal} onBooked={handleBooked} />
 
       {!isDesktop && <BottomNav activeTab="booking" />}
     </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import FullScreenLoading from "@/components/FullScreenLoading";
-import { BookingModal } from "@/components/meeting-rooms/BookingModal";
+import { RoomBookingSheet } from "@/components/meeting-rooms/booking-flow/room-booking";
 import { useMeetingRoomBookingPage } from "@/hooks/use-meeting-room-booking-page";
 
-/** Mobile booking flow — `/meeting-rooms/booking?roomId=`. */
+/** Страница брони по ссылке `/meeting-rooms/booking?roomId=` — тот же сценарий, что и в каталоге. */
 export function MeetingRoomBookingView() {
   const { room, loading, handleClose } = useMeetingRoomBookingPage();
 
@@ -12,16 +12,5 @@ export function MeetingRoomBookingView() {
     return <FullScreenLoading />;
   }
 
-  if (!room) {
-    return null;
-  }
-
-  return (
-    <BookingModal
-      isOpen={true}
-      onClose={handleClose}
-      room={room}
-      isPageMode={true}
-    />
-  );
+  return <RoomBookingSheet room={room} office={room?.office} onClose={handleClose} onBooked={handleClose} />;
 }

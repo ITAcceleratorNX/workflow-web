@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, MapPin, Phone, User } from "lucide-react";
+import { Building2, MapPin, MessageSquare, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -178,6 +178,12 @@ export function OfficeBookings() {
                         </p>
                       )}
                     </div>
+                  )}
+                  {booking.comment && (
+                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-[#3A2A22] px-3 py-2 text-sm text-white/90">
+                      <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-[#FF8A5B]" aria-label="Пожелания клиента" />
+                      {booking.comment}
+                    </p>
                   )}
                 </div>
               );
