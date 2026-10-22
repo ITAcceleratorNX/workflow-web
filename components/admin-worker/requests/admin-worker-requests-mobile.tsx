@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { MobileCreateRequestButton, MobileRequestsTitle } from "@/components/requests/mobile-requests-chrome";
 import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import type { UseAdminWorkerRequestsListResult } from "@/hooks/use-admin-worker-requests-list";
 import { useAdminWorkerRequestCardHeader } from "./admin-worker-request-card-header";
 import { ADMIN_WORKER_TAB_TITLES, ADMIN_WORKER_EMPTY_MESSAGES } from "./admin-worker-requests-constants";
@@ -44,8 +42,8 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-4 pt-[max(1rem,env(safe-area-inset-top))]")}>
-        <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
+      <div className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-6 pt-[max(1rem,env(safe-area-inset-top))]")}>
+        <MobileRequestsTitle />
 
         <AdminWorkerRequestsTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -65,12 +63,7 @@ export function AdminWorkerRequestsMobile(props: AdminWorkerRequestsMobileProps)
         </div>
 
         <div className="mt-4 space-y-4">
-          <Link href="/create-request" className="block">
-            <Button className="w-full h-12 font-semibold rounded-2xl">
-              <Plus className="h-4 w-4 mr-2" />
-              Создать
-            </Button>
-          </Link>
+          <MobileCreateRequestButton />
 
           <div className="space-y-4 pb-40">
             <h2 className="text-lg font-bold text-foreground">{tabTitle}</h2>

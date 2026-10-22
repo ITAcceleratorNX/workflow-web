@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { MobileCreateRequestButton, MobileRequestsTitle } from "@/components/requests/mobile-requests-chrome";
 import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-list";
 import { RequestsTabs } from "@/components/requests/requests-tabs";
 import { useManagerRequestCardHeader } from "./manager-request-card-header";
@@ -48,16 +46,9 @@ export function ManagerRequestsMobile(props: ManagerRequestsMobileProps) {
     <>
       <PullToRefresh onRefresh={handleRefresh}>
         <div
-          className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-4 pt-[max(1rem,env(safe-area-inset-top))]")}>
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-foreground">Заявки</h1>
-            <Link href="/create-request">
-              <Button className="h-12 px-5 font-semibold rounded-2xl">
-                <Plus className="h-4 w-4 mr-2" />
-                Создать
-              </Button>
-            </Link>
-          </div>
+          className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-6 pt-[max(1rem,env(safe-area-inset-top))]")}>
+          <MobileRequestsTitle />
+          <MobileCreateRequestButton className="mb-4" />
 
           <RequestsTabs tabs={MANAGER_REQUEST_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 

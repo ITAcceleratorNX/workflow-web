@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import {
   BOTTOM_NAV_ACTIVE_COLOR,
+  BOTTOM_NAV_ACTIVE_PILL,
   BOTTOM_NAV_BAR_BACKGROUND,
   BOTTOM_NAV_INACTIVE_COLOR,
   BOTTOM_NAV_TOP_PAD,
@@ -53,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav
       aria-label="Основная навигация"
-      className="md:hidden fixed left-0 right-0 bottom-0 z-50 flex flex-row justify-between items-center px-2"
+      className="md:hidden fixed left-0 right-0 bottom-0 z-50 flex flex-row justify-between items-center rounded-t-[28px] border border-b-0 border-white/[0.08] px-2"
       style={{
         paddingTop: BOTTOM_NAV_TOP_PAD,
         paddingBottom: getBottomNavBottomPadding(),
@@ -74,21 +75,24 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             aria-label={badge ? `${item.label}. ${requestActionBadgeLabel(requestActionCount)}` : undefined}
-            className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 min-h-11 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${isActive ? "bg-black/15" : ""}`}
+            className="relative flex flex-1 flex-col items-center justify-center gap-1 min-w-0 min-h-11 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
-            <span className="relative flex shrink-0">
-              <Icon size={24} style={{ color, flexShrink: 0 }} aria-hidden />
+            <span
+              className="relative flex h-[30px] w-14 shrink-0 items-center justify-center rounded-[15px]"
+              style={isActive ? { backgroundColor: BOTTOM_NAV_ACTIVE_PILL } : undefined}
+            >
+              <Icon size={22} style={{ color, flexShrink: 0 }} aria-hidden />
               {badge && (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#B8400E] ring-1 ring-[#B8400E]"
+                  className="pointer-events-none absolute -top-1 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#F45714] ring-1 ring-[#1C1C1E]"
                 >
                   {badge}
                 </span>
               )}
             </span>
             <span
-              className={`text-[11px] text-center leading-[14px] ${isActive ? "font-bold underline underline-offset-2" : "font-medium"}`}
+              className={`text-[11px] text-center leading-[13px] ${isActive ? "font-semibold" : "font-medium"}`}
               style={{ color }}
             >
               {item.label}

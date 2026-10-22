@@ -4,7 +4,7 @@
 
 import type { IconType } from "react-icons";
 import {
-  MdBuild,
+  MdChecklist,
   MdGridOn,
   MdHome,
   MdMessage,
@@ -26,13 +26,16 @@ export type MobileBottomNavTabKey = keyof typeof MOBILE_BOTTOM_NAV_LABELS;
 
 /** Отступ сверху + высота блока иконка+подпись (без safe area). */
 export const BOTTOM_NAV_TOP_PAD = 10;
-export const BOTTOM_NAV_ROW_HEIGHT = BOTTOM_NAV_TOP_PAD + 44;
+/** Пилюля 30 + зазор 4 + подпись 13 (+1). */
+export const BOTTOM_NAV_ROW_HEIGHT = BOTTOM_NAV_TOP_PAD + 48;
 /** Минимальный отступ снизу под иконками (когда safe-area = 0, напр. Android / desktop preview). */
 export const BOTTOM_NAV_MIN_BOTTOM_PAD = 10;
 
+// Тёмный таб-бар (макет «Таб-бар · тёмный, вариант 3»): активная вкладка — оранжевая пилюля.
 export const BOTTOM_NAV_ACTIVE_COLOR = "#FFFFFF";
-export const BOTTOM_NAV_INACTIVE_COLOR = "#FFF3ED";
-export const BOTTOM_NAV_BAR_BACKGROUND = "#B8400E";
+export const BOTTOM_NAV_INACTIVE_COLOR = "rgba(255, 255, 255, 0.55)";
+export const BOTTOM_NAV_BAR_BACKGROUND = "#1C1C1E";
+export const BOTTOM_NAV_ACTIVE_PILL = "#F45714";
 
 export type BottomNavTabKey = "home" | "booking" | "requests" | "help" | "profile";
 
@@ -52,7 +55,7 @@ export interface BottomNavItem {
 const NAV_ICON_MAP: Record<BottomNavTabKey, IconType> = {
   home: MdHome,
   booking: MdGridOn,
-  requests: MdBuild,
+  requests: MdChecklist,
   help: MdMessage,
   profile: MdPerson,
 };

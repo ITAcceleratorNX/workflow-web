@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect, useId } from "react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight, Clock } from "lucide-react"
+import { MapPin, Calendar as CalendarLucid, ImageIcon, User, ChevronRight } from "lucide-react"
 import { RequestGroup } from "@/stores/useRequestStore"
 import { getThumbnailUrl } from "@/lib/imageOptimization"
 import { formatCardDateShort, formatDateOnly, formatDateTime } from "@/lib/dateTimeUtils"
@@ -68,6 +68,29 @@ function LazyImage({ src, alt, className }: { src: string; alt: string; classNam
         transition: 'opacity 0.2s'
       }}
     />
+  )
+}
+
+/** Превью заявки 84×84; без фото или если оно не загрузилось — иконка. */
+function RequestThumb({ url, alt }: { url: string | null; alt: string }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const src = url ? getThumbnailUrl(url) : null
+  return (
+    <div className="flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#222222]">
+      {src && failedUrl !== src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- внешние Cloudinary-превью, onError нужен для заглушки
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+          onError={() => setFailedUrl(src)}
+        />
+      ) : (
+        <ImageIcon className="h-6 w-6 text-white/70" aria-hidden />
+      )}
+    </div>
   )
 }
 
@@ -136,71 +159,41 @@ function RequestCardComponent({
     </span>
   )
 
-  // Compact вариант карточки (как на скриншотах)
+  // Compact — список заявок на телефоне (макет «Заявки — список»): превью 84 px, номер, тип, статус.
   if (variant === 'compact') {
-    const firstPhoto = request.photos && request.photos.length > 0 ? request.photos[0] : null
+    const sub = getPrimarySubRequest(request)
+    const firstPhotoUrl = request.photos?.[0]?.photo_url ?? sub?.photos?.[0]?.photo_url ?? null
+    const showType = Boolean(request.request_type && request.request_type !== 'normal')
 
     return (
       <div
         ref={isLast ? lastElementRef : null}
-        className="flex items-center gap-4 rounded-lg bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex items-center gap-3.5 rounded-xl bg-transparent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={handleClick}
         role="button"
         tabIndex={0}
-        aria-label={`Открыть заявку №${request.id}${getPrimarySubRequest(request)?.title ? `: ${getPrimarySubRequest(request)?.title}` : ""}`}
+        aria-label={`Открыть заявку №${request.id}${sub?.title ? `: ${sub.title}` : ""}`}
         aria-describedby={descriptionId}
         onKeyDown={handleKeyDown}
       >
         {accessibleDescription}
-        {/* Фото слева */}
-        <div className="w-[140px] h-[100px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
-          {firstPhoto ? (
-            <LazyImage
-              src={getThumbnailUrl(firstPhoto.photo_url)}
-              alt={`Заявка #${request.id}`}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-700">
-              <ImageIcon className="w-8 h-8 text-gray-500" />
-            </div>
-          )}
+        <RequestThumb url={firstPhotoUrl} alt={`Заявка #${request.id}`} />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-[17px] font-bold leading-5 text-foreground">#{request.id}</span>
+            {showType && (
+              <span className="shrink-0 rounded-xl bg-[#0E3B2B] px-[7px] py-[5px] text-[11px] font-semibold leading-[13px] text-[#22C55E]">
+                {requestTypeLabel}
+              </span>
+            )}
+            <span className="min-w-0 truncate text-[13px] leading-4 text-foreground/55">{statusLabel}</span>
+          </div>
+          <p className="truncate text-sm leading-[17px] text-foreground/55">{serviceAndOffice}</p>
+          <p className="text-xs leading-[14px] text-foreground/40">{formattedDateShort}</p>
         </div>
 
-        {/* Контент справа */}
-        <div className="flex-1 min-w-0">
-          {/* Заголовок */}
-          <h3 className="text-foreground font-semibold text-lg mb-2">
-            Заявка #{request.id}
-          </h3>
-
-          {/* Бейджи */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#2A5A4A] text-white">
-              {requestTypeLabel}
-            </span>
-            <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#4A4A4A] text-gray-300">
-              {statusLabel}
-            </span>
-          </div>
-
-          {/* Направление · офис */}
-          <p className="text-muted-foreground text-sm mb-1 truncate">{serviceAndOffice}</p>
-
-          {/* Локация */}
-          <p className="text-muted-foreground text-sm mb-2 truncate">
-            {request.location_detail || 'Местоположение не указано'}
-          </p>
-
-          {/* Дата */}
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Clock className="w-4 h-4" />
-            <span>{formattedDateShort}</span>
-          </div>
-        </div>
-
-        {/* Стрелка */}
-        <ChevronRight className="w-6 h-6 text-gray-500 flex-shrink-0" />
+        <ChevronRight className="h-5 w-5 shrink-0 text-foreground" aria-hidden />
       </div>
     )
   }
