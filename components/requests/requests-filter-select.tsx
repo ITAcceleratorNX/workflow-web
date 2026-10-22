@@ -50,8 +50,12 @@ export function RequestsFilterSelect({
   const itemClass = mobileRequestsFilterItem(variant) ?? mobileItemClassName;
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={triggerClassName ?? mobileRequestsFilterTrigger(variant)}>
-        {label ? (
+      <SelectTrigger
+        className={triggerClassName ?? mobileRequestsFilterTrigger(variant)}
+        aria-label={typeof label === "string" ? label : placeholder}
+      >
+        {/* На телефоне — только значение, как в макете; подпись остаётся для экранных читалок. */}
+        {label && variant === "desktop" ? (
           <span className="min-w-0 truncate">
             {label}: <SelectValue placeholder={placeholder} />
           </span>

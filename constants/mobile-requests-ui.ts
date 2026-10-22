@@ -7,7 +7,7 @@ export const MOBILE_REQUESTS_PAGE_CLASS = "min-h-screen bg-background";
 
 /** RN Select trigger on requests list — transparent + border */
 export const MOBILE_REQUESTS_FILTER_TRIGGER =
-  "h-12 px-4 rounded-lg border border-border bg-transparent text-foreground";
+  "h-[46px] pl-4 pr-3 rounded-[10px] border border-foreground/15 bg-transparent text-[15px] text-foreground";
 
 /** Desktop requests filters / modals — explicit hex (portaled Select, no theme tokens). */
 export const REQUESTS_DESKTOP_SELECT_TRIGGER =

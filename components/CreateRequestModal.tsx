@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Loader2, Calendar as CalendarLucid, CheckCircle, AlertTriangle, ArrowLeft, ArrowRight, FileSpreadsheet, Home, Building2 } from "lucide-react";
+import { Camera, MapPin, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Loader2, Calendar as CalendarLucid, CheckCircle, AlertTriangle, ArrowLeft, ArrowRight, FileSpreadsheet, Home, Building2, LocateFixed } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ImportExcelModal } from "./ImportExcelModal";
@@ -19,6 +19,7 @@ import { getBlocksFromCatalog, getFloorZonesForBlock, getRoomsForFloorZone, hasF
 import { getServiceCategoriesByOffice } from "@/lib/api";
 import { RequestTypeChips } from "@/components/create-request/request-type-chips";
 import { ServiceCategoryPicker } from "@/components/create-request/service-category-picker";
+import { OfficePickerGrid } from "@/components/create-request/office-picker-grid";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { MOBILE_COLORS } from "@/constants/mobile-theme";
 import { confirmAction } from "@/stores/confirm-dialog-store";
@@ -179,6 +180,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
   // Состояние для геолокации
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationNotice, setLocationNotice] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriedLocationRef = useRef(false);
@@ -676,10 +678,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     setBasicFieldErrors(newBasicFieldErrors);
   }, [requestType, selectedBlock, selectedLocation, selectedRoom, customLocation, customRoom, photos, afterPhotos, completionComment, selectedOfficeId, selectedCabinetRoom, locationSource, userRole, createMode, hasAttemptedSubmit, offices, locationFieldErrors]);
 
-  const handleGetLocation = useCallback(async () => {
+  /** `manual` — нажата кнопка «Определить ближайший офис»: показываем итог, в том числе неудачу. */
+  const handleGetLocation = useCallback(async ({ manual = false }: { manual?: boolean } = {}) => {
     const requestId = ++locationRequestRef.current;
     // Показываем индикатор загрузки
     setIsGettingLocation(true);
+    setLocationNotice(null);
 
     try {
       // В приложении (iOS/Android) сначала запрашиваем разрешение через бриджи
@@ -721,13 +725,14 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         // Ищем ближайший офис
         const nearestOfficeResult = findNearestOffice(latitude, longitude, offices);
         
-        if (nearestOfficeResult && requestId === locationRequestRef.current) {
+        if (requestId !== locationRequestRef.current) return;
+        if (nearestOfficeResult) {
           const { office, distance } = nearestOfficeResult;
           changeOffice(office.id);
-          
-          // Показываем информацию о найденном офисе
           const distanceText = distance < 1 ? `${Math.round(distance * 1000)} м` : `${distance.toFixed(1)} км`;
-          console.log(`Найден ближайший офис: ${office.name} (${distanceText})`);
+          setLocationNotice({ tone: "ok", text: `Ближайший офис: ${office.name}, ${distanceText}` });
+        } else if (manual) {
+          setLocationNotice({ tone: "warn", text: "В радиусе 1 км офисов нет — выберите офис вручную" });
         }
         
         setIsGettingLocation(false);
@@ -735,15 +740,18 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       } catch (error: any) {
         console.error("Ошибка геолокации:", error);
         
-        // Детальная обработка ошибок
-        const errorMessage = "Не удалось определить местоположение";
-
-        console.log(errorMessage);
+        if (manual && requestId === locationRequestRef.current) {
+          setLocationNotice({
+            tone: "warn",
+            text: "Не удалось определить местоположение — разрешите доступ к геолокации или выберите офис вручную",
+          });
+        }
       } finally {
         setIsGettingLocation(false);
       }
     } else {
       setIsGettingLocation(false);
+      if (manual) setLocationNotice({ tone: "warn", text: "Браузер не поддерживает геолокацию — выберите офис вручную" });
     }
   }, [offices, changeOffice]);
 
@@ -1075,86 +1083,37 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           </div>
         ) : (
         <div>
-          <Label className="text-lg sm:text-xl font-medium sm:font-semibold mb-4 sm:mb-5 block text-white">Выбрать офис</Label>
-          
-          {/* Маленькие кнопки-теги для быстрого выбора */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-5">
-            {offices.map((office) => (
-              <button
-                key={office.id}
-                type="button"
-                aria-pressed={selectedOfficeId === office.id}
-                onClick={() => changeOffice(office.id)}
-                className={`px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-                  selectedOfficeId === office.id
-                    ? 'bg-[hsl(var(--action-background))] text-white shadow-md'
-                    : 'bg-[#1E1E1E] text-white hover:bg-[#2A2A2A]'
-                }`}
-              >
-                {office.name}
-              </button>
-            ))}
-          </div>
+          {!showCabinetOption && (
+            <Label className="mb-1.5 block text-xl font-semibold text-white">Где находится заявка?</Label>
+          )}
+          <p className="mb-3.5 text-sm text-white/40">Выберите офис, в котором находится заявка</p>
 
-          {/* Большие карточки офисов с изображениями. Фото одной высоты, подпись под ним: длинный
-              адрес растит карточку вниз, а не сжимает фото — карточки в ряду остаются ровными. */}
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
-            {offices.map((office) => (
-              <button type="button" aria-pressed={selectedOfficeId === office.id}
-                key={office.id}
-                onClick={() => changeOffice(office.id)}
-                title={[office.name, office.address].filter(Boolean).join(", ")}
-                className={`relative flex h-full min-w-0 flex-col rounded-[10px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all overflow-hidden ${
-                  selectedOfficeId === office.id
-                    ? 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(243,87,19,0.25),inset_0px_2px_4px_0px_rgba(243,87,19,1),inset_0px_-2px_4px_0px_rgba(243,87,19,0.2)]'
-                    : 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25),inset_0px_2px_4px_0px_rgba(255,255,255,0.4),inset_0px_-2px_4px_0px_rgba(0,0,0,0.2)] hover:shadow-lg'
-                }`}
-              >
-                {/* Изображение офиса */}
-                <div className="w-full aspect-[4/3] shrink-0 bg-gray-700 rounded-t-[10px] overflow-hidden">
-                  {office.photo ? (
-                    <Image unoptimized width={216} height={162}
-                      src={office.photo}
-                      alt={office.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#114A65] to-[#B8400E] flex items-center justify-center">
-                      <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-white opacity-50" />
-                    </div>
-                  )}
-                </div>
+          <button
+            type="button"
+            onClick={() => void handleGetLocation({ manual: true })}
+            disabled={isGettingLocation}
+            className="mb-3.5 inline-flex items-center gap-1.5 rounded-[20px] border border-white/65 py-2.5 pl-3 pr-3.5 text-xs font-medium text-white transition-opacity hover:bg-white/10 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            {isGettingLocation ? (
+              <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden />
+            ) : (
+              <LocateFixed className="h-[18px] w-[18px]" aria-hidden />
+            )}
+            {isGettingLocation ? "Определяем…" : "Определить ближайший офис"}
+          </button>
+          {locationNotice && (
+            <p
+              role="status"
+              className={`-mt-1.5 mb-3.5 text-xs ${locationNotice.tone === "ok" ? "text-white/70" : "text-amber-400"}`}
+            >
+              {locationNotice.text}
+            </p>
+          )}
 
-                {/* Информация об офисе */}
-                <div className="flex w-full min-w-0 flex-1 flex-col items-center gap-1 p-2 sm:p-2.5 text-center">
-                  <div className="w-full text-[8px] sm:text-[10px] font-medium leading-tight text-white line-clamp-2 break-words">
-                    {office.name}
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5 w-full">
-                    {office.city && (
-                      <div className="w-full text-[8px] sm:text-[10px] leading-tight text-[#737373] truncate">
-                        {office.city}
-                      </div>
-                    )}
-                    {office.address && (
-                      <div className="w-full text-[8px] sm:text-[10px] leading-tight text-[#737373] line-clamp-2 break-words">
-                        {office.address}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
+          <OfficePickerGrid offices={offices} selectedId={selectedOfficeId} onSelect={changeOffice} />
 
               {hasAttemptedSubmit && !selectedOfficeId && (
             <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите офис</p>
-          )}
-          {isGettingLocation && (
-            <div className="flex items-center justify-center mt-4 text-sm text-gray-600">
-                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#114A65] mr-2"></div>
-              Определение ближайшего офиса...
-            </div>
           )}
         </div>
         )}
@@ -1974,45 +1933,41 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     >
       <Card className={`w-full overflow-y-auto bg-[#040404] ${
         isFullScreen
-          ? 'max-w-none max-h-none h-full rounded-none border-[#040404]'
+          ? 'flex max-w-none max-h-none h-full flex-col rounded-none border-[#040404]'
           : 'max-w-4xl max-h-[90vh] border-white/10 shadow-2xl'
       }`} onClick={(e) => e.stopPropagation()}>
+        {isFullScreen ? (
+          // Телефон (макет «Создать заявку»): назад слева, заголовок рядом, разделитель снизу.
+          <CardHeader className="sticky top-0 z-10 flex flex-row items-center gap-5 space-y-0 border-b border-white/10 bg-[#040404] pb-4 pl-6 pr-5 pt-[max(1rem,env(safe-area-inset-top))]">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentStep > 1) handleBack();
+                else void requestClose();
+              }}
+              disabled={isSubmitting || submissionPending}
+              aria-label={currentStep > 1 ? "Предыдущий шаг" : "Закрыть создание заявки"}
+              className="-m-2 flex h-10 w-10 items-center justify-center rounded-full text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
+            >
+              <ChevronLeft className="h-6 w-6" aria-hidden />
+            </button>
+            <CardTitle className="text-xl font-semibold leading-6 text-white">Создать заявку</CardTitle>
+          </CardHeader>
+        ) : (
         <CardHeader className="bg-[#040404] flex items-center justify-center" style={{ paddingTop: 'clamp(38px, 1.48vh, 44px)', paddingBottom: 'clamp(12px, 1.48vh, 16px)', paddingLeft: 'clamp(24px, 4.27vw, 30px)', paddingRight: 'clamp(24px, 4.27vw, 30px)' }}>
           <div className="flex items-center justify-center relative w-full" style={{ minHeight: 'clamp(44px, 5.4vh, 52px)' }}>
-            {/* Кнопка назад слева */}
-            {isFullScreen && (
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (currentStep > 1) {
-                    handleBack();
-                  } else {
-                    void requestClose();
-                  }
-                }}
-                disabled={isSubmitting || submissionPending}
-                aria-label={currentStep > 1 ? "Предыдущий шаг" : "Закрыть создание заявки"}
-                className={`absolute left-0 hover:bg-transparent !p-0 ${isStandalonePage ? "text-[#E25B21] hover:text-[#E25B21]" : "text-white"}`}
-                style={{ padding: 'clamp(4px, 0.5vh, 6px)' }}
-              >
-                <ChevronLeft className="!w-6 !h-6 sm:!w-8 sm:!h-8" style={{ width: 'clamp(24px, 4vw, 30px)', height: 'clamp(24px, 4vw, 30px)' }} />
-              </Button>
-            )}
-            {!isFullScreen && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => void requestClose()}
-                disabled={isSubmitting || submissionPending}
-                className="absolute right-0 h-11 w-11 p-0 text-white hover:bg-white/10"
-                aria-label="Закрыть создание заявки"
-              >
-                <span aria-hidden="true" className="text-2xl">×</span>
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => void requestClose()}
+              disabled={isSubmitting || submissionPending}
+              className="absolute right-0 h-11 w-11 p-0 text-white hover:bg-white/10"
+              aria-label="Закрыть создание заявки"
+            >
+              <span aria-hidden="true" className="text-2xl">×</span>
+            </Button>
             
             {/* Заголовок по центру */}
             <div className="flex-1 flex justify-center items-center" style={{ paddingLeft: 'clamp(36px, 9.6vw, 48px)', paddingRight: 'clamp(36px, 9.6vw, 48px)' }}>
@@ -2023,7 +1978,22 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             
           </div>
         </CardHeader>
-        <CardContent className={`space-y-10 sm:space-y-6 ${isFullScreen ? "pb-16 sm:pb-20" : "pb-6 sm:pb-8"} bg-[#040404] text-white`} style={{ paddingLeft: 'clamp(20px, 5.33vw, 24px)', paddingRight: 'clamp(20px, 5.33vw, 24px)', paddingTop: 'clamp(12px, 12.8vh, 16px)' }}>
+        )}
+        <CardContent className={`space-y-10 sm:space-y-6 ${isFullScreen ? "flex flex-1 flex-col pb-0" : "pb-6 sm:pb-8"} bg-[#040404] text-white`} style={{ paddingLeft: 'clamp(20px, 5.33vw, 24px)', paddingRight: 'clamp(20px, 5.33vw, 24px)', paddingTop: 'clamp(12px, 12.8vh, 16px)' }}>
+          {/* -mb: у формы общий отступ между блоками 40px на телефоне, под точками в макете — 14px. */}
+          <div
+            className="-mb-[26px] flex items-center justify-center gap-2 sm:-mb-2.5"
+            aria-label={`Шаг ${currentStep} из 4`}
+            role="img"
+          >
+            {[1, 2, 3, 4].map((step) => (
+              <span
+                key={step}
+                className={`h-2 rounded-full ${step === currentStep ? "w-6 bg-[#E35B21]" : "w-2 bg-white/25"}`}
+              />
+            ))}
+          </div>
+
           {hasDraft && draftStorageState && hydratedDraftScope === draftScope ? (
             <p role="status" className="text-sm text-[#AEAEB2]">
               {draftStorageState === "session"
@@ -2037,7 +2007,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* Описание выбранного офиса (для шага 2) */}
           {currentStep === 2 && selectedOfficeId && (
             <CardDescription className="text-left text-xs sm:text-sm -mb-8 sm:-mb-3" style={{ color: '#AEAEB2' }}>
-              Выбрано офис: {offices.find(o => o.id === selectedOfficeId)?.name || ''}
+              Выбран офис: {offices.find(o => o.id === selectedOfficeId)?.name || ''}
             </CardDescription>
           )}
           {/* Выбор режима создания для executor */}
@@ -2089,26 +2059,37 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {(formErrors || submissionError) && <p role="alert" className="text-sm text-red-400">{formErrors || submissionError}</p>}
 
           {/* Навигационные кнопки */}
-          <div className={`flex gap-3 mt-6 ${currentStep === 1 ? 'justify-end' : ''}`}>
+          <div
+            className={`flex gap-3 ${
+              isFullScreen
+                ? "sticky bottom-0 z-10 !mt-auto border-t border-white/10 bg-[#040404] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3"
+                : "mt-6"
+            }`}
+            // На всю ширину: снимаем боковые отступы карточки (те же clamp, что у CardContent).
+            style={isFullScreen ? { marginInline: "calc(-1 * clamp(20px, 5.33vw, 24px))" } : undefined}
+          >
             {currentStep < 4 ? (
               <>
-                {currentStep > 1 && (
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    className="flex-1 h-[42px] bg-[#1E1E1E] border-2 border-[#1E1E1E] hover:bg-[#2A2A2A] hover:border-[#F35713]/50 rounded-lg flex items-center justify-center gap-1.5"
-                    style={{ color: '#AEAEB2' }}
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" style={{ color: '#AEAEB2' }} />
-                    <span>Назад</span>
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    if (currentStep > 1) {
+                      handleBack();
+                      return;
+                    }
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void requestClose();
+                  }}
+                  className="h-[52px] flex-1 rounded-[14px] border border-white/[0.08] bg-[#2C2C2E] text-base font-semibold text-white hover:bg-[#3A3A3C] hover:text-white"
+                >
+                  {currentStep > 1 ? "Назад" : "Отмена"}
+                </Button>
                 <Button
                   onClick={handleNext}
-                  className={`${currentStep === 1 ? 'w-[160px]' : 'flex-1'} h-[42px] bg-[hsl(var(--action-background))] hover:bg-[hsl(var(--action-background))]/90 text-white rounded-lg px-2.5 py-2.5 flex items-center justify-center gap-1.5`}
+                  className="h-[52px] flex-1 rounded-[14px] bg-[hsl(var(--action-background))] text-base font-semibold text-white hover:bg-[hsl(var(--action-background))]/90"
                 >
-                  <span className="text-xs font-medium">Дальше</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  Дальше
                 </Button>
                                     </>
                                   ) : (

@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { MobileCreateRequestButton, MobileRequestsTitle } from "@/components/requests/mobile-requests-chrome";
 import { MOBILE_REQUESTS_PAGE_CLASS } from "@/constants/mobile-requests-ui";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import type { UseClientRequestsListResult } from "@/hooks/use-client-requests-list";
 import { useClientRequestCardHeader } from "./client-request-card-header";
 import { RequestStatusTypeFilters } from "@/components/requests/requests-filter-select";
@@ -51,10 +49,10 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
 
   return (
     <PullToRefresh onRefresh={() => fetchRequests(1)}>
-      <div className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-4 pt-[max(1rem,env(safe-area-inset-top))]")}>
-        <h1 className="text-2xl font-bold text-foreground mb-4">Заявки</h1>
+      <div className={cn(MOBILE_REQUESTS_PAGE_CLASS, "px-6 pt-[max(1rem,env(safe-area-inset-top))]")}>
+        <MobileRequestsTitle />
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-3.5 mb-4">
           <RequestStatusTypeFilters
             mobileItemClassName="text-white"
             variant="mobile"
@@ -66,12 +64,7 @@ export function ClientRequestsMobile(props: ClientRequestsMobileProps) {
           />
         </div>
 
-        <Link href="/create-request" className="block mb-4">
-          <Button className="w-full h-12 font-semibold rounded-2xl">
-            <Plus className="h-4 w-4 mr-2" />
-            Создать
-          </Button>
-        </Link>
+        <MobileCreateRequestButton className="mb-4" />
 
         <div className="space-y-4">
           <RequestsListContent
