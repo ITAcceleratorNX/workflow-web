@@ -238,7 +238,8 @@ class FCMService {
                     headers['Authorization'] = `Bearer ${authToken}`;
                 }
 
-                const response = await fetch('http://localhost:3001/api/fcm/token', {
+                const { API_BASE_URL } = await import('./api');
+                const response = await fetch(`${API_BASE_URL}/fcm/token`, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify(tokenData),

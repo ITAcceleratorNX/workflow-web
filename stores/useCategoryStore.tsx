@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { API_BASE_URL } from "@/lib/api";
 
 interface ServiceSubcategory {
   id: number;
@@ -32,7 +33,7 @@ export const useCategoryStore = create<CategoryState>()(
 
       fetchCategories: async (token) => {
         try {
-          const res = await fetch("http://localhost:3001/api/service-categories", {
+          const res = await fetch(`${API_BASE_URL}/service-categories`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -68,7 +69,7 @@ export const useCategoryStore = create<CategoryState>()(
       // Методы для работы с подкатегориями
       createSubcategory: async (token, subcategoryData) => {
         try {
-          const res = await fetch("http://localhost:3001/api/service-categories/subcategories", {
+          const res = await fetch(`${API_BASE_URL}/service-categories/subcategories`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -82,7 +83,7 @@ export const useCategoryStore = create<CategoryState>()(
           }
 
           // Обновляем категории после создания подкатегории
-          const categoriesRes = await fetch("http://localhost:3001/api/service-categories", {
+          const categoriesRes = await fetch(`${API_BASE_URL}/service-categories`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -102,7 +103,7 @@ export const useCategoryStore = create<CategoryState>()(
 
       deleteSubcategory: async (token, subcategoryId) => {
         try {
-          const res = await fetch(`http://localhost:3001/api/service-categories/subcategories/${subcategoryId}`, {
+          const res = await fetch(`${API_BASE_URL}/service-categories/subcategories/${subcategoryId}`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -115,7 +116,7 @@ export const useCategoryStore = create<CategoryState>()(
           }
 
           // Обновляем категории после удаления подкатегории
-          const categoriesRes = await fetch("http://localhost:3001/api/service-categories", {
+          const categoriesRes = await fetch(`${API_BASE_URL}/service-categories`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",

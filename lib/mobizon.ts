@@ -3,6 +3,8 @@
  * Документация: https://mobizon.kz/help/api-docs
  */
 
+import { API_BASE_URL } from "@/lib/api";
+
 interface MobizonConfig {
   apiKey: string;
   apiUrl?: string;
@@ -133,7 +135,7 @@ export function generateVerificationCode(length: number = 6): string {
 export async function sendVerificationCode(phone: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<{ success: boolean; message?: string }> {
   try {
     // Отправляем запрос на бэкенд, который сгенерирует код, сохранит в БД и отправит SMS
-    const response = await fetch('http://localhost:3001/api/auth/send-verification-code', {
+    const response = await fetch(`${API_BASE_URL}/auth/send-verification-code`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +167,7 @@ export async function sendVerificationCode(phone: string, purpose: 'registration
 // Функция для проверки кода верификации
 export async function verifyCode(phone: string, code: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await fetch('http://localhost:3001/api/auth/verify-code', {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-code`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
