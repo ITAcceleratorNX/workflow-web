@@ -82,13 +82,14 @@ export function MeetingRoomPhotoCarousel({
         ))}
       </CarouselContent>
       {photos.length > 1 && (
-        <>
+        // Карточка комнаты открывает бронирование по клику: стрелки только листают фото.
+        <div className="contents" onClick={(event) => event.stopPropagation()}>
           <CarouselPrevious className={navButtonClass} />
           <CarouselNext className={navNextClass} />
           <div className={countBadgeClass}>
             {isHero ? `${photos.length} фото` : photos.length}
           </div>
-        </>
+        </div>
       )}
     </Carousel>
   );

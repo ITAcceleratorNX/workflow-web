@@ -45,10 +45,11 @@ export function DesktopSidebar({
         className
       )}
     >
+      {/* h-16 + border-b, как у Header: нижняя граница продолжает линию верхней панели. */}
       <div
         className={cn(
-          "border-b border-white/10 flex shrink-0 p-3 md:p-4",
-          collapsed ? "justify-center p-3" : "flex-col"
+          "box-content h-16 border-b border-white/10 flex shrink-0",
+          collapsed ? "items-center justify-center px-3" : "flex-col justify-center px-3 md:px-4"
         )}
       >
         {collapsed ? (
@@ -58,8 +59,8 @@ export function DesktopSidebar({
           </span>
         ) : (
           <>
-            <span className="font-bold text-base lg:text-lg text-white">{title}</span>
-            {subtitle && <p className="text-xs text-white/60 mt-0.5">{subtitle}</p>}
+            <span className="font-bold text-base lg:text-lg leading-tight text-white truncate">{title}</span>
+            {subtitle && <p className="text-xs text-white/60 mt-0.5 truncate">{subtitle}</p>}
           </>
         )}
       </div>

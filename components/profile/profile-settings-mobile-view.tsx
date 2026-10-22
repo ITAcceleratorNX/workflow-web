@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Bell, ChevronRight, Lock, Palette } from "lucide-react";
+import { ArrowLeft, Bell, CalendarDays, ChevronRight, Lock, Palette } from "lucide-react";
 import { useColorScheme, setAppColorScheme } from "@/hooks/use-color-scheme";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -52,6 +52,24 @@ export function ProfileSettingsMobileView() {
           <div className="flex-1 min-w-0">
             <p className="text-base font-medium">Уведомления</p>
             <p className="text-[13px] text-muted-foreground">Email, безопасность и маркетинг</p>
+          </div>
+          <ChevronRight className="h-[22px] w-[22px] text-muted-foreground" />
+        </Link>
+
+        <Link
+          href="/settings/calendar"
+          onClick={(e) => {
+            if (isGuest) {
+              e.preventDefault();
+              handleGuest("Подключение календаря недоступно в демо-версии.");
+            }
+          }}
+          className="flex items-center gap-3 p-3.5 rounded-xl border border-border text-foreground hover:bg-muted/50"
+        >
+          <CalendarDays className="h-[22px] w-[22px] text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-medium">Календарь</p>
+            <p className="text-[13px] text-muted-foreground">Задачи в Google, Apple и Outlook</p>
           </div>
           <ChevronRight className="h-[22px] w-[22px] text-muted-foreground" />
         </Link>

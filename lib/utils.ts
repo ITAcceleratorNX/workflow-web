@@ -19,32 +19,39 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
   return distance;
 }
 
-// Функция для поиска ближайшего офиса
-export function findNearestOffice(
+/**
+ * Дальше этого офис не считается «рядом» (км): пользователь не в нём, выбирать его за пользователя нельзя.
+ * То же правило, что в workflow-mobile `lib/nearest-office.ts`.
+ */
+export const NEARBY_OFFICE_RADIUS_KM = 1;
+
+/**
+ * Ближайший офис в радиусе {@link NEARBY_OFFICE_RADIUS_KM}; null — рядом офиса нет или ни у одного нет координат.
+ * Офисы без координат не участвуют, поэтому без радиуса единственный офис на карте «находился» бы у всех.
+ */
+export function findNearestOffice<T extends { lat?: number | string | null; lon?: number | string | null }>(
   userLat: number,
   userLon: number,
-  offices: Array<{ id: number; name: string; city: string; address: string; lat?: number | null; lon?: number | null }>
-): { office: any; distance: number } | null {
-  let nearestOffice = null;
+  offices: T[],
+): { office: T; distance: number } | null {
+  let nearestOffice: T | null = null;
   let minDistance = Infinity;
 
   for (const office of offices) {
-    const lat = office.lat ?? null
-    const lon = office.lon ?? null
-    if (lat != null && lon != null) {
-      const distance = calculateDistance(userLat, userLon, lat, lon);
-      if (distance < minDistance) {
-        minDistance = distance;
-        nearestOffice = office;
-      }
+    if (office.lat == null || office.lon == null || office.lat === "" || office.lon === "") continue;
+    const lat = Number(office.lat);
+    const lon = Number(office.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const distance = calculateDistance(userLat, userLon, lat, lon);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestOffice = office;
     }
   }
 
-  if (nearestOffice) {
-    return { office: nearestOffice, distance: minDistance };
-  }
-
-  return null;
+  return nearestOffice && minDistance <= NEARBY_OFFICE_RADIUS_KM
+    ? { office: nearestOffice, distance: minDistance }
+    : null;
 }
 
 // Функция для определения местоположения по IP адресу

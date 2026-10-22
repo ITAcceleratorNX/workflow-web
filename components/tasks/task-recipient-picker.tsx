@@ -403,8 +403,8 @@ function RecipientPicker({
             : "";
 
   return (
-    <TaskPickerShell open onClose={onClose} variant={variant} returnFocusRef={returnFocusRef} title={isDialog ? title : undefined} maxWidthClass="max-w-lg">
-      <div className="flex min-h-0 flex-col">
+    <TaskPickerShell open onClose={onClose} variant={variant} returnFocusRef={returnFocusRef} title={isDialog ? title : undefined} maxWidthClass="max-w-lg" stableHeight>
+      <div className="flex min-h-0 flex-1 flex-col">
         {!isDialog ? (
           <div className="flex shrink-0 items-center justify-between px-2 py-1">
             <button type="button" onClick={onClose} className="p-2 min-h-11 min-w-11" aria-label="Закрыть">
@@ -455,7 +455,7 @@ function RecipientPicker({
           ) : null}
         </div>
 
-        <div className={cn("min-h-0 overflow-y-auto", isDialog ? "px-5 pb-2 max-h-[min(55vh,520px)]" : "px-4 pb-6 max-h-[55vh]")}>
+        <div className={cn("min-h-0 overflow-y-auto", isDialog ? "flex-1 px-5 pb-2" : "px-4 pb-6 max-h-[55vh]")}>
           {body}
         </div>
 

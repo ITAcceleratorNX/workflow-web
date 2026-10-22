@@ -331,9 +331,13 @@ export const updateMeetingRoomStatus = (id: number, status: 'available' | 'booke
 export const duplicateMeetingRoom = (id: number) =>
     api.post<MeetingRoom>(`/meeting-rooms/${id}/duplicate`);
 
-// Загрузить фото комнаты (FormData с полем photos — File[])
+// Загрузить фото комнаты (FormData с полем photos — File[]).
+// Заголовок обязателен: у `api` по умолчанию application/json, и axios превращает FormData в JSON —
+// файлы теряются, сервер получает запрос без фото.
 export const uploadMeetingRoomPhotos = (roomId: number, formData: FormData) =>
-    api.post<{ photos: { id: number; photo_url: string }[] }>(`/meeting-rooms/${roomId}/photos`, formData);
+    api.post<{ photos: { id: number; photo_url: string }[] }>(`/meeting-rooms/${roomId}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
 
 // Удалить фото комнаты
 export const deleteMeetingRoomPhoto = (roomId: number, photoId: number) =>

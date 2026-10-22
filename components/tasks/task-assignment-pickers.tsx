@@ -197,7 +197,7 @@ export function TaskExecutorPickerOverlay({
   );
 
   const body = (
-    <div className={cn("overflow-y-auto", isDialog ? "px-2 py-2 max-h-[min(60vh,480px)]" : "px-4 pb-8 max-h-[60vh]")}>
+    <div className={cn("overflow-y-auto", isDialog ? "min-h-0 flex-1 px-2 py-2" : "px-4 pb-8 max-h-[60vh]")}>
       <PickerRow
         isDialog={isDialog}
         border={border}
@@ -293,7 +293,9 @@ export function TaskExecutorPickerOverlay({
       variant={variant}
       title={isDialog ? "Исполнитель" : undefined}
       returnFocusRef={returnFocusRef}
-      maxWidthClass="max-w-md"
+      // Открывается вместо пикера получателей после его загрузки — тот же размер окна, без скачка.
+      maxWidthClass="max-w-lg"
+      stableHeight
     >
       {!isDialog ? (
         <div className="flex items-center justify-between px-4 py-2 shrink-0">

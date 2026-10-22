@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, Lock, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogsViewer } from "@/components/logs-viewer";
 import { ROLE_TRANSLATIONS } from "@/constants/profile";
 import { useProfilePage } from "@/hooks/use-profile-page";
+import { TaskCalendarSettings } from "@/components/profile/task-calendar-settings";
 
 const sectionCl = "text-sm text-white/80";
 const fieldCl =
@@ -61,6 +63,13 @@ export function ProfileDesktopSection() {
   } = profile;
 
   const showLogsTab = ["admin-worker", "manager", "department-head"].includes(user?.role || "");
+  const [tab, setTab] = useState("profile");
+
+  // /profile?tab=settings — сюда возвращается страница «Календарь» на компьютере.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested === "settings" || requested === "password" || requested === "notifications") setTab(requested);
+  }, []);
 
   if (!user) return null;
 
@@ -68,7 +77,7 @@ export function ProfileDesktopSection() {
     <div className="w-full min-h-full px-4 py-6 md:px-6 md:py-8">
       <div className="w-full max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-6">Профиль</h1>
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={tab} onValueChange={setTab} className="space-y-6">
           <TabsList className="bg-transparent">
             <TabsTrigger
               value="profile"
@@ -87,6 +96,12 @@ export function ProfileDesktopSection() {
               className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2"
             >
               Уведомления
+            </TabsTrigger>
+            <TabsTrigger
+              value="settings"
+              className="w-full rounded-md data-[state=active]:bg-[#E85D2B] data-[state=active]:text-white data-[state=inactive]:text-white/70 text-sm py-2"
+            >
+              Настройки
             </TabsTrigger>
             {showLogsTab && (
               <TabsTrigger
@@ -304,6 +319,16 @@ export function ProfileDesktopSection() {
                 {isChangingPassword ? "Смена..." : "Сменить пароль"}
               </Button>
               {passwordError && <p className="text-sm text-[#E85D2B]">{passwordError}</p>}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-0 space-y-6">
+            {/* Профиль на компьютере всегда тёмный: dark включает тёмные токены и для блока календаря. */}
+            <div className="dark max-w-xl p-6 rounded-xl bg-[#2C2C2E]/50 border border-white/10 space-y-4 text-white">
+              <h2 className="text-base font-semibold text-white border-b border-white/10 pb-2">
+                Календарь
+              </h2>
+              <TaskCalendarSettings />
             </div>
           </TabsContent>
 

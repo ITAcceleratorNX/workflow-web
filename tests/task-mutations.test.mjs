@@ -23,7 +23,11 @@ function harness(result, guest = false) {
       updateUserTask: async (id, patch) => { requests.push({ id, patch }); return result; },
     },
     '@/lib/task-recurrence': {},
-    '@/lib/group-task-completion': {},
+    '@/lib/group-task-completion': { confirmTaskToggle: async () => true },
+    '@/lib/recurring-completion': {
+      nextOccurrenceAfterCompletion: (before, after) => (after.scheduled_at !== before.scheduled_at ? after.scheduled_at : null),
+      recurringCompletionNotice: (nextAt) => ({ title: 'Выполнено', description: `Следующий повтор — ${nextAt}` }),
+    },
     '@/lib/task-recipients-api': {},
     '@/stores/useAuthStore': { useAuthStore: (select) => select(auth) },
     '@/stores/user-tasks-invalidate-store': { useUserTasksInvalidateStore: (select) => select(state) },
@@ -74,5 +78,21 @@ test('successful title save returns the confirmed server title before navigation
   const scenario = harness({ ok: true, data: savedTask });
   assert.equal(await scenario.hook.updateTask({ id: 7, title: 'Old title' }, { title: 'Draft title' }), savedTask);
   assert.equal(scenario.invalidations(), 1);
+  assert.equal(scenario.alerts.length, 0);
+});
+
+test('completing a recurring task explains why it is not done again', async () => {
+  const tomorrow = '2026-10-23T04:00:00.000Z';
+  const scenario = harness({ ok: true, data: { id: 7, completed: false, scheduled_at: tomorrow, recurrence_type: 'daily' } });
+  await scenario.hook.toggleComplete({ id: 7, completed: false, scheduled_at: '2026-10-22T04:00:00.000Z', recurrence_type: 'daily' });
+  assert.deepEqual(JSON.parse(JSON.stringify(scenario.requests)), [{ id: 7, patch: { completed: true } }]);
+  assert.equal(scenario.alerts.length, 1);
+  assert.equal(scenario.alerts[0].title, 'Выполнено');
+  assert.equal(scenario.alerts[0].description, `Следующий повтор — ${tomorrow}`);
+});
+
+test('completing an ordinary task shows no notice', async () => {
+  const scenario = harness({ ok: true, data: { id: 8, completed: true, scheduled_at: null } });
+  await scenario.hook.toggleComplete({ id: 8, completed: false, scheduled_at: null });
   assert.equal(scenario.alerts.length, 0);
 });
