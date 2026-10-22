@@ -68,12 +68,14 @@ import {
   type UserTaskAttachment,
 } from "@/lib/user-tasks-api";
 import {
+  confirmTaskToggle,
   confirmTaskTransfer,
   isGroupTask,
   isReadOnlyTask,
   taskToggleBlockedReason,
 } from "@/lib/group-task-completion";
 import { toTransferInput, transferRecipientLabel, type RecipientSelection } from "@/lib/task-recipients-api";
+import { nextOccurrenceAfterCompletion, recurringCompletionNotice } from "@/lib/recurring-completion";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 import { cn } from "@/lib/utils";
@@ -164,13 +166,28 @@ export function ClientTaskDetailMobileView({
   const cardBg = theme.cardBackground;
   const border = theme.border;
 
-  const { tasks, updateTask, removeTask, toggleComplete } = useTodoList({
+  const { tasks, updateTask: saveTask, removeTask } = useTodoList({
     filter: "all",
     enabled: false,
   });
 
   const [fetchedTask, setFetchedTask] = useState<UserTask | null>(null);
   const [loadingTask, setLoadingTask] = useState(false);
+
+  // Список хука выключен, и его оптимистичное обновление до экрана не доходит: экран показывает
+  // загруженную задачу. Меняем её сразу — переключатели двигаются по нажатию, — затем берём ответ
+  // сервера, а при ошибке возвращаем прежние значения изменённых полей.
+  const updateTask = useCallback(
+    async (t: UserTask, updates: Partial<UserTask>) => {
+      const patch = (fields: Partial<UserTask>) =>
+        setFetchedTask((current) => (current?.id === t.id ? { ...current, ...fields } : current));
+      patch(updates);
+      const saved = await saveTask(t, updates);
+      patch(saved ?? (Object.fromEntries(Object.keys(updates).map((key) => [key, t[key as keyof UserTask]])) as Partial<UserTask>));
+      return saved;
+    },
+    [saveTask],
+  );
 
   const listedTask = tasks.find((t) => t.id === taskId);
   const task = listedTask ?? (fetchedTask?.id === taskId ? fetchedTask : null);
@@ -459,16 +476,28 @@ export function ClientTaskDetailMobileView({
     [updateTask],
   );
 
+  // Повтор выполнен, и задача уже перенесена на следующую дату: пока карточка закрывается,
+  // переключатель остаётся «выполнено», а не отскакивает назад.
+  const [occurrenceCompleted, setOccurrenceCompleted] = useState(false);
+
   const handleCompleteSwitch = useCallback(async () => {
     const t = taskRef.current;
     if (!t || completeToggleBusyRef.current) return;
     completeToggleBusyRef.current = true;
     try {
-      await toggleComplete(t);
+      // Те же правила, что у toggleComplete списка, но через updateTask экрана — переключатель двигается сразу.
+      if (!(await confirmTaskToggle(t))) return;
+      const saved = await updateTask(t, { completed: !t.completed });
+      const nextAt = saved ? nextOccurrenceAfterCompletion(t, saved) : null;
+      if (nextAt) {
+        setOccurrenceCompleted(true);
+        toast({ ...recurringCompletionNotice(nextAt), duration: 4000 });
+        navigateBack();
+      }
     } finally {
       completeToggleBusyRef.current = false;
     }
-  }, [toggleComplete]);
+  }, [updateTask, toast, navigateBack]);
 
   const uploadFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -1012,7 +1041,7 @@ export function ClientTaskDetailMobileView({
               </span>
             </div>
             <Switch
-              checked={task.completed}
+              checked={task.completed || occurrenceCompleted}
               onCheckedChange={() => void handleCompleteSwitch()}
               disabled={completeBlockedReason != null}
             />

@@ -367,9 +367,26 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     };
 
     const newFiles = formState.photos.filter((p): p is { type: "new"; file: File; preview: string } => p.type === "new");
+    const errorMessage = (error: unknown) =>
+      (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+
+    // Фото уходят вторым запросом, когда переговорная уже сохранена: его сбой — не сбой сохранения,
+    // и пользователь должен узнать, что фото не загрузились, а не увидеть «добавлена».
+    const uploadNewPhotos = async (roomId: number): Promise<string | null> => {
+      if (!newFiles.length) return null;
+      const fd = new FormData();
+      newFiles.forEach((item) => fd.append("photos", item.file));
+      try {
+        await uploadMeetingRoomPhotos(roomId, fd);
+        return null;
+      } catch (error: unknown) {
+        return errorMessage(error) || "Не удалось загрузить фото";
+      }
+    };
 
     setSubmitting(true);
     try {
+      let photoError: string | null = null;
       if (isEditing && formState.id) {
         await updateRoom(formState.id, roomData);
         const keptExistingIds = new Set(
@@ -381,28 +398,24 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
         for (const photoId of toDelete) {
           await deleteMeetingRoomPhoto(formState.id, photoId);
         }
-        if (newFiles.length) {
-          const fd = new FormData();
-          newFiles.forEach((item) => fd.append("photos", item.file));
-          await uploadMeetingRoomPhotos(formState.id, fd);
-        }
-        await fetchRooms();
-        toast({ title: "Переговорная обновлена" });
+        photoError = await uploadNewPhotos(formState.id);
       } else {
         const newRoom = await addRoom(roomData);
-        if (newRoom && newFiles.length) {
-          const fd = new FormData();
-          newFiles.forEach((item) => fd.append("photos", item.file));
-          await uploadMeetingRoomPhotos(newRoom.id, fd);
-        }
-        await fetchRooms();
-        toast({ title: "Переговорная добавлена" });
+        if (newRoom) photoError = await uploadNewPhotos(newRoom.id);
+      }
+      await fetchRooms();
+      if (photoError) {
+        toast({
+          title: isEditing ? "Данные сохранены, фото не загрузились" : "Переговорная добавлена без фото",
+          description: `${photoError.replace(/\.$/, "")}. Откройте переговорную и добавьте фото ещё раз.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: isEditing ? "Переговорная обновлена" : "Переговорная добавлена" });
       }
       handleOpenChange(false);
     } catch (error: unknown) {
-      const msg =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        (isEditing ? "Не удалось обновить переговорную" : "Не удалось добавить переговорную");
+      const msg = errorMessage(error) || (isEditing ? "Не удалось обновить переговорную" : "Не удалось добавить переговорную");
       toast({ title: "Ошибка", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);

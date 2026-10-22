@@ -35,7 +35,8 @@ export function CreateRequestView(props: CreateRequestViewProps) {
   }
 
   return (
-    <div className="min-h-screen">
+    // На десктопе окно открыто поверх пустой страницы: фон приложения, а не белый лист под затемнением.
+    <div className={isDesktop ? "min-h-screen bg-[#1A1A1A]" : "min-h-screen"}>
       <CreateRequestModal
         isOpen={isOpen}
         onClose={handleClose}

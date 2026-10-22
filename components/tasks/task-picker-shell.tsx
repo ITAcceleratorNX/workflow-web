@@ -17,6 +17,8 @@ export type { TaskPickerVariant };
 
 const DESKTOP_DIALOG_CONTENT_CLASS =
   "max-h-[min(90vh,820px)] overflow-hidden flex flex-col border-[#3A3A3C] bg-[#1C1C1E] text-white sm:rounded-2xl p-0 gap-0 [&>button]:text-[#8E8E93] [&>button]:hover:text-white [&>button]:right-5 [&>button]:top-5";
+/** Высота окна с поиском: загрузка, результаты и пустой список не меняют его размер. */
+const STABLE_DIALOG_HEIGHT_CLASS = "h-[min(80vh,600px)]";
 
 type TaskPickerShellProps = {
   open: boolean;
@@ -30,6 +32,8 @@ type TaskPickerShellProps = {
   maxHeightClass?: string;
   /** Extra classes on the bottom sheet panel (mobile). */
   sheetPanelClassName?: string;
+  /** Dialog keeps one height while its list loads and filters; the list area should be `flex-1`. */
+  stableHeight?: boolean;
   children: ReactNode;
 };
 
@@ -43,6 +47,7 @@ export function TaskPickerShell({
   returnFocusRef,
   maxHeightClass = "max-h-[90vh]",
   sheetPanelClassName,
+  stableHeight = false,
   children,
 }: TaskPickerShellProps) {
   const cardBackground = useThemeColor("cardBackground");
@@ -50,7 +55,7 @@ export function TaskPickerShell({
   if (variant === "dialog") {
     return (
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent layer={layer} returnFocusRef={returnFocusRef} aria-describedby={undefined} className={cn(DESKTOP_DIALOG_CONTENT_CLASS, maxWidthClass)}>
+        <DialogContent layer={layer} returnFocusRef={returnFocusRef} aria-describedby={undefined} className={cn(DESKTOP_DIALOG_CONTENT_CLASS, maxWidthClass, stableHeight && STABLE_DIALOG_HEIGHT_CLASS)}>
           {title ? (
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-[#3A3A3C] shrink-0 text-left space-y-0">
               <DialogTitle className="text-lg font-bold text-white">{title}</DialogTitle>

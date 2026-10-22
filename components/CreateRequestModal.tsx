@@ -750,9 +750,10 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   useEffect(() => {
     if (isOpen && hydratedDraftScope === draftScope && draftScope && !hasTriedLocationRef.current) {
       hasTriedLocationRef.current = true;
-      void handleGetLocation();
+      // Офис из восстановленного черновика пользователь выбрал сам — геолокация его не подменяет.
+      if (!selectedOfficeId && !selectedCabinetRoom) void handleGetLocation();
     }
-  }, [isOpen, draftScope, hydratedDraftScope, handleGetLocation]);
+  }, [isOpen, draftScope, hydratedDraftScope, handleGetLocation, selectedOfficeId, selectedCabinetRoom]);
 
 
   const handleSubmit = () => submitGate.current.run(async () => {
@@ -1095,23 +1096,24 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             ))}
           </div>
 
-          {/* Большие карточки офисов с изображениями */}
+          {/* Большие карточки офисов с изображениями. Фото одной высоты, подпись под ним: длинный
+              адрес растит карточку вниз, а не сжимает фото — карточки в ряду остаются ровными. */}
           <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
             {offices.map((office) => (
               <button type="button" aria-pressed={selectedOfficeId === office.id}
                 key={office.id}
                 onClick={() => changeOffice(office.id)}
-                className={`relative flex flex-col rounded-[10px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all overflow-hidden ${
+                title={[office.name, office.address].filter(Boolean).join(", ")}
+                className={`relative flex h-full min-w-0 flex-col rounded-[10px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404] transition-all overflow-hidden ${
                   selectedOfficeId === office.id
                     ? 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(243,87,19,0.25),inset_0px_2px_4px_0px_rgba(243,87,19,1),inset_0px_-2px_4px_0px_rgba(243,87,19,0.2)]'
                     : 'bg-[#212121] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25),inset_0px_2px_4px_0px_rgba(255,255,255,0.4),inset_0px_-2px_4px_0px_rgba(0,0,0,0.2)] hover:shadow-lg'
                 }`}
-                style={{ aspectRatio: '108/134' }}
               >
                 {/* Изображение офиса */}
-                <div className="w-full flex-[3] bg-gray-700 rounded-t-[10px] overflow-hidden flex-shrink-0">
+                <div className="w-full aspect-[4/3] shrink-0 bg-gray-700 rounded-t-[10px] overflow-hidden">
                   {office.photo ? (
-                    <Image unoptimized width={216} height={160}
+                    <Image unoptimized width={216} height={162}
                       src={office.photo}
                       alt={office.name}
                       className="w-full h-full object-cover"
@@ -1121,26 +1123,24 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-white opacity-50" />
                     </div>
                   )}
-              </div>
-                
+                </div>
+
                 {/* Информация об офисе */}
-                <div className="flex flex-col items-center p-2 sm:p-2.5 gap-1 flex-[1] flex-shrink-0">
-                  <div className={`text-[8px] sm:text-[10px] font-medium text-center ${
-                    selectedOfficeId === office.id ? 'text-white' : 'text-white'
-                  }`}>
+                <div className="flex w-full min-w-0 flex-1 flex-col items-center gap-1 p-2 sm:p-2.5 text-center">
+                  <div className="w-full text-[8px] sm:text-[10px] font-medium leading-tight text-white line-clamp-2 break-words">
                     {office.name}
-            </div>
+                  </div>
                   <div className="flex flex-col items-center gap-0.5 w-full">
                     {office.city && (
-                      <div className="text-[8px] sm:text-[10px] text-[#737373] text-center">
+                      <div className="w-full text-[8px] sm:text-[10px] leading-tight text-[#737373] truncate">
                         {office.city}
-          </div>
+                      </div>
                     )}
                     {office.address && (
-                      <div className="text-[8px] sm:text-[10px] text-[#737373] text-center line-clamp-2">
+                      <div className="w-full text-[8px] sm:text-[10px] leading-tight text-[#737373] line-clamp-2 break-words">
                         {office.address}
-            </div>
-          )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
@@ -1964,15 +1964,18 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     <RequestModalShell
       isOpen={isOpen}
       onClose={() => void requestClose()}
+      // Случайный клик мимо окна не должен предлагать удалить заполненную форму:
+      // черновик закрывают только крестиком, «Отмена» или Escape.
+      closeOnOverlayClick={!hasDraft}
       title="Создать заявку"
       layer={100}
       overlayClassName={overlayClass}
       contentProps={{ className: "dark" }}
     >
-      <Card className={`w-full overflow-y-auto bg-[#040404] border-[#040404] ${
-        isFullScreen 
-          ? 'max-w-none max-h-none h-full rounded-none' 
-          : 'max-w-4xl max-h-[90vh]'
+      <Card className={`w-full overflow-y-auto bg-[#040404] ${
+        isFullScreen
+          ? 'max-w-none max-h-none h-full rounded-none border-[#040404]'
+          : 'max-w-4xl max-h-[90vh] border-white/10 shadow-2xl'
       }`} onClick={(e) => e.stopPropagation()}>
         <CardHeader className="bg-[#040404] flex items-center justify-center" style={{ paddingTop: 'clamp(38px, 1.48vh, 44px)', paddingBottom: 'clamp(12px, 1.48vh, 16px)', paddingLeft: 'clamp(24px, 4.27vw, 30px)', paddingRight: 'clamp(24px, 4.27vw, 30px)' }}>
           <div className="flex items-center justify-center relative w-full" style={{ minHeight: 'clamp(44px, 5.4vh, 52px)' }}>
@@ -2020,7 +2023,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             
           </div>
         </CardHeader>
-        <CardContent className="space-y-10 sm:space-y-6 pb-16 sm:pb-20 bg-[#040404] text-white" style={{ paddingLeft: 'clamp(20px, 5.33vw, 24px)', paddingRight: 'clamp(20px, 5.33vw, 24px)', paddingTop: 'clamp(12px, 12.8vh, 16px)' }}>
+        <CardContent className={`space-y-10 sm:space-y-6 ${isFullScreen ? "pb-16 sm:pb-20" : "pb-6 sm:pb-8"} bg-[#040404] text-white`} style={{ paddingLeft: 'clamp(20px, 5.33vw, 24px)', paddingRight: 'clamp(20px, 5.33vw, 24px)', paddingTop: 'clamp(12px, 12.8vh, 16px)' }}>
           {hasDraft && draftStorageState && hydratedDraftScope === draftScope ? (
             <p role="status" className="text-sm text-[#AEAEB2]">
               {draftStorageState === "session"

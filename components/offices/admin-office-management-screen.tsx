@@ -8,6 +8,7 @@ import {
   ImagePlus,
   Info,
   Loader2,
+  MapPin,
   Pencil,
   Plus,
   Trash2,
@@ -28,9 +29,15 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
+  coordinatesMapUrl,
+  hasOfficeCoordinates,
+  officeCoordinatesInput,
   parseFloorField,
+  parseOfficeCoordinates,
+  splitCoordinatesPair,
   toHHmm,
   toHHmmss,
+  type OfficeCoordinatesInput,
 } from "@/lib/office-management-utils";
 import {
   createMeetingRoom,
@@ -64,6 +71,73 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Широта и долгота офиса: по ним «Определить ближайший офис» находит офис рядом с пользователем. */
+function OfficeCoordinatesFields({
+  value,
+  onChange,
+}: {
+  value: OfficeCoordinatesInput;
+  onChange: (next: OfficeCoordinatesInput) => void;
+}) {
+  const parsed = parseOfficeCoordinates(value);
+  const change = (field: keyof OfficeCoordinatesInput) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    onChange({ ...value, [field]: event.target.value });
+  // Строку «43.2149, 76.8721» из карт можно вставить в любое поле — заполнятся оба.
+  // Только при вставке: посимвольный ввод такой строки в одно поле не делим посреди набора.
+  const paste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pair = splitCoordinatesPair(event.clipboardData.getData("text"));
+    if (!pair) return;
+    event.preventDefault();
+    onChange(pair);
+  };
+  return (
+    <div className="mb-3">
+      <div className="grid grid-cols-2 gap-2.5">
+        <div>
+          <FieldLabel>Широта</FieldLabel>
+          <Input
+            value={value.lat}
+            onChange={change("lat")}
+            onPaste={paste}
+            placeholder="43.238949"
+            inputMode="decimal"
+            aria-invalid={!parsed.ok}
+          />
+        </div>
+        <div>
+          <FieldLabel>Долгота</FieldLabel>
+          <Input
+            value={value.lon}
+            onChange={change("lon")}
+            onPaste={paste}
+            placeholder="76.889709"
+            inputMode="decimal"
+            aria-invalid={!parsed.ok}
+          />
+        </div>
+      </div>
+      {!parsed.ok ? (
+        <p role="alert" className="mt-1.5 text-xs text-destructive">{parsed.error}</p>
+      ) : parsed.lat !== null && parsed.lon !== null ? (
+        <a
+          href={coordinatesMapUrl(parsed.lat, parsed.lon)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[#F35713] hover:underline"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          Проверить точку на карте
+        </a>
+      ) : (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Скопируйте точку здания в Google Maps или 2ГИС и вставьте в любое поле. Без координат офис не
+          предлагается как ближайший.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Управление офисами — parity с workflow-mobile admin-worker/office.tsx */
 export function AdminOfficeManagementScreen({
   onRegisterRefresh,
@@ -87,6 +161,7 @@ export function AdminOfficeManagementScreen({
   const [editCity, setEditCity] = useState("");
   const [editBlock, setEditBlock] = useState("");
   const [editFloor, setEditFloor] = useState("");
+  const [editCoordinates, setEditCoordinates] = useState<OfficeCoordinatesInput>({ lat: "", lon: "" });
   const [savingDataId, setSavingDataId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -95,6 +170,7 @@ export function AdminOfficeManagementScreen({
   const [newCity, setNewCity] = useState("");
   const [newBlock, setNewBlock] = useState("");
   const [newFloor, setNewFloor] = useState("");
+  const [newCoordinates, setNewCoordinates] = useState<OfficeCoordinatesInput>({ lat: "", lon: "" });
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [newOfficePhoto, setNewOfficePhoto] = useState<File | null>(null);
@@ -170,6 +246,7 @@ export function AdminOfficeManagementScreen({
       setEditCity(office.city ?? "");
       setEditBlock(office.block ?? "");
       setEditFloor(office.floor != null ? String(office.floor) : "");
+      setEditCoordinates(officeCoordinatesInput(office));
       setRooms([]);
       await loadRooms(id);
     },
@@ -264,6 +341,11 @@ export function AdminOfficeManagementScreen({
       toast({ title: "Этаж — целое число ≥ 0", variant: "destructive" });
       return;
     }
+    const coordinates = parseOfficeCoordinates(editCoordinates);
+    if (!coordinates.ok) {
+      toast({ title: coordinates.error, variant: "destructive" });
+      return;
+    }
     const blockTrim = editBlock.trim();
     setSavingDataId(officeId);
 
@@ -275,6 +357,8 @@ export function AdminOfficeManagementScreen({
       fd.append("city", editCity.trim());
       fd.append("block", blockTrim);
       fd.append("floor", floorParsed.value === null ? "" : String(floorParsed.value));
+      fd.append("lat", coordinates.lat === null ? "" : String(coordinates.lat));
+      fd.append("lon", coordinates.lon === null ? "" : String(coordinates.lon));
       fd.append("photo", editOfficePhoto);
       result = await updateOfficeWithPhoto(officeId, fd);
       setEditOfficePhoto(null);
@@ -285,6 +369,8 @@ export function AdminOfficeManagementScreen({
         city: editCity.trim() || undefined,
         block: blockTrim || null,
         floor: floorParsed.value,
+        lat: coordinates.lat,
+        lon: coordinates.lon,
       });
     }
 
@@ -301,6 +387,8 @@ export function AdminOfficeManagementScreen({
                 city: editCity.trim(),
                 block: d?.block ?? (blockTrim || null),
                 floor: d?.floor ?? floorParsed.value,
+                lat: d ? d.lat : coordinates.lat,
+                lon: d ? d.lon : coordinates.lon,
                 photo: d?.photo ?? o.photo,
               }
             : o,
@@ -322,6 +410,11 @@ export function AdminOfficeManagementScreen({
       setCreateError("Этаж — целое число ≥ 0");
       return;
     }
+    const coordinates = parseOfficeCoordinates(newCoordinates);
+    if (!coordinates.ok) {
+      setCreateError(coordinates.error);
+      return;
+    }
     setCreateError(null);
     setIsCreating(true);
     const blockTrim = newBlock.trim();
@@ -333,6 +426,8 @@ export function AdminOfficeManagementScreen({
       fd.append("city", newCity.trim());
       fd.append("block", blockTrim);
       fd.append("floor", floorParsed.value === null ? "" : String(floorParsed.value));
+      fd.append("lat", coordinates.lat === null ? "" : String(coordinates.lat));
+      fd.append("lon", coordinates.lon === null ? "" : String(coordinates.lon));
       fd.append("photo", newOfficePhoto);
       result = await createOfficeWithPhoto(fd);
     } else {
@@ -342,6 +437,8 @@ export function AdminOfficeManagementScreen({
         city: newCity.trim(),
         block: blockTrim || undefined,
         floor: floorParsed.value,
+        lat: coordinates.lat,
+        lon: coordinates.lon,
       });
     }
     if (result.ok) {
@@ -351,6 +448,7 @@ export function AdminOfficeManagementScreen({
       setNewCity("");
       setNewBlock("");
       setNewFloor("");
+      setNewCoordinates({ lat: "", lon: "" });
       setNewOfficePhoto(null);
       setShowCreateForm(false);
       await load();
@@ -490,6 +588,7 @@ export function AdminOfficeManagementScreen({
               />
             </div>
           </div>
+          <OfficeCoordinatesFields value={newCoordinates} onChange={setNewCoordinates} />
           <input
             ref={newPhotoInputRef}
             type="file"
@@ -551,6 +650,12 @@ export function AdminOfficeManagementScreen({
                       {hoursStr}
                       {office.auto_track_enabled ? " · авто-трекер" : ""}
                     </p>
+                    {!hasOfficeCoordinates(office) ? (
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-500">
+                        <MapPin className="h-3.5 w-3.5" />
+                        Нет координат — не определяется как ближайший
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <ChevronDown
@@ -583,6 +688,7 @@ export function AdminOfficeManagementScreen({
                         />
                       </div>
                     </div>
+                    <OfficeCoordinatesFields value={editCoordinates} onChange={setEditCoordinates} />
                     <input
                       ref={editPhotoInputRef}
                       type="file"

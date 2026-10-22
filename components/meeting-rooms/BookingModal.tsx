@@ -31,7 +31,6 @@ interface BookingModalProps {
   onClose: () => void
   room: MeetingRoom | null
   onBookingSuccess?: () => void
-  onSuccess?: (message: { title: string; message: string }) => void
   isPageMode?: boolean // Режим страницы для мобильных устройств
   variant?: "default" | "dark"
 }
@@ -43,7 +42,6 @@ export function BookingModal({
   onClose,
   room,
   onBookingSuccess,
-  onSuccess,
   isPageMode = false,
   variant = "default",
 }: BookingModalProps) {
@@ -190,6 +188,8 @@ export function BookingModal({
   if (!isPageMode && (!isOpen || !room)) return null
   if (isPageMode && !room) return null
 
+  const hasSelection = Boolean(selectedDate || selectedTimeSlot || companyName.trim())
+
   const handleBooking = () => {
     if (!selectedDate || !selectedTimeSlot) {
       rejectModal.showReject({
@@ -265,7 +265,14 @@ export function BookingModal({
       })
       
       const booking = response.data
-      
+
+      // Тост живёт в корневом layout и остаётся видимым после перехода на страницу брони.
+      toast({
+        title: "Готово",
+        description: `Бронирование создано: «${room.name}», ${bookingDate}, ${timeSlot.label}`,
+        duration: 4000,
+      })
+
       // Сброс формы
       setSelectedDate(undefined)
       setSelectedTimeSlot(null)
@@ -575,7 +582,11 @@ export function BookingModal({
   return (
     <div
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={(event) => {
+        // Клики в окнах подтверждения и ошибки (порталы) всплывают сюда по дереву React: закрываем
+        // только по самому фону и только пока ничего не выбрано — выбор не теряется от случайного клика.
+        if (event.target === event.currentTarget && !hasSelection) onClose()
+      }}
     >
       {content}
       

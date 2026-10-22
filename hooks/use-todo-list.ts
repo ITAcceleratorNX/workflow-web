@@ -13,6 +13,7 @@ import {
 } from "@/lib/user-tasks-api";
 import { defaultRecurrenceNone, type TaskRecurrencePayload } from "@/lib/task-recurrence";
 import { confirmTaskToggle } from "@/lib/group-task-completion";
+import { nextOccurrenceAfterCompletion, recurringCompletionNotice } from "@/lib/recurring-completion";
 import { toAssignmentInput, type RecipientSelection } from "@/lib/task-recipients-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
@@ -348,6 +349,9 @@ export function useTodoList(queryInput: UseTodoListQuery | TaskFilter = { filter
       if (res.ok) {
         setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...res.data } : t)));
         bump();
+        // Повтор выполнен, задача перенесена: без пояснения галочка, вернувшаяся назад, выглядит как сбой.
+        const nextAt = nextOccurrenceAfterCompletion(task, res.data);
+        if (nextAt) toast({ ...recurringCompletionNotice(nextAt), duration: 4000 });
         return;
       }
       setTasks(before);

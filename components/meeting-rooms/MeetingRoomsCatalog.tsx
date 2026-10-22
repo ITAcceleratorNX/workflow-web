@@ -10,7 +10,6 @@ import { BookingModal } from "@/components/meeting-rooms/BookingModal";
 import { MyBookings } from "@/components/meeting-rooms/MyBookings";
 import { OfficePickerSidebar } from "@/components/meeting-rooms/office-picker-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { useOffices } from "@/hooks/use-offices";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-media-query";
@@ -61,7 +60,6 @@ export function MeetingRoomsCatalog({
     onTabChange?.(tab);
   };
 
-  const { toast } = useToast();
   const router = useRouter();
   const isMobile = useIsMobile();
   const officeInfoRef = useRef<HTMLDivElement>(null);
@@ -117,14 +115,6 @@ export function MeetingRoomsCatalog({
     if (selectedOffice) {
       fetchRooms(selectedOffice.id);
     }
-  };
-
-  const handleBookingModalSuccess = (message: { title: string; message: string }) => {
-    toast({
-      title: message.title,
-      description: message.message,
-      duration: 3000,
-    });
   };
 
   const closeBookingModal = () => {
@@ -183,7 +173,7 @@ export function MeetingRoomsCatalog({
             {!selectedOffice ? (
               <div className="rounded-xl border border-dashed p-10 text-center flex-1 flex items-center justify-center">
                 <div>
-                  <h3 className="text-lg font-semibold">Выберите офис</h3>
+                  <h3 className="text-lg font-semibold text-white">Выберите офис</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Выберите офис слева для просмотра переговорных комнат
                   </p>
@@ -196,13 +186,13 @@ export function MeetingRoomsCatalog({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleOfficeChange(null)}
-                    className="shrink-0"
+                    className="shrink-0 text-white/80 hover:bg-white/10 hover:text-white"
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
                     Сбросить
                   </Button>
                   <div>
-                    <h2 className="text-lg font-semibold">{selectedOffice.name}</h2>
+                    <h2 className="text-lg font-semibold text-white">{selectedOffice.name}</h2>
                     <p className="text-xs text-muted-foreground">
                       {selectedOffice.city}, {selectedOffice.address}
                     </p>
@@ -264,8 +254,8 @@ export function MeetingRoomsCatalog({
           onClose={closeBookingModal}
           room={selectedRoom}
           onBookingSuccess={handleBookingSuccess}
-          onSuccess={handleBookingModalSuccess}
-          variant="default"
+          // Десктопная оболочка всегда тёмная: светлый вариант давал чёрный текст на тёмном фоне.
+          variant="dark"
         />
       )}
     </div>

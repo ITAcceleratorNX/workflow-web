@@ -80,6 +80,8 @@ export async function updateOffice(
       | "address"
       | "block"
       | "floor"
+      | "lat"
+      | "lon"
       | "working_hours_start"
       | "working_hours_end"
       | "auto_track_enabled"
@@ -100,6 +102,8 @@ export async function createOffice(body: {
   city: string;
   block?: string | null;
   floor?: number | null;
+  lat?: number | null;
+  lon?: number | null;
   working_hours_start?: string;
   working_hours_end?: string;
   auto_track_enabled?: boolean;
