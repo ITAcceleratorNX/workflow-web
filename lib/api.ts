@@ -523,8 +523,9 @@ export interface MeetingRoomStats {
     cancellationsAndNoShows: number;
 }
 
-export const getMeetingRoomStats = () => 
-    api.get<MeetingRoomStats>('/meeting-room-bookings/statistics');
+/** params: office_id, from, to (ГГГГ-ММ-ДД); без периода — текущий месяц. */
+export const getMeetingRoomStats = (params?: Record<string, string>) =>
+    api.get<MeetingRoomStats>('/meeting-room-bookings/statistics', { params });
 
 // Получить дневной календарь загрузки комнат
 export interface DailyCalendarData {
@@ -551,8 +552,10 @@ export interface DailyCalendarData {
     }>;
 }
 
-export const getMeetingRoomDailyCalendar = (date: string) =>
-    api.get<DailyCalendarData>(`/meeting-room-bookings/calendar/daily?date=${date}`);
+export const getMeetingRoomDailyCalendar = (date: string, officeId?: string) =>
+    api.get<DailyCalendarData>('/meeting-room-bookings/calendar/daily', {
+        params: { date, ...(officeId && officeId !== 'all' ? { office_id: officeId } : {}) },
+    });
 
 // Получить недельный календарь загрузки комнат
 export interface WeeklyCalendarData {
@@ -581,8 +584,10 @@ export interface WeeklyCalendarData {
     }>;
 }
 
-export const getMeetingRoomWeeklyCalendar = (startDate: string, endDate: string) =>
-    api.get<WeeklyCalendarData>(`/meeting-room-bookings/calendar/weekly?start_date=${startDate}&end_date=${endDate}`);
+export const getMeetingRoomWeeklyCalendar = (startDate: string, endDate: string, officeId?: string) =>
+    api.get<WeeklyCalendarData>('/meeting-room-bookings/calendar/weekly', {
+        params: { start_date: startDate, end_date: endDate, ...(officeId && officeId !== 'all' ? { office_id: officeId } : {}) },
+    });
 
 // ==================== Yandex Smart Home ====================
 // Все запросы к Яндекс умному дому обрабатываются через бэкенд

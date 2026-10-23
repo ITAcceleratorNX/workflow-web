@@ -1,16 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { aggregateManagerStats, getManagerStats, type ManagerStatsRawItem } from "@/lib/manager-stats-api";
+import {
+  aggregateManagerStats,
+  getManagerStats,
+  type ManagerRatingStats,
+  type ManagerSlaStats,
+  type ManagerStatsRawItem,
+} from "@/lib/manager-stats-api";
 import { exportManagerAnalytics } from "@/lib/manager-stats-export";
 import { listLoadError } from "@/lib/request-list-loading";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export type ManagerStatisticsMobileTab = "stats" | "analytics";
-type SlaRow = { officeId: number; avgHours: string; totalCompleted: number };
-type RatingRow = { officeId: number; avgRating: string; totalRatings: number; lowRatings: number };
-type Analytics = { sla: SlaRow[]; ratings: RatingRow[]; offices: { id: number; name: string }[] };
+type Analytics = { sla: ManagerSlaStats; ratings: ManagerRatingStats; offices: { id: number; name: string }[] };
 
 export function useManagerStatisticsMobilePage() {
   const token = useAuthStore((s) => s.token);
@@ -46,14 +50,14 @@ export function useManagerStatisticsMobilePage() {
     setAnalyticsError(null);
     try {
       const [sla, ratings, offices] = await Promise.all([
-        api.get<{ byOffice: SlaRow[] }>("/analytics/stats/manager/sla"),
-        api.get<{ byOffice: RatingRow[] }>("/analytics/stats/manager/ratings"),
+        api.get<ManagerSlaStats>("/analytics/stats/manager/sla"),
+        api.get<ManagerRatingStats>("/analytics/stats/manager/ratings"),
         api.get<{ id: number; name: string }[]>("/offices"),
       ]);
-      if (!Array.isArray(sla.data.byOffice) || !Array.isArray(ratings.data.byOffice) || !Array.isArray(offices.data)) {
+      if (!Array.isArray(sla.data.byOffice) || !ratings.data.summary || !Array.isArray(offices.data)) {
         throw new Error("Invalid analytics response");
       }
-      if (version === analyticsVersion.current) setAnalytics({ sla: sla.data.byOffice, ratings: ratings.data.byOffice, offices: offices.data });
+      if (version === analyticsVersion.current) setAnalytics({ sla: sla.data, ratings: ratings.data, offices: offices.data });
     } catch (failure) {
       if (version === analyticsVersion.current) setAnalyticsError(listLoadError(failure));
     } finally {

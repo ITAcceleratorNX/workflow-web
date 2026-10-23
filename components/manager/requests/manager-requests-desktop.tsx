@@ -8,7 +8,10 @@ import { useManagerRequestCardHeader } from "./manager-request-card-header";
 import { ManagerRequestsFilters } from "./manager-requests-filters";
 import { RequestsListContent } from "@/components/requests/requests-list-content";
 import { ManagerDeletionAuditList } from "./manager-deletion-audit-list";
-import { MANAGER_REQUEST_TABS } from "./manager-requests-constants";
+import { MANAGER_DESKTOP_REQUEST_TABS } from "./manager-requests-constants";
+import dynamic from "next/dynamic";
+
+const LogsViewer = dynamic(() => import("@/components/logs-viewer").then((mod) => ({ default: mod.LogsViewer })), { ssr: false });
 
 type ManagerRequestsDesktopProps = UseManagerRequestsListResult;
 
@@ -40,7 +43,7 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
 
   const renderCardHeader = useManagerRequestCardHeader();
 
-  const showRequestList = activeTab !== "deleted";
+  const showRequestList = activeTab !== "deleted" && activeTab !== "logs";
 
   return (
     <AdminManagerRequestsDesktopFrame
@@ -63,7 +66,7 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
         ) : null
       }
       tabsSlot={
-        <RequestsTabs variant="desktop" tabs={MANAGER_REQUEST_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <RequestsTabs variant="desktop" tabs={MANAGER_DESKTOP_REQUEST_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
       }
       listSlot={
         showRequestList ? (
@@ -84,6 +87,8 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
             bulkDelete={bulkDelete}
             emptyMessage={activeTab === "rejected" ? "Отклонённых заявок нет" : undefined}
           />
+        ) : activeTab === "logs" ? (
+          <LogsViewer userRole="manager" isDesktop dark />
         ) : (
           <ManagerDeletionAuditList variant="desktop" />
         )

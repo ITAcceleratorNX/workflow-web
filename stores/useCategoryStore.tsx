@@ -11,6 +11,8 @@ interface ServiceSubcategory {
 interface Category {
   id: number;
   name: string;
+  /** Категории привязаны к офису (одно название — своя запись в каждом офисе). */
+  office_id?: number;
   subcategories?: ServiceSubcategory[];
 }
 
