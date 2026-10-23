@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateManagerHomeKpi, managerKpiRequestHrefs } from '../lib/manager-home-kpi.ts';
+import { calculateManagerHomeKpi, managerKpiRequestHrefs } from '../lib/manager-period.ts';
 
 const now = new Date('2026-09-30T12:00:00Z');
 const day = {
@@ -43,4 +43,17 @@ test('each KPI keeps the office and period and opens its canonical request filte
     assert.equal(url.searchParams.get(filter), value);
   }
   assert.equal(new URL(managerKpiRequestHrefs('/admin-worker', 'all', 'month').inWork, 'https://example.test').searchParams.has('office_id'), false);
+});
+
+test('statistics period range matches the request list rule and formats like the mockups', async () => {
+  const { managerStatsRange, formatRangeLabel, eachDayKey } = await import('../lib/manager-period.ts');
+  const today = new Date(2026, 9, 21, 15, 0);
+  assert.deepEqual([managerStatsRange('month', undefined, today).fromKey, managerStatsRange('month', undefined, today).toKey], ['2026-09-21', '2026-10-21']);
+  assert.equal(managerStatsRange('week', undefined, today).fromKey, '2026-10-14');
+  const custom = managerStatsRange('custom', { from: new Date(2026, 9, 1), to: new Date(2026, 9, 21) }, today);
+  assert.deepEqual([custom.fromKey, custom.toKey], ['2026-10-01', '2026-10-21']);
+  assert.equal(formatRangeLabel('2026-10-01', '2026-10-21'), '1–21 октября 2026');
+  assert.equal(formatRangeLabel('2026-09-28', '2026-10-04'), '28 сентября – 4 октября 2026');
+  assert.equal(formatRangeLabel('2025-10-21', '2026-10-21'), '21 октября 2025 – 21 октября 2026');
+  assert.equal(eachDayKey('2026-09-29', '2026-10-02').length, 4);
 });

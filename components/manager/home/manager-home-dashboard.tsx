@@ -98,7 +98,7 @@ import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeMan
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { getPreviewUrl } from "@/lib/imageOptimization";
 import type { ManagerStatsRawItem } from "@/lib/manager-stats-api";
-import { calculateManagerHomeKpi, managerKpiRequestHrefs } from "@/lib/manager-home-kpi";
+import { calculateManagerHomeKpi, managerKpiRequestHrefs } from "@/lib/manager-period";
 import { exportManagerAnalytics } from "@/lib/manager-stats-export";
 import { listLoadError } from "@/lib/request-list-loading";
 
@@ -538,6 +538,19 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       ? ["requests", "overview"]
       : ["requests", "overview", "analytics", "workload", "logs"]
     : ["meeting-rooms", "overview", "analytics", "registration-requests"], [isDesktop, isDepartmentHead]);
+  // «Управление» открывается сразу на нужном разделе: ?tab= (десктоп) или ?section= (мобилка).
+  useEffect(() => {
+    if (!standaloneManagement) return;
+    const desktopTab = searchParams.get("tab");
+    if (desktopTab && ["offices", "categories", "subcategories", "users", "registration-requests", "smart-home"].includes(desktopTab)) {
+      setManagementDesktopTab(desktopTab as typeof managementDesktopTab);
+    }
+    const section = searchParams.get("section");
+    if (section === "offices" || section === "categories" || section === "users") {
+      setManagementSubSection(section);
+    }
+  }, [searchParams, standaloneManagement]);
+
   useEffect(() => {
     if (standaloneManagement) return;
     const tabFromUrl = searchParams.get("tab");
@@ -1688,8 +1701,15 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     isDesktop ? managementDesktopTab === "categories" : managementSubSection === "categories"
   );
 
+  // Категориями управляют Администратор и Офис-менеджер; Руководителю бэкенд отвечает 403,
+  // поэтому у него вкладка только для просмотра и исполнителей не проверяем.
+  const canEditCategories = user?.role !== "manager";
+  // Пароль, роль и профиль чужого пользователя меняют только Администратор и Офис-менеджер;
+  // Руководителю бэкенд разрешает список, поиск и удаление.
+  const canEditUsers = user?.role !== "manager";
+
   useEffect(() => {
-    if (!token || !categoryManagementVisible) return;
+    if (!token || !categoryManagementVisible || !canEditCategories) return;
     let cancelled = false;
     const check = async () => {
       setCheckingCategoryExecutors(true);
@@ -1712,7 +1732,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     };
     void check();
     return () => { cancelled = true; };
-  }, [token, categoryManagementVisible, categories, categoryCheckAttempt]);
+  }, [token, categoryManagementVisible, canEditCategories, categories, categoryCheckAttempt]);
 
   const handleDeleteCategory = async () => {
     if (!categoryToDelete || checkingCategoryExecutors || categoryCheckError) return;
@@ -1782,11 +1802,11 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
   // Загрузка пользователей офиса для смены пароля/роли на десктопе
   useEffect(() => {
-    if (!isDesktop || effectiveTab !== "management" || !user?.office_id) return;
+    if (!isDesktop || effectiveTab !== "management" || !user?.office_id || !canEditUsers) return;
     getOfficeUsers(user.office_id)
       .then((res) => setOfficeUsers(res.data || []))
       .catch(() => setOfficeUsers([]));
-  }, [isDesktop, effectiveTab, user?.office_id]);
+  }, [isDesktop, effectiveTab, user?.office_id, canEditUsers]);
 
   const handleChangePasswordForUser = async () => {
     if (!selectedUserForPassword || !newPassword.trim()) return;
@@ -2656,7 +2676,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Категории услуг</h3>
-                      <p className="text-sm text-[#8E8E93]">Создание и удаление категорий услуг</p>
+                      <p className="text-sm text-[#8E8E93]">{canEditCategories ? "Создание и удаление категорий услуг" : "Категории услуг по офисам"}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-[#8E8E93] shrink-0" />
                   </button>
@@ -2670,7 +2690,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Управление пользователями</h3>
-                      <p className="text-sm text-[#8E8E93]">Редактирование и удаление пользователей</p>
+                      <p className="text-sm text-[#8E8E93]">{canEditUsers ? "Редактирование и удаление пользователей" : "Список, поиск и удаление пользователей"}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-[#8E8E93] shrink-0" />
                   </button>
@@ -2688,6 +2708,15 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                   <ChevronLeft className="h-5 w-5 mr-2" />
                   Назад к разделам
                 </Button>
+              )}
+              {!isDesktop && managementSubSection === "users" && (
+                <Link
+                  href={`${basePath}?tab=registration-requests`}
+                  className="flex items-center justify-between rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4 text-white hover:bg-[#353538]"
+                >
+                  <span className="font-medium">Запросы на регистрацию</span>
+                  <ChevronLeft className="h-5 w-5 rotate-180 text-[#F35713]" />
+                </Link>
               )}
 
               {/* Десктоп: табы переключения подразделов управления (таб подкатегорий только у админа) */}
@@ -3018,7 +3047,53 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               )}
 
               {/* Управление категориями услуг */}
-              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && (
+              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && !canEditCategories && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
+                <CardHeader>
+                  <CardTitle className={mgmtTitleCl}>Категории услуг</CardTitle>
+                  <CardDescription className={mgmtDescCl}>
+                    Категории по офисам. Создают и удаляют их Администратор и Офис-менеджер.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {categories.length === 0 ? (
+                    <p className={`text-sm italic ${mgmtMutedCl}`}>Нет добавленных категорий.</p>
+                  ) : (
+                    [...offices.map((o) => ({ id: o.id as number | undefined, name: o.name })), { id: undefined, name: "Без офиса" }]
+                      .map((group) => ({
+                        ...group,
+                        items: categories.filter((c) =>
+                          group.id === undefined
+                            ? !offices.some((o) => o.id === c.office_id)
+                            : c.office_id === group.id,
+                        ),
+                      }))
+                      .filter((group) => group.items.length > 0)
+                      .map((group) => (
+                        <div key={group.id ?? "none"} className="space-y-2">
+                          <Label className={mgmtTitleCl || ""}>
+                            {group.name} <span className={mgmtMutedCl}>· {group.items.length}</span>
+                          </Label>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {group.items.map((category) => (
+                              <div key={category.id} className={`p-3 rounded-lg border ${mgmtRowCl}`}>
+                                <div className={`font-semibold ${mgmtTextCl}`}>{formatServiceCategoryName(category.name)}</div>
+                                {(category.subcategories?.length ?? 0) > 0 && (
+                                  <div className={`mt-0.5 text-sm ${mgmtMutedCl}`}>
+                                    Подкатегорий: {category.subcategories!.length}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </CardContent>
+              </Card>
+              )}
+
+              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && canEditCategories && (
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление категориями услуг</CardTitle>
@@ -3141,8 +3216,55 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               </Card>
               )}
 
+              {/* Подкатегории у Руководителя — только просмотр (меняют Администратор и Офис-менеджер) */}
+              {isDesktop && !canEditCategories && managementDesktopTab === "subcategories" && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
+                <CardHeader>
+                  <CardTitle className={mgmtTitleCl}>Подкатегории услуг</CardTitle>
+                  <CardDescription className={mgmtDescCl}>
+                    Подкатегории по офисам и категориям. Создают и удаляют их Администратор и Офис-менеджер.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {categories.every((c) => !c.subcategories?.length) ? (
+                    <p className={`text-sm italic ${mgmtMutedCl}`}>Нет добавленных подкатегорий.</p>
+                  ) : (
+                    [...offices.map((o) => ({ id: o.id as number | undefined, name: o.name })), { id: undefined, name: "Без офиса" }]
+                      .map((group) => ({
+                        ...group,
+                        items: categories.filter((c) =>
+                          (c.subcategories?.length ?? 0) > 0 &&
+                          (group.id === undefined ? !offices.some((o) => o.id === c.office_id) : c.office_id === group.id),
+                        ),
+                      }))
+                      .filter((group) => group.items.length > 0)
+                      .map((group) => (
+                        <div key={group.id ?? "none"} className="space-y-2">
+                          <Label className={mgmtTitleCl || ""}>{group.name}</Label>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                            {group.items.map((category) => (
+                              <div key={category.id} className={`p-3 rounded-lg border ${mgmtRowCl}`}>
+                                <div className={`font-semibold ${mgmtTextCl}`}>
+                                  {formatServiceCategoryName(category.name)}
+                                  <span className={`ml-1.5 text-sm font-normal ${mgmtMutedCl}`}>· {category.subcategories!.length}</span>
+                                </div>
+                                <ul className={`mt-1.5 space-y-0.5 text-sm ${mgmtMutedCl}`}>
+                                  {category.subcategories!.map((sub) => (
+                                    <li key={sub.id}>{sub.name}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </CardContent>
+              </Card>
+              )}
+
               {/* Управление подкатегориями — только для админа на десктопе */}
-              {isDesktop && (user?.role === "admin-worker" || user?.role === "manager") && managementDesktopTab === "subcategories" && (
+              {isDesktop && canEditCategories && managementDesktopTab === "subcategories" && (
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление подкатегориями</CardTitle>
@@ -3252,12 +3374,16 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление пользователями</CardTitle>
-                  <CardDescription className={mgmtDescCl}>Редактирование и удаление пользователей, смена пароля и роли</CardDescription>
+                  <CardDescription className={mgmtDescCl}>
+                    {canEditUsers
+                      ? "Редактирование и удаление пользователей, смена пароля и роли"
+                      : "Список, поиск и удаление пользователей. Пароль, роль и профиль меняют Администратор и Офис-менеджер."}
+                  </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4 mb-8">
                   {/* Смена пароля и роли */}
-                  {isDesktop && (
+                  {isDesktop && canEditUsers && (
                     <div className="space-y-6 pb-6 border-b border-white/10">
                       <div className={`rounded-lg p-4 ${mgmtDark ? "bg-[#1A1A1A]/50 border border-white/5" : "bg-gray-50 border border-gray-200"}`}>
                         <h4 className={`text-sm font-semibold mb-3 ${mgmtTitleCl}`}>Смена пароля</h4>
@@ -3431,7 +3557,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     )}
                   </div>
 
-                  {editingUserId && (
+                  {editingUserId && canEditUsers && (
                     <div className={`space-y-4 p-4 rounded-lg ${mgmtDark ? "bg-[#2C2C2E]/80 border border-white/10" : "bg-blue-50 border border-blue-200"}`}>
                       <h3 className={`text-lg font-semibold ${mgmtDark ? "text-white" : "text-blue-800"}`}>Редактирование пользователя</h3>
                       
@@ -3539,6 +3665,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                                 </div>
 
                                 <div className={`flex gap-2 justify-end flex-shrink-0 ${!isDesktop ? "flex-row" : ""}`}>
+                                  {canEditUsers && (
                                   <Button
                                       size={isDesktop ? "icon" : "sm"}
                                       variant="outline"
@@ -3547,6 +3674,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                                   >
                                     ✎ {!isDesktop && "Редактировать"}
                                   </Button>
+                                  )}
 
                                       <Button
                                           size={isDesktop ? "icon" : "sm"}

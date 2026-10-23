@@ -2,7 +2,6 @@
 
 import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { useBodyClass } from "@/hooks/use-body-class";
 import { useRoleGuard } from "@/hooks/use-role-guard";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
@@ -16,7 +15,6 @@ export default function ManagerLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { ready, user, isDesktop, hydrated } = useRoleGuard((role) => role === "manager");
-  const isLargeDesktop = useMediaQuery("(min-width: 1200px)");
   useBodyClass("manager-mobile", !isDesktop && (pathname === "/manager" || pathname === "/manager/statistics"));
 
   useEffect(() => {
@@ -29,14 +27,13 @@ export default function ManagerLayout({
       const hasRequestId = currentSearch.get("requestId");
       const hasParams = !!hasTab || !!hasRequestId;
 
-      if (pathname === "/manager" && !hasParams) {
-        if (!isDesktop || !isLargeDesktop) {
-          router.replace("/manager/cabinet");
-        }
+      // Мобильная главная — хаб «Управление»; на десктопе «Мой кабинет» рисует сама /manager.
+      if (pathname === "/manager" && !hasParams && !isDesktop) {
+        router.replace("/manager/cabinet");
       }
     }, 0);
     return () => clearTimeout(t);
-  }, [hydrated, user?.role, router, isDesktop, isLargeDesktop, pathname]);
+  }, [hydrated, user?.role, router, isDesktop, pathname]);
 
   if (!ready) {
     return null;
