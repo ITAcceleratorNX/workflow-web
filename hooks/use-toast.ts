@@ -16,6 +16,8 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  /** Icon of a `success` / `error` toast instead of the default one. */
+  icon?: React.ReactNode
 }
 
 const actionTypes = {

@@ -15,6 +15,9 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        // Product dark UI: status chips of a task card («Просрочено · 1 окт», «Высокий»).
+        "danger-soft": "gap-1 rounded-lg border-transparent bg-ui-danger/[0.16] px-2 py-1 text-[13px] text-ui-danger",
+        "neutral-soft": "gap-1 rounded-lg border-transparent bg-ui-fg/[0.08] px-2 py-1 text-[13px] text-ui-fg",
       },
     },
     defaultVariants: {

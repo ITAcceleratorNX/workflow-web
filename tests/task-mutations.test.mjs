@@ -19,7 +19,7 @@ function harness(result, guest = false) {
   const state = { version: 0, bump: () => { invalidations++; } };
   const dependencies = {
     '@/lib/user-tasks-api': {
-      deleteUserTask: async (id) => { requests.push(id); return result; },
+      deleteUserTask: async (id) => { requests.push(id); return typeof result === 'function' ? result() : result; },
       updateUserTask: async (id, patch) => { requests.push({ id, patch }); return result; },
     },
     '@/lib/task-recurrence': {},
@@ -32,6 +32,11 @@ function harness(result, guest = false) {
     '@/stores/useAuthStore': { useAuthStore: (select) => select(auth) },
     '@/stores/user-tasks-invalidate-store': { useUserTasksInvalidateStore: (select) => select(state) },
     '@/hooks/use-toast': { useToast: () => ({ toast: (message) => alerts.push(message) }) },
+    '@/components/tasks/task-toasts': {
+      toastTaskCompleted: (toast) => toast({ title: 'Задача выполнена', variant: 'success' }),
+      toastTaskDeleteFailed: (toast, failure, retry) => toast({ title: 'Не удалось удалить задачу', description: failure.error, network: failure.network, retry }),
+      toastTaskError: (toast, title, description) => toast({ title, description, variant: 'error' }),
+    },
   };
   const loaded = { exports: {} };
   vm.runInNewContext(compiled, {
@@ -91,8 +96,29 @@ test('completing a recurring task explains why it is not done again', async () =
   assert.equal(scenario.alerts[0].description, `Следующий повтор — ${tomorrow}`);
 });
 
-test('completing an ordinary task shows no notice', async () => {
+test('completing an ordinary task confirms it with «Задача выполнена»', async () => {
   const scenario = harness({ ok: true, data: { id: 8, completed: true, scheduled_at: null } });
   await scenario.hook.toggleComplete({ id: 8, completed: false, scheduled_at: null });
+  assert.deepEqual(scenario.alerts.map((alert) => alert.title), ['Задача выполнена']);
+});
+
+test('reopening a task shows no notice', async () => {
+  const scenario = harness({ ok: true, data: { id: 8, completed: false, scheduled_at: null } });
+  await scenario.hook.toggleComplete({ id: 8, completed: true, scheduled_at: null });
   assert.equal(scenario.alerts.length, 0);
+});
+
+test('a deletion lost to the network offers «Повторить», and the retry closes the card once it succeeds', async () => {
+  const responses = [{ ok: false, error: 'Нет соединения с интернетом', network: true }, { ok: true }];
+  const scenario = harness(() => responses.shift());
+  let closed = 0;
+  assert.equal(await scenario.hook.removeTask({ id: 9, title: 'Task' }, () => { closed += 1; }), false);
+  assert.equal(scenario.alerts[0].title, 'Не удалось удалить задачу');
+  assert.equal(scenario.alerts[0].network, true);
+  assert.equal(scenario.invalidations(), 0, 'the lists keep the task');
+  scenario.alerts[0].retry();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(scenario.requests, [9, 9]);
+  assert.equal(closed, 1);
+  assert.equal(scenario.invalidations(), 1);
 });

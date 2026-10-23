@@ -47,6 +47,7 @@ function harness(initialQuery) {
     '@/stores/useAuthStore': { useAuthStore: (select) => select(auth) },
     '@/stores/user-tasks-invalidate-store': { useUserTasksInvalidateStore: (select) => select(invalidation) },
     '@/hooks/use-toast': { useToast: () => ({ toast }) },
+    '@/components/tasks/task-toasts': { toastTaskCompleted() {}, toastTaskDeleteFailed() {}, toastTaskError: (show, title, description) => show({ title, description }) },
   };
   const loaded = { exports: {} };
   vm.runInNewContext(compiled, { module: loaded, exports: loaded.exports, require: (id) => dependencies[id] });

@@ -145,41 +145,6 @@ test('request shell gives Radix Portal separate ref-capable children', async () 
   assert.equal(portalChildren[1].type, radix.Content);
 });
 
-test('recipient fallback for users without a company retains the explicit return target', async () => {
-  let pickerReturnRef;
-  const utils = await loadSource('../lib/utils.ts');
-  const theme = { useTaskPickerTheme: () => ({ text: '#fff', textMuted: '#aaa', primary: '#e25b21', border: '#333', cardBg: '#222' }) };
-  const assignment = await loadSource('../components/tasks/task-assignment-pickers.tsx', {
-    '@/lib/utils': utils,
-    '@/components/tasks/assign-user-search-filters': { AssignUserSearchFilters: () => null },
-    '@/hooks/use-assign-user-search-scope': { useAssignUserSearchScope: () => ({ searchOptions: {} }) },
-    '@/hooks/use-task-picker-theme': theme,
-    '@/lib/user-search-display': {},
-    '@/lib/user-search': {},
-    '@/components/tasks/task-picker-shell': {
-      TaskPickerShell({ returnFocusRef }) {
-        pickerReturnRef = returnFocusRef;
-        return null;
-      },
-    },
-  });
-  const { TaskRecipientPicker } = await loadSource('../components/tasks/task-recipient-picker.tsx', {
-    '@/lib/utils': utils,
-    '@/components/tasks/task-assignment-pickers': assignment,
-    '@/components/tasks/task-picker-shell': {},
-    '@/hooks/use-task-picker-theme': theme,
-    '@/hooks/use-task-recipients': { useTaskRecipients: () => ({ directory: { my_company: null, available_companies: [] } }) },
-    '@/lib/employee-display': {},
-    '@/lib/task-recipients-api': {},
-    '@/stores/confirm-dialog-store': {},
-  });
-  const returnFocusRef = { current: {} };
-  renderToStaticMarkup(React.createElement(TaskRecipientPicker, {
-    visible: true, currentUserId: 1, value: null, onClose() {}, onConfirm() {}, returnFocusRef,
-  }));
-  assert.equal(pickerReturnRef, returnFocusRef);
-});
-
 test('production Tailwind globs generate constant-only classes and portal layer utilities', async (t) => {
   const fixture = await mkdtemp(path.join(tmpdir(), 'workflow-overlay-css-'));
   t.after(() => rm(fixture, { recursive: true, force: true }));

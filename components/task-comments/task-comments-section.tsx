@@ -25,6 +25,8 @@ type Props = {
   taskId: number;
   colors: { text: string; textMuted: string; primary: string; cardBg: string; border: string };
   desktop?: boolean;
+  /** `plain` — the task card of the dark product UI: a caption with the count, no frame around the feed. */
+  variant?: "card" | "plain";
 };
 
 /**
@@ -32,7 +34,8 @@ type Props = {
  * свои неотправленные сообщения, поле ввода с @упоминаниями; свои комментарии меняются и удаляются
  * через меню «…». Права приходят с сервера: у читателя переданной задачи поле ввода закрыто.
  */
-export function TaskCommentsSection({ taskId, colors, desktop = false }: Props) {
+export function TaskCommentsSection({ taskId, colors, desktop = false, variant = "card" }: Props) {
+  const plain = variant === "plain";
   const comments = useTaskComments(taskId);
   const currentUserId = useAuthStore((state) => state.user?.id ?? null);
   const currentUserName = useAuthStore((state) => state.user?.full_name ?? "");
@@ -46,11 +49,12 @@ export function TaskCommentsSection({ taskId, colors, desktop = false }: Props) 
       textMuted: colors.textMuted,
       primary: colors.primary,
       danger: "#EF4444",
-      card: desktop ? "#1C1C1E" : colors.cardBg,
+      card: desktop && !plain ? "#1C1C1E" : colors.cardBg,
       border: colors.border,
-      ownCard: `${colors.primary}26`,
+      // Works with any CSS color, also hsl(var(--token)).
+      ownCard: `color-mix(in srgb, ${colors.primary} 15%, transparent)`,
     }),
-    [colors, desktop],
+    [colors, desktop, plain],
   );
 
   const { changing, remove, retry, discard, peekDraft, setDraft } = comments;
@@ -111,12 +115,15 @@ export function TaskCommentsSection({ taskId, colors, desktop = false }: Props) 
 
   return (
     <>
-      <div className="flex items-center gap-2 px-1">
+      <div className={cn("flex items-center gap-2", !plain && "px-1")}>
         <p
-          className={cn("flex-1 font-semibold", desktop ? "text-sm text-[#8E8E93]" : "text-xs uppercase tracking-wide")}
-          style={desktop ? undefined : { color: colors.textMuted }}
+          className={cn(
+            "flex-1 font-semibold",
+            plain ? "text-[13px] font-medium" : desktop ? "text-sm text-[#8E8E93]" : "text-xs uppercase tracking-wide",
+          )}
+          style={desktop && !plain ? undefined : { color: colors.textMuted }}
         >
-          Комментарии
+          {plain && ready && !comments.hasOlder ? `Комментарии · ${comments.items.length}` : "Комментарии"}
         </p>
         {ready ? (
           comments.refreshing ? (
@@ -130,8 +137,11 @@ export function TaskCommentsSection({ taskId, colors, desktop = false }: Props) 
       </div>
 
       <div
-        className={cn("space-y-4 rounded-2xl border p-3", desktop && "border-[#3A3A3C] shadow-sm lg:p-4")}
-        style={{ backgroundColor: desktop ? "#2C2C2E" : colors.cardBg, borderColor: colors.border }}
+        className={cn(
+          plain ? "space-y-3" : "space-y-4 rounded-2xl border p-3",
+          desktop && !plain && "border-[#3A3A3C] shadow-sm lg:p-4",
+        )}
+        style={plain ? undefined : { backgroundColor: desktop ? "#2C2C2E" : colors.cardBg, borderColor: colors.border }}
       >
         {ready && comments.readError ? (
           <button

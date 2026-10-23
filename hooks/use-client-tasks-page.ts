@@ -2,308 +2,257 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  addCalendarDaysToDateKey,
-  todayTaskDateKey,
-} from "@/lib/dateTimeUtils";
-import {
-  formatSectionDateLabel,
-  getTodaySections,
-  getInboxTasks,
-  type TaskMainView,
-} from "@/lib/task-views";
+import { addCalendarDaysToDateKey, todayTaskDateKey } from "@/lib/dateTimeUtils";
+import type { TaskMainView } from "@/lib/task-views";
+import { formatDayHeading, formatDueDay, pluralTasks, pluralUnfinished } from "@/lib/task-due";
+import { taskSortQuery, type TaskSort } from "@/lib/task-list-sort";
+import { monthOfKey, type MonthRef } from "@/lib/month-grid";
 import { useTodoList, type UseTodoListQuery } from "@/hooks/use-todo-list";
+import { useCurrentTaskDay } from "@/hooks/use-current-task-day";
+import { useTaskCounts } from "@/hooks/use-task-counts";
+import { useTaskSortPreference } from "@/hooks/use-task-sort-preference";
 import type { UserTask } from "@/lib/user-tasks-api";
 
-import { useCurrentTaskDay } from "@/hooks/use-current-task-day";
-import { taskSortQuery, type TaskSortValue } from "@/lib/task-list-sort";
+export type TaskLayoutMode = "list" | "calendar";
 
-const VIEW_TABS: { value: TaskMainView; label: string }[] = [
+export const TASK_VIEW_TABS: readonly { value: TaskMainView; label: string }[] = [
   { value: "inbox", label: "Входящие" },
   { value: "today", label: "Сегодня" },
   { value: "upcoming", label: "Предстоящие" },
   { value: "completed", label: "Выполненные" },
 ];
 
-/** Полоса «Предстоящие» — только будущие дни (с завтра), сегодня в «Сегодня». */
-const UPCOMING_CALENDAR_DAYS_FORWARD = 180;
-const COMPLETED_CALENDAR_DAYS_HISTORY = UPCOMING_CALENDAR_DAYS_FORWARD;
-
+/** «Предстоящие» — days from tomorrow; «Выполненные» — the same span back from today. */
+const STRIP_DAYS = 180;
 const WEEKDAY_SHORT_RU = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-const MONTH_SHORT_RU = [
-  "янв",
-  "фев",
-  "мар",
-  "апр",
-  "май",
-  "июн",
-  "июл",
-  "авг",
-  "сен",
-  "окт",
-  "ноя",
-  "дек",
-];
+const MONTH_SHORT_RU = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 export type TaskSectionRow = { title: string; data: UserTask[]; sectionId: string };
 export type CalendarStripDay = { key: string; dayNumber: number; weekdayLabel: string };
 
-function parseMainView(params: {
-  tab?: string | null;
-  filter?: string | null;
-  date?: string | null;
-}): TaskMainView {
-  const t = params.tab;
-  if (t === "inbox" || t === "today" || t === "upcoming" || t === "completed") return t;
-  const filter = params.filter;
-  const date = params.date;
-  if (filter === "today" || date === "today") return "today";
-  if (filter === "overdue") return "inbox";
-  if (filter === "all") return "inbox";
+/** Texts of an empty list; «Сегодня» follows the design, the others keep the earlier copy. */
+const EMPTY_COPY: Record<TaskMainView, { title: string; subtitle: string }> = {
+  inbox: { title: "Входящие пусты", subtitle: "Здесь появятся все невыполненные задачи — с датой и без" },
+  today: {
+    title: "На сегодня задач нет",
+    subtitle: "Здесь появятся задачи со сроком на сегодня.\nВсе незавершённые — во «Входящих».",
+  },
+  upcoming: { title: "Нет предстоящих задач", subtitle: "Запланируйте задачу на будущие дни" },
+  completed: { title: "Нет выполненных за этот день", subtitle: "Выберите другую дату в полосе календаря выше" },
+};
+
+function parseMainView(params: { tab?: string | null; filter?: string | null; date?: string | null }): TaskMainView {
+  const tab = params.tab;
+  if (tab === "inbox" || tab === "today" || tab === "upcoming" || tab === "completed") return tab;
+  if (params.filter === "today" || params.date === "today") return "today";
   return "inbox";
 }
 
-function weekdayShortRuForDateKey(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map((x) => parseInt(x, 10));
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return "";
-  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  return WEEKDAY_SHORT_RU[wd];
+function stripDay(key: string): CalendarStripDay {
+  const [year, month, day] = key.split("-").map((part) => parseInt(part, 10));
+  return { key, dayNumber: day, weekdayLabel: WEEKDAY_SHORT_RU[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] };
+}
+
+function monthLabel(key: string): string {
+  const [year, month] = key.split("-").map((part) => parseInt(part, 10));
+  return `${MONTH_SHORT_RU[month - 1]}. ${year}`;
+}
+
+function parseTaskId(raw: string | null): number | null {
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 export function useClientTasksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const paramTab = searchParams.get("tab");
   const paramFilter = searchParams.get("filter");
   const paramDate = searchParams.get("date");
   const paramView = searchParams.get("view");
 
-  const [mainView, setMainView] = useState<TaskMainView>(() =>
-    parseMainView({ tab: paramTab, filter: paramFilter, date: paramDate }),
-  );
-  const [viewMode, setViewMode] = useState<"list" | "calendar">(() =>
-    paramView === "calendar" ? "calendar" : "list",
-  );
-  const [upcomingDate, setUpcomingDate] = useState<string | null>(null);
-  const [upcomingVisibleDateKey, setUpcomingVisibleDateKey] = useState<string | null>(null);
-  const [completedDateKey, setCompletedDateKey] = useState<string>(() => todayTaskDateKey());
-  const [completedVisibleDateKey, setCompletedVisibleDateKey] = useState<string | null>(null);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
-  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
+  const mainView = parseMainView({ tab: paramTab, filter: paramFilter, date: paramDate });
+  const layoutMode: TaskLayoutMode = paramView === "calendar" ? "calendar" : "list";
+  /** Desktop: the task open in the side card (?task=ID), so it survives a reload and can be shared. */
+  const selectedTaskId = parseTaskId(searchParams.get("task"));
 
   const todayKey = useCurrentTaskDay();
-  const [sortByView, setSortByView] = useState<Record<"inbox" | "today", TaskSortValue>>({ inbox: "default", today: "default" });
-  const taskSort = mainView === "inbox" || mainView === "today" ? sortByView[mainView] : "default";
-  const setTaskSort = useCallback((value: TaskSortValue) => {
-    if (mainView === "inbox" || mainView === "today") setSortByView((previous) => ({ ...previous, [mainView]: value }));
-  }, [mainView]);
   const tomorrowKey = useMemo(() => addCalendarDaysToDateKey(todayKey, 1), [todayKey]);
+  const { counts, reload: reloadCounts } = useTaskCounts(todayKey);
+  const { sorts, setSort } = useTaskSortPreference();
+  const sortableView = mainView === "inbox" || mainView === "today" ? mainView : null;
+  const taskSort: TaskSort | null = sortableView ? sorts[sortableView] : null;
+
+  const [upcomingDate, setUpcomingDate] = useState<string | null>(null);
+  const [upcomingVisibleDateKey, setUpcomingVisibleDateKey] = useState<string | null>(null);
+  const [completedDateKey, setCompletedDateKey] = useState<string>(todayTaskDateKey);
+  const [completedVisibleDateKey, setCompletedVisibleDateKey] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState<MonthRef>(() => monthOfKey(todayTaskDateKey()));
+  const [calendarDay, setCalendarDay] = useState<string>(todayTaskDateKey);
+  const [composer, setComposer] = useState<{ open: boolean; dateKey: string | null }>({ open: false, dateKey: null });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [teamsOpen, setTeamsOpen] = useState(false);
 
   useEffect(() => {
-    setMainView(parseMainView({ tab: paramTab, filter: paramFilter, date: paramDate }));
-  }, [paramTab, paramFilter, paramDate]);
-
-  useEffect(() => {
-    if (paramView === "calendar") setViewMode("calendar");
-    else setViewMode("list");
-  }, [paramView]);
+    if (!upcomingDate) setUpcomingDate(tomorrowKey);
+  }, [upcomingDate, tomorrowKey]);
 
   const todoListQuery = useMemo((): UseTodoListQuery => {
-    if (viewMode === "calendar") {
-      return { view: "inbox", enabled: false };
-    }
+    if (layoutMode === "calendar") return { view: "inbox", enabled: false };
     switch (mainView) {
-      case "inbox":
-        return { view: "inbox", light: true, ...taskSortQuery(taskSort) };
       case "today":
-        return { view: "list_today", today: todayKey, light: true, ...taskSortQuery(taskSort) };
+        return { view: "list_today", today: todayKey, light: true, ...taskSortQuery(sorts.today) };
       case "upcoming": {
         const day = upcomingDate ?? tomorrowKey;
-        return {
-          view: "list_upcoming",
-          today: todayKey,
-          fromDate: day,
-          toDate: day,
-          light: true,
-        };
+        return { view: "list_upcoming", today: todayKey, fromDate: day, toDate: day, light: true };
       }
       case "completed":
         return { view: "list_completed", completedOn: completedDateKey, light: true };
       default:
-        return { view: "inbox", light: true, ...taskSortQuery(taskSort) };
+        return { view: "inbox", light: true, ...taskSortQuery(sorts.inbox) };
     }
-  }, [mainView, todayKey, upcomingDate, tomorrowKey, completedDateKey, viewMode, taskSort]);
+  }, [layoutMode, mainView, todayKey, upcomingDate, tomorrowKey, completedDateKey, sorts]);
 
   const todo = useTodoList(todoListQuery);
-  const { tasks, toggleComplete, loading: loadingTasks, error: tasksError, refresh: retryTasks, loadingMore, hasMore, loadMore, addTask } =
-    todo;
+  const { refresh: refreshList } = todo;
+  /** «Повторить» of a failed list also brings back the tab badges. */
+  const retry = useCallback(() => {
+    reloadCounts();
+    void refreshList();
+  }, [reloadCounts, refreshList]);
 
-  useEffect(() => {
-    if (upcomingDate) return;
-    setUpcomingDate(tomorrowKey);
-  }, [upcomingDate, tomorrowKey]);
-
-  useEffect(() => {
-    if (upcomingVisibleDateKey) return;
-    setUpcomingVisibleDateKey(upcomingDate ?? tomorrowKey);
-  }, [upcomingVisibleDateKey, upcomingDate, tomorrowKey]);
-
-  const upcomingStripDays = useMemo((): CalendarStripDay[] => {
-    return Array.from({ length: UPCOMING_CALENDAR_DAYS_FORWARD + 1 }, (_, idx) => {
-        const dayOffset = idx + 1;
-        const key = addCalendarDaysToDateKey(todayKey, dayOffset);
-        const dayPart = key.split("-")[2];
-        const dayNumber = dayPart ? parseInt(dayPart, 10) : 1;
-        return {
-          key,
-          dayNumber: Number.isFinite(dayNumber) ? dayNumber : 1,
-          weekdayLabel: weekdayShortRuForDateKey(key),
-        };
-      },
-    );
-  }, [todayKey]);
-
-  const completedStripDays = useMemo((): CalendarStripDay[] => {
-    const n = COMPLETED_CALENDAR_DAYS_HISTORY;
-    return Array.from({ length: n + 1 }, (_, idx) => {
-      const offset = idx - n;
-      const key = addCalendarDaysToDateKey(todayKey, offset);
-      const dayPart = key.split("-")[2];
-      const dayNumber = dayPart ? parseInt(dayPart, 10) : 1;
-      return {
-        key,
-        dayNumber: Number.isFinite(dayNumber) ? dayNumber : 1,
-        weekdayLabel: weekdayShortRuForDateKey(key),
-      };
-    });
-  }, [todayKey]);
-
-  const upcomingMonthLabel = useMemo(() => {
-    const selected = new Date(`${upcomingVisibleDateKey ?? upcomingDate ?? tomorrowKey}T12:00:00`);
-    return `${MONTH_SHORT_RU[selected.getMonth()]}. ${selected.getFullYear()}`;
-  }, [upcomingVisibleDateKey, upcomingDate, tomorrowKey]);
-
-  const completedMonthLabel = useMemo(() => {
-    const selected = new Date(`${completedVisibleDateKey ?? completedDateKey}T12:00:00`);
-    return `${MONTH_SHORT_RU[selected.getMonth()]}. ${selected.getFullYear()}`;
-  }, [completedVisibleDateKey, completedDateKey]);
+  const upcomingStripDays = useMemo(
+    () => Array.from({ length: STRIP_DAYS + 1 }, (_, index) => stripDay(addCalendarDaysToDateKey(todayKey, index + 1))),
+    [todayKey],
+  );
+  const completedStripDays = useMemo(
+    () => Array.from({ length: STRIP_DAYS + 1 }, (_, index) => stripDay(addCalendarDaysToDateKey(todayKey, index - STRIP_DAYS))),
+    [todayKey],
+  );
+  const upcomingMonthLabel = monthLabel(upcomingVisibleDateKey ?? upcomingDate ?? tomorrowKey);
+  const completedMonthLabel = monthLabel(completedVisibleDateKey ?? completedDateKey);
 
   const sections = useMemo((): TaskSectionRow[] => {
-    if (mainView === "completed") {
-      if (tasks.length === 0) return [];
-      return [{ title: "", data: tasks, sectionId: "completed" }];
+    if (todo.tasks.length === 0) return [];
+    if (mainView === "upcoming") {
+      const day = upcomingDate ?? tomorrowKey;
+      return [{ title: formatDueDay(day, todayKey), data: todo.tasks, sectionId: `day-${day}` }];
     }
-    if (mainView === "inbox") {
-      const active = getInboxTasks(tasks);
-      return active.length ? [{ title: "Входящие", data: active, sectionId: "inbox" }] : [];
-    }
-    if (mainView === "today") {
-      return getTodaySections(tasks, todayKey, taskSort !== "default").map((s) => ({
-        title: s.title,
-        data: s.tasks,
-        sectionId: s.id,
-      }));
-    }
-    const day = upcomingDate ?? tomorrowKey;
-    if (tasks.length === 0) return [];
-    return [
-      {
-        title: formatSectionDateLabel(day, todayKey),
-        data: tasks,
-        sectionId: `day-${day}`,
-      },
-    ];
-  }, [tasks, mainView, todayKey, upcomingDate, tomorrowKey, taskSort]);
+    // The server orders «Входящие» and «Сегодня» by the chosen sort.
+    return [{ title: "", data: todo.tasks, sectionId: mainView }];
+  }, [todo.tasks, mainView, upcomingDate, tomorrowKey, todayKey]);
 
-  const emptyCopy = useMemo(() => {
-    if (mainView === "completed") {
-      return {
-        title: "Нет выполненных за этот день",
-        subtitle: "Выберите другую дату в полосе календаря выше",
-      };
-    }
-    if (mainView === "inbox") {
-      return {
-        title: "Входящие пусты",
-        subtitle: "Здесь появятся все невыполненные задачи — с датой и без",
-      };
-    }
-    if (mainView === "today") {
-      return {
-        title: "На сегодня всё сделано",
-        subtitle: "Нет незавершённых задач со сроком на сегодня",
-      };
-    }
-    return {
-      title: "Нет предстоящих задач",
-      subtitle: "Запланируйте задачу на будущие дни",
-    };
-  }, [mainView]);
+  /** «9 незавершённых» / «Ср, 21 октября · 2 задачи» next to the sort button. */
+  const listCaption = useMemo(() => {
+    if (todo.loading && todo.tasks.length === 0) return null;
+    if (mainView === "inbox") return pluralUnfinished(todo.total);
+    if (mainView === "today") return `${formatDayHeading(todayKey)} · ${pluralTasks(todo.total)}`;
+    return null;
+  }, [mainView, todo.loading, todo.tasks.length, todo.total, todayKey]);
 
-  const setMainViewWithUrl = useCallback(
-    (view: TaskMainView) => {
-      setMainView(view);
+  const replaceParams = useCallback(
+    (change: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParams.toString());
+      change(params);
+      const query = params.toString();
+      router.replace(query ? `/client/tasks?${query}` : "/client/tasks", { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const setMainView = useCallback(
+    (view: TaskMainView) => replaceParams((params) => {
       params.set("tab", view);
-      router.replace(`/client/tasks?${params.toString()}`);
-    },
-    [router, searchParams],
+      params.delete("filter");
+      params.delete("date");
+    }),
+    [replaceParams],
   );
 
-  const applyLayout = useCallback(
-    (mode: "list" | "calendar") => {
-      setViewMode(mode);
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("view", mode);
-      router.replace(`/client/tasks?${params.toString()}`);
-      setDisplayMenuOpen(false);
-    },
-    [router, searchParams],
+  const setLayoutMode = useCallback(
+    (mode: TaskLayoutMode) => replaceParams((params) => {
+      if (mode === "calendar") params.set("view", "calendar");
+      else params.delete("view");
+    }),
+    [replaceParams],
   );
+
+  const selectTask = useCallback(
+    (id: number | null) => replaceParams((params) => {
+      if (id == null) params.delete("task");
+      else params.set("task", String(id));
+    }),
+    [replaceParams],
+  );
+
+  const setTaskSort = useCallback(
+    (sort: TaskSort) => {
+      if (sortableView) setSort(sortableView, sort);
+    },
+    [sortableView, setSort],
+  );
+
+  /** «Новая задача»: the day of the calendar or of «Предстоящие» becomes its «Срок». */
+  const openComposer = useCallback(
+    (dateKey?: string | null) => {
+      const contextDay = layoutMode === "calendar" ? calendarDay : mainView === "upcoming" ? upcomingDate : null;
+      setComposer({ open: true, dateKey: dateKey ?? contextDay ?? null });
+    },
+    [layoutMode, calendarDay, mainView, upcomingDate],
+  );
+  const closeComposer = useCallback(() => setComposer((current) => ({ ...current, open: false })), []);
 
   const openTaskStats = useCallback(() => {
-    setDisplayMenuOpen(false);
+    setMenuOpen(false);
     router.push("/client/statistics");
   }, [router]);
 
+  const openTeams = useCallback(() => {
+    setMenuOpen(false);
+    setTeamsOpen(true);
+  }, []);
+
   return {
-    viewTabs: VIEW_TABS,
+    tabs: TASK_VIEW_TABS,
+    counts,
+    mainView,
+    setMainView,
+    layoutMode,
+    setLayoutMode,
     taskSort,
     setTaskSort,
-    mainView,
-    setMainView: setMainViewWithUrl,
-    viewMode,
-    applyLayout,
     todayKey,
     tomorrowKey,
+    listCaption,
+    sections,
+    emptyCopy: EMPTY_COPY[mainView],
+    todo,
+    retry,
+    selectedTaskId,
+    selectTask,
     upcomingDate,
     setUpcomingDate,
-    upcomingVisibleDateKey,
     setUpcomingVisibleDateKey,
     upcomingStripDays,
     upcomingMonthLabel,
     completedDateKey,
     setCompletedDateKey,
-    completedVisibleDateKey,
     setCompletedVisibleDateKey,
     completedStripDays,
     completedMonthLabel,
-    sections,
-    emptyCopy,
-    loadingTasks,
-    tasksError,
-    retryTasks,
-    loadingMore,
-    hasMore,
-    loadMore,
-    toggleComplete,
-    addTask,
-    addSheetOpen,
-    setAddSheetOpen,
-    displayMenuOpen,
-    setDisplayMenuOpen,
+    calendarMonth,
+    setCalendarMonth,
+    calendarDay,
+    setCalendarDay,
+    composer,
+    openComposer,
+    closeComposer,
+    menuOpen,
+    setMenuOpen,
+    teamsOpen,
+    setTeamsOpen,
     openTaskStats,
+    openTeams,
   };
 }
 

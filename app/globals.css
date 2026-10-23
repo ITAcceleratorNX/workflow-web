@@ -38,6 +38,23 @@
     --desktop-border-subtle: 0 0% 13%; /* #212121 */
     --desktop-text-muted: 240 3% 56%; /* #8E8E93 */
 
+    /* ── Product dark UI (Figma «workflow»: задачи). Экраны всегда тёмные, независимо от темы ОС.
+       Текст и линии — белый с прозрачностью: text-ui-fg/95 · /60 · /50 · /35, border-ui-fg/10. ── */
+    --ui-canvas: 0 0% 0%; /* #000000 — фон мобильного экрана */
+    --ui-surface: 240 3% 11%; /* #1C1C1E — строки, карточки, поля */
+    --ui-surface-raised: 240 2% 18%; /* #2C2C2E — выбранный сегмент, вторичная кнопка */
+    --ui-popover: 240 5% 16%; /* #26262A — выпадающие меню десктопа */
+    --ui-fg: 0 0% 100%;
+    --ui-accent: var(--brand-primary);
+    --ui-accent-soft: 20 63% 14%; /* #3A1A0D — выбранный фильтр, вид */
+    --ui-accent-on-soft: 17 100% 68%; /* #FF8A5C — текст и иконки на accent-soft */
+    --ui-selected: 21 40% 12%; /* #2A1A12 — выбранная строка */
+    --ui-danger: 3 100% 65%; /* #FF5A4F — просрочено, удаление */
+    --ui-danger-soft: 4 57% 15%; /* #3A1210 — фон ошибки */
+    --ui-success: 160 84% 39%; /* #10B981 — «Задача выполнена» */
+    --ui-success-soft: 136 57% 15%; /* #103A1A */
+    --ui-done: 135 59% 49%; /* #34C759 — отметка выполненной задачи */
+
     /* ── shadcn/ui (mobile light semantics) ── */
     --background: var(--surface);
     --foreground: 204 24% 9%; /* #11181C */

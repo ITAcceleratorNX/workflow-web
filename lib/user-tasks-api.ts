@@ -43,6 +43,10 @@ export interface TaskPermissions {
   /** Уже учитывает, что выполненную задачу сначала возвращают в работу. */
   can_transfer: boolean;
   can_view_history: boolean;
+  /** Название, описание, срок, приоритет, напоминания, вложения. Нет у старого backend. */
+  can_edit?: boolean;
+  /** Удаление — только автор. Нет у старого backend. */
+  can_delete?: boolean;
   read_only: boolean;
 }
 
@@ -71,7 +75,10 @@ export interface GroupTaskFields {
 export interface UserTask extends GroupTaskFields {
   id: number;
   creator_id: number;
+  creator?: TaskExecutorRef | null;
   title: string;
+  /** «Описание»; у старого backend поля нет. */
+  description?: string | null;
   completed: boolean;
   completed_at: string | null;
   scheduled_at: string | null;
@@ -100,17 +107,14 @@ export interface UserTask extends GroupTaskFields {
   inbox: boolean;
 }
 
-export interface CalendarTask extends GroupTaskFields {
-  id: number;
-  title: string;
-  scheduled_at: string;
-  completed: boolean;
-  creator_id?: number;
-  assignee_ids?: number[];
-  team_id?: number | null;
-  executor_id?: number | null;
-  team?: TaskTeamRef | null;
-  executor?: TaskExecutorRef | null;
+/** A task of GET /user-tasks/calendar: the full task; the date of a legacy deadline fills scheduled_at. */
+export type CalendarTask = UserTask & { scheduled_at: string };
+
+/** Счётчики вкладок: GET /user-tasks/counts. */
+export interface TaskCounts {
+  inbox: number;
+  today: number;
+  upcoming: number;
 }
 
 export interface TodayStats {
@@ -147,7 +151,16 @@ function normalizeUserTaskRow(t: UserTask): UserTask {
   return { ...t, ...rec, inbox: Boolean(t.inbox), completed_by_user: completedByUser };
 }
 
+/** The request never reached the server (no connection, the server is down or unreachable). */
+export function isNetworkError(error: unknown): boolean {
+  const failure = error as { response?: unknown; request?: unknown; code?: string } | null;
+  return Boolean(failure) && failure?.response == null && (failure?.request != null || failure?.code === "ERR_NETWORK");
+}
+
+export const NETWORK_ERROR_MESSAGE = "Нет соединения с интернетом";
+
 function extractError(error: unknown): string {
+  if (isNetworkError(error)) return NETWORK_ERROR_MESSAGE;
   const data = (error as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
   return data?.message || data?.error || "Ошибка запроса";
 }
@@ -208,6 +221,17 @@ export async function getUserTasksCalendar(
     const res = await api.get<{ tasks: CalendarTask[] }>("/user-tasks/calendar", {
       params: { start_date: startDate, end_date: endDate },
     });
+    return { ok: true, data: { tasks: res.data.tasks.map((task) => normalizeUserTaskRow(task) as CalendarTask) } };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+export async function getTaskCounts(
+  today: string,
+): Promise<{ ok: true; data: TaskCounts } | { ok: false; error: string }> {
+  try {
+    const res = await api.get<TaskCounts>("/user-tasks/counts", { params: { today } });
     return { ok: true, data: res.data };
   } catch (error) {
     return { ok: false, error: extractError(error) };
@@ -238,6 +262,7 @@ export async function getUserTask(
 
 export async function createUserTask(body: {
   title: string;
+  description?: string | null;
   priority?: TaskPriority;
   scheduled_at?: string | null;
   deadline_from?: string | null;
@@ -268,6 +293,7 @@ export async function updateUserTask(
   id: number,
   body: Partial<{
     title: string;
+    description: string | null;
     priority: TaskPriority;
     completed: boolean;
     scheduled_at: string | null;
@@ -311,14 +337,15 @@ export async function transferUserTask(
   }
 }
 
+/** network: the request did not reach the server, so the task is untouched and a retry is safe. */
 export async function deleteUserTask(
   id: number,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; network: boolean }> {
   try {
     await api.delete(`/user-tasks/${id}`);
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: extractError(error) };
+    return { ok: false, error: extractError(error), network: isNetworkError(error) };
   }
 }
 
@@ -379,9 +406,16 @@ export async function deleteUserTaskAttachment(
 }
 
 export function canEditUserTaskDetails(task: UserTask, userId: number | null | undefined): boolean {
+  if (typeof task?.task_permissions?.can_edit === "boolean") return task.task_permissions.can_edit;
   if (!task || userId == null) return false;
   if (task.creator_id === userId) return true;
   if (task.team_id == null) return false;
   const leaderId = task.team?.leader_id;
   return leaderId != null && leaderId === userId;
+}
+
+/** Only the author deletes a task; older servers do not send `can_delete`. */
+export function canDeleteUserTask(task: UserTask, userId: number | null | undefined): boolean {
+  if (typeof task?.task_permissions?.can_delete === "boolean") return task.task_permissions.can_delete;
+  return userId != null && task?.creator_id === userId;
 }

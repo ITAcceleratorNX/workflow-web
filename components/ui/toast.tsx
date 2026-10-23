@@ -32,6 +32,11 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        // Product dark UI (Figma «Тост»): solid green on a phone, tinted on a desktop; errors tinted red.
+        success:
+          "gap-3 space-x-0 rounded-[18px] border-transparent bg-ui-success px-3.5 py-3 text-ui-fg md:rounded-[14px] md:border-ui-success/60 md:bg-ui-success-soft",
+        error:
+          "gap-3 space-x-0 rounded-2xl border-ui-danger/60 bg-ui-danger-soft px-3.5 py-3 text-ui-fg md:rounded-[14px]",
       },
     },
     defaultVariants: {
@@ -57,12 +62,17 @@ Toast.displayName = ToastPrimitives.Root.displayName
 
 const ToastAction = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Action>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action> & {
+    /** `product` — the «Повторить» button of the dark product UI toasts. */
+    tone?: "default" | "product"
+  }
+>(({ className, tone = "default", ...props }, ref) => (
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+      tone === "product"
+        ? "inline-flex h-[31px] shrink-0 items-center justify-center rounded-[10px] bg-ui-fg/[0.12] px-3 text-sm font-semibold text-ui-fg transition-colors hover:bg-ui-fg/20 focus:outline-none focus:ring-2 focus:ring-ui-fg/70"
+        : "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
       className
     )}
     {...props}

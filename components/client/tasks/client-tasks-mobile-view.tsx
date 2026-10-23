@@ -1,455 +1,157 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  BarChart3,
-  Calendar,
-  CheckCircle2,
-  Inbox,
-  LayoutList,
-  Loader2,
-  MoreHorizontal,
-  Plus,
-  Users,
-  X,
-  Check,
-} from "lucide-react";
-import { CalendarTab } from "@/components/tasks/calendar-tab";
-import { TaskAddSheet } from "@/components/tasks/task-add-sheet";
-import { TaskSortControl } from "@/components/tasks/task-sort-control";
-import { UserTaskRow } from "@/components/tasks/user-task-row";
+import { CalendarDays, ChevronLeft, List, Plus } from "lucide-react";
+import { ChipTabs } from "@/components/ui/chip-tabs";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { TaskCalendarMobile } from "@/components/tasks/task-calendar";
+import { TaskComposer } from "@/components/tasks/task-composer";
+import { TaskDayStrip } from "@/components/tasks/task-day-strip";
+import { TaskListContent } from "@/components/tasks/task-list-content";
+import { TaskMoreMenu } from "@/components/tasks/task-more-menu";
+import { TaskSortPicker } from "@/components/tasks/task-sort-picker";
 import { TeamsInboxPanel } from "@/components/teams/teams-inbox-panel";
-import { ScreenHeader } from "@/components/ui/screen-header";
-import type { UseClientTasksPageResult } from "@/hooks/use-client-tasks-page";
-import { scrollTaskStripToIndex, taskStripVisibleIndex } from "@/lib/task-calendar-strip";
-import { cn } from "@/lib/utils";
+import type { TaskLayoutMode, UseClientTasksPageResult } from "@/hooks/use-client-tasks-page";
+import type { UserTask } from "@/lib/user-tasks-api";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-export type ClientTasksViewLayout = "mobile" | "desktop";
+const LIST_PANEL_ID = "tasks-list-panel";
 
-type ClientTasksMobileViewProps = UseClientTasksPageResult & {
-  layout?: ClientTasksViewLayout;
-};
+export const TASK_LAYOUT_OPTIONS = [
+  { value: "list" as const, icon: <List className="size-5" aria-hidden />, ariaLabel: "Список" },
+  { value: "calendar" as const, icon: <CalendarDays className="size-5" aria-hidden />, ariaLabel: "Календарь" },
+];
 
-/** Mobile client tasks — parity с workflow-mobile app/client/tasks.tsx. */
-export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTasksMobileViewProps) {
-  const isDesktopLayout = layout === "desktop";
+/** Phone tasks screen (Figma «Задачи — Входящие / Сегодня / режим календаря»). */
+export function ClientTasksMobileView(page: UseClientTasksPageResult) {
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.user?.id ?? null);
-  const [teamsPanelOpen, setTeamsPanelOpen] = useState(false);
-  const upcomingScrollRef = useRef<HTMLDivElement>(null);
-  const completedScrollRef = useRef<HTMLDivElement>(null);
-
-  const {
-    viewTabs,
-    mainView,
-    taskSort,
-    setTaskSort,
-    setMainView,
-    viewMode,
-    applyLayout,
-    todayKey,
-    tomorrowKey,
-    upcomingDate,
-    setUpcomingDate,
-    setUpcomingVisibleDateKey,
-    upcomingStripDays,
-    upcomingMonthLabel,
-    completedDateKey,
-    setCompletedDateKey,
-    setCompletedVisibleDateKey,
-    completedStripDays,
-    completedMonthLabel,
-    sections,
-    emptyCopy,
-    loadingTasks,
-    tasksError,
-    retryTasks,
-    loadingMore,
-    hasMore,
-    loadMore,
-    toggleComplete,
-    addTask,
-    addSheetOpen,
-    setAddSheetOpen,
-    displayMenuOpen,
-    setDisplayMenuOpen,
-    openTaskStats,
-  } = props;
-
-  useEffect(() => {
-    if (mainView !== "upcoming") return;
-    const activeKey = upcomingDate ?? tomorrowKey;
-    const idx = upcomingStripDays.findIndex((d) => d.key === activeKey);
-    if (idx < 0) return;
-    const el = upcomingScrollRef.current;
-    if (!el) return;
-    scrollTaskStripToIndex(el, idx, upcomingStripDays.length);
-    setUpcomingVisibleDateKey(activeKey);
-  }, [mainView, upcomingDate, tomorrowKey, upcomingStripDays, setUpcomingVisibleDateKey]);
-
-  useEffect(() => {
-    if (mainView !== "completed") return;
-    const idx = completedStripDays.findIndex((d) => d.key === completedDateKey);
-    if (idx < 0) return;
-    const el = completedScrollRef.current;
-    if (!el) return;
-    scrollTaskStripToIndex(el, idx, completedStripDays.length);
-    setCompletedVisibleDateKey(completedDateKey);
-  }, [mainView, completedDateKey, completedStripDays, setCompletedVisibleDateKey]);
-
-  const headerRight = (
-    <button
-      type="button"
-      onClick={() => setDisplayMenuOpen(true)}
-      className="w-11 h-11 flex items-center justify-center"
-      aria-label="Вид, календарь и команды"
-    >
-      <MoreHorizontal className="h-[26px] w-[26px] text-[#E25B21]" />
-    </button>
-  );
+  const { todo, mainView, layoutMode } = page;
+  const { toggleComplete, loadMore: loadMoreTasks } = todo;
+  const openTask = useCallback((task: UserTask) => router.push(`/client/tasks/${task.id}`), [router]);
+  const toggle = useCallback((task: UserTask) => void toggleComplete(task), [toggleComplete]);
+  const loadMore = useCallback(() => void loadMoreTasks(), [loadMoreTasks]);
 
   return (
-    <>
-      <div
-        className={cn(
-          "flex flex-col",
-          isDesktopLayout ? "min-h-0" : "min-h-screen bg-background",
-        )}
-      >
-        <ScreenHeader title="Задачи" rightSlot={headerRight} />
-
-        {viewMode === "list" && (
-          <div className="px-4 pt-2.5 pb-1.5">
-            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-              {viewTabs.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setMainView(opt.value)}
-                  className={`shrink-0 rounded-full border px-3 py-2 text-[13px] font-semibold transition-colors ${
-                    opt.value === mainView
-                      ? "border-[#E25B21]/40 bg-[#E25B21]/15 text-[#E25B21]"
-                      : "border-[#3A3A3C] text-[#8E8E93]"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {(mainView === "inbox" || mainView === "today") && (
-              <TaskSortControl value={taskSort} onChange={setTaskSort} variant={isDesktopLayout ? "dialog" : "sheet"} />
-            )}
-
-            {mainView === "upcoming" && (
-              <div className="mt-2.5">
-                <p className="text-base font-bold text-white capitalize mb-2">{upcomingMonthLabel}</p>
-                <div
-                  ref={upcomingScrollRef}
-                  className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    const idx = Math.min(
-                      upcomingStripDays.length - 1,
-                      taskStripVisibleIndex(el.scrollLeft, el.clientWidth),
-                    );
-                    const visibleKey = upcomingStripDays[idx]?.key ?? null;
-                    if (visibleKey) setUpcomingVisibleDateKey(visibleKey);
-                  }}
-                >
-                  {upcomingStripDays.map((d) => {
-                    const isSelected = d.key === upcomingDate;
-                    return (
-                      <button
-                        key={d.key}
-                        type="button"
-                        onClick={() => setUpcomingDate(d.key)}
-                        className="w-[42px] shrink-0 flex flex-col items-center gap-1.5"
-                      >
-                        <span
-                          className={`text-[11px] font-semibold ${
-                            isSelected ? "text-[#E25B21]" : "text-[#8E8E93]"
-                          }`}
-                        >
-                          {d.weekdayLabel}
-                        </span>
-                        <span
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
-                            isSelected ? "bg-[#E25B21] text-white" : "text-white"
-                          }`}
-                        >
-                          {d.dayNumber}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {mainView === "completed" && (
-              <div className="mt-2.5">
-                <p className="text-base font-bold text-white capitalize mb-2">{completedMonthLabel}</p>
-                <div
-                  ref={completedScrollRef}
-                  className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    const idx = Math.min(
-                      completedStripDays.length - 1,
-                      taskStripVisibleIndex(el.scrollLeft, el.clientWidth),
-                    );
-                    const visibleKey = completedStripDays[idx]?.key ?? null;
-                    if (visibleKey) setCompletedVisibleDateKey(visibleKey);
-                  }}
-                >
-                  {completedStripDays.map((d) => {
-                    const isSelected = d.key === completedDateKey;
-                    return (
-                      <button
-                        key={d.key}
-                        type="button"
-                        onClick={() => setCompletedDateKey(d.key)}
-                        className="w-[42px] shrink-0 flex flex-col items-center gap-1.5"
-                      >
-                        <span
-                          className={`text-[11px] font-semibold ${
-                            isSelected ? "text-[#E25B21]" : "text-[#8E8E93]"
-                          }`}
-                        >
-                          {d.weekdayLabel}
-                        </span>
-                        <span
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
-                            isSelected ? "bg-[#E25B21] text-white" : "text-white"
-                          }`}
-                        >
-                          {d.dayNumber}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {viewMode === "calendar" ? (
-          <div className="flex-1 min-h-0 flex flex-col pt-2">
-            <CalendarTab />
-          </div>
-        ) : loadingTasks && sections.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center py-10">
-            <Loader2 className="h-10 w-10 animate-spin text-[#E25B21]" />
-          </div>
-        ) : (
-          <div className="flex-1 relative">
-            <div className="px-4 pt-3 pb-24 overflow-y-auto max-h-[calc(100vh-220px)]">
-              {tasksError && <div role="alert" className="mb-4 rounded-xl border border-destructive/30 p-4 text-foreground">
-                <p>{tasksError}</p>
-                {sections.length > 0 && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
-                <button type="button" disabled={loadingTasks} className="mt-2 min-h-11 font-medium text-primary" onClick={() => void retryTasks()}>Повторить загрузку</button>
-              </div>}
-              {loadingTasks && <p role="status" className="py-2 text-muted-foreground">Обновляем задачи…</p>}
-              {sections.length === 0 ? (!tasksError && (
-                <div className="flex flex-col items-center py-12 px-6 text-center">
-                  {mainView === "completed" ? (
-                    <CheckCircle2 className="h-12 w-12 text-[#8E8E93] mb-4" />
-                  ) : (
-                    <Inbox className="h-12 w-12 text-[#8E8E93] mb-4" />
-                  )}
-                  <p className="text-lg font-semibold text-white">{emptyCopy.title}</p>
-                  <p className="text-sm text-[#8E8E93] mt-1">{emptyCopy.subtitle}</p>
-                </div>
-              )) : (
-                sections.map((section) => (
-                  <div key={section.sectionId}>
-                    {section.title ? (
-                      <p className="text-xs font-bold uppercase tracking-wider text-[#8E8E93] mt-2 mb-1.5">
-                        {section.title}
-                      </p>
-                    ) : null}
-                    {section.data.map((item) => (
-                      <UserTaskRow
-                        key={item.id}
-                        item={item}
-                        todayKey={todayKey}
-                        sectionId={section.sectionId}
-                        onToggle={() => void toggleComplete(item)}
-                        onPressRow={() => router.push(`/client/tasks/${item.id}`)}
-                        currentUserId={currentUserId}
-                      />
-                    ))}
-                  </div>
-                ))
-              )}
-              {loadingMore ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#E25B21]" />
-                </div>
-              ) : null}
-              {hasMore && !loadingMore ? (
-                <button
-                  type="button"
-                  onClick={() => void loadMore()}
-                  className="w-full py-3 text-sm font-medium text-[#E25B21]"
-                >
-                  Загрузить ещё
-                </button>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setAddSheetOpen(true)}
-              aria-label="Добавить задачу"
-              className={cn(
-                "w-14 h-14 rounded-full bg-[#E25B21] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform z-10",
-                isDesktopLayout
-                  ? "absolute right-0 bottom-4"
-                  : "fixed right-4 bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px)+8px)]",
-              )}
-            >
-              <Plus className="h-7 w-7" />
-            </button>
-          </div>
-        )}
+    <div className="flex min-h-[100dvh] flex-col gap-3.5 bg-ui-canvas px-4 pb-28 pt-[max(16px,env(safe-area-inset-top))] text-ui-fg">
+      <div className="flex min-h-11 items-center justify-between">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="-ml-1 inline-flex min-h-11 items-center gap-1.5 text-lg text-ui-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+        >
+          <ChevronLeft className="size-6" aria-hidden />
+          Назад
+        </button>
+        <div className="flex items-center gap-2">
+          <SegmentedControl<TaskLayoutMode>
+            ariaLabel="Вид задач"
+            value={layoutMode}
+            onChange={page.setLayoutMode}
+            options={TASK_LAYOUT_OPTIONS}
+            optionClassName="min-h-[30px] w-[38px] px-0"
+          />
+          <TaskMoreMenu
+            variant="sheet"
+            open={page.menuOpen}
+            onOpenChange={page.setMenuOpen}
+            onOpenStats={page.openTaskStats}
+            onOpenTeams={page.openTeams}
+          />
+        </div>
       </div>
 
-      {displayMenuOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/45"
-            onClick={() => setDisplayMenuOpen(false)}
-            aria-label="Закрыть"
+      {layoutMode === "calendar" ? (
+        <TaskCalendarMobile
+          month={page.calendarMonth}
+          onMonthChange={page.setCalendarMonth}
+          day={page.calendarDay}
+          onDayChange={page.setCalendarDay}
+          todayKey={page.todayKey}
+          onOpenTask={openTask}
+          onAddForDay={page.openComposer}
+        />
+      ) : (
+        <>
+          <h1 className="text-[26px] font-bold leading-[31px]">Задачи</h1>
+          <ChipTabs
+            ariaLabel="Списки задач"
+            value={mainView}
+            onChange={page.setMainView}
+            controls={LIST_PANEL_ID}
+            tabs={page.tabs.map((tab) => ({
+              ...tab,
+              count: tab.value === "completed" ? null : page.counts?.[tab.value] ?? null,
+            }))}
           />
-          <div className="relative bg-[#1C1C1E] rounded-t-2xl px-4 pt-2 pb-8 border-t border-[#3A3A3C]">
-            <div className="flex items-center justify-between border-b border-[#3A3A3C] pb-3.5 mb-1">
-              <button
-                type="button"
-                onClick={() => setDisplayMenuOpen(false)}
-                className="w-10 h-10 rounded-full bg-[#2C2C2E] flex items-center justify-center"
-              >
-                <X className="h-[22px] w-[22px] text-white" />
-              </button>
-              <p className="text-[17px] font-bold text-white flex-1 text-center">Вид и команды</p>
-              <button
-                type="button"
-                onClick={() => setDisplayMenuOpen(false)}
-                className="w-10 h-10 rounded-full bg-[#E25B21] flex items-center justify-center"
-              >
-                <Check className="h-[22px] w-[22px] text-white" />
-              </button>
+          {page.taskSort ? (
+            <div className="flex min-h-[30px] items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-[13px] text-ui-fg/50" aria-live="polite">
+                {page.listCaption}
+              </p>
+              <TaskSortPicker variant="sheet" value={page.taskSort} onChange={page.setTaskSort} />
             </div>
-
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-3 mb-2.5">
-              Раскладка
-            </p>
-            <div className="flex gap-4 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-3.5 justify-around">
-              <button type="button" onClick={() => applyLayout("list")} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className={`w-[52px] h-[52px] rounded-[10px] border flex items-center justify-center ${
-                    viewMode === "list" ? "border-[#E25B21]" : "border-[#3A3A3C]"
-                  }`}
-                >
-                  <LayoutList
-                    className={`h-[26px] w-[26px] ${viewMode === "list" ? "text-[#E25B21]" : "text-[#8E8E93]"}`}
-                  />
-                </div>
-                <span
-                  className={`text-xs font-bold px-2.5 py-1.5 rounded-full ${
-                    viewMode === "list" ? "bg-[#E25B21] text-white" : "text-[#8E8E93]"
-                  }`}
-                >
-                  Список
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => applyLayout("calendar")}
-                className="flex-1 flex flex-col items-center gap-2"
-              >
-                <div
-                  className={`w-[52px] h-[52px] rounded-[10px] border flex items-center justify-center ${
-                    viewMode === "calendar" ? "border-[#E25B21]" : "border-[#3A3A3C]"
-                  }`}
-                >
-                  <Calendar
-                    className={`h-[26px] w-[26px] ${viewMode === "calendar" ? "text-[#E25B21]" : "text-[#8E8E93]"}`}
-                  />
-                </div>
-                <span
-                  className={`text-xs font-bold px-2.5 py-1.5 rounded-full ${
-                    viewMode === "calendar" ? "bg-[#E25B21] text-white" : "text-[#8E8E93]"
-                  }`}
-                >
-                  Календарь
-                </span>
-              </button>
-            </div>
-
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-5 mb-2.5">
-              Статистика
-            </p>
-            <button
-              type="button"
-              onClick={openTaskStats}
-              className="w-full flex items-center gap-3 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] px-3.5 py-3.5 active:opacity-85"
-            >
-              <BarChart3 className="h-6 w-6 text-[#E25B21]" />
-              <span className="flex-1 text-left text-base font-semibold text-white">Статистика</span>
-              <ChevronRightIcon />
-            </button>
-
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-5 mb-2.5">
-              Команды
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setDisplayMenuOpen(false);
-                setTeamsPanelOpen(true);
-              }}
-              className="w-full flex items-center gap-3 rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] px-3.5 py-3.5 active:opacity-85"
-            >
-              <Users className="h-6 w-6 text-[#E25B21]" />
-              <span className="flex-1 text-left text-base font-semibold text-white">Команды</span>
-              <ChevronRightIcon />
-            </button>
-          </div>
-        </div>
+          ) : null}
+          {mainView === "upcoming" && page.upcomingDate ? (
+            <TaskDayStrip
+              ariaLabel="День предстоящих задач"
+              days={page.upcomingStripDays}
+              selected={page.upcomingDate}
+              onSelect={page.setUpcomingDate}
+              onVisibleChange={page.setUpcomingVisibleDateKey}
+              monthLabel={page.upcomingMonthLabel}
+            />
+          ) : null}
+          {mainView === "completed" ? (
+            <TaskDayStrip
+              ariaLabel="День выполненных задач"
+              days={page.completedStripDays}
+              selected={page.completedDateKey}
+              onSelect={page.setCompletedDateKey}
+              onVisibleChange={page.setCompletedVisibleDateKey}
+              monthLabel={page.completedMonthLabel}
+            />
+          ) : null}
+          <TaskListContent
+            id={LIST_PANEL_ID}
+            mainView={mainView}
+            sections={page.sections}
+            loading={todo.loading}
+            error={todo.error}
+            onRetry={page.retry}
+            hasMore={todo.hasMore}
+            loadingMore={todo.loadingMore}
+            onLoadMore={loadMore}
+            emptyCopy={page.emptyCopy}
+            onOpenInbox={() => page.setMainView("inbox")}
+            todayKey={page.todayKey}
+            currentUserId={currentUserId}
+            onToggle={toggle}
+            onOpen={openTask}
+            density="mobile"
+          />
+        </>
       )}
 
-      <TaskAddSheet
-        open={addSheetOpen}
-        onClose={() => setAddSheetOpen(false)}
-        mainView={mainView}
-        todayKey={todayKey}
-        tomorrowKey={tomorrowKey}
-        defaultDateKey={mainView === "upcoming" ? upcomingDate : null}
-        addTask={addTask}
-        variant={isDesktopLayout ? "dialog" : "sheet"}
-      />
+      <button
+        type="button"
+        onClick={() => page.openComposer()}
+        aria-label="Новая задача"
+        className="fixed bottom-[calc(52px+max(env(safe-area-inset-bottom,0px),10px)+8px)] right-4 z-10 flex size-14 items-center justify-center rounded-full bg-ui-accent text-ui-fg shadow-[0_6px_16px_rgba(0,0,0,0.4)] transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+      >
+        <Plus className="size-[30px]" aria-hidden />
+      </button>
 
-      {teamsPanelOpen ? <TeamsInboxPanel onClose={() => setTeamsPanelOpen(false)} /> : null}
-    </>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#8E8E93]">
-      <path
-        d="M9 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <TaskComposer
+        variant="screen"
+        open={page.composer.open}
+        onClose={page.closeComposer}
+        dateKey={page.composer.dateKey}
+        todayKey={page.todayKey}
+        onCreate={todo.addTask}
       />
-    </svg>
+      {page.teamsOpen ? <TeamsInboxPanel onClose={() => page.setTeamsOpen(false)} /> : null}
+    </div>
   );
 }

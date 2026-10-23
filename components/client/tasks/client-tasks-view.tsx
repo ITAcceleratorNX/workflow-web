@@ -7,11 +7,6 @@ import { ClientTasksMobileView } from "./client-tasks-mobile-view";
 
 export function ClientTasksView() {
   const isDesktop = useIsDesktop();
-  const state = useClientTasksPage();
-
-  if (isDesktop) {
-    return <ClientTasksDesktopView {...state} />;
-  }
-
-  return <ClientTasksMobileView {...state} />;
+  const page = useClientTasksPage();
+  return isDesktop ? <ClientTasksDesktopView {...page} /> : <ClientTasksMobileView {...page} />;
 }

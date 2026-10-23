@@ -18,12 +18,21 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Product dark UI (Figma «workflow»): filled accent, raised neutral, destructive, outlined accent.
+        accent: "bg-ui-accent text-ui-fg font-semibold hover:brightness-110 focus-visible:ring-ui-fg/70",
+        raised: "bg-ui-raised text-ui-fg font-semibold hover:bg-ui-fg/[0.14] focus-visible:ring-ui-fg/70",
+        danger: "bg-ui-danger text-ui-fg font-semibold hover:brightness-110 focus-visible:ring-ui-fg/70",
+        "accent-outline": "border border-ui-accent text-ui-accent font-semibold hover:bg-ui-accent/10",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        /** Full-width action of a mobile screen or sheet: 50 px, radius 14, 17 px text. */
+        block: "h-[50px] w-full rounded-[14px] px-4 text-[17px] [&_svg]:size-5",
+        /** Window and toolbar actions: 42 px, radius 12, 15 px text. */
+        md: "h-[42px] rounded-xl px-[22px] text-[15px]",
       },
     },
     defaultVariants: {

@@ -44,7 +44,9 @@ export type RecipientSelection =
   | { type: "department"; company: { id: number; name: string }; department: RecipientDepartment }
   | { type: "users"; company: { id: number; name: string }; users: { id: number; full_name: string }[] }
   /** Пользователь без компании в оргструктуре — прежний поиск и executor_id. */
-  | { type: "legacy_user"; user: { id: number; full_name: string } };
+  | { type: "legacy_user"; user: { id: number; full_name: string } }
+  /** Команда пользователя (team_id); передать задачу команде нельзя — только назначить при создании. */
+  | { type: "team"; team: { id: number; name: string } };
 
 export type TaskAssignmentInput =
   | { type: "company"; company_id: number }
@@ -64,10 +66,10 @@ export function toAssignmentInput(selection: RecipientSelection): TaskAssignment
   }
 }
 
-/** Тело POST /user-tasks/:id/transfer: тот же выбор, что в поле «Исполнитель». */
+/** Тело POST /user-tasks/:id/transfer: тот же выбор, что в поле «Исполнитель», кроме команды. */
 export type TaskTransferInput = { assignment: TaskAssignmentInput } | { executor_id: number };
 
-export function toTransferInput(selection: RecipientSelection): TaskTransferInput {
+export function toTransferInput(selection: Exclude<RecipientSelection, { type: "team" }>): TaskTransferInput {
   if (selection.type === "legacy_user") return { executor_id: selection.user.id };
   return { assignment: toAssignmentInput(selection) as TaskAssignmentInput };
 }
@@ -83,6 +85,8 @@ export function transferRecipientLabel(selection: RecipientSelection): string {
       return selection.users.map((u) => u.full_name).join(", ");
     case "legacy_user":
       return selection.user.full_name;
+    case "team":
+      return `Команда ${selection.team.name}`;
   }
 }
 
@@ -110,6 +114,8 @@ export function recipientSelectionLabel(selection: RecipientSelection | null): s
         : `${selection.users[0].full_name} +${selection.users.length - 1}`;
     case "legacy_user":
       return selection.user.full_name;
+    case "team":
+      return selection.team.name;
   }
 }
 
@@ -151,6 +157,45 @@ export async function getTaskRecipients(): Promise<
         available_companies: raw.available_companies ?? [],
       },
     };
+  } catch (error) {
+    return { ok: false, error: extractError(error) };
+  }
+}
+
+/** «Недавние» поля «Исполнитель»: GET /user-tasks/recipients/recent. */
+export type RecentRecipient =
+  | {
+      type: "user";
+      user: { id: number; full_name: string; position: string | null; department: RecipientDepartment | null };
+      /** null — автор вне оргструктуры: выбор по executor_id. */
+      company: { id: number; name: string } | null;
+    }
+  | { type: "department"; department: RecipientDepartment; company: { id: number; name: string } }
+  | { type: "company"; company: { id: number; name: string } }
+  | { type: "team"; team: { id: number; name: string; members_count: number } };
+
+/** Выбор поля «Исполнитель» из строки «Недавних». */
+export function recentToSelection(recent: RecentRecipient): RecipientSelection {
+  switch (recent.type) {
+    case "user": {
+      const user = { id: recent.user.id, full_name: recent.user.full_name };
+      return recent.company ? { type: "users", company: recent.company, users: [user] } : { type: "legacy_user", user };
+    }
+    case "department":
+      return { type: "department", company: recent.company, department: recent.department };
+    case "company":
+      return { type: "company", company: recent.company };
+    case "team":
+      return { type: "team", team: { id: recent.team.id, name: recent.team.name } };
+  }
+}
+
+export async function getRecentRecipients(): Promise<
+  { ok: true; data: RecentRecipient[] } | { ok: false; error: string }
+> {
+  try {
+    const res = await api.get<{ recipients: RecentRecipient[] }>("/user-tasks/recipients/recent");
+    return { ok: true, data: res.data.recipients ?? [] };
   } catch (error) {
     return { ok: false, error: extractError(error) };
   }
