@@ -80,3 +80,79 @@ export function aggregateManagerStats(raw: ManagerStatsRawItem[]): ManagerStatsA
     requestTypeSummary: { normal, urgent, planned },
   };
 }
+
+/** Фильтры детальной аналитики: офис и период (ГГГГ-ММ-ДД, включительно). */
+export interface ManagerAnalyticsFilters {
+  office: string;
+  fromKey: string;
+  toKey: string;
+}
+
+export interface ManagerSlaCategory {
+  categoryName: string;
+  avgHours: string;
+  totalCompleted: number;
+}
+
+export interface ManagerSlaStats {
+  totalCompleted: number;
+  avgHours: string | null;
+  byDate: Array<{ date: string; avgHours: string; totalCompleted: number; byCategory: ManagerSlaCategory[] }>;
+  byCategory: ManagerSlaCategory[];
+  byOffice: Array<{ officeId: number; avgHours: string; totalCompleted: number }>;
+}
+
+export interface ManagerRatingRow {
+  avgRating: string;
+  totalRatings: number;
+  lowRatings: number;
+}
+
+export interface ManagerRatingStats {
+  summary: {
+    avgRating: string | null;
+    totalRatings: number;
+    lowRatings: number;
+    distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
+  };
+  byOffice: Array<ManagerRatingRow & { officeId: number }>;
+  byCategory: Array<ManagerRatingRow & { categoryName: string }>;
+  byExecutor: Array<ManagerRatingRow & { executorId: number }>;
+  byDate: Array<ManagerRatingRow & { date: string }>;
+}
+
+export interface ManagerDetailedStats {
+  byCategory: Array<{
+    categoryId: number;
+    categoryName: string;
+    officeId: number;
+    officeName: string | null;
+    totalRequests: number;
+    completedRequests: number;
+    newRequests: number;
+    inWorkRequests: number;
+  }>;
+  byExecutor: Array<{
+    executorId: number;
+    executorName: string | null;
+    totalAssigned: number;
+    completedRequests: number;
+    inWorkRequests: number;
+  }>;
+}
+
+export function managerAnalyticsParams(filters: ManagerAnalyticsFilters) {
+  const params: Record<string, string> = { from: filters.fromKey, to: filters.toKey };
+  if (filters.office !== "all") params.office_id = filters.office;
+  return params;
+}
+
+export async function getManagerAnalytics(filters: ManagerAnalyticsFilters) {
+  const params = managerAnalyticsParams(filters);
+  const [sla, ratings, detailed] = await Promise.all([
+    api.get<ManagerSlaStats>("/analytics/stats/manager/sla", { params }),
+    api.get<ManagerRatingStats>("/analytics/stats/manager/ratings", { params }),
+    api.get<ManagerDetailedStats>("/analytics/stats/manager/detailed", { params }),
+  ]);
+  return { sla: sla.data, ratings: ratings.data, detailed: detailed.data };
+}

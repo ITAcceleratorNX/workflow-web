@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateManagerHomeKpi, managerKpiRequestHrefs } from '../lib/manager-home-kpi.ts';
+import { calculateManagerHomeKpi, managerKpiRequestHrefs } from '../lib/manager-period.ts';
 
 const now = new Date('2026-09-30T12:00:00Z');
 const day = {

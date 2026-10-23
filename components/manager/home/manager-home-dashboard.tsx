@@ -98,7 +98,7 @@ import { SmartHomeManagement } from "@/components/yandex-smart-home/SmartHomeMan
 import { YandexSmartHomeAdmin } from "@/components/yandex-smart-home/YandexSmartHomeAdmin";
 import { getPreviewUrl } from "@/lib/imageOptimization";
 import type { ManagerStatsRawItem } from "@/lib/manager-stats-api";
-import { calculateManagerHomeKpi, managerKpiRequestHrefs } from "@/lib/manager-home-kpi";
+import { calculateManagerHomeKpi, managerKpiRequestHrefs } from "@/lib/manager-period";
 import { exportManagerAnalytics } from "@/lib/manager-stats-export";
 import { listLoadError } from "@/lib/request-list-loading";
 
