@@ -1701,8 +1701,12 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     isDesktop ? managementDesktopTab === "categories" : managementSubSection === "categories"
   );
 
+  // Категориями управляют Администратор и Офис-менеджер; Руководителю бэкенд отвечает 403,
+  // поэтому у него вкладка только для просмотра и исполнителей не проверяем.
+  const canEditCategories = user?.role !== "manager";
+
   useEffect(() => {
-    if (!token || !categoryManagementVisible) return;
+    if (!token || !categoryManagementVisible || !canEditCategories) return;
     let cancelled = false;
     const check = async () => {
       setCheckingCategoryExecutors(true);
@@ -1725,7 +1729,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     };
     void check();
     return () => { cancelled = true; };
-  }, [token, categoryManagementVisible, categories, categoryCheckAttempt]);
+  }, [token, categoryManagementVisible, canEditCategories, categories, categoryCheckAttempt]);
 
   const handleDeleteCategory = async () => {
     if (!categoryToDelete || checkingCategoryExecutors || categoryCheckError) return;
@@ -2669,7 +2673,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base">Категории услуг</h3>
-                      <p className="text-sm text-[#8E8E93]">Создание и удаление категорий услуг</p>
+                      <p className="text-sm text-[#8E8E93]">{canEditCategories ? "Создание и удаление категорий услуг" : "Категории услуг по офисам"}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-[#8E8E93] shrink-0" />
                   </button>
@@ -3040,7 +3044,53 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
               )}
 
               {/* Управление категориями услуг */}
-              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && (
+              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && !canEditCategories && (
+              <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
+                <CardHeader>
+                  <CardTitle className={mgmtTitleCl}>Категории услуг</CardTitle>
+                  <CardDescription className={mgmtDescCl}>
+                    Категории по офисам. Создают и удаляют их Администратор и Офис-менеджер.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {categories.length === 0 ? (
+                    <p className={`text-sm italic ${mgmtMutedCl}`}>Нет добавленных категорий.</p>
+                  ) : (
+                    [...offices.map((o) => ({ id: o.id as number | undefined, name: o.name })), { id: undefined, name: "Без офиса" }]
+                      .map((group) => ({
+                        ...group,
+                        items: categories.filter((c) =>
+                          group.id === undefined
+                            ? !offices.some((o) => o.id === c.office_id)
+                            : c.office_id === group.id,
+                        ),
+                      }))
+                      .filter((group) => group.items.length > 0)
+                      .map((group) => (
+                        <div key={group.id ?? "none"} className="space-y-2">
+                          <Label className={mgmtTitleCl || ""}>
+                            {group.name} <span className={mgmtMutedCl}>· {group.items.length}</span>
+                          </Label>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {group.items.map((category) => (
+                              <div key={category.id} className={`p-3 rounded-lg border ${mgmtRowCl}`}>
+                                <div className={`font-semibold ${mgmtTextCl}`}>{formatServiceCategoryName(category.name)}</div>
+                                {(category.subcategories?.length ?? 0) > 0 && (
+                                  <div className={`mt-0.5 text-sm ${mgmtMutedCl}`}>
+                                    Подкатегорий: {category.subcategories!.length}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </CardContent>
+              </Card>
+              )}
+
+              {((isDesktop && managementDesktopTab === "categories") || (!isDesktop && managementSubSection === "categories")) && canEditCategories && (
               <Card className={mgmtBorderCl ? `border ${mgmtBorderCl} ${mgmtCardCl}` : ""}>
                 <CardHeader>
                   <CardTitle className={mgmtTitleCl}>Управление категориями услуг</CardTitle>
