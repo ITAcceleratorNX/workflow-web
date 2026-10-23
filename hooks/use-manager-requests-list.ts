@@ -47,6 +47,10 @@ export function useManagerRequestsList() {
   const queryType = searchParams.get("priority");
   const queryOffice = searchParams.get("office_id");
   const queryPeriod = searchParams.get("period");
+  const queryTab = searchParams.get("tab");
+  useEffect(() => {
+    if (queryTab === "logs" || queryTab === "rejected" || queryTab === "deleted") setActiveTab(queryTab);
+  }, [queryTab]);
   useEffect(() => {
     setFilterStatus(statusFilterOptions.some((option) => option.value === queryStatus) && queryStatus ? queryStatus : "all");
     setFilterType(queryType && ["normal", "urgent", "planned"].includes(queryType) ? queryType : "all");

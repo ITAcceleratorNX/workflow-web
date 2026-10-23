@@ -2,16 +2,16 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Building2,
-  LayoutDashboard,
   Settings,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 export type ManagerCabinetCardKey =
   | "meeting-rooms"
-  | "overview"
-  | "analytics"
   | "management"
+  | "offices"
+  | "users"
   | "registration-requests"
   | "statistics";
 
@@ -23,27 +23,17 @@ export interface ManagerCabinetCard {
   href: string;
 }
 
+/**
+ * Desktop «Мой кабинет». Плиток «Обзор» и «Аналитика» больше нет — они вели на те же
+ * данные, что и «Статистика».
+ */
 export const MANAGER_CABINET_CARDS: ManagerCabinetCard[] = [
   {
     key: "meeting-rooms",
     title: "Переговорные",
     subtitle: "Бронирование и управление переговорными",
     icon: Building2,
-    href: "/manager?tab=meeting-rooms",
-  },
-  {
-    key: "overview",
-    title: "Обзор",
-    subtitle: "Распределение по типам и уведомления",
-    icon: LayoutDashboard,
-    href: "/manager?tab=overview",
-  },
-  {
-    key: "analytics",
-    title: "Аналитика",
-    subtitle: "Отчёты и аналитика по заявкам",
-    icon: BarChart3,
-    href: "/manager?tab=analytics",
+    href: "/manager/booking",
   },
   {
     key: "management",
@@ -57,13 +47,50 @@ export const MANAGER_CABINET_CARDS: ManagerCabinetCard[] = [
     title: "Регистрации",
     subtitle: "Запросы на регистрацию пользователей",
     icon: UserPlus,
-    href: "/manager?tab=registration-requests",
+    href: "/manager/management?tab=registration-requests",
   },
   {
     key: "statistics",
     title: "Статистика",
-    subtitle: "Детальная статистика и экспорт",
+    subtitle: "Заявки, сроки, оценки, загрузка переговорных, экспорт",
     icon: BarChart3,
     href: "/manager/statistics",
   },
 ];
+
+/** Mobile «Управление» (переговорные — во вкладке «Бронь» нижнего меню). */
+export const MANAGER_MOBILE_CABINET_CARDS: ManagerCabinetCard[] = [
+  {
+    key: "offices",
+    title: "Управление офисами",
+    subtitle: "Добавление и управление офисами компании",
+    icon: Building2,
+    href: "/manager/management",
+  },
+  {
+    key: "users",
+    title: "Управление пользователями",
+    subtitle: "Пользователи и запросы на регистрацию",
+    icon: Users,
+    href: "/manager/management?section=users",
+  },
+  {
+    key: "statistics",
+    title: "Статистика",
+    subtitle: "Заявки, сроки выполнения и оценки",
+    icon: BarChart3,
+    href: "/manager/statistics",
+  },
+];
+
+/** Старые ссылки «/manager?tab=…» — куда эти разделы переехали. */
+export const MANAGER_LEGACY_TAB_ROUTES: Record<string, string> = {
+  overview: "/manager/statistics",
+  analytics: "/manager/statistics",
+  workload: "/manager/statistics",
+  requests: "/manager/requests",
+  logs: "/manager/requests?tab=logs",
+  "meeting-rooms": "/manager/booking",
+  "registration-requests": "/manager/management?tab=registration-requests",
+  management: "/manager/management",
+};

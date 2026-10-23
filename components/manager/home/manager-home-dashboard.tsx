@@ -538,6 +538,19 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       ? ["requests", "overview"]
       : ["requests", "overview", "analytics", "workload", "logs"]
     : ["meeting-rooms", "overview", "analytics", "registration-requests"], [isDesktop, isDepartmentHead]);
+  // «Управление» открывается сразу на нужном разделе: ?tab= (десктоп) или ?section= (мобилка).
+  useEffect(() => {
+    if (!standaloneManagement) return;
+    const desktopTab = searchParams.get("tab");
+    if (desktopTab && ["offices", "categories", "subcategories", "users", "registration-requests", "smart-home"].includes(desktopTab)) {
+      setManagementDesktopTab(desktopTab as typeof managementDesktopTab);
+    }
+    const section = searchParams.get("section");
+    if (section === "offices" || section === "categories" || section === "users") {
+      setManagementSubSection(section);
+    }
+  }, [searchParams, standaloneManagement]);
+
   useEffect(() => {
     if (standaloneManagement) return;
     const tabFromUrl = searchParams.get("tab");
@@ -2688,6 +2701,15 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                   <ChevronLeft className="h-5 w-5 mr-2" />
                   Назад к разделам
                 </Button>
+              )}
+              {!isDesktop && managementSubSection === "users" && (
+                <Link
+                  href={`${basePath}?tab=registration-requests`}
+                  className="flex items-center justify-between rounded-xl border border-[#3A3A3C] bg-[#2C2C2E] p-4 text-white hover:bg-[#353538]"
+                >
+                  <span className="font-medium">Запросы на регистрацию</span>
+                  <ChevronLeft className="h-5 w-5 rotate-180 text-[#F35713]" />
+                </Link>
               )}
 
               {/* Десктоп: табы переключения подразделов управления (таб подкатегорий только у админа) */}

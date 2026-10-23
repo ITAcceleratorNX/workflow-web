@@ -1,40 +1,23 @@
 "use client";
 
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Loader2,
-  Users,
-} from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { AlertTriangle, CheckCircle, ChevronLeft, Clock, Loader2, Star, Timer, Users } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
-import { ScreenHeader } from "@/components/ui/screen-header";
-import { StatRow } from "@/components/ui/stat-row";
 import { cn } from "@/lib/utils";
 import type { UseManagerStatisticsMobilePageResult } from "@/hooks/use-manager-statistics-mobile-page";
-import { QuickStatCard } from "@/components/statistics/quick-stat-card";
 
 type ManagerStatisticsMobileViewProps = UseManagerStatisticsMobilePageResult;
 
-function TabButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
+function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex-1 py-2.5 px-4 rounded-[10px] text-[15px] font-medium border transition-colors",
-        active
-          ? "bg-primary border-primary text-primary-foreground"
-          : "bg-card border-border text-muted-foreground",
+        "h-[46px] flex-1 rounded-[14px] border px-4 text-[16px] font-semibold transition-colors",
+        active ? "border-[#E8622E] bg-[#E8622E] text-white" : "border-white/10 bg-[#121212] text-white/70",
       )}
     >
       {label}
@@ -42,7 +25,58 @@ function TabButton({
   );
 }
 
-/** Mobile manager statistics — parity с workflow-mobile app/manager/statistics.tsx. */
+function StatusTile({ icon, value, label, className }: { icon: ReactNode; value: number; label: string; className: string }) {
+  return (
+    <div className={cn("flex min-h-[118px] flex-col rounded-[20px] p-4", className)}>
+      {icon}
+      <span className="mt-2 text-[30px] font-bold leading-tight text-white tabular-nums">{value}</span>
+      <span className="text-[15px] text-white/60">{label}</span>
+    </div>
+  );
+}
+
+function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <section className="rounded-[20px] bg-[#2A2A2C] p-5">
+      <h2 className="text-[19px] font-semibold text-white">{title}</h2>
+      {subtitle && <p className="mt-2 text-[13px] text-white/50">{subtitle}</p>}
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+function Bar({ value, max }: { value: number; max: number }) {
+  const width = max > 0 ? Math.max(value > 0 ? 3 : 0, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-full rounded-full bg-[#E8622E]" style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
+function EmptyNote({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[14px] bg-white/[0.06] p-4 text-[15px] text-white/80">
+      <span className="shrink-0 text-white/60">{icon}</span>
+      {text}
+    </div>
+  );
+}
+
+const hours = (value: number | string | null | undefined) => {
+  const n = Number(value);
+  return value == null || !Number.isFinite(n) ? "—" : `${n.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} ч`;
+};
+
+const ratingWord = (n: number) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "оценка";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "оценки";
+  return "оценок";
+};
+
+/** Mobile статистика Руководителя: «Заявки» и «Сроки и оценки» (все офисы, всё время). */
 export function ManagerStatisticsMobileView({
   activeTab,
   setActiveTab,
@@ -61,113 +95,98 @@ export function ManagerStatisticsMobileView({
 }: ManagerStatisticsMobileViewProps) {
   const sc = stats?.statusCounts;
   const rts = stats?.requestTypeSummary ?? {};
+  const types = [
+    { label: "Обычные", value: Number(rts.normal) || 0 },
+    { label: "Экстренные", value: Number(rts.urgent) || 0 },
+    { label: "Плановые", value: Number(rts.planned) || 0 },
+  ];
+  const typesMax = Math.max(stats?.totalRequests ?? 0, 1);
+
+  const sla = analytics?.sla;
+  const ratingSummary = analytics?.ratings.summary;
+  const officeName = (id: number) => analytics?.offices.find((o) => o.id === id)?.name ?? `Офис №${id}`;
+  const slaOffices = [...(sla?.byOffice ?? [])].sort((a, b) => Number(b.avgHours) - Number(a.avgHours));
+  const slaMax = Math.max(...slaOffices.map((o) => Number(o.avgHours)), 0);
+  const avgRating = Number(ratingSummary?.avgRating ?? 0);
 
   return (
-    <div className="min-h-screen bg-background ">
-      <ScreenHeader title="Аналитика" />
-
-      <div className="flex gap-2 px-4 mb-3">
-        <TabButton
-          active={activeTab === "stats"}
-          label="Статистика"
-          onClick={() => setActiveTab("stats")}
-        />
-        <TabButton
-          active={activeTab === "analytics"}
-          label="Аналитика"
-          onClick={() => setActiveTab("analytics")}
-        />
+    <div className="min-h-screen bg-background">
+      <div className="px-4 pt-4">
+        <Link href="/manager/cabinet" className="inline-flex items-center gap-1 text-[17px] font-medium text-[#E8622E]">
+          <ChevronLeft className="h-5 w-5" />
+          Назад
+        </Link>
+        <h1 className="mt-3 text-[28px] font-bold text-white">Статистика</h1>
       </div>
 
-      <p className="px-4 mb-4 text-sm text-muted-foreground">Все доступные офисы · За весь доступный период</p>
+      <div className="mt-3 flex gap-2.5 px-4">
+        <TabButton active={activeTab === "stats"} label="Заявки" onClick={() => setActiveTab("stats")} />
+        <TabButton active={activeTab === "analytics"} label="Сроки и оценки" onClick={() => setActiveTab("analytics")} />
+      </div>
+
+      <p className="mb-3 mt-3 px-4 text-[13px] text-white/50">Все офисы · за всё время</p>
 
       {activeTab === "stats" && (
         <PullToRefresh onRefresh={handleRefresh}>
-          {error && <div role="alert" className="mx-4 mb-4 rounded-xl border border-destructive/30 p-4 text-foreground">
-            <p>{error}</p>
-            {stats && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
-            <Button className="mt-3" variant="outline" disabled={loading} onClick={retry}>Повторить</Button>
-          </div>}
+          {error && (
+            <div role="alert" className="mx-4 mb-4 rounded-xl border border-destructive/30 p-4 text-foreground">
+              <p>{error}</p>
+              {stats && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
+              <Button className="mt-3" variant="outline" disabled={loading} onClick={retry}>Повторить</Button>
+            </div>
+          )}
           {loading && !stats ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="h-10 w-10 animate-spin text-[#F35713]" />
               <p className="text-sm text-muted-foreground">Загрузка...</p>
             </div>
           ) : stats ? (
-            <div className="px-4 pb-6">
-              <div className="flex flex-wrap gap-2.5 mb-4">
-                <QuickStatCard
-                  icon={<Clock className="h-[22px] w-[22px] text-amber-500" />}
-                  value={sc?.new ?? 0}
-                  label="Новые"
-                  className="bg-amber-500/20"
-                />
-                <QuickStatCard
-                  icon={<Users className="h-[22px] w-[22px] text-blue-500" />}
-                  value={sc?.inWork ?? 0}
-                  label="В работе"
-                  className="bg-blue-500/20"
-                />
-                <QuickStatCard
-                  icon={<CheckCircle className="h-[22px] w-[22px] text-green-600" />}
-                  value={sc?.completed ?? 0}
-                  label="Завершено"
-                  className="bg-green-600/20"
-                />
-                <QuickStatCard
-                  icon={<AlertTriangle className="h-[22px] w-[22px] text-red-500" />}
-                  value={sc?.overdue ?? 0}
-                  label="Просрочено"
-                  className="bg-red-500/20"
-                />
+            <div className="space-y-3 px-4 pb-6">
+              <div className="grid grid-cols-2 gap-3">
+                <StatusTile icon={<Clock className="h-6 w-6 text-[#F5C518]" />} value={sc?.new ?? 0} label="Новые" className="bg-[#33290B]" />
+                <StatusTile icon={<Users className="h-6 w-6 fill-[#4A90E2] text-[#4A90E2]" />} value={sc?.inWork ?? 0} label="В работе" className="bg-[#0F1C33]" />
+                <StatusTile icon={<CheckCircle className="h-6 w-6 fill-[#22C55E] text-[#0F2A14]" />} value={sc?.completed ?? 0} label="Завершено" className="bg-[#0F2A14]" />
+                <StatusTile icon={<AlertTriangle className="h-6 w-6 fill-[#EF5350] text-[#2E1414]" />} value={sc?.overdue ?? 0} label="Просрочено" className="bg-[#2E1414]" />
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 mb-4">
-                <h2 className="text-[17px] font-semibold text-foreground mb-4">Статистика по заявкам</h2>
-                <StatRow label="Всего заявок" value={stats?.totalRequests ?? 0} />
-                <StatRow
-                  label="Завершено"
-                  value={sc?.completed ?? 0}
-                  valueClassName="text-green-600"
-                />
-                <StatRow label="В работе" value={sc?.inWork ?? 0} valueClassName="text-blue-500" />
-                <StatRow label="Новые" value={sc?.new ?? 0} valueClassName="text-[#F35713]" />
-                <StatRow
-                  label="Просрочено"
-                  value={sc?.overdue ?? 0}
-                  valueClassName="text-red-500"
-                />
-              </div>
+              <Card title="По типам заявок">
+                <div className="flex items-center justify-between py-1.5 text-[15px]">
+                  <span className="text-white/60">Всего заявок</span>
+                  <span className="font-semibold text-white tabular-nums">{stats.totalRequests}</span>
+                </div>
+                {types.map((type) => (
+                  <div key={type.label} className="py-1.5">
+                    <div className="mb-1.5 flex items-center justify-between text-[15px]">
+                      <span className="text-white/60">{type.label}</span>
+                      <span className="font-semibold text-white tabular-nums">{type.value}</span>
+                    </div>
+                    <Bar value={type.value} max={typesMax} />
+                  </div>
+                ))}
+              </Card>
 
-              <div className="rounded-xl border border-border bg-card p-4 mb-4">
-                <h2 className="text-[17px] font-semibold text-foreground mb-4">По типам заявок</h2>
-                <StatRow label="Обычные" value={typeof rts.normal === "number" ? rts.normal : 0} />
-                <StatRow label="Экстренные" value={typeof rts.urgent === "number" ? rts.urgent : 0} />
-                <StatRow label="Плановые" value={typeof rts.planned === "number" ? rts.planned : 0} />
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h2 className="text-[17px] font-semibold text-foreground mb-4">Экспорт данных</h2>
-                {exporting && <p role="status" className="mb-3 text-sm text-muted-foreground">Подготовка файла…</p>}
+              <Card title="Экспорт данных">
+                {exporting && <p role="status" className="mb-3 text-sm text-white/60">Подготовка файла…</p>}
                 {exportError && <p role="alert" className="mb-3 text-sm text-destructive">{exportError}</p>}
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    className="flex-1"
+                <div className="flex gap-3">
+                  <button
+                    type="button"
                     disabled={exporting}
                     onClick={() => handleExport("xlsx")}
+                    className="h-[50px] flex-1 rounded-[14px] bg-[#E8622E] text-[16px] font-semibold text-white disabled:opacity-60"
                   >
                     Excel
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-border text-foreground"
+                  </button>
+                  <button
+                    type="button"
                     disabled={exporting}
                     onClick={() => handleExport("pbix")}
+                    className="h-[50px] flex-1 rounded-[14px] bg-[#121212] text-[16px] font-semibold text-white/80 disabled:opacity-60"
                   >
-                    Шаблон Power BI
-                  </Button>
+                    Power BI
+                  </button>
                 </div>
-              </div>
+              </Card>
             </div>
           ) : null}
         </PullToRefresh>
@@ -175,33 +194,65 @@ export function ManagerStatisticsMobileView({
 
       {activeTab === "analytics" && (
         <PullToRefresh onRefresh={handleRefresh}>
-          <div className="px-4 pb-6 space-y-4">
-            {analyticsError && <div role="alert" className="rounded-xl border border-destructive/30 p-4 text-foreground">
-              <p>{analyticsError}</p>
-              {analytics && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
-              <Button className="mt-3" variant="outline" disabled={analyticsLoading} onClick={retryAnalytics}>Повторить</Button>
-            </div>}
-            {analyticsLoading && <p role="status" className="py-6 text-center text-muted-foreground">Загрузка аналитики…</p>}
-            {analytics && <>
-              <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
-                <h2 className="text-lg font-semibold">Время выполнения по офисам</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Среднее время закрытия завершённых заявок, часы.</p>
-                {analytics.sla.length === 0 && <p className="mt-4 text-muted-foreground">Завершённых заявок с данными о времени пока нет.</p>}
-                {analytics.sla.map((row) => <div key={row.officeId} className="mt-4 border-t border-border pt-3">
-                  <h3 className="font-medium break-words">{analytics.offices.find((office) => office.id === row.officeId)?.name ?? `Офис №${row.officeId}`}</h3>
-                  <p className="mt-1">{Number.isFinite(Number(row.avgHours)) ? Number(row.avgHours).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) : "—"} ч · Завершено: {row.totalCompleted}</p>
-                </div>)}
-              </section>
-              <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
-                <h2 className="text-lg font-semibold">Оценки по офисам</h2>
-                {analytics.ratings.length === 0 && <p className="mt-4 text-muted-foreground">Оценок пока нет.</p>}
-                {analytics.ratings.map((row) => <div key={row.officeId} className="mt-4 border-t border-border pt-3">
-                  <h3 className="font-medium break-words">{analytics.offices.find((office) => office.id === row.officeId)?.name ?? `Офис №${row.officeId}`}</h3>
-                  <p className="mt-1">{Number.isFinite(Number(row.avgRating)) ? Number(row.avgRating).toLocaleString("ru-RU", { maximumFractionDigits: 2 }) : "—"} из 5 · Оценок: {row.totalRatings}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Оценок 1–2: {row.lowRatings}</p>
-                </div>)}
-              </section>
-            </>}
+          <div className="space-y-3 px-4 pb-6">
+            {analyticsError && (
+              <div role="alert" className="rounded-xl border border-destructive/30 p-4 text-foreground">
+                <p>{analyticsError}</p>
+                {analytics && <p className="mt-1 text-sm text-muted-foreground">Показаны данные последней успешной загрузки.</p>}
+                <Button className="mt-3" variant="outline" disabled={analyticsLoading} onClick={retryAnalytics}>Повторить</Button>
+              </div>
+            )}
+            {analyticsLoading && !analytics && <p role="status" className="py-6 text-center text-muted-foreground">Загрузка…</p>}
+            {analytics && (
+              <>
+                <Card title="Сроки выполнения" subtitle="Среднее время закрытия завершённых заявок">
+                  {sla && sla.totalCompleted > 0 ? (
+                    <>
+                      <p className="flex items-baseline gap-2">
+                        <span className="text-[30px] font-bold text-white">{hours(sla.avgHours)}</span>
+                        <span className="text-[15px] text-white/50">в среднем</span>
+                      </p>
+                      <div className="mt-3 space-y-3">
+                        {slaOffices.map((row) => (
+                          <div key={row.officeId}>
+                            <div className="mb-1.5 flex items-center justify-between gap-3 text-[15px]">
+                              <span className="min-w-0 truncate text-white/60">{officeName(row.officeId)}</span>
+                              <span className="shrink-0 font-semibold text-white">{hours(row.avgHours)}</span>
+                            </div>
+                            <Bar value={Number(row.avgHours)} max={slaMax} />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <EmptyNote icon={<Timer className="h-6 w-6" />} text="Завершённых заявок с данными о времени пока нет." />
+                  )}
+                </Card>
+
+                <Card title="Оценки" subtitle="Средняя оценка выполненных заявок">
+                  {ratingSummary && ratingSummary.totalRatings > 0 ? (
+                    <>
+                      <p className="flex items-center gap-3">
+                        <span className="text-[30px] font-bold text-white">
+                          {avgRating.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                        </span>
+                        <span className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <Star key={i} className={cn("h-5 w-5", avgRating >= i - 0.25 ? "fill-[#F5A623] text-[#F5A623]" : "fill-white/10 text-white/10")} />
+                          ))}
+                        </span>
+                      </p>
+                      <p className="mt-3 text-[15px] text-white/50">
+                        {ratingSummary.totalRatings} {ratingWord(ratingSummary.totalRatings)} ·{" "}
+                        {ratingSummary.lowRatings > 0 ? `низких: ${ratingSummary.lowRatings}` : "низких нет"}
+                      </p>
+                    </>
+                  ) : (
+                    <EmptyNote icon={<Star className="h-6 w-6 fill-current" />} text="Оценок пока нет. Клиенты ставят оценку после завершения заявки." />
+                  )}
+                </Card>
+              </>
+            )}
           </div>
         </PullToRefresh>
       )}
