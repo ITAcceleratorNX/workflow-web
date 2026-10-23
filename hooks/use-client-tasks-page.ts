@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   addCalendarDaysToDateKey,
@@ -9,10 +9,14 @@ import {
 import {
   formatSectionDateLabel,
   getTodaySections,
+  getInboxTasks,
   type TaskMainView,
 } from "@/lib/task-views";
 import { useTodoList, type UseTodoListQuery } from "@/hooks/use-todo-list";
 import type { UserTask } from "@/lib/user-tasks-api";
+
+import { useCurrentTaskDay } from "@/hooks/use-current-task-day";
+import { taskSortQuery, type TaskSortValue } from "@/lib/task-list-sort";
 
 const VIEW_TABS: { value: TaskMainView; label: string }[] = [
   { value: "inbox", label: "Входящие" },
@@ -54,7 +58,7 @@ function parseMainView(params: {
   const filter = params.filter;
   const date = params.date;
   if (filter === "today" || date === "today") return "today";
-  if (filter === "overdue") return "today";
+  if (filter === "overdue") return "inbox";
   if (filter === "all") return "inbox";
   return "inbox";
 }
@@ -88,7 +92,12 @@ export function useClientTasksPage() {
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
 
-  const todayKey = todayTaskDateKey();
+  const todayKey = useCurrentTaskDay();
+  const [sortByView, setSortByView] = useState<Record<"inbox" | "today", TaskSortValue>>({ inbox: "default", today: "default" });
+  const taskSort = mainView === "inbox" || mainView === "today" ? sortByView[mainView] : "default";
+  const setTaskSort = useCallback((value: TaskSortValue) => {
+    if (mainView === "inbox" || mainView === "today") setSortByView((previous) => ({ ...previous, [mainView]: value }));
+  }, [mainView]);
   const tomorrowKey = useMemo(() => addCalendarDaysToDateKey(todayKey, 1), [todayKey]);
 
   useEffect(() => {
@@ -106,9 +115,9 @@ export function useClientTasksPage() {
     }
     switch (mainView) {
       case "inbox":
-        return { view: "inbox", light: true };
+        return { view: "inbox", light: true, ...taskSortQuery(taskSort) };
       case "today":
-        return { view: "list_today", today: todayKey, light: true };
+        return { view: "list_today", today: todayKey, light: true, ...taskSortQuery(taskSort) };
       case "upcoming": {
         const day = upcomingDate ?? tomorrowKey;
         return {
@@ -122,9 +131,9 @@ export function useClientTasksPage() {
       case "completed":
         return { view: "list_completed", completedOn: completedDateKey, light: true };
       default:
-        return { view: "inbox", light: true };
+        return { view: "inbox", light: true, ...taskSortQuery(taskSort) };
     }
-  }, [mainView, todayKey, upcomingDate, tomorrowKey, completedDateKey, viewMode]);
+  }, [mainView, todayKey, upcomingDate, tomorrowKey, completedDateKey, viewMode, taskSort]);
 
   const todo = useTodoList(todoListQuery);
   const { tasks, toggleComplete, loading: loadingTasks, error: tasksError, refresh: retryTasks, loadingMore, hasMore, loadMore, addTask } =
@@ -186,11 +195,11 @@ export function useClientTasksPage() {
       return [{ title: "", data: tasks, sectionId: "completed" }];
     }
     if (mainView === "inbox") {
-      if (tasks.length === 0) return [];
-      return [{ title: "Входящие", data: tasks, sectionId: "inbox" }];
+      const active = getInboxTasks(tasks);
+      return active.length ? [{ title: "Входящие", data: active, sectionId: "inbox" }] : [];
     }
     if (mainView === "today") {
-      return getTodaySections(tasks, todayKey).map((s) => ({
+      return getTodaySections(tasks, todayKey, taskSort !== "default").map((s) => ({
         title: s.title,
         data: s.tasks,
         sectionId: s.id,
@@ -205,7 +214,7 @@ export function useClientTasksPage() {
         sectionId: `day-${day}`,
       },
     ];
-  }, [tasks, mainView, todayKey, upcomingDate, tomorrowKey]);
+  }, [tasks, mainView, todayKey, upcomingDate, tomorrowKey, taskSort]);
 
   const emptyCopy = useMemo(() => {
     if (mainView === "completed") {
@@ -223,7 +232,7 @@ export function useClientTasksPage() {
     if (mainView === "today") {
       return {
         title: "На сегодня всё сделано",
-        subtitle: "Нет просроченных и запланированных на сегодня задач",
+        subtitle: "Нет незавершённых задач со сроком на сегодня",
       };
     }
     return {
@@ -260,6 +269,8 @@ export function useClientTasksPage() {
 
   return {
     viewTabs: VIEW_TABS,
+    taskSort,
+    setTaskSort,
     mainView,
     setMainView: setMainViewWithUrl,
     viewMode,

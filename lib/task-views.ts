@@ -15,10 +15,9 @@ function deadlineToDateKey(deadlineTo: UserTask["deadline_to"]): string | null {
   return toAppDateKey(deadlineTo) || null;
 }
 
-function taskScheduledDayKey(t: UserTask): string | null {
-  if (t.scheduled_at) return toAppDateKey(t.scheduled_at);
-  if (t.inbox) return deadlineToDateKey(t.deadline_to);
-  return null;
+/** Current «Срок» field, with a fallback for legacy deadlines regardless of inbox. */
+export function taskDueDayKey(task: UserTask): string | null {
+  return task.scheduled_at ? toAppDateKey(task.scheduled_at) : deadlineToDateKey(task.deadline_to);
 }
 
 function effectiveSortTime(t: UserTask): number {
@@ -46,45 +45,15 @@ function sortByScheduleThenTitle(a: UserTask, b: UserTask): number {
   return a.title.localeCompare(b.title, "ru");
 }
 
-export function getTodaySections(tasks: UserTask[], todayKey: string): TaskSection[] {
-  const overdue: UserTask[] = [];
-  const todayScheduled: UserTask[] = [];
-  const doneToday: UserTask[] = [];
+/** All active tasks, preserving the server order. */
+export function getInboxTasks(tasks: UserTask[]): UserTask[] {
+  return tasks.filter((task) => !task.completed);
+}
 
-  for (const t of tasks) {
-    const dayKey = taskScheduledDayKey(t);
-    if (t.inbox && !dayKey) continue;
-
-    if (t.completed) {
-      const ref = t.completed_at;
-      if (ref && toAppDateKey(ref) === todayKey) {
-        doneToday.push(t);
-      }
-      continue;
-    }
-    if (!dayKey) continue;
-    if (dayKey < todayKey) {
-      overdue.push(t);
-      continue;
-    }
-    if (dayKey === todayKey) {
-      todayScheduled.push(t);
-    }
-  }
-
-  overdue.sort(sortByScheduleThenTitle);
-  todayScheduled.sort(sortByScheduleThenTitle);
-  doneToday.sort((a, b) => {
-    const ca = a.completed_at ?? a.updated_at;
-    const cb = b.completed_at ?? b.updated_at;
-    return cb.localeCompare(ca);
-  });
-
-  const sections: TaskSection[] = [];
-  if (overdue.length > 0) sections.push({ id: "overdue", title: "Просрочено", tasks: overdue });
-  if (todayScheduled.length > 0) sections.push({ id: "today", title: "Сегодня", tasks: todayScheduled });
-  if (doneToday.length > 0) sections.push({ id: "done-today", title: "Выполнено", tasks: doneToday });
-  return sections;
+export function getTodaySections(tasks: UserTask[], todayKey: string, preserveOrder = false): TaskSection[] {
+  const todayTasks = tasks.filter((task) => !task.completed && taskDueDayKey(task) === todayKey);
+  if (!preserveOrder) todayTasks.sort(sortByScheduleThenTitle);
+  return todayTasks.length ? [{ id: "today", title: "Сегодня", tasks: todayTasks }] : [];
 }
 
 export const MONTHS_SHORT = [

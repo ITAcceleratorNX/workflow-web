@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { CalendarTab } from "@/components/tasks/calendar-tab";
 import { TaskAddSheet } from "@/components/tasks/task-add-sheet";
+import { TaskSortControl } from "@/components/tasks/task-sort-control";
 import { UserTaskRow } from "@/components/tasks/user-task-row";
 import { TeamsInboxPanel } from "@/components/teams/teams-inbox-panel";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -43,6 +44,8 @@ export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTas
   const {
     viewTabs,
     mainView,
+    taskSort,
+    setTaskSort,
     setMainView,
     viewMode,
     applyLayout,
@@ -135,6 +138,10 @@ export function ClientTasksMobileView({ layout = "mobile", ...props }: ClientTas
                 </button>
               ))}
             </div>
+
+            {(mainView === "inbox" || mainView === "today") && (
+              <TaskSortControl value={taskSort} onChange={setTaskSort} variant={isDesktopLayout ? "dialog" : "sheet"} />
+            )}
 
             {mainView === "upcoming" && (
               <div className="mt-2.5">
