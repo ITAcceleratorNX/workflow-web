@@ -12,6 +12,7 @@ import { TasksSection } from "@/components/tasks/tasks-section";
 import { DEPARTMENT_HEAD_HOME_CARDS } from "./department-head-home-constants";
 import { RequestGroup } from "@/stores/useRequestStore";
 import { sortRequests } from "@/stores/useRequestStore";
+import { NotificationBellBadge } from "@/components/notification/notification-bell-badge";
 
 interface Stats {
   totalRequests: number;
@@ -112,10 +113,11 @@ export function DepartmentHeadHomeDesktop() {
         </div>
         <Link
           href="/notifications"
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
           aria-label="Уведомления"
         >
           <Bell className="w-6 h-6 text-white" />
+          <NotificationBellBadge />
         </Link>
       </div>
 

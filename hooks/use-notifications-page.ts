@@ -1,106 +1,92 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { useNotificationSummary } from "@/hooks/use-notification-summary";
 import { getRequestNavigationUrl } from "@/lib/requestNavigation";
+import { useNotificationCategoriesStore } from "@/stores/notificationCategoriesStore";
 import {
-  NOTIFICATIONS_PAGE_SIZE,
-  type AppNotification,
-  type NotificationsPageResponse,
-} from "@/components/notification/notification-types";
+  defaultCategory,
+  type CategoryNotification,
+  type NotificationCategory,
+} from "@/lib/notification-categories";
 
+const NOTIFICATIONS_PATH = "/notifications";
+
+/**
+ * Раздел «Уведомления»: категории роли и история выбранной. Категория — в адресе
+ * (/notifications?category=…), поэтому «Назад» и обновление страницы её сохраняют.
+ * Вход в категорию ничего не читает; прочитанным становится только открытое уведомление.
+ */
 export function useNotificationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isDesktop = useIsDesktop();
   const user = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
 
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
+  const { summary, unreadCount, summaryLoading, summaryError, reload } = useNotificationSummary();
+  const histories = useNotificationCategoriesStore((s) => s.histories);
+  const loadHistory = useNotificationCategoriesStore((s) => s.loadHistory);
+  const loadOlderInStore = useNotificationCategoriesStore((s) => s.loadOlder);
+  const markRead = useNotificationCategoriesStore((s) => s.markRead);
+
+  const categories = useMemo(() => summary?.categories ?? [], [summary]);
+  const requested = searchParams.get("category");
+  // Только категории роли: чужую категорию из адреса не открываем.
+  const requestedCategory = categories.find((c) => c.category === requested)?.category ?? null;
+  const activeCategory: NotificationCategory | null = isDesktop
+    ? requestedCategory ?? defaultCategory(categories)
+    : requestedCategory;
+  const activeSummary = categories.find((c) => c.category === activeCategory) ?? null;
+  const history = activeCategory ? histories[activeCategory] : undefined;
+
+  const [selectedNotification, setSelectedNotification] = useState<CategoryNotification | null>(null);
   const [showNotFoundModal, setShowNotFoundModal] = useState(false);
   const [notFoundRequestId, setNotFoundRequestId] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isLoadingRef = useRef(false);
-
-  const loadNotifications = useCallback(async (pageNum: number, reset = false) => {
-    if (isLoadingRef.current && !reset) return;
-
-    isLoadingRef.current = true;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await api.get<NotificationsPageResponse>(
-        `/notifications/me?page=${pageNum}&pageSize=${NOTIFICATIONS_PAGE_SIZE}`,
-      );
-
-      setNotifications((prev) =>
-        reset
-          ? res.data.notifications
-          : [
-              ...prev,
-              ...res.data.notifications.filter(
-                (newNotif) => !prev.some((p) => p.id === newNotif.id),
-              ),
-            ],
-      );
-
-      setHasMore(pageNum < res.data.totalPages);
-      if (reset) setPage(1);
-      else setPage(pageNum);
-    } catch (err) {
-      console.error("Ошибка загрузки уведомлений:", err);
-      setError("Не удалось загрузить уведомления");
-      if (reset) setNotifications([]);
-    } finally {
-      isLoadingRef.current = false;
-      setIsLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    if (user) {
-      loadNotifications(1, true);
-    }
-  }, [user, loadNotifications]);
+    if (activeCategory) void loadHistory(activeCategory);
+  }, [activeCategory, loadHistory]);
 
-  const markAsRead = useCallback(async (notification: AppNotification) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)),
-    );
+  const loadOlder = useCallback(() => {
+    if (activeCategory) void loadOlderInStore(activeCategory);
+  }, [activeCategory, loadOlderInStore]);
 
-    if (!notification.is_read) {
+  const selectCategory = useCallback(
+    (category: NotificationCategory) => {
+      const url = `${NOTIFICATIONS_PATH}?category=${category}`;
+      if (isDesktop) router.replace(url, { scroll: false });
+      else router.push(url);
+    },
+    [isDesktop, router],
+  );
+
+  const backToCategories = useCallback(() => {
+    void reload();
+    router.replace(NOTIFICATIONS_PATH);
+  }, [reload, router]);
+
+  const readNotification = useCallback(
+    async (notification: CategoryNotification) => {
       try {
-        await api.patch(`/notifications/${notification.id}/read`);
-      } catch (markError) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, is_read: false } : n)),
-        );
-        console.error("Ошибка при пометке уведомления как прочитано", markError);
-      }
-    }
-  }, []);
-
-  const handleNotificationPress = useCallback(
-    async (notification: AppNotification) => {
-      if (!isDesktop) {
-        setSelectedNotification(notification);
-      }
-      await markAsRead(notification);
-      if (!isDesktop) {
-        setSelectedNotification((prev) =>
-          prev?.id === notification.id ? { ...prev, is_read: true } : prev,
-        );
+        await markRead(notification);
+      } catch (error) {
+        console.error("Ошибка при пометке уведомления как прочитано", error);
       }
     },
-    [isDesktop, markAsRead],
+    [markRead],
+  );
+
+  /** Mobile: полный текст в модальном окне; Desktop: раскрытие записи в ленте. */
+  const openNotification = useCallback(
+    (notification: CategoryNotification) => {
+      if (!isDesktop) setSelectedNotification(notification);
+      void readNotification(notification);
+    },
+    [isDesktop, readNotification],
   );
 
   const handleRequestClick = useCallback(
@@ -110,69 +96,45 @@ export function useNotificationsPage() {
         isDesktop,
         requestId,
       });
-
       if (url) {
         setSelectedNotification(null);
         router.push(url);
         return;
       }
-
       setNotFoundRequestId(requestId);
       setShowNotFoundModal(true);
     },
     [isDesktop, role, router, user?.role],
   );
 
-  const handleScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el || isLoading || !hasMore) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = el;
-    if (scrollHeight - (scrollTop + clientHeight) < 100) {
-      loadNotifications(page + 1);
-    }
-  }, [hasMore, isLoading, loadNotifications, page]);
-
-  const throttleRef = useRef<NodeJS.Timeout | null>(null);
-  const throttledHandleScroll = useCallback(() => {
-    if (throttleRef.current) return;
-    throttleRef.current = setTimeout(() => {
-      handleScroll();
-      throttleRef.current = null;
-    }, 100);
-  }, [handleScroll]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    el.addEventListener("scroll", throttledHandleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", throttledHandleScroll);
-  }, [throttledHandleScroll]);
-
-  const handleClose = () => router.back();
-  const handleRetry = () => loadNotifications(1, true);
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const retry = useCallback(() => {
+    void reload();
+    if (activeCategory) void loadHistory(activeCategory);
+  }, [activeCategory, loadHistory, reload]);
 
   return {
     user,
     isDesktop,
-    notifications,
-    isLoading,
-    error,
-    hasMore,
+    categories,
     unreadCount,
-    containerRef,
+    summaryLoading,
+    summaryError,
+    activeCategory,
+    activeSummary,
+    history,
+    loadOlder,
+    selectCategory,
+    backToCategories,
+    openNotification,
+    readNotification,
     selectedNotification,
     setSelectedNotification,
     showNotFoundModal,
     setShowNotFoundModal,
     notFoundRequestId,
-    handleNotificationPress,
     handleRequestClick,
-    handleClose,
-    handleRetry,
+    handleClose: () => router.back(),
+    retry,
   };
 }
 

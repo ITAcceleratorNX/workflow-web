@@ -1,20 +1,20 @@
 import {Bell, LogOut, User} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useState} from "react";
 import {useRouter} from "next/navigation";
-import api from "@/lib/api";
 import Image from "next/image";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createClickableRequestIds } from "@/lib/notificationUtils";
-import { formatDateOnly } from "@/lib/dateTimeUtils";
+import { NotificationCategoryList } from "@/components/notification/categories/category-list";
+import { useNotificationSummary } from "@/hooks/use-notification-summary";
+import { formatBadgeCount } from "@/lib/notification-categories";
+import { useAuthStore } from "@/stores/useAuthStore";
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
+/** «Айдана Касымова» → «Айдана К.» — подпись плашки пользователя в шапке. */
+function formatShortUserName(fullName: string | null | undefined): string {
+    const [first, second] = (fullName ?? "").trim().split(/\s+/);
+    if (!first) return "";
+    return second ? `${first} ${second[0].toUpperCase()}.` : first;
 }
 
 
@@ -25,11 +25,12 @@ interface HeaderProps {
     variant?: "default" | "dark";
     /** Когда задан, кнопка «Профиль» ведёт сюда (для admin/manager desktop) */
     profileHref?: string;
-    /** Путь к разделу заявок для перехода по клику на номер заявки в уведомлении (например /manager/requests) */
+    /**
+     * Раньше — переход по номеру заявки из ленты в поповере. Поповер показывает категории,
+     * переходы к заявкам выполняются в разделе «Уведомления».
+     */
     requestsPathForNotification?: string;
 }
-
-const PAGE_SIZE = 10;
 
 const Header: React.FC<HeaderProps> = ({
                                            handleLogout,
@@ -37,100 +38,15 @@ const Header: React.FC<HeaderProps> = ({
                                            role = "Клиент",
                                            variant = "default",
                                            profileHref,
-                                           requestsPathForNotification,
                                        }) => {
     const router = useRouter();
-    const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+    const user = useAuthStore((s) => s.user);
+    // Общий счётчик — сумма непрочитанных в категориях роли (GET /notifications/me/summary).
+    const { summary, unreadCount: unreadNotificationCount, summaryLoading, reload } = useNotificationSummary();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
-    const [notificationsList, setNotificationsList] = useState<NotificationItem[]>([]);
-    const [notificationsLoading, setNotificationsLoading] = useState(false);
-    const [notificationsPage, setNotificationsPage] = useState(1);
-    const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-
-    const loadNotificationCount = async () => {
-        try {
-            const res = await api.get('/notifications/me?page=1&pageSize=100');
-            const unread = res.data.notifications.filter((n: any) => !n.is_read).length;
-            setUnreadNotificationCount(unread);
-        } catch (err) {
-            console.error("Ошибка загрузки уведомлений:", err);
-        }
-    };
-
-    useEffect(() => {
-        loadNotificationCount();
-    }, []);
-
-    const loadNotificationsList = useCallback(async (page: number, append: boolean) => {
-        if (append) setLoadingMore(true);
-        else setNotificationsLoading(true);
-        try {
-            const res = await api.get(`/notifications/me?page=${page}&pageSize=${PAGE_SIZE}`);
-            const list = res.data.notifications || [];
-            const totalPages = res.data.totalPages ?? 1;
-            setHasMoreNotifications(page < totalPages);
-            setNotificationsList((prev) => (append ? [...prev, ...list.filter((n: NotificationItem) => !prev.some((p) => p.id === n.id))] : list));
-        } catch (err) {
-            console.error("Ошибка загрузки уведомлений:", err);
-        } finally {
-            if (append) setLoadingMore(false);
-            else setNotificationsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (notificationsOpen && variant === "dark") {
-            setNotificationsPage(1);
-            setHasMoreNotifications(true);
-            loadNotificationsList(1, false);
-        }
-    }, [notificationsOpen, variant, loadNotificationsList]);
-
-    const handleNotificationScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-        const el = e.currentTarget;
-        if (!hasMoreNotifications || loadingMore || notificationsLoading) return;
-        const { scrollTop, scrollHeight, clientHeight } = el;
-        if (scrollHeight - (scrollTop + clientHeight) < 80) {
-            const nextPage = notificationsPage + 1;
-            setNotificationsPage(nextPage);
-            setLoadingMore(true);
-            loadNotificationsList(nextPage, true);
-        }
-    }, [hasMoreNotifications, loadingMore, notificationsLoading, notificationsPage, loadNotificationsList]);
-
-    const markAsRead = useCallback(async (notification: NotificationItem) => {
-        if (notification.is_read) return;
-        setNotificationsList((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)));
-        setUnreadNotificationCount((c) => Math.max(0, c - 1));
-        try {
-            await api.patch(`/notifications/${notification.id}/read`);
-        } catch (err) {
-            setNotificationsList((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: false } : n)));
-            setUnreadNotificationCount((c) => c + 1);
-        }
-    }, []);
-
-    const handleRequestIdClick = useCallback((requestId: string) => {
-        const groupId = requestId.split("/")[0];
-        setNotificationsOpen(false);
-        if (requestsPathForNotification) {
-            router.push(`${requestsPathForNotification}?requestId=${groupId}`);
-        }
-    }, [requestsPathForNotification, router]);
-
-    const formatTimeAgo = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffInMs = now.getTime() - date.getTime();
-        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-        const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-        if (diffInMinutes < 1) return "только что";
-        if (diffInMinutes < 60) return `${diffInMinutes} мин`;
-        if (diffInHours < 24) return `${diffInHours} ч`;
-        if (diffInDays < 7) return `${diffInDays} дн`;
-        return formatDateOnly(date);
+    const handleNotificationsOpenChange = (open: boolean) => {
+        setNotificationsOpen(open);
+        if (open) void reload();
     };
 
     return (
@@ -169,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({
                         {/* DESKTOP */}
                         <div className="hidden md:flex flex-row space-x-3 items-center">
                             {variant === "dark" ? (
-                                <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                                <Popover open={notificationsOpen} onOpenChange={handleNotificationsOpenChange}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="ghost"
@@ -179,7 +95,7 @@ const Header: React.FC<HeaderProps> = ({
                                             <Bell className="w-5 h-5" />
                                             {unreadNotificationCount > 0 && (
                                                 <span className="absolute -top-1 -right-1 bg-[#E85D2B] text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center font-bold shadow-lg">
-                                                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                                                    {formatBadgeCount(unreadNotificationCount)}
                                                 </span>
                                             )}
                                         </Button>
@@ -198,46 +114,20 @@ const Header: React.FC<HeaderProps> = ({
                                                     : "Нет новых"}
                                             </p>
                                         </div>
-                                        <div
-                                            className="max-h-[320px] overflow-y-auto"
-                                            onScroll={handleNotificationScroll}
-                                        >
-                                            {notificationsLoading ? (
+                                        <div className="max-h-[420px] overflow-y-auto">
+                                            {summaryLoading && !summary ? (
                                                 <div className="py-8 text-center text-gray-400 text-sm">Загрузка...</div>
-                                            ) : notificationsList.length === 0 ? (
-                                                <div className="py-8 text-center text-gray-400 text-sm">Пока нет уведомлений</div>
+                                            ) : !summary ? (
+                                                <div className="py-8 text-center text-gray-400 text-sm">Не удалось загрузить уведомления</div>
                                             ) : (
-                                                <ul className="py-1">
-                                                    {notificationsList.map((n) => (
-                                                        <li
-                                                            key={n.id}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            className={`px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer ${!n.is_read ? "bg-[#E85D2B]/5" : ""}`}
-                                                            onClick={() => markAsRead(n)}
-                                                        >
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <div className="min-w-0 flex-1">
-                                                                    <p className={`text-sm font-medium truncate ${n.is_read ? "text-gray-400" : "text-white"}`}>
-                                                                        {n.title}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                                                                        {createClickableRequestIds(n.content, handleRequestIdClick, "text-[#E85D2B] underline cursor-pointer hover:text-orange-300")}
-                                                                    </p>
-                                                                    <p className="text-[10px] text-gray-500 mt-1">
-                                                                        {formatTimeAgo(n.created_at)}
-                                                                    </p>
-                                                                </div>
-                                                                {!n.is_read && (
-                                                                    <span className="shrink-0 w-2 h-2 rounded-full bg-[#E85D2B] mt-1.5" />
-                                                                )}
-                                                            </div>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            {loadingMore && (
-                                                <div className="py-3 text-center text-gray-500 text-xs">Загрузка...</div>
+                                                <NotificationCategoryList
+                                                    categories={summary.categories}
+                                                    variant="popover"
+                                                    onSelect={(category) => {
+                                                        setNotificationsOpen(false);
+                                                        router.push(`/notifications?category=${category}`);
+                                                    }}
+                                                />
                                             )}
                                         </div>
                                     </PopoverContent>
@@ -252,27 +142,37 @@ const Header: React.FC<HeaderProps> = ({
                                     <Bell className="w-5 h-5 text-[#E25B21]" />
                                     {unreadNotificationCount > 0 && (
                                         <span className="absolute -top-1 -right-1 bg-[#E85D2B] text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center font-bold shadow-lg animate-pulse">
-                                            {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                                            {formatBadgeCount(unreadNotificationCount)}
                                         </span>
                                     )}
                                 </Button>
                             )}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => router.push(profileHref ?? '/profile')}
-                                className={variant === "dark"
-                                    ? "h-11 px-4 rounded-xl border border-white/20 text-white/80 hover:bg-white/10 hover:text-white"
-                                    : "h-11 px-4 rounded-xl bg-gradient-to-br from-white to-[#114A65]/5 hover:from-[#114A65]/10 hover:to-[#114A65]/20 border border-[#114A65]/20 hover:border-[#114A65]/40 transition-all duration-300 shadow-sm hover:shadow-md"
-                                }
-                            >
-                                <User className={variant === "dark" ? "w-5 h-5 mr-2" : "w-5 h-5 text-[#114A65] mr-2"}/>
-                                <span className={`text-sm font-semibold ${variant === "dark" ? "" : "text-[#114A65]"}`}>Профиль</span>
-                            </Button>
-                            <Badge variant="secondary" className={variant === "dark"
-                                ? "bg-[#2A9D8F]/20 text-[#2A9D8F] border-[#2A9D8F]/30 px-3 py-1.5 font-semibold"
-                                : "bg-gradient-to-r from-[#114A65]/10 to-[#114A65]/5 text-[#114A65] border-[#114A65]/30 px-3 py-1.5 font-semibold shadow-sm"
-                            }>{role}</Badge>
+                            {variant === "dark" ? (
+                                <button
+                                    type="button"
+                                    onClick={() => router.push(profileHref ?? '/profile')}
+                                    className="flex h-11 flex-col items-start justify-center gap-px rounded-[10px] border border-white/15 px-3 text-left transition-colors hover:bg-white/5"
+                                    aria-label="Профиль"
+                                >
+                                    <span className="max-w-[160px] truncate text-[13px] font-semibold leading-4 text-white">
+                                        {formatShortUserName(user?.full_name) || "Профиль"}
+                                    </span>
+                                    <span className="text-[11px] font-medium leading-[13px] text-[#4CD08A]">{role}</span>
+                                </button>
+                            ) : (
+                                <>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => router.push(profileHref ?? '/profile')}
+                                    className="h-11 px-4 rounded-xl bg-gradient-to-br from-white to-[#114A65]/5 hover:from-[#114A65]/10 hover:to-[#114A65]/20 border border-[#114A65]/20 hover:border-[#114A65]/40 transition-all duration-300 shadow-sm hover:shadow-md"
+                                >
+                                    <User className="w-5 h-5 text-[#114A65] mr-2"/>
+                                    <span className="text-sm font-semibold text-[#114A65]">Профиль</span>
+                                </Button>
+                                <Badge variant="secondary" className="bg-gradient-to-r from-[#114A65]/10 to-[#114A65]/5 text-[#114A65] border-[#114A65]/30 px-3 py-1.5 font-semibold shadow-sm">{role}</Badge>
+                                </>
+                            )}
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
@@ -296,7 +196,7 @@ const Header: React.FC<HeaderProps> = ({
                                 <Bell className="w-5 h-5 text-[#E25B21]"/>
                                 {unreadNotificationCount > 0 && (
                                     <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center font-bold shadow-lg animate-pulse">
-                                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                                        {formatBadgeCount(unreadNotificationCount)}
                                     </span>
                                 )}
                             </Button>

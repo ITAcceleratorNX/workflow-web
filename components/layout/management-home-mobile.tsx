@@ -6,6 +6,7 @@ import { Bell, ChevronRight } from "lucide-react";
 import { TasksSection } from "@/components/tasks/tasks-section";
 import PullToRefresh from "@/components/pull-to-refresh";
 import { Card, CardContent } from "@/components/ui/card";
+import { NotificationBellBadge } from "@/components/notification/notification-bell-badge";
 
 export interface ManagementHomeCard {
   key: string;
@@ -39,6 +40,7 @@ export function ManagementHomeMobile({ title, subtitle, cards, onRefresh }: Mana
               aria-label="Уведомления"
             >
               <Bell className="w-6 h-6 text-white" />
+              <NotificationBellBadge />
             </Link>
           </div>
           <p className="text-sm text-white/60">{subtitle}</p>
