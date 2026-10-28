@@ -204,7 +204,7 @@ export function useClientTasksPage() {
 
   const openTaskStats = useCallback(() => {
     setMenuOpen(false);
-    router.push("/client/statistics");
+    router.push("/client/tasks/stats");
   }, [router]);
 
   const openTeams = useCallback(() => {
