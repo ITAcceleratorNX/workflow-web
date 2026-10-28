@@ -80,6 +80,17 @@ test('sort: a field and a direction, sent to the API; stored values from another
   }
 });
 
+test('sort: «Входящие», «Сегодня» and «Предстоящие» are sorted by priority, deadline or creation date; «Выполненные» keep their order', () => {
+  assert.equal(sort.sortableTaskView('inbox'), 'inbox');
+  assert.equal(sort.sortableTaskView('today'), 'today');
+  assert.equal(sort.sortableTaskView('upcoming'), 'upcoming');
+  assert.equal(sort.sortableTaskView('completed'), null);
+  assert.deepEqual(plain(sort.taskSortQuery({ field: 'priority', direction: 'asc' })), { sortBy: 'priority', sortDirection: 'asc' });
+  assert.equal(sort.taskSortLabel({ field: 'priority', direction: 'desc' }), 'По приоритету');
+  assert.equal(sort.taskSortLabel({ field: 'created_at', direction: 'desc' }), 'По дате');
+  assert.deepEqual(plain(sort.parseTaskSort({ field: 'priority', direction: 'asc' })), { field: 'priority', direction: 'asc' });
+});
+
 test('month grid: Monday first, padded weeks, ranges and month steps across years', () => {
   const weeks = grid.monthWeeks({ year: 2026, month: 9 });
   assert.equal(weeks.length, 5);
