@@ -6,6 +6,7 @@ import { TasksSection } from "@/components/tasks/tasks-section";
 import { DesktopContentPage } from "@/components/layout/desktop-content-page";
 import { DesktopHubCards } from "@/components/layout/desktop-hub-cards";
 import { adminWorkerHomeCardsFor } from "./admin-worker-home-constants";
+import { NotificationBellBadge } from "@/components/notification/notification-bell-badge";
 
 /** Desktop home — card hub + tasks (parity mobile). */
 export function AdminWorkerHomeDesktop() {
@@ -25,10 +26,11 @@ export function AdminWorkerHomeDesktop() {
       actions={
         <Link
           href="/notifications"
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
           aria-label="Уведомления"
         >
           <Bell className="w-6 h-6 text-white" />
+          <NotificationBellBadge />
         </Link>
       }
     >

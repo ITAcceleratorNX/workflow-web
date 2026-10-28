@@ -8,6 +8,7 @@ import { TasksSection } from "@/components/tasks/tasks-section";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
 import { useClientHomeNews } from "@/hooks/use-client-home-news";
 import type { NewsDisplayItem } from "@/lib/news-api";
+import { NotificationBellBadge } from "@/components/notification/notification-bell-badge";
 
 type ClientHomeMobileProps = UseClientHomeResult;
 
@@ -85,6 +86,7 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
                 aria-label="Уведомления"
               >
                 <Bell className="w-6 h-6 text-foreground" />
+                <NotificationBellBadge />
               </Link>
             </div>
             <Link
