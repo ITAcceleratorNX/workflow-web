@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Clock, Repeat } from "lucide-react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
@@ -74,13 +74,15 @@ export function TaskDueEditor({ open, onOpenChange, value, onApply, todayKey, va
     return (
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>{children}</PopoverTrigger>
+        {/* A field mid-card often has less room above and below than the month needs: keep to it, scroll the month. */}
         <PopoverContent
           align="start"
           sideOffset={8}
-          className="flex w-[360px] flex-col gap-4 rounded-2xl border-ui-fg/[0.12] bg-ui-popover p-4 text-ui-fg shadow-[0_12px_30px_rgba(0,0,0,0.55)]"
+          collisionPadding={12}
+          className="flex max-h-[var(--radix-popover-content-available-height)] w-[360px] flex-col gap-4 rounded-2xl border-ui-fg/[0.12] bg-ui-popover p-4 text-ui-fg shadow-[0_12px_30px_rgba(0,0,0,0.55)]"
         >
-          {panel}
-          <div className="flex justify-end gap-2">
+          <div className="-m-1 min-h-0 overflow-y-auto overscroll-contain p-1">{panel}</div>
+          <div className="flex shrink-0 justify-end gap-2">
             <Button variant="raised" size="md" className="h-9 px-4 text-sm" onClick={() => onOpenChange(false)}>
               Отмена
             </Button>
@@ -112,6 +114,7 @@ type DuePanelProps = {
 
 function DuePanel({ draft, onDraftChange, month, onMonthChange, todayKey, repeatOpen, onRepeatOpenChange }: DuePanelProps) {
   const timeId = useId();
+  const repeatListRef = useRef<HTMLDivElement>(null);
   const quick = quickDueOptions(todayKey);
   const selectedKey = draft.due?.dateKey ?? null;
   const time = draft.due?.time ?? DEFAULT_DUE_TIME;
@@ -125,6 +128,11 @@ function DuePanel({ draft, onDraftChange, month, onMonthChange, todayKey, repeat
       : []),
   ];
   const repeatLabel = repeatOptions.find((item) => item.value === repeatValue)?.label ?? "Не повторять";
+
+  // The list opens under the visible part of a scrolled popover or sheet.
+  useEffect(() => {
+    if (repeatOpen) repeatListRef.current?.scrollIntoView({ block: "nearest" });
+  }, [repeatOpen]);
 
   const chooseDay = (dateKey: string | null) => {
     if (dateKey == null) {
@@ -242,15 +250,17 @@ function DuePanel({ draft, onDraftChange, month, onMonthChange, todayKey, repeat
         />
       </ListGroup>
       {repeatOpen && draft.due ? (
-        <OptionList<string>
-          ariaLabel="Повтор"
-          value={repeatValue}
-          options={repeatOptions}
-          onChange={(type) => {
-            if (type !== "custom") onDraftChange({ ...draft, recurrence: presetToPayload(type as RecurrenceType) });
-            onRepeatOpenChange(false);
-          }}
-        />
+        <div ref={repeatListRef}>
+          <OptionList<string>
+            ariaLabel="Повтор"
+            value={repeatValue}
+            options={repeatOptions}
+            onChange={(type) => {
+              if (type !== "custom") onDraftChange({ ...draft, recurrence: presetToPayload(type as RecurrenceType) });
+              onRepeatOpenChange(false);
+            }}
+          />
+        </div>
       ) : null}
     </div>
   );
