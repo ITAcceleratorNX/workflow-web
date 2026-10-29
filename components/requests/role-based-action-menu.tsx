@@ -20,7 +20,8 @@ import {
 } from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
 import { getSubRequestDisplayId } from "@/lib/subRequestUtils"
-import { getWhatsAppShareUrl } from "@/lib/shareRequest"
+import { prefetchRequestShareLink, useRequestShare } from "@/hooks/use-request-share"
+import { RequestShareDialog } from "./request-share-dialog"
 import {useAuthStore} from "@/stores/useAuthStore";
 
 interface ActionItem {
@@ -93,20 +94,18 @@ export function RoleBasedActionMenu({
   const [mounted, setMounted] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  // Поделиться заявкой в WhatsApp (URL и текст из lib/shareRequest — как в workflow-mobile)
-  const handleShareWhatsApp = () => {
-    const params = {
-      requestId: isSubRequest && requestGroup ? requestGroup.id : request.id,
-      ...(isSubRequest && requestGroup && { subRequestId: request.id }),
-      title: request.title,
-      status: request.status,
-      description: request.description,
-    };
-    const whatsappUrl = getWhatsAppShareUrl(params);
-    window.open(whatsappUrl, "_blank");
+  // «Поделиться ссылкой»: гостевая ссылка на всю заявку (группу), а не на подзаявку
+  const requestShare = useRequestShare()
+  const shareRequestGroupId: number = isSubRequest && requestGroup ? requestGroup.id : request.id
+  const handleShareLink = () => {
+    void requestShare.share(shareRequestGroupId, request.title ?? request.requests?.[0]?.title)
     if (onShareRequest) onShareRequest(request);
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (open) prefetchRequestShareLink(shareRequestGroupId)
+  }, [open, shareRequestGroupId])
 
   // Для Portal
   useEffect(() => {
@@ -145,16 +144,16 @@ export function RoleBasedActionMenu({
       },
       {
         icon: Share2,
-        label: "Поделиться в WhatsApp",
-        onClick: handleShareWhatsApp,
+        label: "Поделиться ссылкой",
+        onClick: handleShareLink,
         variant: "default" as const,
         showForRoles: ["executor", "manager", "department-head", "admin-worker", "client"],
       },
     ] : [
       {
         icon: Share2,
-        label: "Поделиться в WhatsApp",
-        onClick: handleShareWhatsApp,
+        label: "Поделиться ссылкой",
+        onClick: handleShareLink,
         variant: "default" as const,
         showForRoles: ["executor", "manager", "department-head", "admin-worker", "client"],
       },
@@ -764,6 +763,7 @@ export function RoleBasedActionMenu({
           </DropdownMenuContent>
         </DropdownMenu>
         {mobileActionMenu}
+        <RequestShareDialog target={requestShare.target} onClose={requestShare.close} />
       </>
     )
   }
@@ -787,6 +787,7 @@ export function RoleBasedActionMenu({
         <span className="sr-only">Открыть меню действий</span>
       </button>
       {mobileActionMenu}
+      <RequestShareDialog target={requestShare.target} onClose={requestShare.close} />
     </>
   )
 }

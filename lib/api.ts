@@ -481,6 +481,41 @@ export const getPublicBooking = (bookingId: number) => {
     return publicApi.get<MeetingRoomBooking>(`/meeting-room-bookings/${bookingId}/public`);
 };
 
+/** Гостевая ссылка на заявку для «Поделиться ссылкой»: создаётся один раз и переиспользуется. */
+export const createRequestShareLink = (requestGroupId: number) =>
+    api.post<{ request_group_id: number; token: string; url: string }>(`/request-groups/${requestGroupId}/share-link`);
+
+/** Заявка в гостевом просмотре: только согласованные поля, без телефонов и исполнителей. */
+export interface GuestRequestView {
+    id: number;
+    request_type: string;
+    status: string;
+    created_date: string;
+    planned_date: string | null;
+    location_detail: string | null;
+    office: { name: string | null; city: string | null; address: string | null } | null;
+    photos: Array<{ photo_url: string; type: 'before' | 'after'; created_at: string }>;
+    requests: Array<{
+        id: number;
+        sub_request_number: number | null;
+        title: string;
+        description: string | null;
+        status: string;
+        category: { id: number; name: string } | null;
+    }>;
+    comments: Array<{
+        id: number;
+        request_id: number;
+        comment: string;
+        timestamp: string;
+        author: { full_name: string; role: string } | null;
+    }>;
+}
+
+// Без токена авторизации: гостевая ссылка не зависит от того, вошёл ли получатель.
+export const getGuestRequest = (token: string) =>
+    axios.get<GuestRequestView>(`${API_BASE_URL}/public/request-shares/${encodeURIComponent(token)}`);
+
 // Получить доступность комнаты на конкретную дату
 export const getRoomDailyAvailability = (roomId: number, date: string, slotMinutes?: number) => {
     const params = new URLSearchParams({ date });

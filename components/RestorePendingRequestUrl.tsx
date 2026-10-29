@@ -24,7 +24,7 @@ export function RestorePendingRequestUrl() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const path = pathname ?? window.location.pathname;
-    if (path === "/" || path === "/login") return;
+    if (path === "/" || path === "/login" || path.startsWith("/r/")) return;
     if (!role) return;
 
     const hasRequestId = searchParams.get("requestId");
