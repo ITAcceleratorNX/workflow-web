@@ -122,10 +122,10 @@ export function AdminWorkerNewsManagementScreen({
     setActionId(null);
     setDeleteTarget(null);
     if (res.ok) {
-      toast({ title: "Удалено", description: "Новость удалена" });
+      toast({ title: "Удалено", description: "Новость удалена", variant: "success" });
       loadList();
     } else {
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   };
 
@@ -136,10 +136,10 @@ export function AdminWorkerNewsManagementScreen({
     const res = await hideNews(numId);
     setActionId(null);
     if (res.ok) {
-      toast({ title: "Скрыто", description: "Новость скрыта с главной" });
+      toast({ title: "Скрыто", description: "Новость скрыта с главной", variant: "success" });
       loadList();
     } else {
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   };
 
@@ -150,10 +150,10 @@ export function AdminWorkerNewsManagementScreen({
     const res = await archiveNews(numId);
     setActionId(null);
     if (res.ok) {
-      toast({ title: "Архивировано", description: "Новость архивирована" });
+      toast({ title: "Архивировано", description: "Новость архивирована", variant: "success" });
       loadList();
     } else {
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   };
 
@@ -164,10 +164,10 @@ export function AdminWorkerNewsManagementScreen({
     const res = await unhideNews(numId);
     setActionId(null);
     if (res.ok) {
-      toast({ title: "Восстановлено", description: "Новость снова активна" });
+      toast({ title: "Восстановлено", description: "Новость снова активна", variant: "success" });
       loadList();
     } else {
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   };
 

@@ -195,7 +195,7 @@ function useBookedHandler(onClose: () => void, onBooked?: (booking: MeetingRoomB
   const { toast } = useToast();
   return useCallback(
     (booking: MeetingRoomBooking) => {
-      toast({ ...bookedToast(booking), duration: 4000 });
+      toast({ ...bookedToast(booking), duration: 4000, variant: "success" });
       onClose();
       onBooked?.(booking);
     },

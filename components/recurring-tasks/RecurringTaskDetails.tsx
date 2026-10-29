@@ -255,6 +255,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
     toast({
       title: 'Успешно',
       description: 'Исполнители успешно назначены',
+      variant: "success",
     });
   };
 
@@ -346,7 +347,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                         accuracy: parseInt(accMatch[1])
                       });
                     } else {
-                      alert("Не удалось определить координаты из локации");
+                      toast({ title: "Не удалось определить координаты из локации", variant: "error" });
                     }
                   }}
                 >

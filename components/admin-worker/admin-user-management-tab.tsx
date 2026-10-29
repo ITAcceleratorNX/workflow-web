@@ -112,7 +112,7 @@ export function AdminUserManagementTab({
     if (usersRes.ok) setOfficeUsers(usersRes.data);
     else {
       setOfficeUsers([]);
-      toast({ title: "Ошибка", description: usersRes.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: usersRes.error, variant: "error" });
     }
     setLoading(false);
   }, [officeFilterId, authOfficeId, roleFilter, companyFilterId, toast]);

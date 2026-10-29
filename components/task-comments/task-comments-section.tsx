@@ -71,7 +71,7 @@ export function TaskCommentsSection({ taskId, colors, desktop = false, variant =
       setEditing((current) => (current?.id === comment.id ? null : current));
       const outcome = await remove(comment.id);
       if (outcome.ok || outcome.failure.kind === "cancelled") return;
-      toast({ title: "Не удалось удалить комментарий", description: outcome.failure.message, variant: "destructive", duration: 4000 });
+      toast({ title: "Не удалось удалить комментарий", description: outcome.failure.message, variant: "error", duration: 4000 });
     },
     [remove, toast],
   );
@@ -97,6 +97,7 @@ export function TaskCommentsSection({ taskId, colors, desktop = false, variant =
           title: "Поле ввода занято",
           description: "Отправьте или сотрите набранный текст, чтобы исправить неотправленное сообщение.",
           duration: 4000,
+          variant: "info",
         });
         return;
       }

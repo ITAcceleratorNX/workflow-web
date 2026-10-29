@@ -121,11 +121,11 @@ export function StructureCompanyScreen({
     async (promise: Promise<ApiResult<OrgCompanyDetails>>, success: string): Promise<string | null> => {
       const res = await promise;
       if (!res.ok) {
-        toast({ title: res.error, variant: "destructive" });
+        toast({ title: res.error, variant: "error" });
         return res.error;
       }
       refresh(res.data);
-      toast({ title: success });
+      toast({ title: success, variant: "success" });
       return null;
     },
     [refresh, toast],
@@ -141,7 +141,7 @@ export function StructureCompanyScreen({
           if (cancelled) return;
           setEmployeesLoading(false);
           if (res.ok) setEmployees(res.data);
-          else toast({ title: res.error, variant: "destructive" });
+          else toast({ title: res.error, variant: "error" });
         });
       },
       employeeQuery ? 250 : 0,
@@ -529,7 +529,7 @@ export function StructureCompanyScreen({
           const res = await createOrgDepartment(company.id, { name, head_user_id: headId });
           if (!res.ok) return res.error;
           refresh(res.data);
-          toast({ title: "Отдел создан" });
+          toast({ title: "Отдел создан", variant: "success" });
           setCreateDeptOpen(false);
           const created = res.data.departments.find((d) => d.is_active && d.name === name.trim());
           if (created) setSelection(created.id);

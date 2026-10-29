@@ -273,7 +273,7 @@ export function AdminOfficeManagementScreen({
     setIsCreatingRoom(true);
     const result = await createMeetingRoom({ name, office_id: officeId, floor, capacity });
     if (result.ok) {
-      toast({ title: "Переговорная добавлена" });
+      toast({ title: "Переговорная добавлена", variant: "success" });
       setNewRoomName("");
       setNewRoomFloor("");
       setNewRoomCapacity("");
@@ -295,23 +295,23 @@ export function AdminOfficeManagementScreen({
   const saveRoom = async (roomId: number, officeId: number) => {
     const name = editRoomName.trim();
     if (!name) {
-      toast({ title: "Введите название комнаты", variant: "destructive" });
+      toast({ title: "Введите название комнаты", variant: "error" });
       return;
     }
     const floor = parseInt(editRoomFloor, 10);
     const capacity = parseInt(editRoomCapacity, 10);
     if (Number.isNaN(floor) || floor < 0 || Number.isNaN(capacity) || capacity < 1) {
-      toast({ title: "Этаж ≥ 0, вместимость ≥ 1", variant: "destructive" });
+      toast({ title: "Этаж ≥ 0, вместимость ≥ 1", variant: "error" });
       return;
     }
     setSavingRoomId(roomId);
     const result = await updateMeetingRoom(roomId, { name, floor, capacity });
     if (result.ok) {
-      toast({ title: "Данные комнаты сохранены" });
+      toast({ title: "Данные комнаты сохранены", variant: "success" });
       setEditingRoomId(null);
       await loadRooms(officeId);
     } else {
-      toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: result.error, variant: "error" });
     }
     setSavingRoomId(null);
   };
@@ -322,10 +322,10 @@ export function AdminOfficeManagementScreen({
     setDeletingRoomId(room.id);
     const result = await deleteMeetingRoom(room.id);
     if (result.ok) {
-      toast({ title: "Переговорная удалена" });
+      toast({ title: "Переговорная удалена", variant: "success" });
       await loadRooms(officeId);
     } else {
-      toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: result.error, variant: "error" });
     }
     setDeletingRoomId(null);
     setDeleteRoomTarget(null);
@@ -333,17 +333,17 @@ export function AdminOfficeManagementScreen({
 
   const saveOfficeData = async (officeId: number) => {
     if (!editName.trim()) {
-      toast({ title: "Введите название офиса", variant: "destructive" });
+      toast({ title: "Введите название офиса", variant: "error" });
       return;
     }
     const floorParsed = parseFloorField(editFloor);
     if (!floorParsed.ok) {
-      toast({ title: "Этаж — целое число ≥ 0", variant: "destructive" });
+      toast({ title: "Этаж — целое число ≥ 0", variant: "error" });
       return;
     }
     const coordinates = parseOfficeCoordinates(editCoordinates);
     if (!coordinates.ok) {
-      toast({ title: coordinates.error, variant: "destructive" });
+      toast({ title: coordinates.error, variant: "error" });
       return;
     }
     const blockTrim = editBlock.trim();
@@ -375,7 +375,7 @@ export function AdminOfficeManagementScreen({
     }
 
     if (result.ok) {
-      toast({ title: "Данные офиса сохранены" });
+      toast({ title: "Данные офиса сохранены", variant: "success" });
       const d = result.data;
       setOffices((prev) =>
         prev.map((o) =>
@@ -395,7 +395,7 @@ export function AdminOfficeManagementScreen({
         ),
       );
     } else {
-      toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: result.error, variant: "error" });
     }
     setSavingDataId(null);
   };
@@ -442,7 +442,7 @@ export function AdminOfficeManagementScreen({
       });
     }
     if (result.ok) {
-      toast({ title: "Офис создан" });
+      toast({ title: "Офис создан", variant: "success" });
       setNewName("");
       setNewAddress("");
       setNewCity("");
@@ -464,11 +464,11 @@ export function AdminOfficeManagementScreen({
     setDeletingId(office.id);
     const result = await deleteOffice(office.id);
     if (result.ok) {
-      toast({ title: "Офис удалён" });
+      toast({ title: "Офис удалён", variant: "success" });
       if (expandedId === office.id) setExpandedId(null);
       await load();
     } else {
-      toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: result.error, variant: "error" });
     }
     setDeletingId(null);
     setDeleteOfficeTarget(null);
@@ -478,7 +478,7 @@ export function AdminOfficeManagementScreen({
     const start = toHHmmss(startInput);
     const end = toHHmmss(endInput);
     if (!start || !end) {
-      toast({ title: "Введите начало и конец рабочего дня", variant: "destructive" });
+      toast({ title: "Введите начало и конец рабочего дня", variant: "error" });
       return;
     }
     setSavingHoursId(officeId);
@@ -488,7 +488,7 @@ export function AdminOfficeManagementScreen({
       auto_track_enabled: autoTrack,
     });
     if (result.ok) {
-      toast({ title: "Часы сохранены" });
+      toast({ title: "Часы сохранены", variant: "success" });
       setOffices((prev) =>
         prev.map((o) =>
           o.id === officeId
@@ -502,7 +502,7 @@ export function AdminOfficeManagementScreen({
         ),
       );
     } else {
-      toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: result.error, variant: "error" });
     }
     setSavingHoursId(null);
   };

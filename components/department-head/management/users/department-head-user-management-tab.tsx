@@ -136,7 +136,7 @@ export function DepartmentHeadUserManagementTab() {
       setUsers(rows);
     } else {
       setUsers([]);
-      toast({ title: "Ошибка", description: usersRes.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: usersRes.error, variant: "error" });
     }
     setLoading(false);
   }, [officeId, roleFilter, companyFilterId, toast]);
@@ -202,10 +202,10 @@ export function DepartmentHeadUserManagementTab() {
     if (!window.confirm(`Удалить исполнителя «${row.full_name}»?`)) return;
     const res = await deleteExecutor(row.executor.id);
     if (res.ok) {
-      toast({ title: "Исполнитель удалён" });
+      toast({ title: "Исполнитель удалён", variant: "success" });
       void load();
     } else {
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   };
 

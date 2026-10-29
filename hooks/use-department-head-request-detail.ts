@@ -88,6 +88,7 @@ export function useDepartmentHeadRequestDetail() {
     toast({
       title: "Исполнители назначены",
       description: "Исполнители успешно назначены на заявку",
+      variant: "success",
     });
     closeAssignModal();
     fetchRequest();
@@ -107,6 +108,7 @@ export function useDepartmentHeadRequestDetail() {
     toast({
       title: "Исполнители изменены",
       description: "Исполнители успешно изменены для подзаявки",
+      variant: "success",
     });
     closeChangeModal();
     fetchRequest();
@@ -147,6 +149,7 @@ export function useDepartmentHeadRequestDetail() {
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,
+        variant: "success",
       });
       handleCloseRedirectModal();
       fetchRequest();

@@ -266,7 +266,7 @@ export function OfficeLocationCatalogManagementScreen({
     if (res.ok) setRows(res.data);
     else {
       setRows([]);
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
     }
     setLoading(false);
   }, [manageOfficeId, toast]);
@@ -372,14 +372,14 @@ export function OfficeLocationCatalogManagementScreen({
           setSaveError(res.error);
           return;
         }
-        toast({ title: "Шаблон добавлен" });
+        toast({ title: "Шаблон добавлен", variant: "success" });
       } else {
         const res = await updateOfficeLocationCatalogRow(manageOfficeId, editingId, values);
         if (!res.ok) {
           setSaveError(res.error);
           return;
         }
-        toast({ title: "Сохранено" });
+        toast({ title: "Сохранено", variant: "success" });
       }
       closeModal();
       await load();
@@ -394,10 +394,10 @@ export function OfficeLocationCatalogManagementScreen({
     const res = await deleteOfficeLocationCatalogRow(manageOfficeId, deleteId);
     setIsDeleting(false);
     if (!res.ok) {
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
       return;
     }
-    toast({ title: "Удалено" });
+    toast({ title: "Удалено", variant: "success" });
     setDeleteId(null);
     await load();
   };
@@ -408,7 +408,7 @@ export function OfficeLocationCatalogManagementScreen({
       is_active: !item.is_active,
     });
     if (!res.ok) {
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
       return;
     }
     await load();

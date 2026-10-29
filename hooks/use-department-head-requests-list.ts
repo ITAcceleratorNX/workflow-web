@@ -183,9 +183,9 @@ export function useDepartmentHeadRequestsList() {
     async (id: number) => {
       try {
         await deleteRecurringTask(id);
-        toast({ title: "Задача удалена" });
+        toast({ title: "Задача удалена", variant: "success" });
       } catch {
-        toast({ title: "Ошибка", variant: "destructive" });
+        toast({ title: "Ошибка", variant: "error" });
       }
     },
     [toast]
@@ -205,6 +205,7 @@ export function useDepartmentHeadRequestsList() {
     toast({
       title: "Исполнители назначены",
       description: "Исполнители успешно назначены на заявку",
+      variant: "success",
     });
     fetchRequests(1);
     closeAssignExecutorsModal();
@@ -224,6 +225,7 @@ export function useDepartmentHeadRequestsList() {
     toast({
       title: "Исполнители изменены",
       description: "Исполнители успешно изменены для подзаявки",
+      variant: "success",
     });
     fetchRequests(1);
     closeChangeExecutorsModal();
@@ -268,11 +270,11 @@ export function useDepartmentHeadRequestsList() {
       );
       if (hasOtherSubRequestsWithOurCategory) {
         await fetchRequests(1);
-        toast({ title: "Подзаявка перенаправлена" });
+        toast({ title: "Подзаявка перенаправлена", variant: "success" });
       } else {
         setMyRequests((prev) => prev.filter((req) => req.id !== requestGroup.id));
         setIncomingRequests((prev) => prev.filter((req) => req.id !== requestGroup.id));
-        toast({ title: "Заявка перенаправлена" });
+        toast({ title: "Заявка перенаправлена", variant: "success" });
       }
       handleCloseRedirectModal();
       clearAfterUpdate();

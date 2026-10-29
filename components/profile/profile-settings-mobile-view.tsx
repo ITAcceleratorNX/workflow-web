@@ -16,7 +16,7 @@ export function ProfileSettingsMobileView() {
   const colorScheme = useColorScheme();
 
   const handleGuest = (description: string) => {
-    toast({ title: "Демо режим", description });
+    toast({ title: "Демо режим", description, variant: "info" });
   };
 
   return (

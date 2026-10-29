@@ -23,7 +23,7 @@ export function useTaskInstances(taskId: number) {
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить экземпляры задачи",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -40,13 +40,13 @@ export function useTaskInstances(taskId: number) {
       setActionLoading(true);
       try {
         await completeTaskInstance(instanceId, notes);
-        toast({ title: "Успешно", description: "Экземпляр отмечен как выполненный" });
+        toast({ title: "Успешно", description: "Экземпляр отмечен как выполненный", variant: "success" });
         await fetchInstances();
       } catch {
         toast({
           title: "Ошибка",
           description: "Не удалось отметить как выполненный",
-          variant: "destructive",
+          variant: "error",
         });
       } finally {
         setActionLoading(false);
@@ -60,13 +60,13 @@ export function useTaskInstances(taskId: number) {
       setActionLoading(true);
       try {
         await skipTaskInstance(instanceId, notes);
-        toast({ title: "Успешно", description: "Экземпляр пропущен" });
+        toast({ title: "Успешно", description: "Экземпляр пропущен", variant: "success" });
         await fetchInstances();
       } catch {
         toast({
           title: "Ошибка",
           description: "Не удалось пропустить экземпляр",
-          variant: "destructive",
+          variant: "error",
         });
       } finally {
         setActionLoading(false);
