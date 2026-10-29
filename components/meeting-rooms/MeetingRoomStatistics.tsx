@@ -43,7 +43,7 @@ export function MeetingRoomStatistics({ variant = "default", defaultShowCalendar
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить статистику",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       if (version === fetchVersion.current) setLoading(false);

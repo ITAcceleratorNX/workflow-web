@@ -123,14 +123,15 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
             await api.put(`/registration-requests/${requestId}/approve`);
             toast({
                 title: 'Успешно',
-                description: 'Запрос одобрен, пользователь создан'
+                description: 'Запрос одобрен, пользователь создан',
+                variant: 'success'
             });
             loadRequests();
         } catch (error: any) {
             toast({
                 title: 'Ошибка',
                 description: error.response?.data?.message || 'Произошла ошибка при одобрении',
-                variant: 'destructive'
+                variant: 'error'
             });
         }
     };
@@ -210,7 +211,7 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
         setEditError(null);
         try {
             await api.put(`/registration-requests/${editing.id}`, payload);
-            toast({ title: 'Сохранено', description: 'Заявка обновлена' });
+            toast({ title: 'Сохранено', description: 'Заявка обновлена', variant: 'success' });
             closeEdit();
             loadRequests();
         } catch (error: any) {
@@ -225,14 +226,15 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
             await api.put(`/registration-requests/${requestId}/reject`);
             toast({
                 title: 'Успешно',
-                description: 'Запрос отклонен'
+                description: 'Запрос отклонен',
+                variant: 'success'
             });
             loadRequests();
         } catch (error: any) {
             toast({
                 title: 'Ошибка',
                 description: error.response?.data?.message || 'Произошла ошибка при отклонении',
-                variant: 'destructive'
+                variant: 'error'
             });
         }
     };
@@ -244,13 +246,14 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
             toast({
                 title: 'Успешно',
                 description: 'Запрос удалён',
+                variant: 'success',
             });
             loadRequests();
         } catch (error: any) {
             toast({
                 title: 'Ошибка',
                 description: error.response?.data?.message || 'Не удалось удалить запрос',
-                variant: 'destructive'
+                variant: 'error'
             });
         }
     };

@@ -129,7 +129,7 @@ export function GroupTaskDetails({ task, currentUserId, colors, desktop = false,
         onApply={async (userId) => {
           const res = await setTaskResponsible(task.id, userId);
           if (!res.ok) {
-            toast({ title: "Не удалось изменить ответственного", description: res.error, variant: "destructive" });
+            toast({ title: "Не удалось изменить ответственного", description: res.error, variant: "error" });
             return;
           }
           setSheetOpen(false);

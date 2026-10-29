@@ -31,6 +31,7 @@ const Executors: React.FC<ExecutorsProps> = ({ subRequest, userRatings }) => {
             toast({
                 title: "Звонок",
                 description: `Номер телефона ${executorName}: ${phone}`,
+                variant: "info",
             })
         }
     }

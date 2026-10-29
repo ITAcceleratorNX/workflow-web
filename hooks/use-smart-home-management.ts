@@ -214,12 +214,13 @@ export function useSmartHomeManagement() {
           title: "Успешно",
           description: `${device.name} ${!currentState ? "включено" : "выключено"}`,
           duration: 2000,
+          variant: "success",
         });
       } catch {
         toast({
           title: "Ошибка",
           description: "Не удалось управлять устройством",
-          variant: "destructive",
+          variant: "error",
           duration: 3000,
         });
       } finally {
@@ -246,6 +247,7 @@ export function useSmartHomeManagement() {
         title: "Устройство добавлено",
         description: `${device.name} добавлено в ${selectedRoom.name}`,
         duration: 2000,
+        variant: "success",
       });
       setSelectedNewDevice("");
       setShowAddDevice(false);
@@ -256,7 +258,7 @@ export function useSmartHomeManagement() {
         description:
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           "Не удалось добавить устройство",
-        variant: "destructive",
+        variant: "error",
         duration: 3000,
       });
     } finally {
@@ -273,6 +275,7 @@ export function useSmartHomeManagement() {
           title: "Устройство удалено",
           description: `${roomDevice.device_name} удалено`,
           duration: 2000,
+          variant: "success",
         });
         if (selectedRoom) await handleSelectRoom(selectedRoom);
       } catch (err: unknown) {
@@ -281,7 +284,7 @@ export function useSmartHomeManagement() {
           description:
             (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
             "Не удалось удалить устройство",
-          variant: "destructive",
+          variant: "error",
           duration: 3000,
         });
       } finally {
@@ -305,6 +308,7 @@ export function useSmartHomeManagement() {
         title: "Сотрудник добавлен",
         description: `${user?.full_name || "Сотрудник"} получил доступ`,
         duration: 2000,
+        variant: "success",
       });
       setSelectedNewEmployee("");
       setShowAddEmployee(false);
@@ -315,7 +319,7 @@ export function useSmartHomeManagement() {
         description:
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           "Не удалось добавить сотрудника",
-        variant: "destructive",
+        variant: "error",
         duration: 3000,
       });
     } finally {
@@ -333,6 +337,7 @@ export function useSmartHomeManagement() {
           title: "Доступ забран",
           description: `У ${name} забран доступ`,
           duration: 2000,
+          variant: "success",
         });
         if (selectedRoom) await handleSelectRoom(selectedRoom);
       } catch (err: unknown) {
@@ -341,7 +346,7 @@ export function useSmartHomeManagement() {
           description:
             (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
             "Не удалось удалить доступ",
-          variant: "destructive",
+          variant: "error",
           duration: 3000,
         });
       } finally {

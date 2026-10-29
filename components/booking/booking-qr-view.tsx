@@ -37,12 +37,13 @@ export function BookingQrView() {
       toast({
         title: "Скопировано!",
         description: "Ссылка скопирована в буфер обмена",
+        variant: "success",
       });
     } catch {
       toast({
         title: "Ошибка",
         description: "Не удалось скопировать ссылку",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };

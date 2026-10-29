@@ -49,7 +49,7 @@ export function useClientSmartHome() {
         toast({
           title: "Ошибка",
           description: "Не удалось загрузить комнаты",
-          variant: "destructive",
+          variant: "error",
           duration: 4000,
         });
       } finally {
@@ -77,7 +77,7 @@ export function useClientSmartHome() {
         toast({
           title: "Ошибка загрузки",
           description: "Не удалось загрузить устройства",
-          variant: "destructive",
+          variant: "error",
           duration: 4000,
         });
       } finally {
@@ -107,6 +107,7 @@ export function useClientSmartHome() {
             ? `(Демо) ${device.name} ${value ? "включено" : "выключено"}`
             : `${device.name} ${value ? "включено" : "выключено"}`,
           duration: 2000,
+          variant: "success",
         });
 
         setDevices((prev) =>
@@ -124,7 +125,7 @@ export function useClientSmartHome() {
         toast({
           title: "Ошибка",
           description: "Не удалось управлять устройством",
-          variant: "destructive",
+          variant: "error",
           duration: 4000,
         });
       } finally {

@@ -84,6 +84,7 @@ export function useRequestBulkDelete(onDeleted: (ids: number[]) => void) {
         toast({
           title: deleted.length === 1 ? "Заявка удалена" : `Удалено: ${deleted.length}`,
           description: skipped > 0 ? `Не удалось удалить: ${skipped} (уже удалены)` : "Запись сохранена в журнале удалений",
+          variant: "success",
         });
         if (skipped === 0) setActive(false);
         setPendingIds(null);

@@ -128,7 +128,7 @@ export function InteractionGroupsListScreen({
     const res = await listInteractionGroups(filters);
     setLoading(false);
     if (res.ok) setGroups(res.data);
-    else toast({ title: res.error, variant: "destructive" });
+    else toast({ title: res.error, variant: "error" });
   }, [q, status, officeId, companyId, departmentId, person, personRole, toast]);
 
   useEffect(() => {

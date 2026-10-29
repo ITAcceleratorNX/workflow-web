@@ -51,7 +51,7 @@ export function useYandexSmartHomeTokens(options?: { confirmDelete?: boolean }) 
     setError(null);
     try {
       await refreshYandexTokens();
-      toast({ title: "Токены обновлены", duration: 3000 });
+      toast({ title: "Токены обновлены", duration: 3000, variant: "success" });
       await loadTokens();
     } catch (err: unknown) {
       const message =
@@ -72,7 +72,7 @@ export function useYandexSmartHomeTokens(options?: { confirmDelete?: boolean }) 
     setError(null);
     try {
       await deleteYandexTokens();
-      toast({ title: "Токены удалены", duration: 3000 });
+      toast({ title: "Токены удалены", duration: 3000, variant: "success" });
       setTokensMeta(null);
     } catch (err: unknown) {
       const message =

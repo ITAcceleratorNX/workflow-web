@@ -21,7 +21,7 @@ export function useRecurringTasksList() {
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить повторяющиеся задачи",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -39,13 +39,14 @@ export function useRecurringTasksList() {
         toast({
           title: "Успешно",
           description: `Задача ${action === "pause" ? "приостановлена" : "возобновлена"}`,
+          variant: "success",
         });
         await fetchTasks();
       } catch {
         toast({
           title: "Ошибка",
           description: "Не удалось изменить статус задачи",
-          variant: "destructive",
+          variant: "error",
         });
       }
     },

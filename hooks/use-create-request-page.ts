@@ -58,7 +58,7 @@ export function useCreateRequestPage() {
         toast({
           title: "Ошибка",
           description: "Не удалось загрузить данные для создания заявки",
-          variant: "destructive",
+          variant: "error",
         });
       } finally {
         setIsLoading(false);
@@ -93,7 +93,7 @@ export function useCreateRequestPage() {
         });
 
         if (result.ok) {
-          toast(result.toast);
+          toast({ ...result.toast, variant: "success" });
           handleClose();
         } else {
           setFormErrors(result.error);

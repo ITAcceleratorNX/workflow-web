@@ -139,7 +139,7 @@ export function AdminRegistrationRequestsTab({
       if (req.role === "executor") {
         const chosen = officeAccessFor(req);
         if (!isExecutorOfficeAccessValid(chosen)) {
-          toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "destructive" });
+          toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "error" });
           return;
         }
         if (!sameExecutorOfficeAccess(chosen, defaultOfficeAccess(req))) officeAccess = chosen;
@@ -150,10 +150,11 @@ export function AdminRegistrationRequestsTab({
         toast({
           title: "Успешно",
           description: "Запрос одобрен, пользователь создан",
+          variant: "success",
         });
         loadRequests();
       } else {
-        toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+        toast({ title: "Ошибка", description: result.error, variant: "error" });
       }
       setActionRequestId(null);
     },
@@ -165,10 +166,10 @@ export function AdminRegistrationRequestsTab({
       setActionRequestId(requestId);
       const result = await rejectRegistrationRequest(requestId);
       if (result.ok) {
-        toast({ title: "Успешно", description: "Запрос отклонён" });
+        toast({ title: "Успешно", description: "Запрос отклонён", variant: "success" });
         loadRequests();
       } else {
-        toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+        toast({ title: "Ошибка", description: result.error, variant: "error" });
       }
       setActionRequestId(null);
     },
@@ -180,10 +181,10 @@ export function AdminRegistrationRequestsTab({
       setActionRequestId(requestId);
       const result = await deleteRejectedRegistrationRequest(requestId);
       if (result.ok) {
-        toast({ title: "Удалено", description: "Отклонённый запрос удалён из списка" });
+        toast({ title: "Удалено", description: "Отклонённый запрос удалён из списка", variant: "success" });
         loadRequests();
       } else {
-        toast({ title: "Ошибка", description: result.error, variant: "destructive" });
+        toast({ title: "Ошибка", description: result.error, variant: "error" });
       }
       setActionRequestId(null);
       setDeleteConfirmId(null);
@@ -483,7 +484,7 @@ export function AdminRegistrationRequestsTab({
         offices={offices}
         onClose={() => setEditingRequest(null)}
         onSaved={() => {
-          toast({ title: "Заявка обновлена" });
+          toast({ title: "Заявка обновлена", variant: "success" });
           loadRequests();
         }}
       />

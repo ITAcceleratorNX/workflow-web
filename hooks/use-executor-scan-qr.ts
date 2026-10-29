@@ -54,13 +54,14 @@ export function useExecutorScanQr() {
         toast({
           title: "QR обработан",
           description: `Столов осталось: ${response.data.tables_remaining}`,
+          variant: "success",
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Ошибка при обработке QR";
         toast({
           title: "Ошибка",
           description: message,
-          variant: "destructive",
+          variant: "error",
         });
       } finally {
         setTimeout(() => {

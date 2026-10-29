@@ -288,7 +288,7 @@ function UserEditForm({
       !draftOfficeId.trim() &&
       !STAFF_ROLES_WITHOUT_OFFICE_CHANGE.includes(editUser.role)
     ) {
-      toast({ title: "Выберите офис", variant: "destructive" });
+      toast({ title: "Выберите офис", variant: "error" });
       return;
     }
 
@@ -297,7 +297,7 @@ function UserEditForm({
       phone !== formatPhone(editUser.phone ?? "");
 
     if (!fullName.trim()) {
-      toast({ title: "Укажите ФИО", variant: "destructive" });
+      toast({ title: "Укажите ФИО", variant: "error" });
       return;
     }
 
@@ -305,12 +305,12 @@ function UserEditForm({
       if (!specialty.trim() || selectedCategoryIds.length === 0) {
         toast({
           title: "Укажите специальность и хотя бы одну категорию",
-          variant: "destructive",
+          variant: "error",
         });
         return;
       }
       if (isAdmin && !isExecutorOfficeAccessValid(draftOfficeAccess)) {
-        toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "destructive" });
+        toast({ title: "Выберите хотя бы один офис или «Все офисы»", variant: "error" });
         return;
       }
     }
@@ -385,7 +385,7 @@ function UserEditForm({
       !companyChanged &&
       !officeAccessChanged
     ) {
-      toast({ title: "Нет изменений" });
+      toast({ title: "Нет изменений", variant: "info" });
       return;
     }
 
@@ -474,7 +474,7 @@ function UserEditForm({
     }
 
     setSaving(false);
-    toast({ title: "Сохранено" });
+    toast({ title: "Сохранено", variant: "success" });
     onClose();
     onSaved();
   };

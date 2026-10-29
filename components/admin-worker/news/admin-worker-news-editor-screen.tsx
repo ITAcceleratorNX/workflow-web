@@ -173,11 +173,12 @@ export function AdminWorkerNewsEditorScreen() {
             : publishMode === "schedule"
               ? "Новость запланирована"
               : "Новость добавлена",
+        variant: "success",
       });
       router.push("/admin-worker/management/news");
     } else {
       setFormError(res.error);
-      toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+      toast({ title: "Ошибка", description: res.error, variant: "error" });
     }
   }, [
     title,
