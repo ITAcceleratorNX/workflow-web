@@ -628,11 +628,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       const newValidationErrors = new Set<number>();
       subRequests.forEach((subRequest, index) => {
         if (subRequest.title.trim() && subRequest.description.trim() && subRequest.category_id > 0) {
-          // Проверяем сложность и время выполнения
-          if (!subRequest.complexity || !subRequest.sla) {
-            newValidationErrors.add(index);
-          }
-
           // Для department-head проверяем наличие лидера в исполнителях
           if (userRole === 'department-head' && userServiceCategoryId &&
               subRequest.category_id === userServiceCategoryId &&
@@ -820,18 +815,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       const allErrors = [...basicFieldErrors, ...subRequestErrors];
       const errorMessage = `Пожалуйста, заполните следующие обязательные поля:\n\n${allErrors.join('\n')}`;
       return;
-    }
-
-            // Валидация времени выполнения и complexity для admin-worker и department-head
-    if (userRole === 'admin-worker' || userRole === 'department-head') {
-      const invalidSubRequests = subRequests.filter(sub => !sub.complexity || !sub.sla);
-      if (invalidSubRequests.length > 0) {
-        const invalidIndices = invalidSubRequests.map(sub => {
-          return subRequests.indexOf(sub) + 1;
-        });
-        const errorMessage = `Пожалуйста, заполните сложность и время выполнения для заявки.\n\nЗаявка автоматически развернута для заполнения.`;
-        return;
-      }
     }
 
     // Валидация лидера для department-head
@@ -1752,9 +1735,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   </button>
                 ))}
               </div>
-              {hasAttemptedSubmit && !subRequest.complexity && (
-                <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите сложность</p>
-              )}
             </div>
 
             <div>
@@ -1781,9 +1761,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   </button>
                 ))}
               </div>
-              {hasAttemptedSubmit && !subRequest.sla && (
-                <p className="text-xs text-red-500 mt-2">Пожалуйста, выберите время выполнения</p>
-              )}
             </div>
           </div>
         )}
