@@ -1,64 +1,9 @@
 /**
- * Утилиты для шаринга заявок и парсинга deep link URL (как в workflow-mobile).
- * Ссылка открывается в веб-приложении или в мобильном приложении (Universal/App Links).
+ * Парсинг deep link URL заявки (как в workflow-mobile) и возврат к заявке после входа.
+ * Ссылки «Поделиться» — гостевые, см. lib/request-share-link.ts.
  */
 
-import { getStatusLabel } from "@/constants/requests";
 import { getRequestsListPath } from "@/constants/roles";
-
-export interface ShareRequestParams {
-  requestId: number;
-  subRequestId?: number;
-  title?: string;
-  status?: string;
-  description?: string;
-}
-
-function getWebAppBaseUrl(): string {
-  if (typeof window !== "undefined") return window.location.origin;
-  return (process.env.NEXT_PUBLIC_APP_URL as string) || "";
-}
-
-/**
- * Собирает URL заявки для шаринга.
- */
-export function getRequestShareUrl(params: ShareRequestParams): string {
-  const base = getWebAppBaseUrl().replace(/\/$/, "");
-  const search = new URLSearchParams();
-  search.set("requestId", String(params.requestId));
-  return `${base}?${search.toString()}`;
-}
-
-/**
- * Текст сообщения для шаринга заявки.
- */
-export function getRequestShareMessage(params: ShareRequestParams): string {
-  const displayId =
-    params.subRequestId != null
-      ? `${params.requestId}/${params.subRequestId}`
-      : String(params.requestId);
-  const title = params.title ?? "Заявка";
-  const status = getStatusLabel(params.status ?? "");
-  const desc = (params.description ?? "").slice(0, 200);
-  const shortDesc =
-    params.description && params.description.length > 200 ? `${desc}...` : desc;
-  const url = getRequestShareUrl(params);
-  return (
-    `Заявка #${displayId}\n\n` +
-    `Название: ${title}\n` +
-    `Статус: ${status}\n` +
-    (shortDesc ? `Описание: ${shortDesc}\n\n` : "\n") +
-    `Ссылка: ${url}`
-  );
-}
-
-/**
- * URL для открытия WhatsApp с предзаполненным сообщением.
- */
-export function getWhatsAppShareUrl(params: ShareRequestParams): string {
-  const message = getRequestShareMessage(params);
-  return `https://wa.me/?text=${encodeURIComponent(message)}`;
-}
 
 /**
  * Извлекает requestId из URL заявки.
@@ -128,50 +73,4 @@ export function getRequestRedirectUrl(
 ): string {
   const requestUrl = isDesktop ? `?requestId=${requestId}` : `/${requestId}`;
   return `${getRequestsListPath(role)}${requestUrl}`;
-}
-
-function buildShareRequestParams(
-  requestId: number,
-  subRequest?: { id: number; title?: string; status?: string; description?: string } | null,
-): ShareRequestParams {
-  return {
-    requestId,
-    subRequestId: subRequest?.id,
-    title: subRequest?.title,
-    status: subRequest?.status,
-    description: subRequest?.description,
-  };
-}
-
-/**
- * Системное «Поделиться» — parity с workflow-mobile shareRequestWithContent.
- * Web Share API → clipboard → WhatsApp.
- */
-export async function shareRequestWithContent(
-  request: { id: number; requests?: Array<{ id: number; title?: string; status?: string; description?: string }> },
-  subRequest?: { id: number; title?: string; status?: string; description?: string } | null,
-): Promise<void> {
-  const sub = subRequest ?? request.requests?.[0] ?? null;
-  const params = buildShareRequestParams(request.id, sub);
-  const message = getRequestShareMessage(params);
-  const title =
-    params.subRequestId != null
-      ? `Заявка #${params.requestId}/${params.subRequestId}`
-      : `Заявка #${params.requestId}`;
-
-  if (typeof navigator !== "undefined" && navigator.share) {
-    try {
-      await navigator.share({ title, text: message });
-      return;
-    } catch (err) {
-      if ((err as Error)?.name === "AbortError") return;
-    }
-  }
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(message);
-    return;
-  }
-
-  window.open(getWhatsAppShareUrl(params), "_blank", "noopener,noreferrer");
 }

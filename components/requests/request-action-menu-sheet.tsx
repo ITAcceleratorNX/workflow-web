@@ -37,7 +37,8 @@ import {
   MOBILE_REQUESTS_ACTION_TRIGGER,
 } from "@/constants/mobile-requests-ui";
 import { MANAGEMENT_MODAL_DARK_CLASS } from "@/constants/management-modal-ui";
-import { shareRequestWithContent } from "@/lib/shareRequest";
+import { prefetchRequestShareLink, useRequestShare } from "@/hooks/use-request-share";
+import { RequestShareDialog } from "./request-share-dialog";
 import { cn } from "@/lib/utils";
 
 const ACTION_ICONS: Record<RequestActionIcon, LucideIcon> = {
@@ -193,16 +194,21 @@ export function RequestActionMenu({
   const sheetRef = useRef<HTMLDivElement>(null);
   const isDialog = variant === "dialog";
 
+  const requestShare = useRequestShare();
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Ссылка готова к моменту нажатия «Поделиться» — иначе телефон не покажет системное меню.
+  useEffect(() => {
+    if (open) prefetchRequestShareLink(request.id);
+  }, [open, request.id]);
+
   const isSub = !!subRequest;
 
   const handleShare = () => {
-    void shareRequestWithContent(request, subRequest)
-      .then(() => setOpen(false))
-      .catch(() => setOpen(false));
+    void requestShare.share(request.id, subRequest?.title ?? request.requests?.[0]?.title);
   };
 
   const actions = getRequestActions({
@@ -238,8 +244,7 @@ export function RequestActionMenu({
   if (actions.length === 0) return null;
 
   const handleAction = (action: ActionItem) => {
-    const isShare = action.label === "Поделиться ссылкой";
-    if (!isShare) setOpen(false);
+    setOpen(false);
     action.onClick();
   };
 
@@ -288,6 +293,7 @@ export function RequestActionMenu({
             </div>
           </DialogContent>
         </Dialog>
+        <RequestShareDialog target={requestShare.target} onClose={requestShare.close} />
       </>
     );
   }
@@ -323,6 +329,7 @@ export function RequestActionMenu({
     <>
       {trigger}
       {sheet && createPortal(sheet, document.body)}
+      <RequestShareDialog target={requestShare.target} onClose={requestShare.close} />
     </>
   );
 }

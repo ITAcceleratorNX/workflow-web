@@ -4,7 +4,7 @@
     "details": [
       {
         "appID": "J86Y2UDXZ3.com.workflow.kz",
-        "paths": ["/", "/*"]
+        "paths": ["NOT /r/*", "/", "/*"]
       }
     ]
   }
