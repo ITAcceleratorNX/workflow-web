@@ -150,7 +150,7 @@ export function useYandexSmartHomeAdmin() {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Не удалось загрузить устройства";
-      toast({ title: "Ошибка", description: message, variant: "destructive", duration: 4000 });
+      toast({ title: "Ошибка", description: message, variant: "error", duration: 4000 });
     } finally {
       setDevicesListLoading(false);
     }
@@ -176,7 +176,7 @@ export function useYandexSmartHomeAdmin() {
         device_name: selectedDevice.name,
         device_type: selectedDevice.type,
       });
-      toast({ title: "Устройство привязано к комнате", duration: 3000 });
+      toast({ title: "Устройство привязано к комнате", duration: 3000, variant: "success" });
       setSelectedRoomId(null);
       setSelectedDevice(null);
       setShowRoomDropdown(false);
@@ -197,13 +197,13 @@ export function useYandexSmartHomeAdmin() {
       setDeletingLinkId(id);
       try {
         await deleteRoomDevice(id);
-        toast({ title: "Устройство отвязано", duration: 3000 });
+        toast({ title: "Устройство отвязано", duration: 3000, variant: "success" });
         await loadRoomDevices();
       } catch (err: unknown) {
         const message =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           "Не удалось отвязать устройство";
-        toast({ title: "Ошибка", description: message, variant: "destructive", duration: 4000 });
+        toast({ title: "Ошибка", description: message, variant: "error", duration: 4000 });
       } finally {
         setDeletingLinkId(null);
       }
@@ -224,6 +224,7 @@ export function useYandexSmartHomeAdmin() {
         title: "Доступ добавлен",
         description: "Пользователь может управлять умным офисом в этой комнате",
         duration: 3000,
+        variant: "success",
       });
       setSelectedRoomIdForSub(null);
       setSelectedUserIdForSub(null);
@@ -245,13 +246,13 @@ export function useYandexSmartHomeAdmin() {
       setDeletingSubId(id);
       try {
         await deleteClientRoomSubscription(id);
-        toast({ title: "Доступ удалён", duration: 3000 });
+        toast({ title: "Доступ удалён", duration: 3000, variant: "success" });
         await loadSubscriptions();
       } catch (err: unknown) {
         const message =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           "Не удалось удалить доступ";
-        toast({ title: "Ошибка", description: message, variant: "destructive", duration: 4000 });
+        toast({ title: "Ошибка", description: message, variant: "error", duration: 4000 });
       } finally {
         setDeletingSubId(null);
       }

@@ -59,7 +59,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       toast({
         title: "Ошибка",
         description: "Пожалуйста, выберите файл Excel (.xlsx или .xls)",
-        variant: "destructive",
+        variant: "error",
       });
       return;
     }
@@ -69,7 +69,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       toast({
         title: "Ошибка",
         description: "Размер файла не должен превышать 10MB",
-        variant: "destructive",
+        variant: "error",
       });
       return;
     }
@@ -120,6 +120,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
         toast({
           title: "Успешно!",
           description: `Импортировано ${response.data.successCount} повторяющихся задач`,
+          variant: "success",
         });
         onSuccess?.();
       }
@@ -128,7 +129,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
         toast({
           title: "Внимание",
           description: `Импортировано ${response.data.successCount} задач, ${response.data.errorCount} ошибок`,
-          variant: "destructive",
+          variant: "error",
         });
       }
 
@@ -137,7 +138,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       toast({
         title: "Ошибка",
         description: error.response?.data?.message || "Произошла ошибка при импорте файла",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsUploading(false);

@@ -147,7 +147,7 @@ export function useProfilePage() {
 
     if (isGuest) {
       setProfileSuccess("Демо: профиль обновлён локально.");
-      toast({ title: "Демо режим", description: "Изменения сохранены только на этом устройстве." });
+      toast({ title: "Демо режим", description: "Изменения сохранены только на этом устройстве.", variant: "info" });
       return true;
     }
 
@@ -165,7 +165,7 @@ export function useProfilePage() {
     }
 
     setProfileSuccess("Профиль обновлён.");
-    toast({ title: "Успешно", description: "Профиль обновлён." });
+    toast({ title: "Успешно", description: "Профиль обновлён.", variant: "success" });
     return true;
   }, [isGuest, toast, user]);
 
@@ -185,7 +185,7 @@ export function useProfilePage() {
     }
 
     if (isGuest) {
-      toast({ title: "Демо режим", description: "Смена пароля недоступна в демо-версии." });
+      toast({ title: "Демо режим", description: "Смена пароля недоступна в демо-версии.", variant: "info" });
       return;
     }
 
@@ -201,7 +201,7 @@ export function useProfilePage() {
       return;
     }
 
-    toast({ title: "Успешно", description: "Пароль изменён." });
+    toast({ title: "Успешно", description: "Пароль изменён.", variant: "success" });
     setOldPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -224,7 +224,7 @@ export function useProfilePage() {
       return;
     }
 
-    toast({ title: "Успешно", description: "Настройки уведомлений сохранены" });
+    toast({ title: "Успешно", description: "Настройки уведомлений сохранены", variant: "success" });
   }, [toast, user]);
 
   const handleSendVerificationCode = useCallback(async () => {
@@ -240,7 +240,7 @@ export function useProfilePage() {
 
     if (isGuest) {
       setEmailSuccess('Демо: код "отправлен" (заглушка).');
-      toast({ title: "Демо режим", description: "Код не отправляется на сервер в демо-версии." });
+      toast({ title: "Демо режим", description: "Код не отправляется на сервер в демо-версии.", variant: "info" });
       return;
     }
 
@@ -257,7 +257,7 @@ export function useProfilePage() {
 
     setEmail(emailToSend);
     setEmailSuccess("Код верификации отправлен на email");
-    toast({ title: "Успешно", description: "Код верификации отправлен на email" });
+    toast({ title: "Успешно", description: "Код верификации отправлен на email", variant: "success" });
   }, [email, isGuest, toast, user?.email, user?.email_verified]);
 
   const handleRemoveEmail = useCallback(async () => {
@@ -290,7 +290,7 @@ export function useProfilePage() {
     setVerificationCode("");
     setEmailError("");
     setEmailSuccess("");
-    toast({ title: "Успешно", description: "Email удалён" });
+    toast({ title: "Успешно", description: "Email удалён", variant: "success" });
   }, [isGuest, isRemovingEmail, role, toast, updateUser, user?.email]);
 
   const handleVerifyEmail = useCallback(async () => {
@@ -306,7 +306,7 @@ export function useProfilePage() {
       );
       setVerificationCode("");
       setEmailSuccess("Демо: email помечен как верифицированный.");
-      toast({ title: "Демо режим", description: "Статус верификации изменён только локально." });
+      toast({ title: "Демо режим", description: "Статус верификации изменён только локально.", variant: "info" });
       return;
     }
 
@@ -326,7 +326,7 @@ export function useProfilePage() {
     );
     setVerificationCode("");
     setEmailSuccess("Email верифицирован");
-    toast({ title: "Успешно", description: "Email верифицирован" });
+    toast({ title: "Успешно", description: "Email верифицирован", variant: "success" });
   }, [email, isGuest, toast, updateUser, user?.email, verificationCode]);
 
   const handleNotificationClick = useCallback(

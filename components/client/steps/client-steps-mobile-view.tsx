@@ -116,12 +116,13 @@ export function ClientStepsMobileView({ layout = "mobile" }: ClientStepsMobileVi
         title: "Доступ выдан",
         description: "Шагомер подключён. Показаны тестовые данные.",
         duration: 2000,
+        variant: "success",
       });
     } else {
       toast({
         title: "Доступ не выдан",
         description: "Разрешите доступ к Motion & Fitness для подсчёта шагов.",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -274,7 +275,7 @@ export function ClientStepsMobileView({ layout = "mobile" }: ClientStepsMobileVi
                       type="button"
                       onClick={() => {
                         recalculateGoal();
-                        toast({ title: "Цель пересчитана", duration: 2000 });
+                        toast({ title: "Цель пересчитана", duration: 2000, variant: "success" });
                       }}
                       className="mt-3 w-full py-2.5 rounded-xl font-medium bg-[#E85D2B] text-white"
                     >

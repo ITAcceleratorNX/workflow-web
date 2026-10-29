@@ -131,7 +131,7 @@ export function CompaniesManagementScreen({
     if (res.ok) setCompanies(res.data);
     else {
       setCompanies([]);
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
     }
     setLoading(false);
   }, [manageOfficeId, toast]);
@@ -193,7 +193,7 @@ export function CompaniesManagementScreen({
         setSaveError(res.error);
         return;
       }
-      toast({ title: editingId == null ? "Компания добавлена" : "Сохранено" });
+      toast({ title: editingId == null ? "Компания добавлена" : "Сохранено", variant: "success" });
       closeModal();
       await load();
     } finally {
@@ -207,10 +207,10 @@ export function CompaniesManagementScreen({
     const res = await deleteOfficeCompany(manageOfficeId, deleteTarget.id);
     setIsDeleting(false);
     if (!res.ok) {
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
       return;
     }
-    toast({ title: "Удалено" });
+    toast({ title: "Удалено", variant: "success" });
     setDeleteTarget(null);
     await load();
   };

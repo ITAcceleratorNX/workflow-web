@@ -28,7 +28,7 @@ export function AdminSupportTicketsList({
       const res = await getSupportTickets();
       setTickets(res.data?.tickets ?? []);
     } catch {
-      toast({ title: "Ошибка", description: "Не удалось загрузить чаты", variant: "destructive" });
+      toast({ title: "Ошибка", description: "Не удалось загрузить чаты", variant: "error" });
     } finally {
       setLoading(false);
     }

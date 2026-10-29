@@ -37,7 +37,7 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
             setTickets(list);
             setSelectedTicket((current) => current && !list.some((t) => t.id === current.id) ? null : current);
         } catch (e) {
-            toast({ title: "Ошибка", description: "Не удалось загрузить чаты", variant: "destructive" });
+            toast({ title: "Ошибка", description: "Не удалось загрузить чаты", variant: "error" });
         } finally {
             setLoadingTickets(false);
         }
@@ -62,7 +62,7 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
                 const loaded = res.data?.messages ?? [];
                 setMessages((current) => [...loaded, ...current.filter((message) => !loaded.some((item) => item.id === message.id))]);
             })
-            .catch(() => { if (!cancelled) toast({ title: "Ошибка", description: "Не удалось загрузить сообщения", variant: "destructive" }); })
+            .catch(() => { if (!cancelled) toast({ title: "Ошибка", description: "Не удалось загрузить сообщения", variant: "error" }); })
             .finally(() => { if (!cancelled) setLoadingMessages(false); });
         return () => { cancelled = true; };
     }, [selectedTicketId, toast]);
@@ -88,7 +88,7 @@ export function AdminMessages({ canRespond = true }: AdminMessagesProps) {
                 setDrafts((current) => current[ticketId]?.trim() === trimmed ? { ...current, [ticketId]: "" } : current);
             }
         } catch (e) {
-            toast({ title: "Ошибка", description: "Не удалось отправить сообщение", variant: "destructive" });
+            toast({ title: "Ошибка", description: "Не удалось отправить сообщение", variant: "error" });
         } finally {
             sendLock.current = false;
             setSending(false);

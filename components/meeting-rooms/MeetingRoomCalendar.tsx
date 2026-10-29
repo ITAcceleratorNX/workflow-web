@@ -63,7 +63,7 @@ export function MeetingRoomCalendar({ variant = "default" }: MeetingRoomCalendar
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить календарь",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       if (version === fetchVersion.current) setLoading(false);

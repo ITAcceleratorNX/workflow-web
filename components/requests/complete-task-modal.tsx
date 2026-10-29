@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { X, Camera, Upload, Trash2, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getSubRequestDisplayId } from "@/lib/subRequestUtils";
+import { useToast } from "@/hooks/use-toast";
 
 interface CompleteTaskModalProps {
   isOpen: boolean;
@@ -27,13 +28,14 @@ export const CompleteTaskModal: React.FC<CompleteTaskModalProps> = ({
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const totalPhotos = photos.length + files.length;
     
     if (totalPhotos > 3) {
-      alert("Максимальное количество фотографий - 3");
+      toast({ title: "Максимальное количество фотографий - 3", variant: "error" });
       return;
     }
     
@@ -58,12 +60,12 @@ export const CompleteTaskModal: React.FC<CompleteTaskModalProps> = ({
   const handleSubmit = async () => {
     // Валидация фотографий
     if (photos.length === 0) {
-      alert("Пожалуйста, добавьте хотя бы одну фотографию результата");
+      toast({ title: "Пожалуйста, добавьте хотя бы одну фотографию результата", variant: "error" });
       return;
     }
     
     if (photos.length > 3) {
-      alert("Максимальное количество фотографий - 3");
+      toast({ title: "Максимальное количество фотографий - 3", variant: "error" });
       return;
     }
     

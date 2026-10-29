@@ -73,7 +73,7 @@ export function StructureCompaniesScreen({
     if (res.ok) setCompanies(res.data.items);
     else {
       setCompanies([]);
-      toast({ title: res.error, variant: "destructive" });
+      toast({ title: res.error, variant: "error" });
     }
   }, [officeId, status, query, toast]);
 
@@ -203,7 +203,7 @@ export function StructureCompaniesScreen({
           onClose={() => setCreateOpen(false)}
           onCreated={(id) => {
             setCreateOpen(false);
-            toast({ title: "Компания создана" });
+            toast({ title: "Компания создана", variant: "success" });
             router.push(`${STRUCTURE_BASE_HREF}/${id}`);
           }}
         />

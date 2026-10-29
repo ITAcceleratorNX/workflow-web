@@ -23,7 +23,7 @@ export function toastTaskDeleteFailed(toast: Toast, failure: { error: string; ne
     icon: failure.network ? <WifiOff /> : undefined,
     duration: 8000,
     action: (
-      <ToastAction tone="product" altText="Повторить удаление задачи" onClick={retry}>
+      <ToastAction altText="Повторить удаление задачи" onClick={retry}>
         Повторить
       </ToastAction>
     ),

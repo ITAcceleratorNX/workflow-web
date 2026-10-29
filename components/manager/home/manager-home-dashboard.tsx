@@ -980,7 +980,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         // Показываем уведомление об успехе
         toast({
           title: "Успешно",
-          description: "Пользователь успешно удален"
+          description: "Пользователь успешно удален",
+          variant: "success"
         });
       }
     } catch (err: any) {
@@ -1121,7 +1122,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         setShowDeleteRequestModal(false);
         toast({
           title: "Заявка удалена",
-          description: "Заявка была успешно удалена."
+          description: "Заявка была успешно удалена.",
+          variant: "success"
         })
         fetchRequests()
         setRequestToDelete(null)
@@ -1151,7 +1153,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       
       toast({
         title: "Заявка создана!",
-        description: "Заявка успешно создана."
+        description: "Заявка успешно создана.",
+        variant: "success"
       });
       
       resetForm();
@@ -1193,7 +1196,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
       toast({
         title: "Под заявка удалена",
-        description: "Под заявка была успешно удалена."
+        description: "Под заявка была успешно удалена.",
+        variant: "success"
       })
     } catch (error) {
       console.error("Error deleting sub-request:", error)
@@ -1536,11 +1540,11 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
   const validateOfficePhoto = (file: File) => {
     if (!OFFICE_PHOTO_ACCEPTED_TYPES.includes(file.type)) {
-      alert("Поддерживаются только фото в форматах JPG, PNG или WebP");
+      toast({ title: "Поддерживаются только фото в форматах JPG, PNG или WebP", variant: "error" });
       return false;
     }
     if (file.size > OFFICE_PHOTO_MAX_SIZE_BYTES) {
-      alert("Размер фото офиса не должен превышать 2 МБ");
+      toast({ title: "Размер фото офиса не должен превышать 2 МБ", variant: "error" });
       return false;
     }
     return true;
@@ -1560,7 +1564,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setNewOfficePhoto(dataUrl);
     } catch (error) {
       console.error("Ошибка при чтении фото офиса:", error);
-      alert("Не удалось загрузить фото офиса");
+      toast({ title: "Не удалось загрузить фото офиса", variant: "error" });
     } finally {
       event.target.value = "";
     }
@@ -1587,7 +1591,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       setEditedOffice((prev) => ({ ...prev, photo: dataUrl }));
     } catch (error) {
       console.error("Ошибка при чтении фото офиса:", error);
-      alert("Не удалось загрузить фото офиса");
+      toast({ title: "Не удалось загрузить фото офиса", variant: "error" });
     } finally {
       event.target.value = "";
     }
@@ -1636,7 +1640,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
 
     // Проверка заполненности всех полей
     if (!city || !address || !name) {
-      alert("Пожалуйста, заполните все поля офиса");
+      toast({ title: "Пожалуйста, заполните все поля офиса", variant: "error" });
       return;
     }
 
@@ -1658,7 +1662,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       clearNewOfficePhoto();
     } catch (err) {
       console.error("Error creating office:", err);
-      alert("Не удалось создать офис. Пожалуйста, попробуйте снова.");
+      toast({ title: "Не удалось создать офис. Пожалуйста, попробуйте снова.", variant: "error" });
     }
   };
 
@@ -1684,7 +1688,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       
       toast({
         title: "Категория создана",
-        description: `Категория "${newCategoryName}" успешно создана`
+        description: `Категория "${newCategoryName}" успешно создана`,
+        variant: "success"
       });
 
       setNewCategoryName("");
@@ -1745,7 +1750,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       
       toast({
         title: "Категория удалена",
-        description: "Категория успешно удалена"
+        description: "Категория успешно удалена",
+        variant: "success"
       });
 
       setCategoryToDelete(null);
@@ -1770,6 +1776,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       toast({
         title: "Подкатегория создана",
         description: `Подкатегория "${newSubcategoryName}" успешно создана`,
+        variant: "success",
       });
       setSelectedCategoryForSubcategory(null);
       setNewSubcategoryName("");
@@ -1790,6 +1797,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
       toast({
         title: "Подкатегория удалена",
         description: "Подкатегория успешно удалена",
+        variant: "success",
       });
       setSubcategoryToDelete(null);
       fetchCategories(token);
@@ -1822,7 +1830,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     setIsChangingPassword(true);
     try {
       await changeUserPassword(selectedUserForPassword, newPassword);
-      toast({ title: "Пароль изменён", description: "Пароль пользователя успешно изменён" });
+      toast({ title: "Пароль изменён", description: "Пароль пользователя успешно изменён", variant: "success" });
       setSelectedUserForPassword(null);
       setNewPassword("");
       setConfirmPassword("");
@@ -1839,7 +1847,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
     setIsChangingRole(true);
     try {
       await api.put(`/users/${selectedUserForRole}`, { role: newRole });
-      toast({ title: "Роль изменена", description: "Роль пользователя успешно изменена" });
+      toast({ title: "Роль изменена", description: "Роль пользователя успешно изменена", variant: "success" });
       setSelectedUserForRole(null);
       setNewRole("");
       setOfficeUsers((prev) =>
@@ -1927,7 +1935,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         
         toast({
           title: "Заявка обновлена",
-          description: "Информация о заявке успешно обновлена"
+          description: "Информация о заявке успешно обновлена",
+          variant: "success"
         });
 
         // Обновляем локальное состояние
@@ -2227,7 +2236,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
         // Показываем уведомление об успехе
         toast({
           title: "Оценка отправлена",
-          description: "Ваша оценка была успешно отправлена."
+          description: "Ваша оценка была успешно отправлена.",
+          variant: "success"
         });
 
         // Закрываем модалку и сбрасываем состояние
@@ -4089,7 +4099,7 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
                             setShowMapModal(true);
                             openModal('mapModal');
                           } else {
-                            alert("Не удалось определить координаты из локации");
+                            toast({ title: "Не удалось определить координаты из локации", variant: "error" });
                           }
                         }}
                     >

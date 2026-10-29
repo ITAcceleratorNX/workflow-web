@@ -25,7 +25,7 @@ export function ProfileCalendarSyncView() {
       toast({
         title: notice.title,
         description: notice.description,
-        variant: notice.tone === "error" ? "destructive" : "default",
+        variant: notice.tone,
       });
     }
     router.replace(pathname ?? "/settings/calendar");

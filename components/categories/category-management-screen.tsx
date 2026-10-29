@@ -191,11 +191,11 @@ export function CategoryManagementScreen({
     const result = await createServiceCategory({ name }, manageOfficeId);
     setIsCreatingCategory(false);
     if (result.ok) {
-      toast({ title: "Категория создана" });
+      toast({ title: "Категория создана", variant: "success" });
       setNewCategoryName("");
       void refetch();
     } else {
-      toast({ title: result.error, variant: "destructive" });
+      toast({ title: result.error, variant: "error" });
     }
   }, [newCategoryName, manageOfficeId, toast, refetch]);
 
@@ -207,11 +207,11 @@ export function CategoryManagementScreen({
     const result = await createSubcategory({ name, category_id: catId }, manageOfficeId);
     setIsCreatingSubcategory(false);
     if (result.ok) {
-      toast({ title: "Подкатегория создана" });
+      toast({ title: "Подкатегория создана", variant: "success" });
       setNewSubcategoryName("");
       void refetch();
     } else {
-      toast({ title: result.error, variant: "destructive" });
+      toast({ title: result.error, variant: "error" });
     }
   }, [newSubcategoryName, selectedCategoryId, manageOfficeId, toast, refetch]);
 
@@ -237,11 +237,12 @@ export function CategoryManagementScreen({
     if (result.ok) {
       toast({
         title: isCategory ? "Категория обновлена" : "Подкатегория обновлена",
+        variant: "success",
       });
       cancelEdit();
       void refetch();
     } else {
-      toast({ title: result.error, variant: "destructive" });
+      toast({ title: result.error, variant: "error" });
     }
   }, [editDraft, editingKey, originalName, manageOfficeId, toast, refetch, cancelEdit]);
 
@@ -254,12 +255,12 @@ export function CategoryManagementScreen({
       const result = await deleteServiceCategory(deleteTarget.item.id, manageOfficeId);
       setIsDeleting(false);
       if (result.ok) {
-        toast({ title: "Категория удалена" });
+        toast({ title: "Категория удалена", variant: "success" });
         if (selectedCategoryId === String(deleteTarget.item.id)) setSelectedCategoryId("");
         setDeleteTarget(null);
         void refetch();
       } else {
-        toast({ title: result.error, variant: "destructive" });
+        toast({ title: result.error, variant: "error" });
       }
       return;
     }
@@ -268,11 +269,11 @@ export function CategoryManagementScreen({
     const result = await deleteSubcategory(deleteTarget.id, manageOfficeId);
     setIsDeleting(false);
     if (result.ok) {
-      toast({ title: "Подкатегория удалена" });
+      toast({ title: "Подкатегория удалена", variant: "success" });
       setDeleteTarget(null);
       void refetch();
     } else {
-      toast({ title: result.error, variant: "destructive" });
+      toast({ title: result.error, variant: "error" });
     }
   }, [
     deleteTarget,

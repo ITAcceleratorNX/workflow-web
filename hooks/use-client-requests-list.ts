@@ -139,9 +139,9 @@ export function useClientRequestsList() {
         [requestToRate.id]: { rating: ratingValue, comment: ratingComment },
       }));
       closeRateModal();
-      toast({ title: "Оценка сохранена" });
+      toast({ title: "Оценка сохранена", variant: "success" });
     } catch {
-      toast({ title: "Ошибка", variant: "destructive" });
+      toast({ title: "Ошибка", variant: "error" });
     }
   }, [requestToRate, ratingValue, ratingComment, closeRateModal, toast]);
 

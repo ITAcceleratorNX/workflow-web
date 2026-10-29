@@ -51,7 +51,7 @@ export function TaskCalendarSettings() {
     try {
       await work();
     } catch {
-      toast({ title: failure, variant: "destructive" });
+      toast({ title: failure, variant: "error" });
     } finally {
       setBusy(null);
     }
@@ -67,8 +67,8 @@ export function TaskCalendarSettings() {
       const answer = await syncGoogleCalendar();
       await load();
       toast(answer.ok
-        ? { title: "Календарь обновлён" }
-        : { title: "Не удалось обновить календарь", description: answer.last_error ?? undefined, variant: "destructive" });
+        ? { title: "Календарь обновлён", variant: "success" }
+        : { title: "Не удалось обновить календарь", description: answer.last_error ?? undefined, variant: "error" });
     }, "Не удалось обновить календарь");
 
   const disconnectGoogle = async () => {
@@ -102,16 +102,16 @@ export function TaskCalendarSettings() {
     await run("rotate", async () => {
       await enableCalendarSubscription(true);
       await load();
-      toast({ title: "Новая ссылка готова" });
+      toast({ title: "Новая ссылка готова", variant: "success" });
     }, "Не удалось выпустить ссылку");
   };
 
   const copyLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      toast({ title: "Ссылка скопирована" });
+      toast({ title: "Ссылка скопирована", variant: "success" });
     } catch {
-      toast({ title: "Не удалось скопировать", description: url, variant: "destructive" });
+      toast({ title: "Не удалось скопировать", description: url, variant: "error" });
     }
   };
 

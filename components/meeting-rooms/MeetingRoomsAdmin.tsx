@@ -153,7 +153,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     if (remainingSlots <= 0) {
       const msg = `Нельзя добавить больше ${MAX_PHOTOS} фото`;
       setErrors((e) => ({ ...e, photos: msg }));
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: msg, variant: "error" });
       return;
     }
 
@@ -164,11 +164,11 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     if (unsupported.length) {
       const msg = "Неподдерживаемый формат. Загружайте JPG или PNG.";
       setErrors((e) => ({ ...e, photos: msg }));
-      toast({ title: "Неподдерживаемый формат", description: msg, variant: "destructive" });
+      toast({ title: "Неподдерживаемый формат", description: msg, variant: "error" });
     } else if (oversize.length) {
       const msg = "Каждое фото должно быть не больше 2MB";
       setErrors((e) => ({ ...e, photos: msg }));
-      toast({ title: "Слишком большой файл", description: msg, variant: "destructive" });
+      toast({ title: "Слишком большой файл", description: msg, variant: "error" });
     }
 
     const allowedFiles = fileArray
@@ -260,9 +260,9 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
   const handleDuplicate = async (id: number) => {
     try {
       await duplicateRoom(id);
-      toast({ title: "Комната скопирована", description: "Создана копия переговорной" });
+      toast({ title: "Комната скопирована", description: "Создана копия переговорной", variant: "success" });
     } catch (error) {
-      toast({ title: "Ошибка", description: "Не удалось скопировать переговорную", variant: "destructive" });
+      toast({ title: "Ошибка", description: "Не удалось скопировать переговорную", variant: "error" });
     }
   };
 
@@ -281,6 +281,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       toast({
         title: "Переговорная удалена",
         description: `Переговорная ${pendingDeleteRoom.name} удалена из справочника`,
+        variant: "success",
       });
 
       if (formState.id === pendingDeleteRoom.id) {
@@ -290,7 +291,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
       toast({
         title: "Ошибка",
         description: "Не удалось удалить переговорную",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setPendingDeleteRoom(null);
@@ -309,7 +310,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     try {
       await toggleRoomActive(id);
     } catch (error) {
-      toast({ title: "Ошибка", description: "Не удалось изменить статус переговорной", variant: "destructive" });
+      toast({ title: "Ошибка", description: "Не удалось изменить статус переговорной", variant: "error" });
     }
   };
 
@@ -317,7 +318,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
     try {
       await setRoomStatus(id, status);
     } catch (error) {
-      toast({ title: "Ошибка", description: "Не удалось обновить статус переговорной", variant: "destructive" });
+      toast({ title: "Ошибка", description: "Не удалось обновить статус переговорной", variant: "error" });
     }
   };
 
@@ -352,7 +353,7 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
   const handleSubmit = async () => {
     setTouched(true);
     if (!validateForm()) {
-      toast({ title: "Заполните обязательные поля", variant: "destructive" });
+      toast({ title: "Заполните обязательные поля", variant: "error" });
       return;
     }
 
@@ -412,15 +413,15 @@ export function MeetingRoomsAdmin({ variant = "default" }: MeetingRoomsAdminProp
         toast({
           title: isEditing ? "Данные сохранены, фото не загрузились" : "Переговорная добавлена без фото",
           description: `${photoError.replace(/\.$/, "")}. Откройте переговорную и добавьте фото ещё раз.`,
-          variant: "destructive",
+          variant: "error",
         });
       } else {
-        toast({ title: isEditing ? "Переговорная обновлена" : "Переговорная добавлена" });
+        toast({ title: isEditing ? "Переговорная обновлена" : "Переговорная добавлена", variant: "success" });
       }
       handleOpenChange(false);
     } catch (error: unknown) {
       const msg = errorMessage(error) || (isEditing ? "Не удалось обновить переговорную" : "Не удалось добавить переговорную");
-      toast({ title: "Ошибка", description: msg, variant: "destructive" });
+      toast({ title: "Ошибка", description: msg, variant: "error" });
     } finally {
       setSubmitting(false);
     }

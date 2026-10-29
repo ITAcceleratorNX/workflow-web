@@ -70,7 +70,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
         toast({
           title: "Не удалось загрузить команду",
           description: res.error,
-          variant: "destructive",
+          variant: "error",
         });
         router.back();
         return;
@@ -169,19 +169,19 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
 
   const handleSave = useCallback(async () => {
     if (isGuest) {
-      toast({ title: "Недоступно", description: "Войдите в аккаунт", variant: "destructive" });
+      toast({ title: "Недоступно", description: "Войдите в аккаунт", variant: "error" });
       return;
     }
     const trimmed = name.trim();
     if (!trimmed) {
-      toast({ title: "Название", description: "Введите название команды", variant: "destructive" });
+      toast({ title: "Название", description: "Введите название команды", variant: "error" });
       return;
     }
     if (!leader) {
       toast({
         title: "Руководитель",
         description: "Выберите руководителя команды",
-        variant: "destructive",
+        variant: "error",
       });
       return;
     }
@@ -195,10 +195,10 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
       setSaving(false);
       if (res.ok) {
         bumpTeamsCache();
-        toast({ title: "Сохранено", duration: 2000 });
+        toast({ title: "Сохранено", duration: 2000, variant: "success" });
         router.back();
       } else {
-        toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+        toast({ title: "Ошибка", description: res.error, variant: "error" });
       }
     } else {
       const res = await createTeam({
@@ -211,7 +211,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
         bumpTeamsCache();
         router.back();
       } else {
-        toast({ title: "Не удалось создать", description: res.error, variant: "destructive" });
+        toast({ title: "Не удалось создать", description: res.error, variant: "error" });
       }
     }
   }, [
@@ -236,7 +236,7 @@ export function TeamFormScreen({ teamId }: TeamFormScreenProps) {
       bumpTeamsCache();
       router.back();
     } else {
-      toast({ title: "Не удалось удалить", description: res.error, variant: "destructive" });
+      toast({ title: "Не удалось удалить", description: res.error, variant: "error" });
     }
   }, [teamId, isEdit, isGuest, canDeleteTeam, router, toast]);
 

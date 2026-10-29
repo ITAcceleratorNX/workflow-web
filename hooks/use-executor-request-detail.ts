@@ -63,13 +63,14 @@ export function useExecutorRequestDetail() {
         toast({
           title: "Задача начата",
           description: "Вы успешно начали выполнение задачи",
+          variant: "success",
         });
       } catch (err: unknown) {
         console.error("Ошибка при начале выполнения задачи:", err);
         toast({
           title: "Ошибка",
           description: "Не удалось начать выполнение задачи",
-          variant: "destructive",
+          variant: "error",
         });
       }
     },
@@ -124,6 +125,7 @@ export function useExecutorRequestDetail() {
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,
+        variant: "success",
       });
       handleCloseRedirectModal();
       await refreshRequest();
@@ -133,7 +135,7 @@ export function useExecutorRequestDetail() {
       toast({
         title: "Ошибка",
         description: "Не удалось перенаправить подзаявку",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsRedirecting(false);
@@ -159,7 +161,7 @@ export function useExecutorRequestDetail() {
         toast({
           title: "Ошибка",
           description: "Пожалуйста, добавьте хотя бы одну фотографию результата",
-          variant: "destructive",
+          variant: "error",
         });
         return;
       }
@@ -178,13 +180,13 @@ export function useExecutorRequestDetail() {
         }
         await refreshRequest();
         closeCompleteTaskModal();
-        toast({ title: "Успешно", description: "Заявка успешно завершена" });
+        toast({ title: "Успешно", description: "Заявка успешно завершена", variant: "success" });
       } catch (err) {
         console.error("Ошибка при завершении задачи", err);
         toast({
           title: "Ошибка",
           description: "Не удалось завершить задачу",
-          variant: "destructive",
+          variant: "error",
         });
       } finally {
         setIsSubmittingComplete(false);
@@ -212,6 +214,7 @@ export function useExecutorRequestDetail() {
         toast({
           title: "Подзаявка отклонена",
           description: "Подзаявка успешно отклонена и возвращена в очередь назначения",
+          variant: "success",
         });
       } catch (err: unknown) {
         console.error("Ошибка при отклонении заявки:", err);

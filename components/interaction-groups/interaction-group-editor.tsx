@@ -196,7 +196,7 @@ export function InteractionGroupEditor({
       setDuplicateId(res.duplicateGroupId ?? null);
       return;
     }
-    toast({ title: isNew ? "Группа создана" : "Изменения сохранены" });
+    toast({ title: isNew ? "Группа создана" : "Изменения сохранены", variant: "success" });
     if (isNew) router.replace(`${INTERACTION_GROUPS_HREF}/${res.data.id}`);
     else onGroupChange?.(res.data);
   };
@@ -418,12 +418,12 @@ export function InteractionGroupEditor({
               onConfirm={async () => {
                 const res = await setInteractionGroupActive(group.id, !group.is_active);
                 if (!res.ok) {
-                  toast({ title: res.error, variant: "destructive" });
+                  toast({ title: res.error, variant: "error" });
                   return;
                 }
                 onGroupChange?.(res.data);
                 setConfirmToggle(false);
-                toast({ title: res.data.is_active ? "Группа активирована" : "Группа деактивирована" });
+                toast({ title: res.data.is_active ? "Группа активирована" : "Группа деактивирована", variant: "success" });
               }}
             />
             <LogDialog

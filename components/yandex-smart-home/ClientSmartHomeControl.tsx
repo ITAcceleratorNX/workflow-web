@@ -84,7 +84,8 @@ export function ClientSmartHomeControl() {
             toast({
                 title: "Успешно",
                 description: `Устройство "${device.name}" ${value ? "включено" : "выключено"}`,
-                duration: 2000
+                duration: 2000,
+                variant: "success"
             })
 
             // Обновляем состояние устройства локально

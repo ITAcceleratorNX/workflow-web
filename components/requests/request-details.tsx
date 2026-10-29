@@ -265,12 +265,12 @@ export function RequestDetails({
       setIsSubmitting(true);
       setFormErrors(null);
       await api.patch(`/request-groups/${selectedRequest.id}/take`);
-      toast({ title: "Заявка закреплена за вами" });
+      toast({ title: "Заявка закреплена за вами", variant: "success" });
       onRequestUpdated?.();
     } catch (err: any) {
       const msg = err?.response?.data?.message || "Ошибка при взятии заявки в работу";
       setFormErrors(msg);
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: msg, variant: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -288,10 +288,10 @@ export function RequestDetails({
     try {
       setIsSubmitting(true);
       await api.patch(`/request-groups/${selectedRequest.id}/confirm-work`);
-      toast({ title: "Выполнение подтверждено", description: "Заявка передана Клиенту на подтверждение" });
+      toast({ title: "Выполнение подтверждено", description: "Заявка передана Клиенту на подтверждение", variant: "success" });
       onRequestUpdated?.();
     } catch (err: any) {
-      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "destructive" });
+      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -309,10 +309,10 @@ export function RequestDetails({
     try {
       setIsSubmitting(true);
       await api.patch(`/request-groups/${selectedRequest.id}/client-confirm`);
-      toast({ title: "Заявка завершена", description: "Спасибо! Оценить работу можно в меню заявки." });
+      toast({ title: "Заявка завершена", description: "Спасибо! Оценить работу можно в меню заявки.", variant: "success" });
       onRequestUpdated?.();
     } catch (err: any) {
-      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "destructive" });
+      toast({ title: err?.response?.data?.message || "Не удалось подтвердить выполнение", variant: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -324,7 +324,7 @@ export function RequestDetails({
       setIsSubmitting(true);
       setAdminModalError(null);
       await api.patch(`/request-groups/${selectedRequest.id}/client-remark`, { remark });
-      toast({ title: "Замечания отправлены", description: "Заявка возвращена на доработку" });
+      toast({ title: "Замечания отправлены", description: "Заявка возвращена на доработку", variant: "success" });
       setShowRemarkModal(false);
       onRequestUpdated?.();
     } catch (err: any) {
@@ -340,12 +340,12 @@ export function RequestDetails({
       setIsSubmitting(true);
       setFormErrors(null);
       await api.patch(`/requests/${subReq.id}/admin-start`);
-      toast({ title: "Заявка взята в работу" });
+      toast({ title: "Заявка взята в работу", variant: "success" });
       onRequestUpdated?.();
     } catch (err: any) {
       const msg = err?.response?.data?.message || "Ошибка при изменении статуса";
       setFormErrors(msg);
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: msg, variant: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -373,6 +373,7 @@ export function RequestDetails({
       toast({
         title: "Выполнение отмечено",
         description: "Заявка передана Клиенту на подтверждение",
+        variant: "success",
       });
       setShowStaffCompleteModal(false);
       onRequestUpdated?.();
@@ -405,6 +406,7 @@ export function RequestDetails({
             : direct === payload.sub_requests.length
               ? "Исполнитель назначен"
               : "Исполнители назначены, остальное передано офис-менеджеру",
+        variant: "success",
       });
       setShowAcceptGroupModal(false);
       onRequestUpdated?.();
@@ -426,7 +428,7 @@ export function RequestDetails({
         patch_code: 2,
         rejection_reason: reason,
       });
-      toast({ title: "Заявка отклонена" });
+      toast({ title: "Заявка отклонена", variant: "success" });
       setShowRejectGroupModal(false);
       onRequestUpdated?.();
       onClose();
@@ -442,7 +444,7 @@ export function RequestDetails({
       setIsSubmitting(true);
       setAdminModalError(null);
       await api.put(`/request-groups/${selectedRequest.id}`, body);
-      toast({ title: "Заявка обновлена" });
+      toast({ title: "Заявка обновлена", variant: "success" });
       setShowEditModal(false);
       onRequestUpdated?.();
     } catch {
@@ -455,7 +457,7 @@ export function RequestDetails({
   const openStaffCompleteModal = () => {
     const targets = selectedRequest.requests.filter(isStaffCompletableSubRequest);
     if (!targets.length) {
-      toast({ title: "Нет подзаявок для завершения", variant: "destructive" });
+      toast({ title: "Нет подзаявок для завершения", variant: "error" });
       return;
     }
     setStaffCompleteCount(targets.length);
@@ -473,14 +475,14 @@ export function RequestDetails({
         request_id: requestToRate.id,
         comment: ratingComment,
       });
-      toast({ title: "Оценка отправлена" });
+      toast({ title: "Оценка отправлена", variant: "success" });
       setShowRatingModal(false);
       setRequestToRate(null);
       setRatingValue(0);
       setRatingComment("");
       onRequestUpdated?.();
     } catch (err) {
-      toast({ title: "Ошибка при отправке оценки", variant: "destructive" });
+      toast({ title: "Ошибка при отправке оценки", variant: "error" });
     }
   };
 
@@ -494,13 +496,13 @@ export function RequestDetails({
         request_group_id: selectedRequest.id,
         comment: clientRatingComment,
       });
-      toast({ title: "Оценка клиента отправлена" });
+      toast({ title: "Оценка клиента отправлена", variant: "success" });
       setShowClientRatingModal(false);
       setClientRatingValue(0);
       setClientRatingComment("");
       onRequestUpdated?.();
     } catch (err) {
-      toast({ title: "Ошибка при отправке оценки клиента", variant: "destructive" });
+      toast({ title: "Ошибка при отправке оценки клиента", variant: "error" });
     }
   };
 
@@ -531,10 +533,11 @@ export function RequestDetails({
         title: currentStatus
           ? "Задача снята с долгосрочных"
           : "Задача помечена как долгосрочная",
+        variant: "success",
       });
       onRequestUpdated?.();
     } catch (error) {
-      toast({ title: "Ошибка", variant: "destructive" });
+      toast({ title: "Ошибка", variant: "error" });
     }
   };
 
@@ -549,7 +552,7 @@ export function RequestDetails({
       setIsSubmitting(true);
       setAdminModalError(null);
       await api.delete(`/request-groups/${selectedRequest.id}`, { data: { reason } });
-      toast({ title: "Заявка удалена", description: "Запись сохранена в журнале удалений" });
+      toast({ title: "Заявка удалена", description: "Запись сохранена в журнале удалений", variant: "success" });
       setShowDeleteModal(false);
       onClose();
       onRequestUpdated?.();
@@ -951,7 +954,7 @@ export function RequestDetails({
                       toast({
                         title: "Ошибка",
                         description: "Не удалось определить координаты",
-                        variant: "destructive",
+                        variant: "error",
                       });
                     }
                   }}

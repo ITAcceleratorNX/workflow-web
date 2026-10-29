@@ -13,10 +13,12 @@ const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
   id: string
+  /** Every toast says what it is: Figma «Тост» has no neutral light card. */
+  variant: NonNullable<ToastProps["variant"]>
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  /** Icon of a `success` / `error` toast instead of the default one. */
+  /** Icon instead of the variant's default one. */
   icon?: React.ReactNode
 }
 

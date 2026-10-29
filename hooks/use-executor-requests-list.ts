@@ -171,10 +171,10 @@ export function useExecutorRequestsList() {
     async (taskId: string) => {
       try {
         await api.patch(`/requests/${taskId}/execute`);
-        toast({ title: "Задача начата" });
+        toast({ title: "Задача начата", variant: "success" });
         await fetchRequests();
       } catch {
-        toast({ title: "Ошибка", variant: "destructive" });
+        toast({ title: "Ошибка", variant: "error" });
       }
     },
     [fetchRequests, toast]
@@ -228,6 +228,7 @@ export function useExecutorRequestsList() {
       toast({
         title: "Подзаявка перенаправлена",
         description: `Подзаявка успешно перенаправлена руководителям категории "${categoryName}"`,
+        variant: "success",
       });
       handleCloseRedirectModal();
       await fetchRequests();
@@ -241,7 +242,7 @@ export function useExecutorRequestsList() {
       toast({
         title: "Ошибка",
         description: "Не удалось перенаправить подзаявку",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsRedirecting(false);
@@ -278,7 +279,7 @@ export function useExecutorRequestsList() {
         toast({
           title: "Ошибка",
           description: "Добавьте хотя бы одну фотографию результата",
-          variant: "destructive",
+          variant: "error",
         });
         return;
       }
@@ -296,7 +297,7 @@ export function useExecutorRequestsList() {
           });
         }
         closeCompleteTaskModal();
-        toast({ title: "Работы отмечены выполненными", description: "Администратор подтвердит выполнение, затем заявку примет Клиент" });
+        toast({ title: "Работы отмечены выполненными", description: "Администратор подтвердит выполнение, затем заявку примет Клиент", variant: "success" });
         await fetchRequests();
         const groupId = selectedTaskForComplete.request_group_id ?? displayRequestIdRef.current;
         if (groupId) {
@@ -305,7 +306,7 @@ export function useExecutorRequestsList() {
         }
       } catch (err) {
         console.error("Ошибка при завершении задачи", err);
-        toast({ title: "Ошибка", description: "Не удалось завершить задачу", variant: "destructive" });
+        toast({ title: "Ошибка", description: "Не удалось завершить задачу", variant: "error" });
       } finally {
         setIsSubmittingComplete(false);
       }
@@ -331,6 +332,7 @@ export function useExecutorRequestsList() {
         toast({
           title: "Подзаявка отклонена",
           description: "Подзаявка успешно отклонена и возвращена в очередь назначения",
+          variant: "success",
         });
         await fetchRequests();
         const groupId =

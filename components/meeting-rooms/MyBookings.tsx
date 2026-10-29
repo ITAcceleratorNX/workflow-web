@@ -70,6 +70,7 @@ export function MyBookings({ variant = "default" }: MyBookingsProps) {
       toast({
         title: "Бронирование отменено",
         description: "Бронирование успешно отменено",
+        variant: "success",
       });
       await refresh();
     } catch (error: any) {
