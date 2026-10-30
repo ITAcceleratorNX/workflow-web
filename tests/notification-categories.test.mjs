@@ -45,7 +45,7 @@ test('desktop opens the first category with unread notifications', () => {
   assert.equal(categories.defaultCategory([]), null);
 });
 
-test('history: oldest first, grouped into today, yesterday and calendar dates', () => {
+test('history: newest first, grouped into today, yesterday and calendar dates', () => {
   const groups = categories.groupNotificationsByDay([
     notification(5, '2026-10-22T06:53:00Z'),
     notification(4, '2026-10-22T05:12:00Z'),
@@ -55,9 +55,9 @@ test('history: oldest first, grouped into today, yesterday and calendar dates', 
     notification(1, '2026-10-20T07:00:00Z'),
   ], NOW);
   assert.deepEqual(plain(groups.map((g) => [g.label, g.items.map((n) => n.id)])), [
-    ['20 октября', [1, 2]],
+    ['Сегодня', [5, 4]],
     ['Вчера', [3]],
-    ['Сегодня', [4, 5]],
+    ['20 октября', [2, 1]],
   ]);
 });
 
