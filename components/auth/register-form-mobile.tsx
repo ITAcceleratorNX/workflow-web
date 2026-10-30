@@ -60,11 +60,15 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
     setVerificationCode,
     isSendingCode,
     countdown,
+    smsSendFailed,
+    smsSkipped,
     isStep1Valid,
     handlePhoneChange,
     handleMobileStep1Next,
     handleVerifyCode,
     handleResendCode,
+    handleSkipSms,
+    handleBackFromPassword,
     handleSubmit,
   } = props;
 
@@ -198,6 +202,15 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
               >
                 Далее
               </button>
+              {smsSendFailed ? (
+                <button
+                  type="button"
+                  onClick={handleSkipSms}
+                  className="flex min-h-12 px-4 py-3 w-full items-center justify-center text-base text-[hsl(var(--action-background))]"
+                >
+                  Продолжить без SMS
+                </button>
+              ) : null}
             </>
           )}
 
@@ -238,6 +251,15 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
                     ? `Отправить повторно (${countdown}с)`
                     : "Отправить код повторно"}
               </button>
+              {!isSendingCode && countdown === 0 ? (
+                <button
+                  type="button"
+                  onClick={handleSkipSms}
+                  className="flex min-h-12 px-4 py-3 w-full items-center justify-center text-center text-base text-[hsl(var(--action-background))]"
+                >
+                  Не приходит SMS? Отправить запрос без SMS
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {
@@ -254,6 +276,11 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
 
           {step === 3 && (
             <>
+              {smsSkipped ? (
+                <p className="text-center text-sm text-muted-foreground">
+                  Запрос будет отправлен без SMS-подтверждения. Его подтвердит администратор.
+                </p>
+              ) : null}
               <AuthTextField
                 id="register-mobile-password"
                 autoComplete="new-password"
@@ -288,10 +315,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setStep(2);
-                  setFormErrors(null);
-                }}
+                onClick={handleBackFromPassword}
                 className="flex min-h-12 px-4 py-3 w-full items-center justify-center text-base text-muted-foreground"
               >
                 Назад

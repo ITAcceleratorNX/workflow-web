@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, X } from "lucide-react";
 import {
   formatExecutorSpecialty,
   formatServiceCategoryName,
@@ -75,6 +75,42 @@ export function FilterPill({
 }
 
 /** Категории Исполнителя для формы: «Администрацию» Исполнителю больше не назначают. */
+/** Поле нового пароля с «глазом»: показывает только вводимое значение. */
+function RevealablePasswordInput({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  className?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className={`relative ${className ?? ""}`}>
+      <Input
+        type={visible ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="new-password"
+        className="pr-11"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+        aria-pressed={visible}
+      >
+        {visible ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+      </button>
+    </div>
+  );
+}
+
 function executorCategoryIds(executor: ExecutorInCategory): number[] {
   return (executor.serviceCategories ?? [])
     .filter((c) => isExecutorServiceCategory(c.name))
@@ -518,16 +554,14 @@ function UserEditForm({
           <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
             Новый пароль
           </p>
-          <Input
-            type="password"
+          <RevealablePasswordInput
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={setNewPassword}
             placeholder="Оставьте пустым, если не меняете"
           />
-          <Input
-            type="password"
+          <RevealablePasswordInput
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={setConfirmPassword}
             placeholder="Подтверждение пароля"
             className="mt-2"
           />

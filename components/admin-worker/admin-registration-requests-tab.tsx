@@ -149,7 +149,10 @@ export function AdminRegistrationRequestsTab({
       if (result.ok) {
         toast({
           title: "Успешно",
-          description: "Запрос одобрен, пользователь создан",
+          description:
+            req.phone_verified === false
+              ? "Регистрация подтверждена без SMS, пользователь создан"
+              : "Запрос одобрен, пользователь создан",
           variant: "success",
         });
         loadRequests();
@@ -332,6 +335,11 @@ export function AdminRegistrationRequestsTab({
                   {REGISTRATION_STATUS_LABELS[req.status] ?? req.status}
                 </span>
               </div>
+              {req.phone_verified === false ? (
+                <p className="mb-2 inline-flex rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  Без SMS-подтверждения
+                </p>
+              ) : null}
               <p className="text-sm text-muted-foreground">Телефон: {req.phone}</p>
               <p className="text-sm text-muted-foreground">Офис: {req.office?.name ?? "—"}</p>
               <p className="text-sm text-muted-foreground">
@@ -407,6 +415,8 @@ export function AdminRegistrationRequestsTab({
                     >
                       {actionRequestId === req.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : req.phone_verified === false ? (
+                        "Подтвердить без SMS"
                       ) : (
                         "Одобрить"
                       )}

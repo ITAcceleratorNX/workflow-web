@@ -21,6 +21,8 @@ export interface RegistrationRequestItem {
   company?: { id: number; name: string } | null;
   company_other_name?: string | null;
   status: "pending" | "approved" | "rejected";
+  /** false — номер не подтверждён по SMS: подтверждает только Администратор. */
+  phone_verified?: boolean;
   created_at: string;
 }
 
