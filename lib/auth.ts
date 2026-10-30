@@ -2,6 +2,8 @@ import { API_BASE_URL, api } from '@/lib/api';
 
 export interface LoginResponse {
   token: string;
+  /** Продление входа без пароля (lib/session.ts). */
+  refresh_token?: string;
   role?: string;
 }
 
@@ -38,7 +40,8 @@ export async function loginWithPhone(
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, password }),
+    // Сессия с автопродлением: пользователь входит один раз, дальше токен продлевается сам.
+    body: JSON.stringify({ phone, password, with_refresh_token: true }),
     credentials: 'include',
   });
 
