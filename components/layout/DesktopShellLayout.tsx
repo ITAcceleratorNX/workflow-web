@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { signOut } from "@/lib/session";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useDesktopSidebarCollapsed } from "@/hooks/use-desktop-sidebar";
 import Header from "@/app/header/Header";
@@ -39,13 +40,13 @@ export function DesktopShellLayout({
   shellClassName,
 }: DesktopShellLayoutProps) {
   const router = useRouter();
-  const { clearAuth } = useAuthStore();
   const isDesktop = useIsDesktop();
   const { collapsed: sidebarCollapsed, toggle: handleSidebarToggle } =
     useDesktopSidebarCollapsed(sidebarStorageKey);
 
-  const handleLogout = () => {
-    clearAuth();
+  const handleLogout = async () => {
+    // Сессию завершает и сервер: refresh-токен больше не продлит вход.
+    await signOut();
     router.push("/login");
   };
 

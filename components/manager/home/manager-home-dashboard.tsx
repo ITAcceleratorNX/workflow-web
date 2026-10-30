@@ -59,6 +59,7 @@ import PullToRefresh from "@/components/pull-to-refresh";
 import Link from "next/link";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
+import { signOut } from "@/lib/session";
 import {useCategoryStore} from "@/stores/useCategoryStore";
 import {RoleBasedActionMenu} from "@/components/requests";
 const LogsViewer = dynamic(() => import("@/components/logs-viewer").then(mod => ({ default: mod.LogsViewer })), {
@@ -1096,7 +1097,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const handleLogout = async () => {
     try {
       clearNotifications()
-      clearAuth()
+      // Сессию завершает и сервер: refresh-токен больше не продлит вход.
+      await signOut()
       useStatsStore.getState().resetStats()
       clearRequests()
       clearCategories()
