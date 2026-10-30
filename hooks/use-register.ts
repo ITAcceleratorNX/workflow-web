@@ -11,7 +11,6 @@ import {
   type RegistrationServiceCategory,
 } from '@/constants/registration';
 import { formatServiceCategoryDisplayName, isExecutorServiceCategory } from '@/constants/requests';
-import { useSuccessModal } from '@/hooks/use-success-modal';
 import { api, getOfficeCompanies, getServiceCategoriesPublic } from '@/lib/api';
 import { formatPhone } from '@/lib/phone-utils';
 import {
@@ -25,7 +24,6 @@ import { sendVerificationCode, verifyCode } from '@/lib/mobizon';
 
 export function useRegister() {
   const router = useRouter();
-  const successModal = useSuccessModal();
 
   const [formData, setFormData] = useState<RegistrationFormData>(INITIAL_REGISTRATION_FORM);
   const [offices, setOffices] = useState<RegistrationOffice[]>([]);
@@ -40,6 +38,13 @@ export function useRegister() {
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  /** SMS не удалось отправить — можно продолжить без него. */
+  const [smsSendFailed, setSmsSendFailed] = useState(false);
+  /** Шаг, с которого пользователь продолжил без SMS (запрос подтвердит Администратор). */
+  const [smsSkippedFrom, setSmsSkippedFrom] = useState<1 | 2 | null>(null);
+  const smsSkipped = smsSkippedFrom != null;
+  /** Запрос отправлен — показывается финальный экран; withoutSms — без SMS-подтверждения. */
+  const [submitted, setSubmitted] = useState<{ withoutSms: boolean } | null>(null);
 
   useEffect(() => {
     api
@@ -112,6 +117,8 @@ export function useRegister() {
     setFormErrors(null);
     setCodeSent(false);
     setVerificationCode('');
+    setSmsSendFailed(false);
+    setSmsSkippedFrom(null);
   }, []);
 
   const sendCode = useCallback(async (): Promise<boolean> => {
@@ -129,12 +136,15 @@ export function useRegister() {
       if (result.success) {
         setCodeSent(true);
         setCountdown(60);
+        setSmsSendFailed(false);
         return true;
       }
       setFormErrors(result.message || 'Ошибка при отправке SMS. Попробуйте позже.');
+      setSmsSendFailed(true);
       return false;
     } catch {
       setFormErrors('Ошибка при отправке SMS. Попробуйте позже.');
+      setSmsSendFailed(true);
       return false;
     } finally {
       setIsSendingCode(false);
@@ -183,6 +193,29 @@ export function useRegister() {
       setFormErrors('Ошибка при проверке кода. Попробуйте позже.');
     }
   }, [formData.phone, verificationCode]);
+
+  /**
+   * SMS не приходит: шаг кода пропускается, запрос уходит Администратору,
+   * он подтверждает регистрацию вручную («Подтвердить без SMS»).
+   */
+  const handleSkipSms = useCallback(() => {
+    const parsed = registerStep1Schema.safeParse(formData);
+    if (!parsed.success) {
+      setFormErrors(getZodErrorMessage(parsed.error));
+      return;
+    }
+    setSmsSkippedFrom(step === 1 ? 1 : 2);
+    setVerificationCode('');
+    setFormErrors(null);
+    setStep(3);
+  }, [formData, step]);
+
+  /** Назад с шага пароля: к коду из SMS или, если SMS пропущено, к шагу, где его пропустили. */
+  const handleBackFromPassword = useCallback(() => {
+    setFormErrors(null);
+    setStep(smsSkippedFrom ?? 2);
+    setSmsSkippedFrom(null);
+  }, [smsSkippedFrom]);
 
   const handleResendCode = useCallback(async () => {
     if (isSendingCode || countdown > 0) return;
@@ -234,12 +267,14 @@ export function useRegister() {
         }
 
         await api.post('/registration-requests', requestData);
-        successModal.showSuccess();
+        setSubmitted({ withoutSms: smsSkipped });
         setFormData(INITIAL_REGISTRATION_FORM);
         setStep(1);
         setVerificationCode('');
         setCodeSent(false);
         setCountdown(0);
+        setSmsSendFailed(false);
+        setSmsSkippedFrom(null);
       } catch (error: unknown) {
         const err = error as { response?: { data?: { error?: string } } };
         setFormErrors(err.response?.data?.error || 'Произошла ошибка при отправке запроса');
@@ -247,13 +282,12 @@ export function useRegister() {
         setLoading(false);
       }
     },
-    [formData, successModal]
+    [formData, smsSkipped]
   );
 
-  const handleSuccessClose = useCallback(() => {
-    successModal.hideSuccess();
+  const handleGoToLogin = useCallback(() => {
     router.push('/login');
-  }, [router, successModal]);
+  }, [router]);
 
   const categoryOptions = useMemo(
     () =>
@@ -289,15 +323,19 @@ export function useRegister() {
     isSendingCode,
     codeSent,
     countdown,
+    smsSendFailed,
+    smsSkipped,
     isStep1Valid,
     handlePhoneChange,
     handleDesktopStep1Next,
     handleMobileStep1Next,
     handleVerifyCode,
     handleResendCode,
+    handleSkipSms,
+    handleBackFromPassword,
     handleSubmit,
-    successModal,
-    handleSuccessClose,
+    submitted,
+    handleGoToLogin,
   };
 }
 

@@ -1,12 +1,33 @@
 "use client";
 
-import { SuccessModal } from "@/components/success-model";
 import { RegisterFormDesktop } from "@/components/auth/register-form-desktop";
 import { RegisterFormMobile } from "@/components/auth/register-form-mobile";
+import { RegisterSuccess } from "@/components/auth/register-success";
 import { useRegister } from "@/hooks/use-register";
 
 export function RegisterForm() {
   const register = useRegister();
+
+  if (register.submitted) {
+    return (
+      <>
+        <div className="hidden md:block">
+          <RegisterSuccess
+            variant="desktop"
+            withoutSms={register.submitted.withoutSms}
+            onLogin={register.handleGoToLogin}
+          />
+        </div>
+        <div className="md:hidden">
+          <RegisterSuccess
+            variant="mobile"
+            withoutSms={register.submitted.withoutSms}
+            onLogin={register.handleGoToLogin}
+          />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -16,12 +37,6 @@ export function RegisterForm() {
       <div className="md:hidden">
         <RegisterFormMobile {...register} />
       </div>
-      <SuccessModal
-        isOpen={register.successModal.isOpen}
-        onClose={register.handleSuccessClose}
-        title="Успешно"
-        message="Запрос на регистрацию отправлен. Ожидайте одобрения администратора."
-      />
     </>
   );
 }

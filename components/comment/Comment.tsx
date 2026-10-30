@@ -98,7 +98,7 @@ export function CommentList({
                                     key={c.id}
                                     className={`flex items-start gap-2.5 group relative transition-colors duration-150 ${
                                         activeCommentId === c.id
-                                            ? isDark ? "bg-[#114A65]/20" : "bg-[#114A65]/10"
+                                            ? isDark ? "bg-[#F35713]/15" : "bg-[#F35713]/10"
                                             : isDark ? "hover:bg-gray-800/50" : "hover:bg-gray-50"
                                     }`}
                                     style={{ WebkitUserSelect: "none", userSelect: "none", position: 'relative', borderRadius: '0.5rem', padding: '0.5rem' }}
@@ -119,7 +119,7 @@ export function CommentList({
                                     }}
                                 >
                                     {/* Аватарка */}
-                                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[#114A65] to-[#B8400E] rounded-full flex items-center justify-center">
+                                    <div className="flex-shrink-0 w-8 h-8 bg-[#F35713] rounded-full flex items-center justify-center">
                     <span className="text-white text-xs font-bold">
                       {c.user.full_name?.charAt(0).toUpperCase() || "U"}
                     </span>
@@ -192,11 +192,11 @@ export function CommentList({
                     onClick={closeActions}
                 >
                     <div
-                        className="absolute inset-0 bg-black bg-opacity-20"
+                        className="absolute inset-0 bg-black/40"
                         onClick={closeActions}
                     />
                     <div
-                        className="absolute bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[120px]"
+                        className="absolute bg-[#2C2C2E] rounded-lg shadow-lg border border-[#3A3A3C] py-1 min-w-[120px]"
                         style={{
                             top: '50%',
                             left: '50%',
@@ -209,7 +209,7 @@ export function CommentList({
                                 onEdit(showActions.comment!.id, showActions.comment!.comment);
                                 closeActions();
                             }}
-                            className="w-full text-left text-sm text-gray-800 py-2 px-4 hover:bg-gray-100 transition-colors rounded-t-lg"
+                            className="w-full text-left text-sm text-white py-2 px-4 hover:bg-white/10 transition-colors rounded-t-lg"
                         >
                             Изменить
                         </button>
@@ -218,7 +218,7 @@ export function CommentList({
                                 onDelete(showActions.comment!.id);
                                 closeActions();
                             }}
-                            className="w-full text-left text-sm text-red-600 py-2 px-4 hover:bg-red-50 transition-colors rounded-b-lg"
+                            className="w-full text-left text-sm text-red-400 py-2 px-4 hover:bg-red-500/10 transition-colors rounded-b-lg"
                         >
                             Удалить
                         </button>

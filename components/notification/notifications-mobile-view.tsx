@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { RequestNotFoundModal } from "@/components/RequestNotFoundModal";
-import { useBottomAnchoredScroll } from "@/hooks/use-bottom-anchored-scroll";
+import { useNewestFirstScroll } from "@/hooks/use-newest-first-scroll";
 import type { UseNotificationsPageResult } from "@/hooks/use-notifications-page";
 import { cn } from "@/lib/utils";
 import { formatTimeOnly } from "@/lib/dateTimeUtils";
@@ -81,7 +81,7 @@ function HistoryItem({ notification, onOpen }: { notification: CategoryNotificat
 function CategoryHistory(page: NotificationsMobileViewProps) {
   const { activeCategory, activeSummary, history, loadOlder, openNotification, backToCategories, retry } = page;
   const items = history?.items ?? [];
-  const { containerRef, onScroll } = useBottomAnchoredScroll({
+  const { containerRef, onScroll } = useNewestFirstScroll({
     resetKey: activeCategory,
     itemsCount: items.length,
     hasMore: history?.hasMore ?? false,
@@ -106,7 +106,6 @@ function CategoryHistory(page: NotificationsMobileViewProps) {
           <CategoryEmptyState category={activeCategory} className="px-6 pb-12 pt-16" />
         ) : (
           <div className="flex flex-col gap-4">
-            {history?.loading && <p className="text-center text-xs text-[#A1A1AA]">Загрузка...</p>}
             {groups.map((group) => (
               <section key={group.key} className="flex flex-col gap-2">
                 <h2 className="text-[13px] font-semibold text-[#A1A1AA]">{group.label}</h2>
@@ -120,6 +119,7 @@ function CategoryHistory(page: NotificationsMobileViewProps) {
                 </div>
               </section>
             ))}
+            {history?.loading && <p className="text-center text-xs text-[#A1A1AA]">Загрузка...</p>}
           </div>
         )}
       </div>

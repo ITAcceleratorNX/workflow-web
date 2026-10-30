@@ -159,26 +159,27 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     </>
   );
 
-  if (variant === "admin") {
-    if (isDesktop) {
-      return (
-        <div className="flex flex-col bg-desktop-bg fixed top-0 right-0 h-full w-[400px] max-w-[100vw] shadow-2xl border-l border-white/10 z-[110]">
-          <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-            <h3 className="font-semibold text-lg text-white">Комментарии</h3>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
-              aria-label="Закрыть"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          {commentsBody("dark")}
+  // Desktop: одна тёмная правая панель для всех ролей.
+  if (isDesktop) {
+    return (
+      <div className="flex flex-col bg-desktop-bg fixed top-0 right-0 h-full w-[400px] max-w-[100vw] shadow-2xl border-l border-white/10 z-[110]">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+          <h3 className="font-semibold text-lg text-white">Комментарии</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+            aria-label="Закрыть"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      );
-    }
+        {commentsBody("dark")}
+      </div>
+    );
+  }
 
+  if (variant === "admin") {
     return (
       <div className="fixed inset-0 z-[110] flex items-end">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -208,102 +209,32 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     );
   }
 
+  // Mobile (default): шторка снизу.
   return (
-    <>
-      {/* Мобильная версия (default) */}
-      {!isDesktop && (
-        <div className="fixed inset-0 z-[110] flex items-end safe-area-bottom">
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
+    <div className="fixed inset-0 z-[110] flex items-end safe-area-bottom">
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
-          <div
-            className={cn(
-              "relative w-full max-h-[85vh] min-h-[50vh] rounded-t-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-8",
-              MOBILE_REQUESTS_COMMENTS_SHEET,
-            )}
-          >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-border" />
-            </div>
-            <div className="flex items-center justify-between px-4 pb-3 border-b border-border flex-shrink-0">
-              <h3 className="font-semibold text-lg text-foreground">Комментарии</h3>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            {commentsBody("default")}
-          </div>
+      <div
+        className={cn(
+          "relative w-full max-h-[85vh] min-h-[50vh] rounded-t-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-8",
+          MOBILE_REQUESTS_COMMENTS_SHEET,
+        )}
+      >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border" />
         </div>
-      )}
-
-      {/* Десктопная версия - правая панель */}
-      {isDesktop && (
-        <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col">
-          {/* Заголовок */}
-          <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-            <h3 className="font-semibold text-lg">Комментарии</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Список комментариев */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {loading[requestId || 0] ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">Загрузка комментариев...</p>
-              </div>
-            ) : (comments[requestId || 0] || []).length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">Комментариев пока нет</p>
-              </div>
-            ) : (
-              <CommentList
-                comments={comments[requestId || 0] || []}
-                currentUserId={currentUserId}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            )}
-          </div>
-
-          {/* Поле ввода */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="flex items-end gap-2">
-              <div className="flex-1 min-w-0">
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onInput={handleInput}
-                  placeholder="Написать комментарий..."
-                  className="w-full min-h-[40px] max-h-[120px] p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#114A65] focus:border-transparent resize-none"
-                  style={{
-                    height: 'auto',
-                    minHeight: '40px',
-                    maxHeight: '120px'
-                  }}
-                />
-              </div>
-              <Button
-                size="sm"
-                onClick={() => handleSend(requestId)}
-                className="bg-gradient-to-r from-[#114A65] to-[#B8400E] hover:from-[#0d3a4f] hover:to-[#A3390D] p-3 rounded-lg flex-shrink-0 text-white"
-                disabled={!comment.trim()}
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-4 pb-3 border-b border-border flex-shrink-0">
+          <h3 className="font-semibold text-lg text-foreground">Комментарии</h3>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
         </div>
-      )}
-    </>
+        {commentsBody("default")}
+      </div>
+    </div>
   );
 };
