@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { AlertCircle, ChevronLeft, ChevronRight, Info, Loader2, Lock } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Info, Loader2, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -13,6 +13,7 @@ import {
   type StatsPeriod,
   type TaskPriority,
   type TaskStats,
+  type TeamMemberStats,
 } from "@/lib/task-stats";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +138,92 @@ export function Avatar({ name, className }: { name: string; className?: string }
     >
       {initials(name)}
     </span>
+  );
+}
+
+/** «Вся команда» in the place of an employee's avatar. */
+export function TeamAvatar({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn("flex shrink-0 items-center justify-center rounded-full bg-ui-accent-soft text-ui-accent-on-soft", className)}>
+      <Users className="size-[45%]" />
+    </span>
+  );
+}
+
+/** «5 сотрудников». */
+export function employeesLabel(count: number): string {
+  return `${count} ${plural(count, "сотрудник", "сотрудника", "сотрудников")}`;
+}
+
+/**
+ * Employees under «Вся команда»: each one's percentage and what is left, from the same numbers as
+ * their own statistics. A row opens the employee.
+ */
+export function TeamMembers({
+  members,
+  onSelect,
+  withDepartments = false,
+  size = "md",
+}: {
+  members: TeamMemberStats[];
+  onSelect: (id: number) => void;
+  /** Desktop rows: the department next to the position when the team spans several. */
+  withDepartments?: boolean;
+  size?: "md" | "lg";
+}) {
+  const large = size === "lg";
+  return (
+    <ul>
+      {members.map((member, index) => {
+        const subtitle = [member.position, withDepartments ? member.department_name : null].filter(Boolean).join(" · ");
+        const percent = member.completion_percent == null ? "—" : `${member.completion_percent}%`;
+        return (
+          <li key={member.id} className={cn(index > 0 && "border-t border-ui-fg/[0.08]")}>
+            <button
+              type="button"
+              onClick={() => onSelect(member.id)}
+              className={cn(
+                "flex w-full items-center gap-3 text-left hover:bg-ui-fg/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-fg/70",
+                large ? "px-4 py-2.5" : "px-5 py-3",
+              )}
+            >
+              <Avatar name={member.full_name} className={large ? "size-10 text-sm" : "size-9 text-[13px]"} />
+              {large ? (
+                // Phone: the numbers under the name, the percentage alone on the right.
+                <>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[17px] font-semibold">{member.full_name}</span>
+                    <span className="block truncate text-sm text-ui-fg/55">
+                      {member.total > 0 ? `${member.completed} из ${member.total}` : "Нет задач со сроком"}
+                      {member.overdue > 0 ? <span className="text-ui-danger"> · {member.overdue} просрочено</span> : null}
+                    </span>
+                  </span>
+                  <span className={cn("shrink-0 text-[17px] font-bold", member.completion_percent == null && "text-ui-fg/40")}>{percent}</span>
+                </>
+              ) : (
+                <>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-semibold">{member.full_name}</span>
+                    {subtitle ? <span className="block truncate text-xs text-ui-fg/55">{subtitle}</span> : null}
+                  </span>
+                  <span className="hidden w-40 shrink-0 flex-col gap-1.5 sm:flex">
+                    <Meter value={share(member.completed, member.total)} className="h-1.5" />
+                    <span className="text-xs text-ui-fg/55">
+                      {member.total > 0 ? `${member.completed} из ${member.total} со сроком` : "Нет задач со сроком"}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end whitespace-nowrap">
+                    <span className={cn("text-base font-bold", member.completion_percent == null && "text-ui-fg/40")}>{percent}</span>
+                    <span className={cn("text-xs", member.overdue > 0 ? "text-ui-danger" : "text-ui-fg/55")}>просрочено — {member.overdue}</span>
+                  </span>
+                </>
+              )}
+              {large ? <ChevronRight className="size-5 shrink-0 text-ui-fg/35" aria-hidden /> : null}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
