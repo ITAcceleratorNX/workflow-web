@@ -31,7 +31,10 @@ test("checks duration, step, office hours and busy time like the backend", () =>
   assert.equal(checkBookingTime({ from: "10:15", to: "11:", hours, busy }).reason, "incomplete");
   assert.equal(checkBookingTime({ from: "10:10", to: "11:00", hours, busy }).reason, "step");
   assert.equal(checkBookingTime({ from: "11:00", to: "10:00", hours, busy }).reason, "order");
-  assert.equal(checkBookingTime({ from: "09:00", to: "11:15", hours, busy }).reason, "max");
+  // Без верхней границы: несколько часов и весь рабочий день, если время свободно.
+  assert.deepEqual(checkBookingTime({ from: "08:00", to: "12:00", hours, busy }), { ok: true, duration: 240 });
+  assert.deepEqual(checkBookingTime({ from: "08:00", to: "18:00", hours, busy: [] }), { ok: true, duration: 600 });
+  assert.equal(checkBookingTime({ from: "09:00", to: "14:00", hours, busy }).reason, "busy");
   assert.equal(checkBookingTime({ from: "07:30", to: "08:30", hours, busy }).reason, "hours");
   assert.equal(checkBookingTime({ from: "09:00", to: "09:30", hours, busy, nowMinutes: 10 * 60 }).reason, "past");
   const taken = checkBookingTime({ from: "11:30", to: "12:30", hours, busy });

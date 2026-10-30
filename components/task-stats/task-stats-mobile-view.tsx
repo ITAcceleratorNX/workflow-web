@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import {
   Avatar,
   DailyChart,
+  employeesLabel,
   endedNote,
   InfoLine,
   Meter,
@@ -34,6 +35,8 @@ import {
   SolidTabs,
   StatsError,
   StatsLoading,
+  TeamAvatar,
+  TeamMembers,
 } from "./task-stats-parts";
 import { TaskStatsRangePicker } from "./task-stats-range-picker";
 
@@ -56,22 +59,38 @@ export function TaskStatsMobileView(page: UseTaskStatsPageResult) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
   const { employee, tab, period } = page;
-  const showList = tab === "employees" && !employee;
+  // The team or an employee opens over the list; «Назад» returns to it.
+  const opened = employee != null || page.team;
+  const showList = tab === "employees" && !opened;
+  const teamName = page.teamDepartment?.department_name ?? "Вся команда";
+  const who = page.team ? teamName : employee?.full_name ?? "Мои задачи";
 
   return (
     <div className="flex min-h-[100dvh] flex-col gap-4 bg-ui-canvas px-4 pb-28 pt-[max(16px,env(safe-area-inset-top))] text-ui-fg">
       <div className="flex min-h-11 items-center">
         <button
           type="button"
-          onClick={() => (employee ? page.selectEmployee(null) : router.back())}
+          onClick={() => (opened ? page.selectEmployee(null) : router.back())}
           className="-ml-1 inline-flex min-h-11 items-center gap-1.5 text-lg text-ui-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
         >
           <ChevronLeft className="size-6" aria-hidden />
-          {employee ? "Сотрудники" : "Назад"}
+          {opened ? "Сотрудники" : "Назад"}
         </button>
       </div>
 
-      {employee ? (
+      {page.team ? (
+        <header className="-mt-1 flex items-center gap-3">
+          <TeamAvatar className="size-12" />
+          <div className="min-w-0">
+            <h1 className="truncate text-[22px] font-bold leading-7">{teamName}</h1>
+            <p className="truncate text-sm text-ui-fg/55">
+              {page.teamDepartment
+                ? `Показатели отдела · ${employeesLabel(page.teamDepartment.employees.length)}`
+                : `Общие показатели · ${employeesLabel(page.employeeCount)}`}
+            </p>
+          </div>
+        </header>
+      ) : employee ? (
         <header className="-mt-1 flex items-center gap-3">
           <Avatar name={employee.full_name} className="size-12 text-lg" />
           <div className="min-w-0">
@@ -85,7 +104,7 @@ export function TaskStatsMobileView(page: UseTaskStatsPageResult) {
         <h1 className="text-[30px] font-bold leading-9">Статистика задач</h1>
       )}
 
-      {page.canViewEmployees && !employee ? (
+      {page.canViewEmployees && !opened ? (
         <SolidTabs<StatsTab> ariaLabel="Чья статистика" value={tab} options={VIEW_TABS} onSelect={page.setTab} size="lg" fill className="rounded-[14px]" />
       ) : null}
 
@@ -107,19 +126,20 @@ export function TaskStatsMobileView(page: UseTaskStatsPageResult) {
             >
               <p className="truncate text-[17px] font-semibold">{periodTitle(period)}</p>
               <p className="truncate text-xs text-ui-fg/55">
-                {employee?.full_name ?? "Мои задачи"} · {asOfLabel(period, page.todayKey)}
+                {who} · {asOfLabel(period, page.todayKey)}
               </p>
             </button>
           ) : (
             <PeriodStepper
               title={periodTitle(period)}
-              subtitle={`${employee?.full_name ?? "Мои задачи"} · ${asOfLabel(period, page.todayKey)}`}
+              subtitle={`${who} · ${asOfLabel(period, page.todayKey)}`}
               canStep
               onStep={page.stepPeriod}
               titleClassName="text-[17px]"
             />
           )}
           <StatsBody page={page} />
+          {page.team ? <TeamSection page={page} /> : null}
         </>
       )}
 
@@ -154,14 +174,46 @@ function EmployeeList({ page }: { page: UseTaskStatsPageResult }) {
           className="min-w-0 flex-1 bg-transparent text-[17px] text-ui-fg placeholder:text-ui-fg/40 focus:outline-none"
         />
       </label>
+      {page.search.trim() === "" ? (
+        <button
+          type="button"
+          onClick={() => page.selectEmployee("team", "push")}
+          className="flex w-full items-center gap-3 rounded-[18px] bg-ui-surface px-4 py-3 text-left hover:bg-ui-fg/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+        >
+          <TeamAvatar className="size-10" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[17px] font-semibold">Вся команда</span>
+            <span className="block truncate text-sm text-ui-fg/55">{employeesLabel(page.employeeCount)}</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-ui-fg/35" aria-hidden />
+        </button>
+      ) : null}
       {page.departments.length === 0 ? (
         <p className="py-8 text-center text-sm text-ui-fg/55">Никого не нашли</p>
       ) : (
         page.departments.map((department) => (
           <section key={`${department.company_id}:${department.department_id ?? ""}`} className="flex flex-col gap-2.5">
-            <SectionLabel>
-              {department.department_name} · {department.employees.length}
-            </SectionLabel>
+            {page.canPickDepartment ? (
+              // The head of a company: «Показатели» of the department open over the list.
+              <div className="flex items-center justify-between gap-3">
+                <SectionLabel>
+                  {department.department_name} · {department.employees.length}
+                </SectionLabel>
+                <button
+                  type="button"
+                  onClick={() => page.selectDepartment(department, "push")}
+                  aria-label={`Показатели отдела ${department.department_name}`}
+                  className="-my-2 inline-flex min-h-9 shrink-0 items-center gap-0.5 text-sm font-medium text-ui-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+                >
+                  Показатели
+                  <ChevronRight className="size-4" aria-hidden />
+                </button>
+              </div>
+            ) : (
+              <SectionLabel>
+                {department.department_name} · {department.employees.length}
+              </SectionLabel>
+            )}
             <ul className="overflow-hidden rounded-[18px] bg-ui-surface">
               {department.employees.map((employee, index) => (
                 <li key={employee.id} className={cn(index > 0 && "border-t border-ui-fg/[0.08]")}>
@@ -203,20 +255,35 @@ function StatsBody({ page }: { page: UseTaskStatsPageResult }) {
       />
     );
   }
-  return <StatsSections stats={stats} period={page.period} todayKey={page.todayKey} forEmployee={page.employee != null} noDue={content === "noDue"} />;
+  const subject = page.team ? "team" : page.employee != null ? "employee" : "me";
+  return <StatsSections stats={stats} period={page.period} todayKey={page.todayKey} subject={subject} noDue={content === "noDue"} />;
+}
+
+/** The employees under the team numbers, the lowest percentage first. */
+function TeamSection({ page }: { page: UseTaskStatsPageResult }) {
+  const { view } = page;
+  if (view?.status !== "ready" || !view.members || view.members.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2.5">
+      <SectionLabel>Сотрудники</SectionLabel>
+      <div className="overflow-hidden rounded-[18px] bg-ui-surface">
+        <TeamMembers members={view.members} size="lg" onSelect={(id) => page.selectEmployee(id, "push")} />
+      </div>
+    </div>
+  );
 }
 
 function StatsSections({
   stats,
   period,
   todayKey,
-  forEmployee,
+  subject,
   noDue,
 }: {
   stats: TaskStats;
   period: StatsPeriod;
   todayKey: string;
-  forEmployee: boolean;
+  subject: "me" | "employee" | "team";
   noDue: boolean;
 }) {
   const phrase = periodPhrase(period, todayKey);
@@ -249,7 +316,7 @@ function StatsSections({
               <InfoLine className="mt-3">{sample}</InfoLine>
             ) : (
               <p className="mt-3 text-[13px] text-ui-fg/55">
-                {stats.total} — все задачи{forEmployee ? " сотрудника" : ""} со сроком {phrase}: и выполненные, и нет
+                {stats.total} — все задачи{subject === "employee" ? " сотрудника" : subject === "team" ? " команды" : ""} со сроком {phrase}: и выполненные, и нет
               </p>
             )}
             <div className="mt-4 flex items-center justify-between gap-3 border-t border-ui-fg/[0.08] pt-4">

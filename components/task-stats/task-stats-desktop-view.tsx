@@ -7,6 +7,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import type { StatsTab, UseTaskStatsPageResult } from "@/hooks/use-task-stats-page";
 import {
   asOfLabel,
+  departmentKey,
   emptyTitle,
   numericDate,
   periodPhrase,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import {
   Avatar,
   DailyChart,
+  employeesLabel,
   endedNote,
   InfoLine,
   Meter,
@@ -32,6 +34,8 @@ import {
   SolidTabs,
   StatsError,
   StatsLoading,
+  TeamAvatar,
+  TeamMembers,
 } from "./task-stats-parts";
 import { TaskStatsRangePicker } from "./task-stats-range-picker";
 
@@ -54,7 +58,7 @@ export function TaskStatsDesktopView(page: UseTaskStatsPageResult) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const { tab, period, employee } = page;
   const employeesMode = tab === "employees";
-  const who = employee?.full_name ?? "Мои задачи";
+  const who = page.team ? page.teamDepartment?.department_name ?? "Вся команда" : employee?.full_name ?? "Мои задачи";
 
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
@@ -123,7 +127,19 @@ export function TaskStatsDesktopView(page: UseTaskStatsPageResult) {
           <EmployeePanel page={page} />
           <div className="flex min-w-0 flex-col gap-4">
             {filters}
-            {employee ? (
+            {page.team ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <TeamAvatar className="size-11" />
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-semibold">{page.teamDepartment?.department_name ?? "Вся команда"}</p>
+                    <p className="truncate text-sm text-ui-fg/55">{teamCaption(page)}</p>
+                  </div>
+                </div>
+                <StatsBody page={page} />
+                <TeamPanel page={page} />
+              </>
+            ) : employee ? (
               <>
                 <div className="flex items-center gap-3">
                   <Avatar name={employee.full_name} className="size-11 text-base" />
@@ -151,10 +167,34 @@ export function TaskStatsDesktopView(page: UseTaskStatsPageResult) {
   );
 }
 
+/** «Отдел продаж · 7 сотрудников», «Показатели отдела · 2 сотрудника», or the count across several departments. */
+function teamCaption(page: UseTaskStatsPageResult): string {
+  if (page.teamDepartment) return `Показатели отдела · ${employeesLabel(page.teamDepartment.employees.length)}`;
+  const scope = page.scope.status === "ready" ? page.scope.departments : [];
+  const count = employeesLabel(page.employeeCount);
+  return scope.length === 1 ? `${scope[0].department_name} · ${count}` : `Общие показатели · ${count}`;
+}
+
+/** The employees under the team numbers, the lowest percentage first. */
+function TeamPanel({ page }: { page: UseTaskStatsPageResult }) {
+  const { view } = page;
+  if (view?.status !== "ready" || !view.members || view.members.length === 0) return null;
+  const departments = new Set(view.members.map((m) => `${m.company_id}:${m.department_id ?? ""}`));
+  return (
+    <Panel className="overflow-hidden">
+      <div className="px-5 pb-2 pt-5">
+        <h3 className="text-lg font-semibold">Сотрудники</h3>
+        <p className="text-sm text-ui-fg/55">Процент выполнения каждого · сначала самый низкий</p>
+      </div>
+      <TeamMembers members={view.members} withDepartments={departments.size > 1} onSelect={(id) => page.selectEmployee(id)} />
+    </Panel>
+  );
+}
+
 function EmployeePanel({ page }: { page: UseTaskStatsPageResult }) {
   const caption =
     page.departments.length === 1
-      ? `${page.departments[0].department_name} · ${page.employeeCount} ${page.employeeCount === 1 ? "сотрудник" : page.employeeCount < 5 ? "сотрудника" : "сотрудников"}`
+      ? `${page.departments[0].department_name} · ${employeesLabel(page.employeeCount)}`
       : `Сотрудники · ${page.employeeCount}`;
   return (
     <Panel className="flex max-h-[calc(100vh-180px)] flex-col gap-3 p-3">
@@ -171,13 +211,44 @@ function EmployeePanel({ page }: { page: UseTaskStatsPageResult }) {
         />
       </label>
       <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+        {page.search.trim() === "" ? (
+          <button
+            type="button"
+            aria-current={page.team && !page.teamDepartment ? "true" : undefined}
+            onClick={() => page.selectEmployee("team")}
+            className={cn(
+              "mb-1 flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70",
+              page.team && !page.teamDepartment ? "bg-[#4A2C20]" : "hover:bg-ui-fg/[0.05]",
+            )}
+          >
+            <TeamAvatar className="size-9" />
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-medium">Вся команда</span>
+              <span className="block truncate text-xs text-ui-fg/55">Общие показатели</span>
+            </span>
+          </button>
+        ) : null}
         {page.departments.length === 0 ? (
           <p className="py-6 text-center text-sm text-ui-fg/55">Никого не нашли</p>
         ) : (
           page.departments.map((department) => (
             <div key={`${department.company_id}:${department.department_id ?? ""}`} className="flex flex-col gap-0.5 pb-2">
-              {page.departments.length > 1 ? (
-                <p className="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.05em] text-ui-fg/40">{department.department_name}</p>
+              {page.canPickDepartment ? (
+                // The head of a company: a department heading opens the numbers of that department.
+                <button
+                  type="button"
+                  aria-current={page.teamDepartment && departmentKey(page.teamDepartment) === departmentKey(department) ? "true" : undefined}
+                  onClick={() => page.selectDepartment(department)}
+                  className={cn(
+                    "mt-1 flex w-full items-center justify-between gap-2 rounded-lg px-2 pb-1.5 pt-2 text-left text-xs font-semibold uppercase tracking-[0.05em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70",
+                    page.teamDepartment && departmentKey(page.teamDepartment) === departmentKey(department)
+                      ? "bg-[#4A2C20] text-ui-fg"
+                      : "text-ui-fg/40 hover:bg-ui-fg/[0.05] hover:text-ui-fg/70",
+                  )}
+                >
+                  <span className="truncate">{department.department_name}</span>
+                  <span className="shrink-0 normal-case tracking-normal text-ui-accent">Показатели</span>
+                </button>
               ) : null}
               {department.employees.map((employee) => {
                 const selected = page.employee?.id === employee.id;

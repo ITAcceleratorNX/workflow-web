@@ -8,6 +8,6 @@ import { TaskStatsMobileView } from "./task-stats-mobile-view";
 /** «Статистика задач» of the tasks section: «•••» → «Статистика» on the tasks screen. */
 export function TaskStatsView() {
   const isDesktop = useIsDesktop();
-  const page = useTaskStatsPage();
+  const page = useTaskStatsPage({ teamByDefault: isDesktop });
   return isDesktop ? <TaskStatsDesktopView {...page} /> : <TaskStatsMobileView {...page} />;
 }
