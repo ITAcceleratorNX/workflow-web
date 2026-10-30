@@ -118,32 +118,32 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/15 text-blue-600 dark:text-blue-400';
       case 'awaiting_assignment':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400';
       case 'awaiting_sla':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-orange-500/15 text-orange-600 dark:text-orange-400';
       case 'execution':
-        return 'bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 text-[#114A65]';
+        return 'bg-[#F35713]/15 text-[#F35713]';
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/15 text-green-600 dark:text-green-400';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/15 text-red-600 dark:text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'urgent':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/15 text-red-600 dark:text-red-400';
       case 'planned':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/15 text-blue-600 dark:text-blue-400';
       case 'recurring':
-        return 'bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 text-[#114A65]';
+        return 'bg-[#F35713]/15 text-[#F35713]';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -260,13 +260,13 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
   };
 
       return (
-      <div className={`${isDesktop ? 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50' : 'fixed inset-0 bg-white z-50'} ${isDesktop ? '' : 'flex flex-col'}`} onClick={() => {
+      <div className={`${isDesktop ? 'dark fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50' : 'fixed inset-0 bg-background z-50'} ${isDesktop ? '' : 'flex flex-col'}`} onClick={() => {
         if (isDesktop) onClose();
       }}>
         <Card className={`${isDesktop ? 'w-full max-w-2xl max-h-[90vh] overflow-y-auto' : 'w-full h-full flex flex-col'} ${isDesktop ? '' : 'rounded-none border-0 shadow-none'}`} onClick={(e) => e.stopPropagation()}>
                   <CardHeader className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="font-medium text-gray-900 text-base sm:text-lg">Повторяющаяся задача #{task.id}</CardTitle>
+              <CardTitle className="font-medium text-foreground text-base sm:text-lg">Повторяющаяся задача #{task.id}</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -290,11 +290,11 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           </div>
 
           {/* Информация о повторяющейся задаче */}
-          <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-[#114A65]/10 to-[#B8400E]/10 border border-[#114A65]/20 rounded-lg">
-            <Clock className="w-4 h-4 text-[#114A65]" />
+          <div className="flex items-center gap-2 p-3 bg-[#F35713]/10 border border-[#F35713]/20 rounded-lg">
+            <Clock className="w-4 h-4 text-[#F35713]" />
             <div>
-              <Label className="text-sm font-medium text-[#040404]">Повторение: </Label>
-              <span className="text-sm text-[#114A65]">
+              <Label className="text-sm font-medium text-foreground">Повторение: </Label>
+              <span className="text-sm text-[#F35713]">
                 {getRecurrenceText(task.recurrence_type, task.recurrence_interval)}
               </span>
             </div>
@@ -318,13 +318,13 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           {task.client && (
             <div>
               <Label>Клиент</Label>
-              <p className="text-sm text-gray-600 mt-1">{task.client.name}</p>
+              <p className="text-sm text-muted-foreground mt-1">{task.client.name}</p>
             </div>
           )}
 
           {/* Локация в офисе */}
           <div>
-            <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">Локация в офисе</Label>
+            <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-foreground">Локация в офисе</Label>
             <p className="text-sm">{task.location_detail}</p>
           </div>
           {/* Кнопка "Показать на карте" - показываем только если есть координаты */}
@@ -359,7 +359,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           )}
 
           {/* Дата создания */}
-          <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">
+          <div className="flex items-center font-medium text-sm sm:text-base mb-3 sm:mb-4 text-foreground">
             <Clock className="w-4 h-4 mr-1" />
             {task.created_date && formatDateTime(task.created_date)}
           </div>
@@ -367,7 +367,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           {/* Фотографии группы заявок (только before) */}
           {task.photos && task.photos.filter((photo: any) => photo.type === 'before').length > 0 && (
             <div className="mt-4">
-              <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">Фотографии (до выполнения)</Label>
+              <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-foreground">Фотографии (до выполнения)</Label>
               <div className="flex space-x-2 mt-2 flex-wrap">
                 {task.photos
                   .filter((photo: any) => photo.type === 'before')
@@ -377,7 +377,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                       key={index}
                       src={photo.photo_url || "/placeholder.svg"}
                       alt={`Фото ${index + 1}`}
-                      className="w-24 h-24 object-cover rounded-lg cursor-pointer border-2 border-gray-200 hover:border-[#114A65] transition-colors"
+                      className="w-24 h-24 object-cover rounded-lg cursor-pointer border-2 border-border hover:border-[#F35713] transition-colors"
                       onClick={() => {
                         setSelectedPhoto({url: photo.photo_url, created_at: photo.created_at});
                       }}
@@ -393,7 +393,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
           {/* Фотографии группы заявок (только after) */}
           {task.photos && task.photos.filter((photo: any) => photo.type === 'after').length > 0 && (
             <div className="mt-4">
-              <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-gray-900">Фотографии (после выполнения)</Label>
+              <Label className="font-medium text-sm sm:text-base mb-3 sm:mb-4 text-foreground">Фотографии (после выполнения)</Label>
               <div className="flex space-x-2 mt-2 flex-wrap">
                 {task.photos
                   .filter((photo: any) => photo.type === 'after')
@@ -403,7 +403,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                       key={index}
                       src={photo.photo_url || "/placeholder.svg"}
                       alt={`Фото ${index + 1}`}
-                      className="w-24 h-24 object-cover rounded-lg cursor-pointer border-2 border-gray-200 hover:border-[#114A65] transition-colors"
+                      className="w-24 h-24 object-cover rounded-lg cursor-pointer border-2 border-border hover:border-[#F35713] transition-colors"
                       onClick={() => {
                         setSelectedPhoto({url: photo.photo_url, created_at: photo.created_at});
                       }}
@@ -428,17 +428,17 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                   const hasComments = showComments === subRequest.id;
 
                   return (
-                    <div key={subRequest.id} className={`border rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 ${isDesktop ? 'border-gray-200' : 'border-gray-200'}`}>
+                    <div key={subRequest.id} className={`border rounded-xl bg-card shadow-sm hover:shadow-md transition-all duration-200 ${isDesktop ? 'border-border' : 'border-border'}`}>
                       {/* Заголовок подзаявки */}
                       <div className={`p-5 ${isDesktop ? '' : 'p-5'}`}>
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 className={`font-semibold text-gray-900 ${isDesktop ? 'text-base' : 'text-md'}`}>№ {getSubRequestDisplayId(subRequest, task.id)} {subRequest.title}</h4>
+                              <h4 className={`font-semibold text-foreground ${isDesktop ? 'text-base' : 'text-md'}`}>№ {getSubRequestDisplayId(subRequest, task.id)} {subRequest.title}</h4>
                             </div>
-                            <div className={`${isDesktop ? 'flex items-center gap-3' : 'flex flex-col gap-1'} text-gray-600 ${isDesktop ? 'text-sm' : 'text-base'}`}>
+                            <div className={`${isDesktop ? 'flex items-center gap-3' : 'flex flex-col gap-1'} text-muted-foreground ${isDesktop ? 'text-sm' : 'text-base'}`}>
                               <span className={`${isDesktop ? 'truncate' : ''} flex items-center gap-1`}>
-                                <span className="w-2 h-2 bg-[#114A65] rounded-full"></span>
+                                <span className="w-2 h-2 bg-[#F35713] rounded-full"></span>
                                 {subRequest.category?.name ? formatServiceCategoryDisplayName(subRequest.category.name) : 'Без категории'}
                               </span>
                             </div>
@@ -451,7 +451,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`${isDesktop ? 'h-8 w-8' : 'h-10 w-10'} p-0 hover:bg-[#114A65]/10`}
+                              className={`${isDesktop ? 'h-8 w-8' : 'h-10 w-10'} p-0 hover:bg-[#F35713]/10`}
                               onClick={() => {
                                 if (hasComments) {
                                   setShowComments(null);
@@ -460,7 +460,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                                 }
                               }}
                             >
-                              <MessageCircle className={`${isDesktop ? 'h-4 w-4' : 'h-5 w-5'} ${hasComments ? 'text-[#114A65]' : 'text-gray-500'}`} />
+                              <MessageCircle className={`${isDesktop ? 'h-4 w-4' : 'h-5 w-5'} ${hasComments ? 'text-[#F35713]' : 'text-muted-foreground'}`} />
                             </Button>
 
                             {/* Отладочная информация для меню */}
@@ -480,7 +480,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                         </div>
 
                         {/* Краткое описание */}
-                        <div className={`text-gray-600 mb-3 ${isDesktop ? 'text-sm' : 'text-base leading-relaxed'}`}>
+                        <div className={`text-muted-foreground mb-3 ${isDesktop ? 'text-sm' : 'text-base leading-relaxed'}`}>
                           {isDesktop ? (
                             <p className="line-clamp-2">{subRequest.description}</p>
                           ) : (
@@ -519,20 +519,20 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
 
                                              {/* Раскрытая информация */}
                        {isExpanded && (
-                         <div className={`border-t bg-gradient-to-br from-gray-50 to-gray-100 ${isDesktop ? 'p-4' : 'p-5'}`}>
+                         <div className={`border-t bg-muted/50 ${isDesktop ? 'p-4' : 'p-5'}`}>
                            {/* Полное описание */}
-                           <div className="text-gray-600 text-sm whitespace-pre-wrap break-words">
+                           <div className="text-muted-foreground text-sm whitespace-pre-wrap break-words">
                              {subRequest.description}
                            </div>
                            
                            {/* Дополнительная информация */}
                            <div className="mt-4 space-y-2">
                              <div className="flex justify-between text-sm">
-                               <span className="text-gray-500">ID подзаявки:</span>
+                               <span className="text-muted-foreground">ID подзаявки:</span>
                                <span className="font-medium">{subRequest.id}</span>
                              </div>
                              <div className="flex justify-between text-sm">
-                               <span className="text-gray-500">Категория:</span>
+                               <span className="text-muted-foreground">Категория:</span>
                                <span className="font-medium">{subRequest.category?.name ? formatServiceCategoryDisplayName(subRequest.category.name) : 'Не указана'}</span>
                              </div>
                              {/* Скрываем информацию о долгосрочных задачах для повторяющихся задач */}
@@ -541,7 +541,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                            {/* Исполнители */}
                            <div className="mt-4">
                              <div className="flex items-center justify-between mb-3">
-                               <h5 className="font-medium text-sm text-gray-900">Исполнители:</h5>
+                               <h5 className="font-medium text-sm text-foreground">Исполнители:</h5>
                                                                {(userRole === 'manager' || userRole === 'department-head' || userRole === 'admin') &&
                                  ( subRequest.status === 'assigned') && (
                                  <Button
@@ -560,28 +560,28 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                                  {subRequest.requestExecutors.map((requestExecutor: any, index: number) => (
                                    <div
                                      key={index}
-                                     className="flex items-start sm:items-center justify-between py-2 sm:py-3 px-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200"
+                                     className="flex items-start sm:items-center justify-between py-2 sm:py-3 px-0 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors duration-200"
                                    >
                                      <div className="flex items-start sm:items-center gap-2 sm:gap-3 w-full">
-                                       <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
-                                         <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+                                       <div className="w-7 h-7 sm:w-8 sm:h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                                         <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                                        </div>
                                        <div className="flex-1 min-w-0">
                                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                           <span className="text-sm sm:text-sm font-medium text-gray-900 truncate">
+                                           <span className="text-sm sm:text-sm font-medium text-foreground truncate">
                                              {requestExecutor.executor?.user?.full_name
                                                .split(" ")
                                                .map((word: string, idx: number) => (idx === 0 ? word : `${word.charAt(0)}.`))
                                                .join(" ")}
                                              {requestExecutor.role === "leader" && (
-                                               <span className="text-xs text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 rounded-full self-start sm:self-auto ml-1">
+                                               <span className="text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 rounded-full self-start sm:self-auto ml-1">
                                                  Ответственный
                                                </span>
                                              )}
                                            </span>
                                          </div>
                                          {requestExecutor.executor?.user?.phone && (
-                                           <div className="text-xs text-gray-500 mt-1 sm:mt-0.5">{requestExecutor.executor.user.phone}</div>
+                                           <div className="text-xs text-muted-foreground mt-1 sm:mt-0.5">{requestExecutor.executor.user.phone}</div>
                                          )}
                                        </div>
                                      </div>
@@ -589,7 +589,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                                  ))}
                                </div>
                              ) : (
-                               <div className="text-center py-4 text-gray-500 text-sm">
+                               <div className="text-center py-4 text-muted-foreground text-sm">
                                  Исполнители не назначены
                                </div>
                              )}
@@ -600,8 +600,8 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
                   );
                 })
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p>Подзаявки не найдены</p>
                 </div>
               )}
@@ -661,7 +661,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
 
       {/* Модальное окно с историей экземпляров */}
       <Dialog open={showInstances} onOpenChange={setShowInstances}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 md:p-6">
+        <DialogContent className={`w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 md:p-6 ${isDesktop ? 'dark' : ''}`}>
           <DialogHeader className="pb-3 sm:pb-4">
             <DialogTitle className="text-base sm:text-lg md:text-xl">
               История выполнения
@@ -687,7 +687,7 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
 
       {/* Модальное окно подтверждения удаления */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="w-[95vw] max-w-md">
+        <DialogContent className={`w-[95vw] max-w-md ${isDesktop ? 'dark' : ''}`}>
           <DialogHeader>
             <DialogTitle>Подтверждение удаления</DialogTitle>
           </DialogHeader>

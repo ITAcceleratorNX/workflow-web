@@ -51,8 +51,6 @@ import {
 } from "@/constants/requests";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useBottomNavUiStore } from "@/stores/bottom-nav-ui-store";
-import { SuccessModal } from "@/components/success-model";
-import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
 import {Request, RequestGroup, SubRequest, useRequestStore} from "@/stores/useRequestStore";
 import PullToRefresh from "@/components/pull-to-refresh";
@@ -162,7 +160,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const deleteSubcategory = useCategoryStore(state => state.deleteSubcategory)
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const approveModal = useAcceptRequestModal()
   const router = useRouter()
   const [showIconInfo, setShowIconInfo] = useState<{type: 'status' | 'longTerm', value: string} | null>(null);
   const rejectModal = useRejectRequestModal()
@@ -4333,13 +4330,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           title={rejectModal.title}
           message={rejectModal.message}
           duration={rejectModal.duration}
-      />
-      <SuccessModal
-          isOpen={approveModal.isOpen}
-          onClose={approveModal.hideAccept}
-          title='Заявка удалена'
-          message='Заявка была успешно удалена.'
-          duration={approveModal.duration}
       />
 
       {/* Unified Delete Confirmation Modals */}

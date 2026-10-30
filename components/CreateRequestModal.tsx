@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Loader2, Calendar as CalendarLucid, CheckCircle, AlertTriangle, ArrowLeft, ArrowRight, FileSpreadsheet, Home, Building2, LocateFixed } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ImportExcelModal } from "./ImportExcelModal";
 import { findNearestOffice, getLocationByIP } from "@/lib/utils";
 import { getOfficeLocationCatalog, type OfficeLocationCatalogRow } from "@/lib/office-location-catalog-api";
 import { getBlocksFromCatalog, getFloorZonesForBlock, getRoomsForFloorZone, hasFloorZonesForBlock, hasRoomsForFloorZone } from "@/lib/office-location-catalog-utils";
@@ -181,7 +180,6 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   // Состояние для геолокации
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationNotice, setLocationNotice] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriedLocationRef = useRef(false);
   const closeConfirmationRef = useRef(false);
@@ -2138,18 +2136,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           </div>
         </CardContent>
       </Card>
-      
-      {/* Модал импорта Excel */}
-      <ImportExcelModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSuccess={() => {
-          setIsImportModalOpen(false);
-          // Можно добавить обновление списка задач или другие действия
-        }}
-        userRole={userRole as 'admin-worker' | 'department-head'}
-        isFullScreen={isFullScreen}
-      />
+
     </RequestModalShell>
   );
 };

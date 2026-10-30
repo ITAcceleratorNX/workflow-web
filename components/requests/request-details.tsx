@@ -37,7 +37,6 @@ import { RequestActionMenu } from "./request-action-menu-sheet";
 import { RequestDetailMobileBody } from "./request-detail-mobile-body";
 import { CompletedTaskReport } from "@/components/CompletedTaskReport";
 import { getPreviewUrl } from "@/lib/imageOptimization";
-import { IconInfoModal } from "@/components/IconInfoModal";
 import { CommentsModal } from "./comments-modal";
 import { MapModal } from "@/components/MapModal";
 import PhotoModal from "@/components/photo/PhotoModal";
@@ -167,10 +166,6 @@ export function RequestDetails({
   } | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapLocation, setMapLocation] = useState({ lat: 0, lon: 0, accuracy: 0 });
-  const [showIconInfo, setShowIconInfo] = useState<{
-    type: "status" | "longTerm";
-    value: string;
-  } | null>(null);
 
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1158,14 +1153,6 @@ export function RequestDetails({
         variant={isDesktop ? "admin" : "default"}
       />
 
-      {showIconInfo && (
-        <IconInfoModal
-          isOpen={!!showIconInfo}
-          iconInfo={showIconInfo}
-          onClose={() => setShowIconInfo(null)}
-          isDesktop={embedInPanel}
-        />
-      )}
 
       <MapModal
         isOpen={showMapModal}
