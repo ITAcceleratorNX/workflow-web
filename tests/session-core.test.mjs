@@ -96,3 +96,11 @@ test('moves a sign-in from before sessions to a session, and ends it on the serv
     ['https://api.test/auth/logout', { refresh_token: 'r1' }],
   ]);
 });
+
+test('does not ask again with every request while the server cannot renew', async () => {
+  const legacy = jwt({ id: 1, exp: (NOW + 60 * 60_000) / 1000 });
+  const t = tab({ value: { token: legacy, refreshToken: null } }, () => json(404, {}));
+  assert.equal(await t.session.accessToken(), legacy);
+  assert.equal(await t.session.accessToken(), legacy);
+  assert.equal(t.calls.length, 1);
+});

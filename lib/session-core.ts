@@ -33,6 +33,9 @@ export type RenewOutcome = { kind: 'renewed'; token: string } | { kind: 'ended' 
 /** Токен продлевается заранее, если до конца его жизни меньше этого. */
 export const RENEW_BEFORE_MS = 60_000;
 
+/** После неудачного продления (нет сети, сервер недоступен) заранее не продлеваем столько, чтобы не слать его с каждым запросом. */
+export const RETRY_AFTER_UNAVAILABLE_MS = 30_000;
+
 function claimsOf(token: string): { exp?: unknown; sid?: unknown } | null {
   const payload = token.split('.')[1];
   if (!payload) return null;
@@ -66,6 +69,7 @@ export function createSession({
   now?: () => number;
 }) {
   let inFlight: Promise<RenewOutcome> | null = null;
+  let quietUntil = 0;
 
   const expiring = (token: string) => {
     const expiresAt = tokenExpiresAt(token);
@@ -124,8 +128,9 @@ export function createSession({
     const { token, refreshToken } = store.read();
     if (!token) return null;
     // Без refresh-токена — вход до появления сессий: переводим на сессию сразу, пока старый токен ещё годен.
-    if (!expiring(token) && refreshToken) return token;
+    if ((!expiring(token) && refreshToken) || now() < quietUntil) return token;
     const outcome = await renew(token);
+    if (outcome.kind === 'unavailable') quietUntil = now() + RETRY_AFTER_UNAVAILABLE_MS;
     if (outcome.kind === 'renewed') return outcome.token;
     return outcome.kind === 'ended' ? null : token;
   }
