@@ -5,7 +5,7 @@ type CryptoLike = { getRandomValues?: (bytes: Uint8Array) => Uint8Array };
 /**
  * Случайные байты: криптографические, если платформа их даёт, иначе Math.random.
  * Ключу повтора нужна уникальность, а не секретность: сервер ищет его только среди запросов того же
- * автора в той же задаче.
+ * автора — в той же задаче (комментарий) или в том же опросе (ответы).
  */
 function fillRandom(bytes: Uint8Array): void {
   const platform = (globalThis as { crypto?: CryptoLike }).crypto;

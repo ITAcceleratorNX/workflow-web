@@ -49,6 +49,9 @@ export function SurveyKitDemo() {
       </div>
 
       <StepProgress total={5} current={2} label="Вопрос 2 из 5" />
+      <div className="rounded-4pt-lg bg-ui-raised p-4">
+        <StepProgress total={5} current={2} label="Вопрос 2 из 5 на карточке Desktop" surface="raised" />
+      </div>
 
       <div role="radiogroup" aria-label="Один вариант" className="flex flex-col gap-2.5">
         {OPTIONS.map((option, index) => (

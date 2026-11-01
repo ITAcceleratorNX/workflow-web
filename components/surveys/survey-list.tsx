@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, ClipboardList } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UseClientSurveysResult } from "@/hooks/use-client-surveys";
 import { getTodayAppDateISO } from "@/lib/dateTimeUtils";
@@ -9,6 +8,7 @@ import { availableSurveys, completedSurveys } from "@/lib/surveys/list";
 import type { ClientSurvey } from "@/lib/surveys/types";
 import { cn } from "@/lib/utils";
 import { SurveyCard } from "./survey-card";
+import { SurveyRetryButton } from "./survey-frame";
 
 type SurveyListProps = Pick<UseClientSurveysResult, "surveys" | "loading" | "error" | "reload"> & {
   layout: "mobile" | "desktop";
@@ -53,11 +53,7 @@ export function SurveyList({ surveys, loading, error, reload, layout }: SurveyLi
           icon={<AlertCircle />}
           title="Не удалось загрузить опросы"
           description={error}
-          action={
-            <Button variant="accent-outline" className="h-10 rounded-xl px-[18px] text-[15px]" onClick={() => void reload()}>
-              Повторить
-            </Button>
-          }
+          action={<SurveyRetryButton onClick={() => void reload()} />}
         />
       </div>
     );
