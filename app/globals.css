@@ -452,12 +452,13 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   }
 }
 
-/* Client desktop: тёмная тема контента (как у admin/manager), только десктоп */
+/* Client desktop: тёмная тема контента (как у admin/manager), только десктоп.
+   Элементы продуктового UI (классы токенов *-ui-*) задают фон и рамку сами — правило их не трогает. */
 @media (min-width: 768px) {
-  .client-desktop-content .rounded-lg.border,
+  .client-desktop-content .rounded-lg.border:not([class*="-ui-"]),
   .client-desktop-content .bg-white,
   .client-desktop-content [class*="bg-card"],
-  .client-desktop-content .border {
+  .client-desktop-content .border:not([class*="-ui-"]) {
     background-color: #2C2C2E !important;
     border-color: #3A3A3C !important;
   }
@@ -503,11 +504,11 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
     --client-border: hsl(var(--desktop-border));
     --client-border-subtle: hsl(var(--desktop-border-subtle));
   }
-  .client-desktop-dark .rounded-lg.border,
+  .client-desktop-dark .rounded-lg.border:not([class*="-ui-"]),
   .client-desktop-dark .bg-white,
   .client-desktop-dark [class*="bg-card"],
-  .client-desktop-dark .border,
-  .client-desktop-dark .border-2 {
+  .client-desktop-dark .border:not([class*="-ui-"]),
+  .client-desktop-dark .border-2:not([class*="-ui-"]) {
     background-color: var(--client-bg-card) !important;
     border-color: var(--client-border) !important;
   }

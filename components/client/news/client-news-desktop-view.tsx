@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { ClientNewsSearch } from "@/components/client/news/client-news-search";
+import { NewsSectionTabs, type NewsSurveysTab } from "@/components/client/news/news-section-tabs";
 import { DesktopContentPage } from "@/components/layout/desktop-content-page";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";
+import { SurveyList } from "@/components/surveys/survey-list";
 import {
   Select,
   SelectContent,
@@ -22,9 +24,10 @@ import type { UseClientNewsPageResult } from "@/hooks/use-client-news-page";
 import { emptyReactionCounts } from "@/lib/news-reactions";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-type ClientNewsDesktopViewProps = UseClientNewsPageResult;
+type ClientNewsDesktopViewProps = UseClientNewsPageResult & { surveysTab: NewsSurveysTab | null };
 
-export function ClientNewsDesktopView({
+/** The «Новости» tab: search, date filter and the feed in two columns. */
+function NewsFeed({
   searchQuery,
   setSearchQuery,
   filterDate,
@@ -32,14 +35,14 @@ export function ClientNewsDesktopView({
   filteredItems,
   loading,
   patchNewsEngagement,
-}: ClientNewsDesktopViewProps) {
+}: UseClientNewsPageResult) {
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
   const isGuest = useAuthStore((s) => s.isGuest);
   const canReact = Boolean(token) && !isGuest;
 
   return (
-    <DesktopContentPage title="Все новости" dark>
+    <>
       <ClientNewsSearch value={searchQuery} onChange={setSearchQuery} className="mb-4" />
 
       <div className="pb-4 border-b border-[#3A3A3C]/60 mb-4">
@@ -94,6 +97,25 @@ export function ClientNewsDesktopView({
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+export function ClientNewsDesktopView({ surveysTab, ...news }: ClientNewsDesktopViewProps) {
+  return (
+    <DesktopContentPage title="Все новости" dark>
+      {surveysTab ? (
+        <div className="mb-[18px]">
+          <NewsSectionTabs
+            layout="desktop"
+            value={surveysTab.section}
+            onChange={surveysTab.onSectionChange}
+            hasAvailableSurveys={surveysTab.surveys.hasAvailable}
+          />
+        </div>
+      ) : null}
+
+      {surveysTab?.section === "surveys" ? <SurveyList layout="desktop" {...surveysTab.surveys} /> : <NewsFeed {...news} />}
     </DesktopContentPage>
   );
 }
