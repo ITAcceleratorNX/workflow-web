@@ -15,7 +15,7 @@ import {
   completedLabel,
   durationAboutLabel,
   durationLabel,
-  homeCardSubtitle,
+  durationShortLabel,
   questionCounter,
   questionHint,
   questionsCountLabel,
@@ -50,13 +50,12 @@ test('counts questions and minutes in the words of the mockups', () => {
   ]);
   assert.deepEqual([1, 2, 5, 21].map(durationLabel), ['~1 минута', '~2 минуты', '~5 минут', '~21 минута']);
   assert.deepEqual([1, 2, 5, 21].map(durationAboutLabel), ['около 1 минуты', 'около 2 минут', 'около 5 минут', 'около 21 минуты']);
+  assert.deepEqual([1, 2, 21].map(durationShortLabel), ['1 мин', '2 мин', '21 мин']);
 });
 
-test('builds the home card and the Desktop banner of a new survey', () => {
-  const survey = { title: 'Удобство раздела «Задачи»', questions_count: 5, estimated_minutes: 2 };
-  assert.equal(homeCardSubtitle(survey), 'Удобство раздела «Задачи» · 2 мин');
+test('builds the summary of the Desktop banner of a new survey', () => {
+  const survey = { questions_count: 5, estimated_minutes: 2 };
   assert.equal(bannerSummary(survey), '5 вопросов · около 2 минут · правильных ответов нет');
-  assert.equal(homeCardSubtitle({ ...survey, estimated_minutes: null }), 'Удобство раздела «Задачи»');
   assert.equal(bannerSummary({ ...survey, estimated_minutes: null }), '5 вопросов · правильных ответов нет');
 });
 

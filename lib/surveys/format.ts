@@ -23,9 +23,8 @@ export const durationLabel = (minutes: number) => `~${minutes} ${pluralRu(minute
 /** «около 2 минут» — баннер Desktop: после «около» родительный падеж. */
 export const durationAboutLabel = (minutes: number) => `около ${minutes} ${pluralRu(minutes, ["минуты", "минут", "минут"])}`;
 
-/** «Удобство раздела «Задачи» · 2 мин» — карточка «Новый опрос» на главной. */
-export const homeCardSubtitle = (survey: Pick<ClientSurvey, "title" | "estimated_minutes">) =>
-  survey.estimated_minutes == null ? survey.title : `${survey.title} · ${survey.estimated_minutes} мин`;
+/** «2 мин» — карточка «Новый опрос» на главной, после названия: «Удобство раздела «Задачи» · 2 мин». */
+export const durationShortLabel = (minutes: number) => `${minutes} мин`;
 
 /** «5 вопросов · около 2 минут · правильных ответов нет» — баннер «Новый опрос» на Desktop. */
 export function bannerSummary(survey: Pick<ClientSurvey, "questions_count" | "estimated_minutes">): string {

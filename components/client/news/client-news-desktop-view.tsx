@@ -7,6 +7,7 @@ import { NewsSectionTabs, type NewsSurveysTab } from "@/components/client/news/n
 import { DesktopContentPage } from "@/components/layout/desktop-content-page";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";
+import { NewSurveyCallout } from "@/components/surveys/new-survey-callout";
 import { SurveyList } from "@/components/surveys/survey-list";
 import {
   Select,
@@ -22,6 +23,7 @@ import {
 } from "@/constants/news-filters";
 import type { UseClientNewsPageResult } from "@/hooks/use-client-news-page";
 import { emptyReactionCounts } from "@/lib/news-reactions";
+import { latestAvailableSurvey } from "@/lib/surveys/list";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 type ClientNewsDesktopViewProps = UseClientNewsPageResult & { surveysTab: NewsSurveysTab | null };
@@ -102,6 +104,8 @@ function NewsFeed({
 }
 
 export function ClientNewsDesktopView({ surveysTab, ...news }: ClientNewsDesktopViewProps) {
+  // «Новый опрос» above the news (Figma «Клиент Desktop Новости»); Mobile shows it on the home.
+  const newSurvey = surveysTab ? latestAvailableSurvey(surveysTab.surveys.surveys) : null;
   return (
     <DesktopContentPage title="Все новости" dark>
       {surveysTab ? (
@@ -115,7 +119,14 @@ export function ClientNewsDesktopView({ surveysTab, ...news }: ClientNewsDesktop
         </div>
       ) : null}
 
-      {surveysTab?.section === "surveys" ? <SurveyList layout="desktop" {...surveysTab.surveys} /> : <NewsFeed {...news} />}
+      {surveysTab?.section === "surveys" ? (
+        <SurveyList layout="desktop" {...surveysTab.surveys} />
+      ) : (
+        <>
+          {newSurvey ? <NewSurveyCallout layout="banner" survey={newSurvey} className="mb-[18px]" /> : null}
+          <NewsFeed {...news} />
+        </>
+      )}
     </DesktopContentPage>
   );
 }

@@ -645,8 +645,12 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .desktop-main-content .client-desktop-dark .bg-card {
     background-color: hsl(var(--desktop-surface-card)) !important;
   }
-  .desktop-main-content .client-desktop-content .border-border,
-  .desktop-main-content .client-desktop-dark .border-border {
+  /*
+   * База `* { @apply border-border }` копирует это правило на каждый элемент (`… .client-desktop-content *`)
+   * и красит все рамки страниц Desktop. Элемент с токеном рамки (border-ui-*) задаёт её цвет сам.
+   */
+  .desktop-main-content .client-desktop-content .border-border:where(:not([class*="border-ui-"])),
+  .desktop-main-content .client-desktop-dark .border-border:where(:not([class*="border-ui-"])) {
     border-color: hsl(var(--desktop-border)) !important;
   }
   /* Switch thumb uses bg-background — overridden to transparent above */
