@@ -83,3 +83,30 @@ test('employee search matches the name or the position and drops empty departmen
   assert.equal(stats.filterDepartments(departments, '  '), departments);
   assert.equal(stats.initials('Айгерим Нурланова'), 'АН');
 });
+
+test('«Вся команда» shows the summed numbers in the blocks of one person', () => {
+  const team = { employees_count: 3, ...sample({ total: 10, completed: 4, completion_percent: 40 }) };
+  delete team.employee;
+  delete team.period;
+  const period = { from: '2026-10-01', to: '2026-10-31', as_of: '', ended: false };
+  const shown = plain(stats.teamAsStats({ period, team, employees: [] }));
+  assert.equal(shown.employee, null);
+  assert.deepEqual(shown.period, period);
+  assert.equal(shown.completion_percent, 40);
+  assert.equal('employees_count' in shown, false);
+  assert.equal(stats.statsContent(shown), 'data');
+});
+
+test('team rows: the lowest percentage first, nothing due last, then by name', () => {
+  const row = (full_name, completion_percent) => ({ id: full_name.length, full_name, completion_percent });
+  const sorted = stats.sortTeamMembers([row('Тимур', null), row('Дана', 70), row('Алия', 70), row('Ерлан', 0), row('Айгерим', null)]);
+  assert.deepEqual(plain(sorted.map((r) => r.full_name)), ['Ерлан', 'Алия', 'Дана', 'Айгерим', 'Тимур']);
+});
+
+test('a department of the team: one key, and the query the server checks', () => {
+  assert.equal(stats.departmentKey({ company_id: 3, department_id: 7 }), '3:7');
+  assert.equal(stats.departmentKey({ company_id: 3, department_id: null }), '3:none');
+  assert.deepEqual(plain(stats.teamFilter({ company_id: 3, department_id: 7 })), { company_id: '3', department_id: '7' });
+  assert.deepEqual(plain(stats.teamFilter({ company_id: 3, department_id: null })), { company_id: '3', department_id: 'none' });
+  assert.deepEqual(plain(stats.teamFilter(null)), {});
+});

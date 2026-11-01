@@ -1,12 +1,13 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import {useAuthStore} from "@/stores/useAuthStore";
 import {isRequestStateMutation, REQUEST_ACTION_COUNT_REFRESH_EVENT} from "@/lib/request-action-count";
-
-const API_BASE_URL =
-    (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    'https://workflow-back-zpk4.onrender.com/api';
+import { API_BASE_URL } from "@/lib/api-base-url";
+import { getAccessToken, renewAfterUnauthorized } from "@/lib/session";
 
 export { API_BASE_URL };
+
+/** Запрос уже повторяли после продления сессии: второй 401 значит, что продлевать нечего. */
+type SessionRetryConfig = AxiosRequestConfig & { _sessionRetried?: boolean };
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
@@ -17,8 +18,9 @@ export const api = axios.create({
 });
 
 if (typeof window !== 'undefined') {
-    api.interceptors.request.use(config => {
-        const token = useAuthStore.getState().token;
+    api.interceptors.request.use(async config => {
+        // Токен из стора; если он вот-вот истечёт — сначала продлеваем сессию.
+        const token = await getAccessToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,7 +28,8 @@ if (typeof window !== 'undefined') {
     }, error => Promise.reject(error));
 }
 
-// Обработка ответов - если получаем 401, очищаем токен и перенаправляем на логин (кроме гостевого демо)
+// 401: access-токен истёк — продлеваем сессию и повторяем запрос. Сессия завершена — выход на экран входа
+// (кроме гостевого демо); сеть не дала продлить — ошибка запроса, пользователь остаётся в аккаунте.
 api.interceptors.response.use(
     response => {
         // Заявка сдвинулась по маршруту — бейдж «Заявки» перечитывает число.
@@ -38,12 +41,19 @@ api.interceptors.response.use(
         }
         return response;
     },
-    error => {
-        if (error.response?.status === 401 && !useAuthStore.getState().isGuest) {
-            useAuthStore.getState().clearAuth();
-            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                window.location.href = '/login';
-            }
+    async error => {
+        const config = error.config as SessionRetryConfig | undefined;
+        if (error.response?.status !== 401 || useAuthStore.getState().isGuest) return Promise.reject(error);
+        const usedToken = String(config?.headers?.Authorization ?? '').replace(/^Bearer /, '');
+        if (config && usedToken && !config._sessionRetried) {
+            const renewed = await renewAfterUnauthorized(usedToken);
+            // Новый токен подставит перехватчик запроса.
+            if (renewed.token) return api.request({ ...config, _sessionRetried: true } as SessionRetryConfig);
+            if (!renewed.ended) return Promise.reject(error);
+        }
+        if (useAuthStore.getState().token) useAuthStore.getState().clearAuth();
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
@@ -55,11 +65,7 @@ api.interceptors.response.use(
 export const login = (data: { email: string; password: string }) =>
     api.post('/auth/login', data);
 
-// Выход
-export const logout = () => api.post('/auth/logout');
-
-// Обновить токен
-export const refreshToken = () => api.post('/auth/refresh-token');
+// Выход: завершить сессию — signOut из lib/session.ts
 
 export default api;
 

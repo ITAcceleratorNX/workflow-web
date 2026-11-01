@@ -12,6 +12,9 @@
  *
  * Надёжный способ: подписаться на useAuthStore.subscribe() — Zustand гарантирует
  * вызов при КАЖДОМ изменении state, включая setAuth/clearAuth.
+ *
+ * Смена аккаунта — другой пользователь, а не другой токен: сессия меняет токен при каждом
+ * продлении (lib/session.ts), и это не повод перерегистрировать FCM в нативной обёртке.
  */
 
 import { useEffect, useRef } from "react";
@@ -19,6 +22,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function BridgeInit() {
     const prevTokenRef = useRef<string | null>(null);
+    const prevUserIdRef = useRef<number | null>(null);
     const initializedRef = useRef(false);
 
     useEffect(() => {
@@ -38,6 +42,7 @@ export default function BridgeInit() {
         // Берём текущий токен при первом рендере
         const currentToken = useAuthStore.getState().token;
         prevTokenRef.current = currentToken;
+        prevUserIdRef.current = useAuthStore.getState().user?.id ?? null;
         initializedRef.current = true;
 
         console.log("[BridgeInit] Auth store subscribe started, current token:", currentToken ? currentToken.substring(0, 20) + "..." : "null");
@@ -46,9 +51,18 @@ export default function BridgeInit() {
         const unsub = useAuthStore.subscribe((state) => {
             const newToken = state.token;
             const prevToken = prevTokenRef.current;
+            const newUserId = state.user?.id ?? null;
+            const prevUserId = prevUserIdRef.current;
 
             // Ничего не изменилось
             if (newToken === prevToken) return;
+            prevUserIdRef.current = newUserId;
+
+            // Сессия продлена: тот же пользователь, новый токен
+            if (newToken && prevToken && newUserId === prevUserId) {
+                prevTokenRef.current = newToken;
+                return;
+            }
 
             console.log("[BridgeInit] Auth token changed:", prevToken ? "EXISTS" : "null", "→", newToken ? "EXISTS" : "null");
 

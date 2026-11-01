@@ -99,7 +99,7 @@ export function useLogin(): UseLoginResult {
       const userData = await getCurrentUser(data.token);
       const userRole = data.role || 'client';
 
-      useAuthStore.getState().setAuth(data.token, userRole, userData);
+      useAuthStore.getState().setAuth(data.token, userRole, userData, data.refresh_token ?? null);
       useStatsStore.getState().fetchStats(userRole);
       useCategoryStore.getState().fetchCategories(data.token);
 

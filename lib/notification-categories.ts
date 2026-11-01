@@ -94,11 +94,11 @@ export function defaultCategory(items: CategorySummaryItem[]): NotificationCateg
   return (ordered.find((item) => item.unread_count > 0) ?? ordered[0])?.category ?? null;
 }
 
-/** История идёт от старых к новым: новые внизу, как на экранах Figma. */
-export function chronological(items: CategoryNotification[]): CategoryNotification[] {
+/** История идёт от новых к старым: новые сверху. */
+export function newestFirst(items: CategoryNotification[]): CategoryNotification[] {
   const unique = new Map<number, CategoryNotification>();
   for (const item of items) unique.set(item.id, item);
-  return Array.from(unique.values()).sort((a, b) => time(a.created_at) - time(b.created_at) || a.id - b.id);
+  return Array.from(unique.values()).sort((a, b) => time(b.created_at) - time(a.created_at) || b.id - a.id);
 }
 
 function yesterdayKey(now: Date): string {
@@ -122,7 +122,7 @@ export interface NotificationDayGroup {
 
 export function groupNotificationsByDay(items: CategoryNotification[], now: Date = new Date()): NotificationDayGroup[] {
   const groups: NotificationDayGroup[] = [];
-  for (const item of chronological(items)) {
+  for (const item of newestFirst(items)) {
     const key = toAppDateKey(item.created_at);
     const last = groups[groups.length - 1];
     if (last?.key === key) last.items.push(item);

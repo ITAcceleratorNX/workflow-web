@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { ClientDesktopShell } from "@/components/layout/ClientDesktopShell";
 import { ExecutorDesktopShell } from "@/components/layout/ExecutorDesktopShell";
 import { RoleDesktopShell } from "@/components/layout/RoleDesktopShell";
-import { useBottomAnchoredScroll } from "@/hooks/use-bottom-anchored-scroll";
+import { useNewestFirstScroll } from "@/hooks/use-newest-first-scroll";
 import type { UseNotificationsPageResult } from "@/hooks/use-notifications-page";
 import { cn } from "@/lib/utils";
 import { formatTimeOnly } from "@/lib/dateTimeUtils";
@@ -118,7 +118,7 @@ function HistoryCard({
 function CategoryHistoryPanel(page: NotificationsPageDesktopViewProps) {
   const { activeCategory, activeSummary, history, loadOlder, readNotification, handleRequestClick, retry } = page;
   const items = history?.items ?? [];
-  const { containerRef, onScroll } = useBottomAnchoredScroll({
+  const { containerRef, onScroll } = useNewestFirstScroll({
     resetKey: activeCategory,
     itemsCount: items.length,
     hasMore: history?.hasMore ?? false,
@@ -159,7 +159,6 @@ function CategoryHistoryPanel(page: NotificationsPageDesktopViewProps) {
       ) : (
         <div ref={containerRef} onScroll={onScroll} className="max-h-[calc(100vh-290px)] min-h-[320px] overflow-y-auto pr-1">
           <div className="flex flex-col gap-5">
-            {history?.loading && <p className="text-center text-xs text-white/50">Загрузка...</p>}
             {groups.map((group) => (
               <div key={group.key} className="flex flex-col gap-2">
                 <h3 className="text-[13px] font-semibold text-white/50">{group.label}</h3>
@@ -173,6 +172,7 @@ function CategoryHistoryPanel(page: NotificationsPageDesktopViewProps) {
                 ))}
               </div>
             ))}
+            {history?.loading && <p className="text-center text-xs text-white/50">Загрузка...</p>}
           </div>
         </div>
       )}

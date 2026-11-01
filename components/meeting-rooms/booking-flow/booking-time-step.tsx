@@ -140,7 +140,7 @@ export function BookingTimeStep({ state, tone }: { state: RoomBookingState; tone
           )}
         </div>
         <p className={cn("mt-1 text-xs", t.muted)}>
-          Шаг 15 минут · от 15 мин до 2 ч · офис работает {formatTime(hours.start)}–{formatTime(hours.end)}
+          Шаг 15 минут · от 15 мин до конца рабочего дня · офис работает {formatTime(hours.start)}–{formatTime(hours.end)}
         </p>
       </section>
 

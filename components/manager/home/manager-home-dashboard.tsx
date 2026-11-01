@@ -51,14 +51,13 @@ import {
 } from "@/constants/requests";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useBottomNavUiStore } from "@/stores/bottom-nav-ui-store";
-import { SuccessModal } from "@/components/success-model";
-import {useAcceptRequestModal} from "@/hooks/use-approve-modal";
 import {NotificationsSidebar} from "@/components/notification/NotificationsSidebar";
 import {Request, RequestGroup, SubRequest, useRequestStore} from "@/stores/useRequestStore";
 import PullToRefresh from "@/components/pull-to-refresh";
 import Link from "next/link";
 import {useStatsStore} from "@/stores/statsStore";
 import {useAuthStore} from "@/stores/useAuthStore";
+import { signOut } from "@/lib/session";
 import {useCategoryStore} from "@/stores/useCategoryStore";
 import {RoleBasedActionMenu} from "@/components/requests";
 const LogsViewer = dynamic(() => import("@/components/logs-viewer").then(mod => ({ default: mod.LogsViewer })), {
@@ -161,7 +160,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const deleteSubcategory = useCategoryStore(state => state.deleteSubcategory)
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const approveModal = useAcceptRequestModal()
   const router = useRouter()
   const [showIconInfo, setShowIconInfo] = useState<{type: 'status' | 'longTerm', value: string} | null>(null);
   const rejectModal = useRejectRequestModal()
@@ -1096,7 +1094,8 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
   const handleLogout = async () => {
     try {
       clearNotifications()
-      clearAuth()
+      // Сессию завершает и сервер: refresh-токен больше не продлит вход.
+      await signOut()
       useStatsStore.getState().resetStats()
       clearRequests()
       clearCategories()
@@ -4331,13 +4330,6 @@ export default function ManagerDashboard({ standaloneManagement = false }: Manag
           title={rejectModal.title}
           message={rejectModal.message}
           duration={rejectModal.duration}
-      />
-      <SuccessModal
-          isOpen={approveModal.isOpen}
-          onClose={approveModal.hideAccept}
-          title='Заявка удалена'
-          message='Заявка была успешно удалена.'
-          duration={approveModal.duration}
       />
 
       {/* Unified Delete Confirmation Modals */}

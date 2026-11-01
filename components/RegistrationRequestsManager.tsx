@@ -27,6 +27,8 @@ interface RegistrationRequest {
     company?: { id: number; name: string } | null;
     company_other_name?: string | null;
     status: 'pending' | 'approved' | 'rejected';
+    /** false — номер не подтверждён по SMS: подтверждает только Администратор. */
+    phone_verified?: boolean;
     created_at: string;
 }
 
@@ -393,6 +395,11 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                                                             Исполнитель
                                                         </Badge>
                                                     )}
+                                                    {request.phone_verified === false && (
+                                                        <Badge variant="outline" className={`text-xs ${isDark ? "border-white/20 text-white/80" : ""}`}>
+                                                            Без SMS-подтверждения
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs md:text-sm ${mutedCl}`}>
                                                     <p>Телефон: {request.phone}</p>
@@ -423,13 +430,19 @@ export default function RegistrationRequestsManager({ variant = 'light' }: Regis
                                                             Изменить офис / компанию
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        onClick={() => handleApprove(request.id)}
-                                                        size="sm"
-                                                        className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${approveBtnCl}`}
-                                                    >
-                                                        Одобрить
-                                                    </Button>
+                                                    {request.phone_verified === false ? (
+                                                        <p className={`self-center text-xs md:text-sm ${mutedCl}`}>
+                                                            Без SMS подтверждает администратор
+                                                        </p>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={() => handleApprove(request.id)}
+                                                            size="sm"
+                                                            className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${approveBtnCl}`}
+                                                        >
+                                                            Одобрить
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         onClick={() => handleReject(request.id)}
                                                         size="sm"

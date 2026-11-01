@@ -55,11 +55,14 @@ export function RegisterFormDesktop({
   setVerificationCode,
   isSendingCode,
   countdown,
+  smsSkipped,
   isStep1Valid,
   handlePhoneChange,
   handleDesktopStep1Next,
   handleVerifyCode,
   handleResendCode,
+  handleSkipSms,
+  handleBackFromPassword,
   handleSubmit,
 }: RegisterFormDesktopProps) {
   return (
@@ -356,6 +359,27 @@ export function RegisterFormDesktop({
                   </span>
                 </button>
 
+                {!isSendingCode && countdown === 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleSkipSms}
+                    className="w-full flex justify-center items-center"
+                    style={{ minHeight: "48px", padding: "12px", background: "transparent", borderRadius: "8px" }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: 500,
+                        fontSize: "16px",
+                        lineHeight: "24px",
+                        color: "#F35713",
+                      }}
+                    >
+                      Не приходит SMS? Отправить запрос без SMS
+                    </span>
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -389,6 +413,14 @@ export function RegisterFormDesktop({
 
           {step === 3 && (
             <>
+              {smsSkipped ? (
+                <p
+                  className="text-center"
+                  style={{ fontFamily: "'Inter', sans-serif", fontSize: "14px", color: "#7F7F7F" }}
+                >
+                  Запрос будет отправлен без SMS-подтверждения. Его подтвердит администратор.
+                </p>
+              ) : null}
               <div className="flex flex-col" style={{ gap: "8px" }}>
                 <label htmlFor="password" style={fieldLabelStyle}>
                   Пароль
@@ -488,10 +520,7 @@ export function RegisterFormDesktop({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setStep(2);
-                    setFormErrors(null);
-                  }}
+                  onClick={handleBackFromPassword}
                   className="w-full flex justify-center items-center"
                   style={{
                     height: "48px",

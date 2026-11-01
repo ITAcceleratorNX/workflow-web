@@ -6,21 +6,28 @@ import { isAxiosError } from "axios";
 import { todayTaskDateKey } from "@/lib/dateTimeUtils";
 import {
   containsDay,
+  departmentKey,
   filterDepartments,
   monthPeriod,
   periodOfKind,
   shiftPeriod,
+  sortTeamMembers,
+  teamAsStats,
   type StatsDepartment,
   type StatsEmployee,
   type StatsPeriod,
   type StatsPeriodKind,
   type TaskStats,
+  type TeamMemberStats,
 } from "@/lib/task-stats";
-import { fetchStatsEmployees, fetchTaskStats } from "@/lib/task-stats-api";
+import { fetchStatsEmployees, fetchTaskStats, fetchTeamStats } from "@/lib/task-stats-api";
 import { useUserTasksInvalidateStore } from "@/stores/user-tasks-invalidate-store";
 
 export type StatsTab = "my" | "employees";
 const BASE_PATH = "/client/tasks/stats";
+/** `?employee=team`: «Вся команда» instead of one employee; `&group=3:7` narrows it to one department. */
+const TEAM_PARAM = "team";
+const GROUP_PARAM = "group";
 
 type ScopeState =
   | { status: "loading" }
@@ -30,7 +37,7 @@ type ScopeState =
 /** Loaded statistics carry the request they answer: a screen shows only those of its own filter. */
 type StatsState =
   | { key: string; status: "loading" }
-  | { key: string; status: "ready"; stats: TaskStats }
+  | { key: string; status: "ready"; stats: TaskStats; members: TeamMemberStats[] | null }
   | { key: string; status: "error"; reason: "forbidden" | "failed" };
 
 function employeeIdParam(value: string | null): number | null {
@@ -39,10 +46,11 @@ function employeeIdParam(value: string | null): number | null {
 
 /**
  * «Статистика задач»: own statistics («Моя»), or, for the head of a company or a department,
- * an employee's («Сотрудники»). The tab and the employee live in the URL (?view=employees&employee=ID),
- * so the phone «Назад» returns from an employee to the list. The period stays on screen.
+ * the whole team or an employee («Сотрудники»). The tab and the choice live in the URL
+ * (?view=employees&employee=ID|team[&group=3:7]), so the phone «Назад» returns to the list. The period stays
+ * on screen. `teamByDefault` (desktop) shows the team while nobody is chosen.
  */
-export function useTaskStatsPage() {
+export function useTaskStatsPage({ teamByDefault = false }: { teamByDefault?: boolean } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const todayKey = useMemo(() => todayTaskDateKey(), []);
@@ -57,7 +65,9 @@ export function useTaskStatsPage() {
   const canViewEmployees = scope.status === "ready" && scope.departments.length > 0;
   const requestedTab: StatsTab = searchParams.get("view") === "employees" ? "employees" : "my";
   const tab: StatsTab = requestedTab === "employees" && canViewEmployees ? "employees" : "my";
-  const requestedEmployeeId = employeeIdParam(searchParams.get("employee"));
+  const employeeParam = searchParams.get("employee");
+  const requestedEmployeeId = employeeIdParam(employeeParam);
+  const team = tab === "employees" && (employeeParam === TEAM_PARAM || (employeeParam == null && teamByDefault));
 
   const employees = useMemo(
     () => (scope.status === "ready" ? scope.departments.flatMap((d) => d.employees) : []),
@@ -66,6 +76,11 @@ export function useTaskStatsPage() {
   // Only someone the server listed: an id typed into the URL opens nothing by itself.
   const employee: StatsEmployee | null =
     tab === "employees" ? employees.find((e) => e.id === requestedEmployeeId) ?? null : null;
+  // One department of the team, only one the server listed and only while there are several.
+  const groupParam = searchParams.get(GROUP_PARAM);
+  const canPickDepartment = scope.status === "ready" && scope.departments.length > 1;
+  const teamDepartment: StatsDepartment | null =
+    team && canPickDepartment && groupParam ? scope.departments.find((d) => departmentKey(d) === groupParam) ?? null : null;
   const employeeDepartment =
     employee && scope.status === "ready"
       ? scope.departments.find((d) => d.employees.some((e) => e.id === employee.id)) ?? null
@@ -86,17 +101,22 @@ export function useTaskStatsPage() {
     return () => controller.abort();
   }, [loadScope]);
 
-  // Whose statistics: own on «Моя», the chosen employee on «Сотрудники», nobody while the list shows.
-  const target: number | "me" | null = tab === "my" ? "me" : employee?.id ?? null;
-  const requestKey = target == null ? null : `${target}|${period.from}|${period.to}`;
+  // Whose statistics: own on «Моя», the team or the chosen employee on «Сотрудники», nobody while the list shows.
+  const target: number | "me" | "team" | null = tab === "my" ? "me" : team ? "team" : employee?.id ?? null;
+  const groupKey = teamDepartment ? departmentKey(teamDepartment) : "";
+  const requestKey = target == null ? null : `${target}|${groupKey}|${period.from}|${period.to}`;
 
   useEffect(() => {
     if (requestKey == null || target == null) return;
     const controller = new AbortController();
     // The same filter loaded again keeps its numbers until the new ones come; another filter never does.
     setState((prev) => (prev?.key === requestKey && prev.status === "ready" ? prev : { key: requestKey, status: "loading" }));
-    fetchTaskStats(period, target === "me" ? null : target, controller.signal)
-      .then((stats) => setState({ key: requestKey, status: "ready", stats }))
+    const load =
+      target === "team"
+        ? fetchTeamStats(period, teamDepartment, controller.signal).then((r) => ({ stats: teamAsStats(r), members: sortTeamMembers(r.employees) }))
+        : fetchTaskStats(period, target === "me" ? null : target, controller.signal).then((stats) => ({ stats, members: null }));
+    load
+      .then((loaded) => setState({ key: requestKey, status: "ready", ...loaded }))
       .catch((error) => {
         if (controller.signal.aborted) return;
         const forbidden = isAxiosError(error) && (error.response?.status === 403 || error.response?.status === 404);
@@ -104,7 +124,7 @@ export function useTaskStatsPage() {
       });
     return () => controller.abort();
     // A task changed elsewhere (invalidation) or «Повторить» (reloadToken) loads the same filter again.
-  }, [requestKey, target, period, invalidation, reloadToken]);
+  }, [requestKey, target, teamDepartment, period, invalidation, reloadToken]);
 
   // Back to the screen after editing tasks in another tab: the numbers may have changed.
   useEffect(() => {
@@ -140,13 +160,26 @@ export function useTaskStatsPage() {
     [navigate],
   );
 
-  /** Phone: the employee opens over the list (push, «Назад» returns); desktop replaces the choice. */
+  /** Phone: the team or an employee opens over the list (push, «Назад» returns); desktop replaces the choice. */
   const selectEmployee = useCallback(
-    (id: number | null, mode: "push" | "replace" = "replace") =>
+    (id: number | "team" | null, mode: "push" | "replace" = "replace") =>
       navigate((params) => {
         params.set("view", "employees");
+        params.delete(GROUP_PARAM);
         if (id == null) params.delete("employee");
-        else params.set("employee", String(id));
+        else params.set("employee", id === "team" ? TEAM_PARAM : String(id));
+      }, mode),
+    [navigate],
+  );
+
+  /** One department's numbers, in the place of «Вся команда»; null returns to the whole team. */
+  const selectDepartment = useCallback(
+    (department: StatsDepartment | null, mode: "push" | "replace" = "replace") =>
+      navigate((params) => {
+        params.set("view", "employees");
+        params.set("employee", TEAM_PARAM);
+        if (department) params.set(GROUP_PARAM, departmentKey(department));
+        else params.delete(GROUP_PARAM);
       }, mode),
     [navigate],
   );
@@ -174,6 +207,10 @@ export function useTaskStatsPage() {
     setSearch,
     employee,
     employeeDepartment,
+    team,
+    teamDepartment,
+    canPickDepartment,
+    selectDepartment,
     selectEmployee,
     period,
     setPeriod,

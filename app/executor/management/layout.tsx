@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { signOut } from "@/lib/session";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import Header from "@/app/header/Header";
 import { MobileRoleShell } from "@/components/layout/MobileRoleShell";
@@ -41,7 +42,8 @@ export default function ExecutorManagementLayout({
 
   const handleLogout = async () => {
     try {
-      clearAuth();
+      // Сессию завершает и сервер: refresh-токен больше не продлит вход.
+      await signOut();
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error);
