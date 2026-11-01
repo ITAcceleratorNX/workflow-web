@@ -23,6 +23,8 @@ const buttonVariants = cva(
         raised: "bg-ui-raised text-ui-fg font-semibold hover:bg-ui-fg/[0.14] focus-visible:ring-ui-fg/70",
         danger: "bg-ui-danger text-ui-fg font-semibold hover:brightness-110 focus-visible:ring-ui-fg/70",
         "accent-outline": "border border-ui-accent text-ui-accent font-semibold hover:bg-ui-accent/10",
+        // A secondary action next to the main one: «Назад», «Вернуться к вопросам» (Figma surveys).
+        "neutral-outline": "border border-ui-fg/20 text-ui-fg font-semibold hover:bg-ui-fg/[0.06] focus-visible:ring-ui-fg/70",
       },
       size: {
         default: "h-10 px-4 py-2",

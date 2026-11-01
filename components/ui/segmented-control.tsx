@@ -19,9 +19,10 @@ type SegmentedControlProps<T extends string> = {
   ariaLabel: string;
   /**
    * `accent` — the chosen option on accent-soft (view switch);
-   * `neutral` — on a lighter surface (priority).
+   * `neutral` — on a lighter surface (priority);
+   * `filled` — filled with the accent color (sections «Новости | Опросы»).
    */
-  tone?: "accent" | "neutral";
+  tone?: "accent" | "neutral" | "filled";
   /** `fill` stretches the options to equal widths. */
   fill?: boolean;
   className?: string;
@@ -81,7 +82,9 @@ export function SegmentedControl<T extends string>({
               selected
                 ? tone === "accent"
                   ? "bg-ui-accent-soft text-ui-accent-on-soft"
-                  : "bg-ui-fg/[0.13] font-semibold text-ui-fg"
+                  : tone === "filled"
+                    ? "bg-ui-accent font-semibold text-ui-fg"
+                    : "bg-ui-fg/[0.13] font-semibold text-ui-fg"
                 : "text-ui-fg/60 hover:text-ui-fg/85 [&_svg]:opacity-90",
               optionClassName,
             )}
