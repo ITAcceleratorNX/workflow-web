@@ -38,7 +38,8 @@ export function AdminWorkerRequestsFilters({
   const isDesktop = variant === "desktop";
 
   return (
-    <div className={cn("space-y-2", isDesktop ? "flex flex-wrap gap-2 space-y-0" : undefined)}>
+    // На десктопе фильтры встают в общую строку раздела рядом со «Сбросить».
+    <div className={isDesktop ? "contents" : "space-y-2"}>
       <div className={cn("flex gap-2", isDesktop && "contents")}>
         {!hideStatusFilter && (
           <RequestStatusFilter

@@ -58,6 +58,8 @@ export function ExecutorRequestsDesktop(props: ExecutorRequestsDesktopProps) {
               statusFilterOptions={statusFilterOptions}
             />
           }
+          isFiltered={props.isFiltered}
+          onResetFilters={props.resetFilters}
           tabsSlot={
             <ExecutorRequestsTabs
               variant="desktop"
@@ -78,6 +80,11 @@ export function ExecutorRequestsDesktop(props: ExecutorRequestsDesktopProps) {
               onLoadMore={props.handleLoadMore}
               requests={activeList}
               emptyMessage={EXECUTOR_EMPTY_MESSAGES[activeTab]}
+              emptyFilteredHint={
+                activeTab === "myTasks"
+                  ? "Измените статус или тип — или сбросьте фильтры"
+                  : "Измените тип — или сбросьте фильтр"
+              }
               clientRatings={clientRatings}
               onCardClick={handleCardClick}
               renderCardHeader={renderCardHeader}

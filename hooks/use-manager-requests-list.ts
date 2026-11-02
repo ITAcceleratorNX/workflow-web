@@ -172,6 +172,8 @@ export function useManagerRequestsList() {
     loadingMore,
     hasMore,
     filteredRequests: visibleRequests,
+    /** Все заявки вкладки по фильтрам, а не только показанные «Показать ещё». */
+    matchedCount: filteredRequests.length,
     error: error ?? officesError,
     isFiltered,
     resetFilters,

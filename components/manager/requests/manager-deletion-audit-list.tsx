@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequestHistoryList } from "@/components/requests/request-history-list";
 import { getStatusLabel, getTypeLabel } from "@/constants/requests";
+import { RQ_DESKTOP_BUTTON, RQ_DESKTOP_CARD } from "@/constants/requests-desktop-ui";
 import { formatDateTime } from "@/lib/dateTimeUtils";
 import { getRequestDeletionAudit, type RequestDeletionAuditEntry } from "@/lib/request-audit-api";
 import { listLoadError } from "@/lib/request-list-loading";
@@ -12,6 +13,16 @@ import { cn } from "@/lib/utils";
 
 interface ManagerDeletionAuditListProps {
   variant?: "mobile" | "desktop";
+}
+
+/** Поле снимка заявки: на десктопе (макет «Журнал удалений») значение сразу за подписью, на телефоне — колонкой. */
+function AuditField({ label, dark, children }: { label: string; dark: boolean; children: ReactNode }) {
+  return (
+    <div className={dark ? "flex flex-wrap gap-x-3 leading-[27px]" : "contents"}>
+      <dt className={dark ? "text-[#A1A1A6]" : "text-muted-foreground"}>{label}</dt>
+      <dd className={dark ? "text-white" : "text-foreground"}>{children}</dd>
+    </div>
+  );
 }
 
 /** Контрольный журнал удалений: только чтение, новые записи первыми. */
@@ -47,7 +58,7 @@ export function ManagerDeletionAuditList({ variant = "mobile" }: ManagerDeletion
     return () => { version.current += 1; };
   }, [load]);
 
-  const muted = dark ? "text-gray-400" : "text-muted-foreground";
+  const muted = dark ? "text-[#A1A1A6]" : "text-muted-foreground";
   const strong = dark ? "text-white" : "text-foreground";
 
   if (error && entries.length === 0) {
@@ -64,14 +75,15 @@ export function ManagerDeletionAuditList({ variant = "mobile" }: ManagerDeletion
   }
 
   return (
-    <div className="space-y-3">
+    <div className={dark ? "space-y-3.5" : "space-y-3"}>
       {entries.map((entry) => {
         const snapshot = entry.snapshot ?? { id: entry.request_group_id };
         const expanded = expandedId === entry.id;
+        const Chevron = expanded ? ChevronUp : ChevronDown;
         return (
           <div
             key={entry.id}
-            className={cn("rounded-2xl border p-4", dark ? "border-white/10 bg-[#262626]" : "border-border bg-card")}
+            className={dark ? cn(RQ_DESKTOP_CARD, "px-5 py-4") : "rounded-2xl border border-border bg-card p-4"}
           >
             <button
               type="button"
@@ -79,74 +91,55 @@ export function ManagerDeletionAuditList({ variant = "mobile" }: ManagerDeletion
               className="flex w-full items-start justify-between gap-3 text-left"
               aria-expanded={expanded}
             >
-              <div className="min-w-0 space-y-1">
-                <p className={cn("font-semibold", strong)}>
+              <div className={cn("min-w-0", dark ? "space-y-1.5" : "space-y-1")}>
+                <p className={cn("font-semibold", strong, dark && "text-xl")}>
                   Заявка #{entry.request_group_id}
                   {entry.request_id ? ` · подзаявка #${entry.request_id}` : ""}
                 </p>
-                <p className={cn("text-xs", muted)}>
+                <p className={cn(dark ? "text-sm" : "text-xs", muted)}>
                   Удалил: {entry.deleted_by_name ?? `#${entry.deleted_by}`} · {formatDateTime(entry.deleted_at)}
                 </p>
-                <p className={cn("text-sm", entry.reason ? strong : muted)}>
+                <p className={cn(dark ? "text-base" : "text-sm", entry.reason ? strong : dark ? "text-[#C7C7CC]" : muted)}>
                   {entry.reason ? `Причина: ${entry.reason}` : "Причина не указана"}
                 </p>
               </div>
-              {expanded ? <ChevronUp className={cn("h-5 w-5 shrink-0", muted)} /> : <ChevronDown className={cn("h-5 w-5 shrink-0", muted)} />}
+              <Chevron className={cn("h-5 w-5 shrink-0", dark ? "text-[#D1D1D6]" : muted)} />
             </button>
 
             {expanded && (
-              <div className={cn("mt-4 space-y-4 border-t pt-4 text-sm", dark ? "border-white/10" : "border-border")}>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              <div className={cn("mt-4 space-y-4 border-t pt-4", dark ? "border-[#39393C] text-base" : "border-border text-sm")}>
+                <dl className={dark ? undefined : "grid grid-cols-[auto_1fr] gap-x-3 gap-y-1"}>
                   {snapshot.status && (
-                    <>
-                      <dt className={muted}>Статус</dt>
-                      <dd className={strong}>{getStatusLabel(snapshot.status)}</dd>
-                    </>
+                    <AuditField label="Статус" dark={dark}>{getStatusLabel(snapshot.status)}</AuditField>
                   )}
                   {snapshot.request_type && (
-                    <>
-                      <dt className={muted}>Тип</dt>
-                      <dd className={strong}>{getTypeLabel(snapshot.request_type)}</dd>
-                    </>
+                    <AuditField label="Тип" dark={dark}>{getTypeLabel(snapshot.request_type)}</AuditField>
                   )}
                   {snapshot.created_date && (
-                    <>
-                      <dt className={muted}>Создана</dt>
-                      <dd className={strong}>{formatDateTime(snapshot.created_date)}</dd>
-                    </>
+                    <AuditField label="Создана" dark={dark}>{formatDateTime(snapshot.created_date)}</AuditField>
                   )}
                   {snapshot.client && (
-                    <>
-                      <dt className={muted}>Клиент</dt>
-                      <dd className={strong}>{snapshot.client.full_name}</dd>
-                    </>
+                    <AuditField label="Клиент" dark={dark}>{snapshot.client.full_name}</AuditField>
                   )}
                   {snapshot.office && (
-                    <>
-                      <dt className={muted}>Офис</dt>
-                      <dd className={strong}>{snapshot.office.name}</dd>
-                    </>
+                    <AuditField label="Офис" dark={dark}>{snapshot.office.name}</AuditField>
                   )}
                   {snapshot.location && (
-                    <>
-                      <dt className={muted}>Локация</dt>
-                      <dd className={strong}>
-                        {snapshot.location}
-                        {snapshot.location_detail ? `, ${snapshot.location_detail}` : ""}
-                      </dd>
-                    </>
+                    <AuditField label="Локация" dark={dark}>
+                      {snapshot.location}
+                      {snapshot.location_detail ? `, ${snapshot.location_detail}` : ""}
+                    </AuditField>
                   )}
                   {snapshot.rejection_reason && (
-                    <>
-                      <dt className={muted}>Причина отклонения</dt>
-                      <dd className={strong}>{snapshot.rejection_reason}</dd>
-                    </>
+                    <AuditField label="Причина отклонения" dark={dark}>{snapshot.rejection_reason}</AuditField>
                   )}
                 </dl>
 
                 {(snapshot.requests?.length ?? 0) > 0 && (
                   <div className="space-y-1">
-                    <p className={cn("text-xs font-medium uppercase", muted)}>Подзаявки</p>
+                    <p className={cn("uppercase", dark ? "text-[13px] font-semibold tracking-[0.04em]" : "text-xs font-medium", muted)}>
+                      Подзаявки
+                    </p>
                     <ul className="space-y-1">
                       {snapshot.requests?.map((sub) => (
                         <li key={sub.id} className={strong}>
@@ -158,7 +151,9 @@ export function ManagerDeletionAuditList({ variant = "mobile" }: ManagerDeletion
                 )}
 
                 <div className="space-y-2">
-                  <p className={cn("text-xs font-medium uppercase", muted)}>История до удаления</p>
+                  <p className={cn("uppercase", dark ? "text-[13px] font-semibold tracking-[0.04em]" : "text-xs font-medium", muted)}>
+                    История до удаления
+                  </p>
                   <RequestHistoryList entries={entry.history ?? []} dark={dark} />
                 </div>
               </div>
@@ -171,9 +166,16 @@ export function ManagerDeletionAuditList({ variant = "mobile" }: ManagerDeletion
 
       {(loading || page < totalPages) && (
         <div className="flex justify-center pt-2">
-          <Button variant="outline" size="sm" disabled={loading} onClick={() => void load(page + 1)}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Показать ещё"}
-          </Button>
+          {dark ? (
+            <button type="button" className={RQ_DESKTOP_BUTTON} disabled={loading} onClick={() => void load(page + 1)}>
+              {loading ? <Loader2 className="animate-spin" aria-hidden /> : null}
+              Показать ещё
+            </button>
+          ) : (
+            <Button variant="outline" size="sm" disabled={loading} onClick={() => void load(page + 1)}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Показать ещё"}
+            </Button>
+          )}
         </div>
       )}
     </div>

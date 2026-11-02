@@ -59,16 +59,19 @@ export function ClientRequestsDesktop(props: ClientRequestsDesktopProps) {
             statusFilterOptions={statusFilterOptions}
           />
         }
+        isFiltered={props.isFiltered}
+        onResetFilters={props.resetFilters}
         listSlot={
           <RequestsListContent
             userRole="client"
             emptyMessage="У вас пока нет заявок"
+            emptyFilteredHint="Измените статус или тип — или сбросьте фильтры"
             variant="desktop"
             error={props.error}
-              isFiltered={props.isFiltered}
-              onRetry={props.fetchRequests}
-              onResetFilters={props.resetFilters}
-              loading={loading}
+            isFiltered={props.isFiltered}
+            onRetry={props.fetchRequests}
+            onResetFilters={props.resetFilters}
+            loading={loading}
             loadingMore={loadingMore}
             hasMore={hasMore}
             requests={filteredRequests}
