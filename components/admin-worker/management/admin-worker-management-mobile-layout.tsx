@@ -10,6 +10,8 @@ interface AdminWorkerManagementMobileLayoutProps {
   rightSlot?: React.ReactNode;
   inlineTitle?: boolean;
   backHref?: string;
+  /** «Назад» вместо перехода по backHref: например, чтобы переспросить о несохранённых правках. */
+  onBack?: () => void;
 }
 
 export function AdminWorkerManagementMobileLayout({
@@ -19,11 +21,13 @@ export function AdminWorkerManagementMobileLayout({
   rightSlot,
   inlineTitle = false,
   backHref = ADMIN_WORKER_MANAGEMENT_BACK_HREF,
+  onBack,
 }: AdminWorkerManagementMobileLayoutProps) {
   return (
     <MobilePageLayout
       title={title}
       backHref={backHref}
+      onBack={onBack}
       background="default"
       onRefresh={onRefresh}
       rightSlot={rightSlot}

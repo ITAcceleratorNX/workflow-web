@@ -9,6 +9,9 @@ export const NEWS_SURVEYS_HREF = "/client/news?tab=surveys";
 // Администратор: экраны опроса в «Управление новостями» (docs/surveys-plan.md, шаги 13–15).
 const ADMIN_SURVEYS = "/admin-worker/management/news/surveys";
 
+/** Список опросов: вкладка «Опросы» в «Управление новостями». */
+export const ADMIN_SURVEYS_HREF = "/admin-worker/management/news?tab=surveys";
+
 /** Конструктор нового опроса. */
 export const ADMIN_SURVEY_NEW_HREF = `${ADMIN_SURVEYS}/new`;
 

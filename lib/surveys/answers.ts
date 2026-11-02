@@ -11,6 +11,9 @@ export const ANSWER_TEXT_LIMIT = 500;
 // Видимый символ: не пробел, не управляющий, не невидимый (ZWSP, ZWJ…) — как на сервере.
 const VISIBLE = /[^\p{White_Space}\p{Control}\p{Default_Ignorable_Code_Point}]/u;
 
+/** Есть ли в тексте видимый символ: пустой или невидимый текст сервер не принимает. */
+export const hasVisibleText = (text: string) => VISIBLE.test(text);
+
 export type AnswerDraft = { optionIds: number[] } | { rating: number } | { text: string };
 /** Черновик ответов по id вопроса. */
 export type AnswersDraft = Readonly<Record<number, AnswerDraft>>;
@@ -37,7 +40,7 @@ export function isAnswered(question: SurveyQuestion, answer: AnswerDraft | undef
     case "rating":
       return "rating" in answer && Number.isInteger(answer.rating) && answer.rating >= 1 && answer.rating <= 5;
     case "text":
-      return "text" in answer && VISIBLE.test(answer.text) && answerTextLength(answer.text.trim()) <= ANSWER_TEXT_LIMIT;
+      return "text" in answer && hasVisibleText(answer.text) && answerTextLength(answer.text.trim()) <= ANSWER_TEXT_LIMIT;
     case "multiple_choice":
       return "optionIds" in answer && answer.optionIds.length > 0;
     default:

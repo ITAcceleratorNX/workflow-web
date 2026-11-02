@@ -215,7 +215,8 @@ html {
   .admin-management-content .border-green-200,
   .admin-management-content .border-yellow-200,
   .admin-management-content .border-red-200,
-  .admin-management-content .border {
+  /* Элемент с токеном рамки (border-ui-*) задаёт её цвет сам. */
+  .admin-management-content .border:where(:not([class*="border-ui-"])) {
     border-color: #3A3A3C !important;
   }
   .admin-management-content .border-l-blue-500 {
@@ -269,10 +270,11 @@ html {
   .admin-management-content .text-yellow-500 {
     color: #F35713 !important;
   }
-  .admin-management-content input,
-  .admin-management-content select,
-  .admin-management-content textarea,
-  .admin-management-content [role="combobox"] {
+  /* Поля продуктового UI (классы токенов *-ui-*, components/ui/field.tsx) раскрашены сами. */
+  .admin-management-content input:where(:not([class*="-ui-"])),
+  .admin-management-content select:where(:not([class*="-ui-"])),
+  .admin-management-content textarea:where(:not([class*="-ui-"])),
+  .admin-management-content [role="combobox"]:where(:not([class*="-ui-"])) {
     background-color: #1C1C1E !important;
     border-color: #3A3A3C !important;
     color: #ffffff !important;
@@ -280,8 +282,8 @@ html {
   .admin-management-content select {
     color-scheme: dark;
   }
-  .admin-management-content input:focus,
-  .admin-management-content select:focus {
+  .admin-management-content input:where(:not([class*="-ui-"])):focus,
+  .admin-management-content select:where(:not([class*="-ui-"])):focus {
     border-color: #F35713 !important;
     outline: none;
   }
@@ -585,16 +587,16 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .client-desktop-dark [role="tab"]:not([data-state="active"]):where(:not([class*="-ui-"])) {
     color: #8E8E93 !important;
   }
-  /* Клиент десктоп: инпуты/селекты как на мобильном */
-  .client-desktop-content input,
-  .client-desktop-content select,
-  .client-desktop-content textarea {
+  /* Клиент десктоп: инпуты/селекты как на мобильном; поля продуктового UI (*-ui-*) раскрашены сами. */
+  .client-desktop-content input:where(:not([class*="-ui-"])),
+  .client-desktop-content select:where(:not([class*="-ui-"])),
+  .client-desktop-content textarea:where(:not([class*="-ui-"])) {
     border-color: var(--client-border-subtle, #212121) !important;
     background-color: var(--client-bg-muted, #1C1C1E) !important;
     color: #ffffff !important;
   }
-  .client-desktop-content input::placeholder,
-  .client-desktop-content textarea::placeholder {
+  .client-desktop-content input:where(:not([class*="-ui-"]))::placeholder,
+  .client-desktop-content textarea:where(:not([class*="-ui-"]))::placeholder {
     color: #8E8E93 !important;
   }
   /* The search wrapper owns the surface; avoid a second rectangle inside it. */
@@ -615,7 +617,7 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .desktop-main-content .client-desktop-content [role="combobox"] span[data-placeholder] {
     color: #8E8E93 !important;
   }
-  .client-desktop-content label {
+  .client-desktop-content label:where(:not([class*="-ui-"])) {
     color: #ffffff !important;
   }
   .client-desktop-content button[class*="bg-"].bg-primary,

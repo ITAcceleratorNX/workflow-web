@@ -1,4 +1,4 @@
-import type { AdminSurvey, ClientSurvey, SurveyQuestion, SurveyStatus } from "./types";
+import type { AdminSurvey, ClientSurvey, SurveyQuestion, SurveyQuestionType, SurveyStatus } from "./types";
 
 /**
  * Слова экранов опросов (Figma «workflow», клиент Mobile и Desktop): одни на мобильную и десктопную
@@ -134,3 +134,75 @@ export function adminSurveyMeta(survey: AdminSurveyMoments, when: (iso: string) 
 
 /** «Ответы: 23» — под опубликованным и завершённым опросом. */
 export const adminResponsesLabel = (count: number) => `Ответы: ${count}`;
+
+// ─── Администратор: конструктор опроса ─────────────────────────────────────
+
+/** Типы вопроса в порядке меню «Тип вопроса». */
+export const QUESTION_TYPE_ORDER: readonly SurveyQuestionType[] = ["single_choice", "multiple_choice", "text", "rating", "yes_no"];
+
+const QUESTION_TYPE_WORDS: Record<SurveyQuestionType, { label: string; description: string }> = {
+  single_choice: { label: "Один вариант", description: "Клиент выбирает один ответ" },
+  multiple_choice: { label: "Несколько вариантов", description: "Клиент выбирает несколько ответов" },
+  text: { label: "Открытый ответ", description: "Поле для свободного текста" },
+  rating: { label: "Оценка 1–5", description: "Шкала от 1 до 5" },
+  yes_no: { label: "Да / Нет", description: "Две кнопки: Да и Нет" },
+};
+
+/** «Один вариант» — тип вопроса в меню, в карточке вопроса и в поле «Тип ответа». */
+export const questionTypeLabel = (type: SurveyQuestionType) => QUESTION_TYPE_WORDS[type].label;
+
+/** «Клиент выбирает один ответ» — пояснение типа в меню «Тип вопроса». */
+export const questionTypeDescription = (type: SurveyQuestionType) => QUESTION_TYPE_WORDS[type].description;
+
+const optionsCountLabel = (count: number) => `${count} ${pluralRu(count, ["вариант", "варианта", "вариантов"])}`;
+
+/** «4 варианта», «4 варианта · можно несколько», «Шкала от 1 до 5» — строка вопроса в списке конструктора. */
+export function questionSummary(type: SurveyQuestionType, optionsCount: number): string {
+  switch (type) {
+    case "single_choice":
+      return optionsCountLabel(optionsCount);
+    case "multiple_choice":
+      return `${optionsCountLabel(optionsCount)} · можно несколько`;
+    case "rating":
+      return "Шкала от 1 до 5";
+    case "yes_no":
+      return "Да или Нет";
+    case "text":
+      return "Свободный текст";
+  }
+}
+
+/** Подсказка под вариантами или под «Как увидит клиент» в редакторе вопроса; у «Да / Нет» её нет. */
+export function questionEditorHint(type: SurveyQuestionType): string | null {
+  switch (type) {
+    case "single_choice":
+      return "Клиент выберет один вариант";
+    case "multiple_choice":
+      return "Клиент сможет выбрать несколько вариантов";
+    case "rating":
+      return "Шкала фиксированная, от 1 до 5. Варианты добавлять не нужно";
+    case "text":
+      return "Клиент напишет ответ своими словами, до 500 символов";
+    default:
+      return null;
+  }
+}
+
+/** Поле «Офисы»: «Все офисы» или названия через запятую; null — не выбран ни один. */
+export function officesLabel(allOffices: boolean, names: readonly string[]): string | null {
+  if (allOffices) return "Все офисы";
+  return names.length ? names.join(", ") : null;
+}
+
+/** «Режим ответов»: увидит ли Администратор, кто ответил. */
+export const responseModeHint = (anonymous: boolean) =>
+  anonymous ? "Вы не увидите, кто как ответил" : "Вы увидите имена рядом с ответами";
+
+/** Что мешает сохранить или опубликовать черновик (согласовано 02.11.2026). */
+export const DRAFT_MESSAGES = Object.freeze({
+  title: "Введите заголовок",
+  questionText: "Введите текст вопроса",
+  fewOptions: "Нужно хотя бы 2 варианта",
+  repeatedOption: "Варианты не должны повторяться",
+  offices: "Выберите офисы",
+});

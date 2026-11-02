@@ -21,7 +21,14 @@ import {
   durationAboutLabel,
   durationLabel,
   durationShortLabel,
+  officesLabel,
+  QUESTION_TYPE_ORDER,
   questionCounter,
+  questionEditorHint,
+  questionSummary,
+  questionTypeDescription,
+  questionTypeLabel,
+  responseModeHint,
   questionHint,
   questionsCountLabel,
   scaleLabels,
@@ -177,4 +184,30 @@ test('the admin list keeps the order of the server within a status', () => {
   assert.deepEqual(filterAdminSurveys(surveys, 'draft').map((s) => s.id), [4]);
   assert.deepEqual(filterAdminSurveys(surveys, 'published').map((s) => s.id), [3, 1]);
   assert.deepEqual(filterAdminSurveys(surveys, 'closed').map((s) => s.id), [2]);
+});
+
+test('the constructor names the question types and sums each question up as in the mockups', () => {
+  assert.deepEqual(QUESTION_TYPE_ORDER.map(questionTypeLabel), ['Один вариант', 'Несколько вариантов', 'Открытый ответ', 'Оценка 1–5', 'Да / Нет']);
+  assert.deepEqual(QUESTION_TYPE_ORDER.map(questionTypeDescription), [
+    'Клиент выбирает один ответ', 'Клиент выбирает несколько ответов', 'Поле для свободного текста', 'Шкала от 1 до 5', 'Две кнопки: Да и Нет',
+  ]);
+  assert.equal(questionSummary('single_choice', 4), '4 варианта');
+  assert.equal(questionSummary('single_choice', 5), '5 вариантов');
+  assert.equal(questionSummary('multiple_choice', 4), '4 варианта · можно несколько');
+  assert.deepEqual(['rating', 'yes_no', 'text'].map((type) => questionSummary(type, 0)), ['Шкала от 1 до 5', 'Да или Нет', 'Свободный текст']);
+  assert.deepEqual(QUESTION_TYPE_ORDER.map(questionEditorHint), [
+    'Клиент выберет один вариант',
+    'Клиент сможет выбрать несколько вариантов',
+    'Клиент напишет ответ своими словами, до 500 символов',
+    'Шкала фиксированная, от 1 до 5. Варианты добавлять не нужно',
+    null,
+  ]);
+});
+
+test('the constructor says which offices and which mode the survey has', () => {
+  assert.equal(officesLabel(true, ['Алатау']), 'Все офисы');
+  assert.equal(officesLabel(false, ['Алатау', 'Нурлы Тау']), 'Алатау, Нурлы Тау');
+  assert.equal(officesLabel(false, []), null);
+  assert.equal(responseModeHint(true), 'Вы не увидите, кто как ответил');
+  assert.equal(responseModeHint(false), 'Вы увидите имена рядом с ответами');
 });
