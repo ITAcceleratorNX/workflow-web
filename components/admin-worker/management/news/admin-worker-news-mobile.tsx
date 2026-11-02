@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { AdminWorkerNewsManagementScreen } from "@/components/admin-worker/news/admin-worker-news-management-screen";
 import { AdminWorkerManagementMobileLayout } from "../admin-worker-management-mobile-layout";
+import { AdminWorkerNewsSections } from "./admin-worker-news-sections";
 
 export function AdminWorkerNewsMobile() {
   const refreshRef = useRef<(() => Promise<void>) | null>(null);
@@ -17,7 +17,7 @@ export function AdminWorkerNewsMobile() {
 
   return (
     <AdminWorkerManagementMobileLayout title="Управление новостями" onRefresh={handleRefresh}>
-      <AdminWorkerNewsManagementScreen onRegisterRefresh={handleRegisterRefresh} />
+      <AdminWorkerNewsSections layout="mobile" onRegisterRefresh={handleRegisterRefresh} />
     </AdminWorkerManagementMobileLayout>
   );
 }

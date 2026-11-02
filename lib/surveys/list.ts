@@ -1,4 +1,5 @@
-import type { ClientSurvey } from "./types";
+import type { AdminSurveyFilter } from "./format";
+import type { AdminSurvey, ClientSurvey } from "./types";
 
 /**
  * Что показывает список опросов клиента. Сервер отдаёт доступные первыми (новые сверху), потом
@@ -15,3 +16,7 @@ export const hasAvailableSurveys = (surveys: readonly ClientSurvey[]) => surveys
 /** Опрос для карточки «Новый опрос» на главной и баннера Desktop — самый новый из доступных. */
 export const latestAvailableSurvey = (surveys: readonly ClientSurvey[]) =>
   surveys.find((survey) => survey.state === "available") ?? null;
+
+/** Опросы Администратора с выбранным статусом; порядок сервера (новые сверху) сохраняется. */
+export const filterAdminSurveys = (surveys: readonly AdminSurvey[], filter: AdminSurveyFilter) =>
+  filter === "all" ? [...surveys] : surveys.filter((survey) => survey.status === filter);

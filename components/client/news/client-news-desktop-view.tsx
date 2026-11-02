@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { ClientNewsSearch } from "@/components/client/news/client-news-search";
-import { NewsSectionTabs, type NewsSurveysTab } from "@/components/client/news/news-section-tabs";
+import type { NewsSurveysTab } from "@/components/client/news/client-news-view";
+import { NewsSectionTabs } from "@/components/news/news-section-tabs";
 import { DesktopContentPage } from "@/components/layout/desktop-content-page";
 import { NewsListItem } from "@/components/news/news-list-item";
 import { NewsReactionsRow } from "@/components/news/news-reactions-row";

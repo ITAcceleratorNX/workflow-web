@@ -11,6 +11,11 @@ import {
   submitOutcome,
 } from '../lib/surveys/answers.ts';
 import {
+  ADMIN_SURVEY_FILTERS,
+  adminResponsesLabel,
+  adminStatusLabel,
+  adminSurveyMeta,
+  adminSurveysEmpty,
   bannerSummary,
   completedLabel,
   durationAboutLabel,
@@ -21,7 +26,13 @@ import {
   questionsCountLabel,
   scaleLabels,
 } from '../lib/surveys/format.ts';
-import { availableSurveys, completedSurveys, hasAvailableSurveys, latestAvailableSurvey } from '../lib/surveys/list.ts';
+import {
+  availableSurveys,
+  completedSurveys,
+  filterAdminSurveys,
+  hasAvailableSurveys,
+  latestAvailableSurvey,
+} from '../lib/surveys/list.ts';
 
 /** Вопросы опроса из макета, как их отдаёт GET /surveys/:id. */
 const questions = [
@@ -135,4 +146,35 @@ test('shows the dot and the new survey card while an open survey is not taken', 
   const done = list.filter((s) => s.state === 'completed');
   assert.equal(hasAvailableSurveys(done), false);
   assert.equal(latestAvailableSurvey(done), null);
+});
+
+test('the admin list: the «Статус» filter, the status badges and the empty list', () => {
+  assert.deepEqual(ADMIN_SURVEY_FILTERS.map((filter) => filter.label), ['Все', 'Черновики', 'Опубликованные', 'Завершённые']);
+  assert.deepEqual(['draft', 'published', 'closed'].map(adminStatusLabel), ['Черновик', 'Опубликован', 'Завершён']);
+  assert.deepEqual(adminSurveysEmpty('all'), {
+    title: 'Опросов пока нет',
+    description: 'Добавьте первый опрос, чтобы узнать мнение пользователей о Workflow',
+  });
+  assert.deepEqual(['draft', 'published', 'closed'].map((filter) => adminSurveysEmpty(filter).title), [
+    'Черновиков нет', 'Опубликованных опросов нет', 'Завершённых опросов нет',
+  ]);
+  assert.equal(adminSurveysEmpty('draft').description, undefined);
+});
+
+test('a card of the admin list says when its survey was changed, published or closed', () => {
+  const moments = { updated_at: 'U', published_at: 'P', closed_at: 'C' };
+  const when = (iso) => `<${iso}>`;
+  assert.equal(adminSurveyMeta({ ...moments, status: 'published', questions_count: 5 }, when), '5 вопросов · <P>');
+  assert.equal(adminSurveyMeta({ ...moments, status: 'draft', questions_count: 3 }, when), '3 вопроса · изменён <U>');
+  assert.equal(adminSurveyMeta({ ...moments, status: 'closed', questions_count: 4 }, when), '4 вопроса · завершён <C>');
+  assert.equal(adminSurveyMeta({ ...moments, status: 'draft', questions_count: 0, published_at: null }, when), '0 вопросов · изменён <U>');
+  assert.equal(adminResponsesLabel(23), 'Ответы: 23');
+});
+
+test('the admin list keeps the order of the server within a status', () => {
+  const surveys = [{ id: 4, status: 'draft' }, { id: 3, status: 'published' }, { id: 2, status: 'closed' }, { id: 1, status: 'published' }];
+  assert.deepEqual(filterAdminSurveys(surveys, 'all').map((s) => s.id), [4, 3, 2, 1]);
+  assert.deepEqual(filterAdminSurveys(surveys, 'draft').map((s) => s.id), [4]);
+  assert.deepEqual(filterAdminSurveys(surveys, 'published').map((s) => s.id), [3, 1]);
+  assert.deepEqual(filterAdminSurveys(surveys, 'closed').map((s) => s.id), [2]);
 });

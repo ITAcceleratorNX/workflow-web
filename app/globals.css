@@ -258,7 +258,8 @@ html {
   .admin-management-content [class*="bg-green-700"] {
     background-color: #E04D0F !important;
   }
-  .admin-management-content button:not([class*="bg-blue-600"]):not([class*="bg-green-600"]):hover {
+  /* Кнопки продуктового UI (классы токенов *-ui-*) задают фон, рамку и цвет сами — правила ниже их не трогают. */
+  .admin-management-content button:not([class*="bg-blue-600"]):not([class*="bg-green-600"]):where(:not([class*="-ui-"])):hover {
     background-color: #3A3A3C !important;
   }
   .admin-management-content button[class*="bg-blue-600"]:hover,
@@ -296,10 +297,11 @@ html {
   }
   /* Outline buttons/badges - dark theme */
   .admin-management-content [class*="border-input"],
-  .admin-management-content button[class*="border"] {
+  .admin-management-content button[class*="border"]:where(:not([class*="-ui-"])) {
     border-color: #3A3A3C !important;
   }
-  .admin-management-content button[class*="outline"]:not([class*="bg-primary"]) {
+  /* «outline» есть и в focus-visible:outline-none у кнопок продуктового UI. */
+  .admin-management-content button[class*="outline"]:not([class*="bg-primary"]):where(:not([class*="-ui-"])) {
     color: #ffffff !important;
     background-color: transparent !important;
   }
@@ -575,11 +577,12 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
     background-color: var(--client-accent) !important;
     color: #ffffff !important;
   }
-  .client-desktop-dark [role="tablist"] {
+  /* Вкладки Radix; вкладки продуктового UI (классы токенов *-ui-*) раскрашены сами — и их список тоже. */
+  .client-desktop-dark [role="tablist"]:where(:not(:has(> [class*="-ui-"]))) {
     background-color: var(--client-bg-card) !important;
     border-color: var(--client-border);
   }
-  .client-desktop-dark [role="tab"]:not([data-state="active"]) {
+  .client-desktop-dark [role="tab"]:not([data-state="active"]):where(:not([class*="-ui-"])) {
     color: #8E8E93 !important;
   }
   /* Клиент десктоп: инпуты/селекты как на мобильном */

@@ -1,4 +1,4 @@
-import type { ClientSurvey, SurveyQuestion } from "./types";
+import type { AdminSurvey, ClientSurvey, SurveyQuestion, SurveyStatus } from "./types";
 
 /**
  * Слова экранов опросов (Figma «workflow», клиент Mobile и Desktop): одни на мобильную и десктопную
@@ -83,3 +83,54 @@ export function questionHint(question: Pick<SurveyQuestion, "type"> & ScaleQuest
 
 /** «2 из 5»: Desktop пишет так, Mobile — «Вопрос 2 из 5». index — с нуля. */
 export const questionCounter = (index: number, total: number) => `${index + 1} из ${total}`;
+
+// ─── Администратор: «Управление новостями» → «Опросы» ──────────────────────
+
+export type AdminSurveyFilter = "all" | SurveyStatus;
+
+/** Фильтр «Статус» (Figma «Список после публикации»); «Завершённые» добавлены по ТЗ. */
+export const ADMIN_SURVEY_FILTERS: readonly { value: AdminSurveyFilter; label: string }[] = [
+  { value: "all", label: "Все" },
+  { value: "draft", label: "Черновики" },
+  { value: "published", label: "Опубликованные" },
+  { value: "closed", label: "Завершённые" },
+];
+
+const STATUS_LABELS: Record<SurveyStatus, string> = { draft: "Черновик", published: "Опубликован", closed: "Завершён" };
+
+/** Плашка статуса на карточке опроса. */
+export const adminStatusLabel = (status: SurveyStatus) => STATUS_LABELS[status];
+
+const EMPTY_FILTER_TITLES: Record<SurveyStatus, string> = {
+  draft: "Черновиков нет",
+  published: "Опубликованных опросов нет",
+  closed: "Завершённых опросов нет",
+};
+
+/** Пустой список: опросов нет совсем (текст макета) или нет опросов с выбранным статусом. */
+export function adminSurveysEmpty(filter: AdminSurveyFilter): { title: string; description?: string } {
+  if (filter === "all") {
+    return { title: "Опросов пока нет", description: "Добавьте первый опрос, чтобы узнать мнение пользователей о Workflow" };
+  }
+  return { title: EMPTY_FILTER_TITLES[filter] };
+}
+
+type AdminSurveyMoments = Pick<AdminSurvey, "status" | "questions_count" | "updated_at" | "published_at" | "closed_at">;
+
+/**
+ * «5 вопросов · сегодня», «3 вопроса · изменён сегодня, 10:40», «4 вопроса · завершён 20 окт 2026» —
+ * строка карточки опроса: черновик — когда изменён, опубликованный — когда опубликован, завершённый —
+ * когда завершён. `when` пишет момент словами («сегодня», «20 окт 2026», со временем у черновика на Desktop).
+ */
+export function adminSurveyMeta(survey: AdminSurveyMoments, when: (iso: string) => string): string {
+  const [prefix, moment] =
+    survey.status === "draft"
+      ? ["изменён ", survey.updated_at]
+      : survey.status === "closed"
+        ? ["завершён ", survey.closed_at ?? survey.updated_at]
+        : ["", survey.published_at ?? survey.updated_at];
+  return `${questionsCountLabel(survey.questions_count)} · ${prefix}${when(moment)}`;
+}
+
+/** «Ответы: 23» — под опубликованным и завершённым опросом. */
+export const adminResponsesLabel = (count: number) => `Ответы: ${count}`;

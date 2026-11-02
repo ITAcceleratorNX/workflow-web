@@ -20,8 +20,10 @@ const badgeVariants = cva(
         "neutral-soft": "gap-1 rounded-lg border-transparent bg-ui-fg/[0.08] px-2 py-1 text-[13px] text-ui-fg",
         // The kind of a card in the news feed: «Опрос».
         accent: "h-[30px] border-transparent bg-ui-accent px-3 py-0 text-[13px] font-bold text-ui-fg",
-        // A done state: «Пройдено».
+        // A done state: «Пройдено», «Опубликован».
         success: "h-6 border-transparent bg-ui-success px-2.5 py-0 text-xs font-semibold text-ui-fg",
+        // A state without a color of its own, the same size: «Черновик», «Завершён».
+        neutral: "h-6 border-transparent bg-ui-fg/[0.18] px-2.5 py-0 text-xs font-semibold text-ui-fg",
       },
     },
     defaultVariants: {

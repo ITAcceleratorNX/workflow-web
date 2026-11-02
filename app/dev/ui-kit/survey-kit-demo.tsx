@@ -1,17 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Eye, PenLine, TriangleAlert, X } from "lucide-react";
 import { ActionBar } from "@/components/ui/action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChipTabs } from "@/components/ui/chip-tabs";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconActions } from "@/components/ui/icon-actions";
 import { RatingScale } from "@/components/ui/rating-scale";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { StepProgress } from "@/components/ui/step-progress";
 
 const OPTIONS = ["Каждый день", "Несколько раз в неделю", "Реже раза в неделю", "Не пользуюсь"];
+const STATUSES = [
+  { value: "all", label: "Все" },
+  { value: "draft", label: "Черновики" },
+  { value: "published", label: "Опубликованные" },
+  { value: "closed", label: "Завершённые" },
+] as const;
 
 /** Компоненты экранов опросов на тёмном холсте, как в макетах (шаг 8, docs/surveys-plan.md). */
 export function SurveyKitDemo() {
@@ -20,6 +28,7 @@ export function SurveyKitDemo() {
   const [several, setSeveral] = useState<number[]>([0, 1]);
   const [rating, setRating] = useState<number | null>(4);
   const [yes, setYes] = useState<boolean | null>(true);
+  const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>("all");
 
   return (
     <section className="mb-8 space-y-5 rounded-2xl bg-ui-canvas p-4 text-ui-fg">
@@ -46,7 +55,22 @@ export function SurveyKitDemo() {
       <div className="flex items-center gap-2">
         <Badge variant="accent">Опрос</Badge>
         <Badge variant="success">Пройдено</Badge>
+        <Badge variant="success">Опубликован</Badge>
+        <Badge variant="neutral">Черновик</Badge>
+        <Badge variant="neutral">Завершён</Badge>
       </div>
+
+      <ChipTabs variant="solid" ariaLabel="Статус" value={status} onChange={setStatus} tabs={STATUSES} />
+      <div className="rounded-4pt-md bg-ui-raised p-4">
+        <ChipTabs variant="solid" size="md" ariaLabel="Статус на карточке Desktop" value={status} onChange={setStatus} tabs={STATUSES} />
+      </div>
+
+      <IconActions
+        actions={[
+          { label: "Изменить", icon: <PenLine aria-hidden />, onClick: () => undefined },
+          { label: "Предпросмотр", icon: <Eye aria-hidden />, onClick: () => undefined },
+        ]}
+      />
 
       <StepProgress total={5} current={2} label="Вопрос 2 из 5" />
       <div className="rounded-4pt-lg bg-ui-raised p-4">

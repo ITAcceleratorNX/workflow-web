@@ -2,12 +2,18 @@
 
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useClientNewsPage } from "@/hooks/use-client-news-page";
-import { useClientSurveys } from "@/hooks/use-client-surveys";
-import { useNewsSection } from "@/hooks/use-news-section";
+import { useClientSurveys, type UseClientSurveysResult } from "@/hooks/use-client-surveys";
+import { useNewsSection, type NewsSection } from "@/hooks/use-news-section";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { ClientNewsDesktopView } from "./client-news-desktop-view";
 import { ClientNewsMobileView } from "./client-news-mobile-view";
-import type { NewsSurveysTab } from "./news-section-tabs";
+
+/** The «Опросы» tab of «Все новости» for a signed-in client; a guest gets the news only. */
+export type NewsSurveysTab = {
+  section: NewsSection;
+  onSectionChange: (section: NewsSection) => void;
+  surveys: UseClientSurveysResult;
+};
 
 export function ClientNewsView() {
   const isDesktop = useIsDesktop();

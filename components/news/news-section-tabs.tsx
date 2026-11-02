@@ -1,29 +1,22 @@
 "use client";
 
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import type { UseClientSurveysResult } from "@/hooks/use-client-surveys";
 import type { NewsSection } from "@/hooks/use-news-section";
-
-/** The «Опросы» tab of «Все новости» for a signed-in client; a guest gets the news only. */
-export type NewsSurveysTab = {
-  section: NewsSection;
-  onSectionChange: (section: NewsSection) => void;
-  surveys: UseClientSurveysResult;
-};
 
 type NewsSectionTabsProps = {
   value: NewsSection;
   onChange: (section: NewsSection) => void;
   /** An open survey the client has not taken: the dot on «Опросы». */
-  hasAvailableSurveys: boolean;
+  hasAvailableSurveys?: boolean;
   layout: "mobile" | "desktop";
 };
 
 /**
- * «Новости | Опросы» of «Все новости» (Figma «Все новости: точка на вкладке «Опросы»»): the full
- * width on Mobile, by content on Desktop. The dot shows while «Опросы» is not the open tab.
+ * «Новости | Опросы» of the client's «Все новости» and the admin's «Управление новостями» (Figma
+ * «Все новости: точка на вкладке «Опросы»», «Список после публикации»): the full width on Mobile,
+ * by content on Desktop. The dot shows while «Опросы» is not the open tab.
  */
-export function NewsSectionTabs({ value, onChange, hasAvailableSurveys, layout }: NewsSectionTabsProps) {
+export function NewsSectionTabs({ value, onChange, hasAvailableSurveys = false, layout }: NewsSectionTabsProps) {
   const desktop = layout === "desktop";
   const dot = hasAvailableSurveys && value !== "surveys";
   return (
