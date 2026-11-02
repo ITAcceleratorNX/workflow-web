@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Eye, PenLine, TriangleAlert, X } from "lucide-react";
 import { ActionBar } from "@/components/ui/action-bar";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { IconActions } from "@/components/ui/icon-actions";
 import { RatingScale } from "@/components/ui/rating-scale";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { DragHandle, SortableItem, SortableList } from "@/components/ui/sortable-list";
 import { StepProgress } from "@/components/ui/step-progress";
 
 const OPTIONS = ["Каждый день", "Несколько раз в неделю", "Реже раза в неделю", "Не пользуюсь"];
@@ -29,6 +31,7 @@ export function SurveyKitDemo() {
   const [rating, setRating] = useState<number | null>(4);
   const [yes, setYes] = useState<boolean | null>(true);
   const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>("all");
+  const [order, setOrder] = useState(OPTIONS);
 
   return (
     <section className="mb-8 space-y-5 rounded-2xl bg-ui-canvas p-4 text-ui-fg">
@@ -71,6 +74,21 @@ export function SurveyKitDemo() {
           { label: "Предпросмотр", icon: <Eye aria-hidden />, onClick: () => undefined },
         ]}
       />
+
+      <SortableList ids={order} onMove={(id, overId) => setOrder((items) => arrayMove(items, items.indexOf(id), items.indexOf(overId)))}>
+        <ul aria-label="Порядок вариантов" className="flex flex-col gap-2 rounded-4pt-lg bg-ui-raised p-4">
+          {order.map((option, index) => (
+            <SortableItem
+              key={option}
+              id={option}
+              className="flex h-12 items-center gap-1.5 rounded-4pt-md bg-ui-surface pr-4 data-[dragging]:shadow-[0_12px_30px_rgba(0,0,0,0.55)]"
+            >
+              <DragHandle label={`Переместить вариант ${index + 1}`} className="h-12 w-6" />
+              <span className="text-[15px]">{option}</span>
+            </SortableItem>
+          ))}
+        </ul>
+      </SortableList>
 
       <StepProgress total={5} current={2} label="Вопрос 2 из 5" />
       <div className="rounded-4pt-lg bg-ui-raised p-4">

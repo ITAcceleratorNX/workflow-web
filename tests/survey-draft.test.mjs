@@ -142,6 +142,19 @@ test('a removed question comes back to its place', () => {
   assert.equal(draft.removeQuestion(form, 'missing').removed, null);
 });
 
+test('a dragged question or option takes the place of another, and the new order is a change to save', () => {
+  const form = draft.draftFromSurvey(saved);
+  const up = draft.moveQuestion(form, 'q14', 'q11');
+  assert.deepEqual(plain(up.questions.map((q) => q.key)), ['q14', 'q11', 'q13']);
+  assert.deepEqual(plain(draft.draftInput(up).questions.map((q) => q.type)), ['yes_no', 'single_choice', 'rating']);
+  assert.notEqual(draft.draftSnapshot(up), draft.draftSnapshot(form));
+  assert.deepEqual(plain(draft.moveQuestion(form, 'q11', 'q14').questions.map((q) => q.key)), ['q13', 'q14', 'q11']);
+  assert.equal(draft.moveQuestion(form, 'q13', 'q13').questions, form.questions);
+  assert.equal(draft.moveQuestion(form, 'q11', 'missing').questions, form.questions);
+  const options = draft.moveOption(form.questions[0], 'o102', 'o101');
+  assert.deepEqual(plain(options.options.map((o) => o.text)), ['Реже', 'Каждый день']);
+});
+
 test('a saved question replaces itself, a new one goes last; snapshots notice any change', () => {
   const form = draft.draftFromSurvey(saved);
   const edited = draft.putQuestion(form, { ...form.questions[1], text: 'Удобно ли?' });

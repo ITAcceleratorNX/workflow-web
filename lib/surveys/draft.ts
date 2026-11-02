@@ -117,6 +117,22 @@ export const removeOption = (question: DraftQuestion, key: string): DraftQuestio
   options: question.options.filter((option) => option.key !== key),
 });
 
+/** Строка `key` встаёт на место строки `overKey`, остальные сдвигаются; с неизвестным ключом — список как был. */
+function moveByKey<T extends { key: string }>(items: T[], key: string, overKey: string): T[] {
+  const from = items.findIndex((item) => item.key === key);
+  const to = items.findIndex((item) => item.key === overKey);
+  if (from < 0 || to < 0 || from === to) return items;
+  const moved = [...items];
+  moved.splice(to, 0, ...moved.splice(from, 1));
+  return moved;
+}
+
+/** Порядок вариантов перетаскиванием за «⋮⋮». */
+export const moveOption = (question: DraftQuestion, key: string, overKey: string): DraftQuestion => ({
+  ...question,
+  options: moveByKey(question.options, key, overKey),
+});
+
 /** Варианты, которые уйдут на сервер: без пробелов по краям, пустые отброшены. */
 export const filledOptions = (question: DraftQuestion) =>
   question.options.map((option) => option.text.trim()).filter(hasVisibleText);
@@ -199,6 +215,12 @@ export function restoreQuestion(draft: SurveyDraft, { question, index }: Removed
   questions.splice(Math.min(index, questions.length), 0, question);
   return { ...draft, questions };
 }
+
+/** Порядок вопросов перетаскиванием за «⋮⋮»: номера вопросов следуют за ним. */
+export const moveQuestion = (draft: SurveyDraft, key: string, overKey: string): SurveyDraft => ({
+  ...draft,
+  questions: moveByKey(draft.questions, key, overKey),
+});
 
 function questionInput(question: DraftQuestion): SurveyQuestionDraft {
   const text = question.text.trim();

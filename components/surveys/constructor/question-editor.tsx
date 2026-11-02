@@ -5,11 +5,13 @@ import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipTabs } from "@/components/ui/chip-tabs";
 import { FieldButton, FieldInput, FieldLabel, FieldTextarea } from "@/components/ui/field";
+import { DragHandle, SortableItem, SortableList } from "@/components/ui/sortable-list";
 import {
   addOption,
   changeOption,
   DRAFT_LIMITS,
   isChoiceQuestion,
+  moveOption,
   removeOption,
   withType,
   type DraftQuestion,
@@ -170,33 +172,40 @@ export function QuestionEditor({ question, layout, problems, nextKey, onChange, 
       {isChoiceQuestion(question.type) ? (
         <div className="flex flex-col gap-2">
           <BlockLabel id={optionsId}>Варианты ответа</BlockLabel>
-          <ul aria-labelledby={optionsId} className="flex flex-col gap-2">
-            {question.options.map((option, index) => (
-              <li key={option.key} className="flex items-center gap-1.5">
-                <FieldInput
-                  ref={(input) => {
-                    if (input) optionInputs.current.set(option.key, input);
-                    else optionInputs.current.delete(option.key);
-                  }}
-                  aria-label={`Вариант ${index + 1}`}
-                  aria-invalid={Boolean(problems?.options)}
-                  aria-describedby={problems?.options ? optionsErrorId : undefined}
-                  value={option.text}
-                  maxLength={DRAFT_LIMITS.optionText}
-                  onChange={(event) => onChange(changeOption(question, option.key, event.target.value))}
-                  className="h-12 flex-1 bg-ui-surface"
-                />
-                <button
-                  type="button"
-                  aria-label={`Удалить вариант ${index + 1}`}
-                  onClick={() => onChange(removeOption(question, option.key))}
-                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-ui-danger transition-colors hover:bg-ui-fg/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
-                >
-                  <X aria-hidden className="size-5" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <SortableList
+            ids={question.options.map((option) => option.key)}
+            onMove={(key, overKey) => onChange(moveOption(question, key, overKey))}
+          >
+            <ul aria-labelledby={optionsId} className="flex flex-col gap-2">
+              {question.options.map((option, index) => (
+                <SortableItem key={option.key} id={option.key} className="flex items-center gap-1.5">
+                  {/* Figma: the dots stand 8 px in from the edge of the block, the field 24 px. */}
+                  <DragHandle label={`Переместить вариант ${index + 1}`} className="-ml-1 h-12 w-6" />
+                  <FieldInput
+                    ref={(input) => {
+                      if (input) optionInputs.current.set(option.key, input);
+                      else optionInputs.current.delete(option.key);
+                    }}
+                    aria-label={`Вариант ${index + 1}`}
+                    aria-invalid={Boolean(problems?.options)}
+                    aria-describedby={problems?.options ? optionsErrorId : undefined}
+                    value={option.text}
+                    maxLength={DRAFT_LIMITS.optionText}
+                    onChange={(event) => onChange(changeOption(question, option.key, event.target.value))}
+                    className="h-12 flex-1 bg-ui-surface"
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Удалить вариант ${index + 1}`}
+                    onClick={() => onChange(removeOption(question, option.key))}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-ui-danger transition-colors hover:bg-ui-fg/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+                  >
+                    <X aria-hidden className="size-5" />
+                  </button>
+                </SortableItem>
+              ))}
+            </ul>
+          </SortableList>
           <Button
             variant="accent-outline"
             onClick={add}

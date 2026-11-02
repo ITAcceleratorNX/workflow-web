@@ -102,7 +102,7 @@ type QuestionsBlockProps = FormProps & {
 /** «Вопросы»: пусто — подсказка; иначе список и «Добавить вопрос» с выбором типа. */
 function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestion }: QuestionsBlockProps) {
   const desktop = layout === "desktop";
-  const { draft, problems, deleteQuestion } = builder;
+  const { draft, problems, reorderQuestion, deleteQuestion } = builder;
   const [menu, setMenu] = useState(false);
   const count = draft.questions.length;
   const full = count >= DRAFT_LIMITS.questions;
@@ -136,7 +136,10 @@ function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestio
 
   return (
     <div className="flex flex-col gap-2.5">
-      <p className="text-[13px] font-medium text-ui-fg/55">{count ? `Вопросы · ${count}` : "Вопросы"}</p>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] font-medium text-ui-fg/55">{count ? `Вопросы · ${count}` : "Вопросы"}</p>
+        {desktop && count ? <p className="text-right text-xs text-ui-fg/55">Перетащите, чтобы изменить порядок</p> : null}
+      </div>
       {count ? (
         <QuestionList
           questions={draft.questions}
@@ -144,6 +147,7 @@ function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestio
           problems={problems?.questions ?? null}
           selectedKey={selectedKey}
           onOpen={openQuestion}
+          onMove={reorderQuestion}
           onDelete={deleteQuestion}
         />
       ) : (

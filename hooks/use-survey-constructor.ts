@@ -11,6 +11,7 @@ import {
   draftSnapshot,
   emptyDraft,
   hasDraftProblems,
+  moveQuestion,
   putQuestion,
   removeQuestion,
   restoreQuestion,
@@ -97,6 +98,12 @@ export function useSurveyConstructor(surveyId: number | null) {
   /** Вопрос из редактора: новый — в конец списка, изменённый — на своё место. */
   const saveQuestion = useCallback((question: DraftQuestion) => setDraft((current) => putQuestion(current, question)), []);
 
+  /** Перетаскивание за «⋮⋮»: вопрос `key` встаёт на место вопроса `overKey`. */
+  const reorderQuestion = useCallback(
+    (key: string, overKey: string) => setDraft((current) => moveQuestion(current, key, overKey)),
+    [],
+  );
+
   /** Вопрос удаляется сразу; уведомление «Вопрос удалён» ставит его на место по «Вернуть». */
   const deleteQuestion = useCallback(
     (key: string) => {
@@ -152,6 +159,7 @@ export function useSurveyConstructor(surveyId: number | null) {
     chooseAllOffices,
     chooseOffice,
     saveQuestion,
+    reorderQuestion,
     deleteQuestion,
     save,
   };
