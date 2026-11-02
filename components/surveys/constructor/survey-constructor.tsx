@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Eye, ListChecks, Loader2, Plus } from "lucide-react";
 import { AdminWorkerManagementMobileLayout } from "@/components/admin-worker/management/admin-worker-management-mobile-layout";
@@ -19,7 +19,7 @@ import type { SurveyQuestionType } from "@/lib/surveys/types";
 import { cn } from "@/lib/utils";
 import { DESKTOP_ACTION, SurveyRetryButton, type SurveyLayout } from "../survey-frame";
 import { OfficesField } from "./offices-field";
-import { FieldError, QuestionEditor } from "./question-editor";
+import { FieldError, QuestionEditor, type QuestionEditorHandle } from "./question-editor";
 import { QuestionList } from "./question-list";
 import { QuestionTypeMenu } from "./question-type-menu";
 
@@ -229,6 +229,14 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editing, setEditing] = useState<DraftQuestion | null>(null);
   const [editorProblems, setEditorProblems] = useState(false);
+  const editorRef = useRef<QuestionEditorHandle>(null);
+  const [editorFocus, setEditorFocus] = useState(0);
+
+  // The editor takes the focus once it shows what it was asked for: a new question, its errors.
+  useEffect(() => {
+    if (editorFocus) editorRef.current?.focus();
+  }, [editorFocus]);
+  const focusEditor = () => setEditorFocus((count) => count + 1);
 
   const title = builder.id == null ? "Новый опрос" : "Черновик";
 
@@ -252,6 +260,7 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
     if (desktop) {
       saveQuestion(question);
       setSelectedKey(question.key);
+      focusEditor();
     } else {
       openEditor(question);
     }
@@ -268,9 +277,11 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
   const saveDraft = async () => {
     const problems = await builder.save();
     if (!problems) return;
-    if (problems.title) titleRef.current?.focus();
     const invalid = draft.questions.find((question) => problems.questions[question.key]);
     if (invalid && desktop) setSelectedKey(invalid.key);
+    // The first error takes the focus: the title, else the question in the panel.
+    if (problems.title) titleRef.current?.focus();
+    else if (invalid && desktop) focusEditor();
   };
 
   const leaveDialog = (
@@ -317,6 +328,7 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
     return (
       <ConstructorPage layout={layout} title={`Вопрос ${index < 0 ? draft.questions.length + 1 : index + 1}`} onBack={closeEditor}>
         <QuestionEditor
+          ref={editorRef}
           question={editing}
           layout={layout}
           problems={editorProblems ? problems : null}
@@ -329,6 +341,7 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
           onClick={() => {
             if (hasQuestionProblems(problems)) {
               setEditorProblems(true);
+              focusEditor();
               return;
             }
             saveQuestion(editing);
@@ -370,6 +383,7 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
               >
                 <h3 className="text-base font-bold">Вопрос {selectedNumber}</h3>
                 <QuestionEditor
+                  ref={editorRef}
                   key={selected.key}
                   question={selected}
                   layout={layout}

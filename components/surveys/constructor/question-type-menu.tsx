@@ -48,6 +48,10 @@ export function QuestionTypeMenu({ layout, open, onOpenChange, onSelect, trigger
         <PopoverContent
           align="end"
           sideOffset={8}
+          // The focus goes back to the button, unless the pick has put it on the new question.
+          onCloseAutoFocus={(event) => {
+            if (document.activeElement !== document.body) event.preventDefault();
+          }}
           className="flex w-[372px] flex-col gap-0.5 rounded-[14px] border-ui-fg/[0.12] bg-ui-popover p-2 text-ui-fg shadow-[0_12px_30px_rgba(0,0,0,0.55)]"
         >
           <p className="px-2 pb-1 pt-1 text-xs font-medium text-ui-fg/50">Тип нового вопроса</p>

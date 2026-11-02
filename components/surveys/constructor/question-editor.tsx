@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipTabs } from "@/components/ui/chip-tabs";
@@ -72,6 +72,11 @@ function ClientPreview({ type }: { type: SurveyQuestionType }) {
   );
 }
 
+export interface QuestionEditorHandle {
+  /** Focuses the first error of the question, else its text. */
+  focus(): void;
+}
+
 type QuestionEditorProps = {
   question: DraftQuestion;
   layout: SurveyLayout;
@@ -79,22 +84,31 @@ type QuestionEditorProps = {
   problems: QuestionProblems | null;
   nextKey: NextKey;
   onChange: (question: DraftQuestion) => void;
+  ref?: Ref<QuestionEditorHandle>;
 };
 
 /**
  * A question of the constructor (Figma «Вопрос 1 — один вариант» … «Вопрос 5 — открытый ответ»):
  * its type, text and options, or what the client gets for the other types.
  */
-export function QuestionEditor({ question, layout, problems, nextKey, onChange }: QuestionEditorProps) {
+export function QuestionEditor({ question, layout, problems, nextKey, onChange, ref }: QuestionEditorProps) {
   const desktop = layout === "desktop";
   const textId = useId();
   const textErrorId = useId();
   const optionsId = useId();
   const optionsErrorId = useId();
   const [typeMenu, setTypeMenu] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const textInput = useRef<HTMLTextAreaElement>(null);
   const optionInputs = useRef(new Map<string, HTMLInputElement>());
   const [focusOption, setFocusOption] = useState<string | null>(null);
   const hint = questionEditorHint(question.type);
+
+  useImperativeHandle(
+    ref,
+    () => ({ focus: () => (root.current?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? textInput.current)?.focus() }),
+    [],
+  );
 
   // A new option takes the focus: the admin types it right away.
   useEffect(() => {
@@ -112,7 +126,7 @@ export function QuestionEditor({ question, layout, problems, nextKey, onChange }
   };
 
   return (
-    <div className="flex flex-col gap-4 text-ui-fg">
+    <div ref={root} className="flex flex-col gap-4 text-ui-fg">
       <div className="flex flex-col gap-2">
         <BlockLabel>Тип ответа</BlockLabel>
         {desktop ? (
@@ -141,6 +155,7 @@ export function QuestionEditor({ question, layout, problems, nextKey, onChange }
       <div className="flex flex-col gap-2">
         <FieldLabel htmlFor={textId}>Текст вопроса *</FieldLabel>
         <FieldTextarea
+          ref={textInput}
           id={textId}
           value={question.text}
           maxLength={DRAFT_LIMITS.questionText}
