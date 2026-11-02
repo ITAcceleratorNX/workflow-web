@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type Ref } from "react";
 import { Building2, Loader2 } from "lucide-react";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ChoiceCard } from "@/components/ui/choice-card";
-import { FieldButton, FieldLabel } from "@/components/ui/field";
+import { FieldButton, FieldError, FieldLabel } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useOffices } from "@/hooks/use-offices";
 import { officesLabel } from "@/lib/surveys/format";
@@ -17,15 +17,20 @@ type OfficesFieldProps = {
   officeIds: readonly number[];
   onToggleAll: () => void;
   onToggle: (officeId: number, allIds: readonly number[]) => void;
+  /** «Выберите офисы»: «Опубликовать» без офисов. */
+  error?: string;
+  /** The field: the form puts the focus on its first error. */
+  buttonRef?: Ref<HTMLButtonElement>;
 };
 
 /**
  * «Офисы»: кому опрос (нет в макетах — по ТЗ существующими элементами): поле открывает список
  * с галочками — нижнюю панель на Mobile, меню на Desktop. «Все офисы» — и те, что появятся позже.
  */
-export function OfficesField({ layout, allOffices, officeIds, onToggleAll, onToggle }: OfficesFieldProps) {
+export function OfficesField({ layout, allOffices, officeIds, onToggleAll, onToggle, error, buttonRef }: OfficesFieldProps) {
   const desktop = layout === "desktop";
   const labelId = useId();
+  const errorId = useId();
   const [open, setOpen] = useState(false);
   const { offices, loading } = useOffices();
   const allIds = offices.map((office) => office.id);
@@ -56,9 +61,12 @@ export function OfficesField({ layout, allOffices, officeIds, onToggleAll, onTog
 
   const trigger = (
     <FieldButton
+      ref={buttonRef}
       aria-labelledby={labelId}
       aria-haspopup="dialog"
       aria-expanded={open}
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? errorId : undefined}
       icon={<Building2 />}
       active={open}
       onClick={desktop ? undefined : () => setOpen(true)}
@@ -94,6 +102,7 @@ export function OfficesField({ layout, allOffices, officeIds, onToggleAll, onTog
           </BottomSheet>
         </>
       )}
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
     </div>
   );
 }

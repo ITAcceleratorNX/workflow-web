@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NEWS_SURVEYS_HREF } from "@/lib/surveys/routes";
@@ -47,6 +48,20 @@ export function SurveyResult({ layout, icon, tile, title, description, actions, 
     <SurveyMobileScreen centered actions={actions} actionsLayout="column">
       {result}
     </SurveyMobileScreen>
+  );
+}
+
+/** «Ответы отправлены» (Figma 54-1638 / 54-3655): the end of the survey, for the client and in the preview. */
+export function SurveySentResult({ layout, actions }: { layout: SurveyLayout; actions: ReactNode }) {
+  return (
+    <SurveyResult
+      layout={layout}
+      tile="success"
+      icon={<Check />}
+      title="Ответы отправлены"
+      description="Ваши ответы помогут сделать Workflow удобнее"
+      actions={actions}
+    />
   );
 }
 

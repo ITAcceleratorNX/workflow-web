@@ -198,11 +198,20 @@ export function officesLabel(allOffices: boolean, names: readonly string[]): str
 export const responseModeHint = (anonymous: boolean) =>
   anonymous ? "Вы не увидите, кто как ответил" : "Вы увидите имена рядом с ответами";
 
-/** Что мешает сохранить или опубликовать черновик (согласовано 02.11.2026). */
+/** Что мешает сохранить или опубликовать черновик (согласовано 02.11.2026; «Добавьте…» — текст сервера). */
 export const DRAFT_MESSAGES = Object.freeze({
   title: "Введите заголовок",
   questionText: "Введите текст вопроса",
   fewOptions: "Нужно хотя бы 2 варианта",
   repeatedOption: "Варианты не должны повторяться",
   offices: "Выберите офисы",
+  noQuestions: "Добавьте хотя бы один вопрос",
 });
+
+/**
+ * «Опубликовать опрос?» (Figma 54-2539 / 54-5307): где клиенты увидят опрос. На Mobile макет называет
+ * и главную, на Desktop — только «Все новости».
+ */
+export const publishConfirmText = (title: string, layout: "mobile" | "desktop") =>
+  `«${title}» появится у клиентов ${layout === "mobile" ? "на главной и " : ""}в «Все новости → Опросы». ` +
+  "После публикации вопросы нельзя будет изменить.";

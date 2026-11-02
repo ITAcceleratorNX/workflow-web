@@ -53,6 +53,12 @@ export interface ClientSurveyDetail extends ClientSurvey {
   questions: SurveyQuestion[];
 }
 
+/** Что нужно экранам прохождения: опрос клиента или его предпросмотр у Администратора. */
+export type SurveyToTake = Pick<
+  ClientSurveyDetail,
+  "id" | "title" | "description" | "questions_count" | "estimated_minutes" | "questions"
+>;
+
 /** Ответ на вопрос: варианты (и «Да / Нет»), оценка 1–5 или текст до 500 символов. */
 export type SurveyAnswerInput =
   | { question_id: number; option_ids: number[] }

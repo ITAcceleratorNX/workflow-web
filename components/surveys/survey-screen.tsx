@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Check, ClipboardX, Loader2, Lock, RotateCw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ import {
   SurveyRetryButton,
   type SurveyLayout,
 } from "./survey-frame";
-import { SurveyResult, ToSurveysButton } from "./survey-result";
-import { SurveyIntro, SurveyQuestionStep } from "./survey-steps";
+import { SurveyResult, SurveySentResult, ToSurveysButton } from "./survey-result";
+import { SurveyIntro, SurveyQuestionStep, useStepHeading } from "./survey-steps";
 
 type PassProps = {
   survey: ClientSurveyDetail;
@@ -34,17 +34,7 @@ type PassProps = {
 /** Taking an open survey: «Вступление» → questions → «Ответы отправлены» or the error of sending. */
 function SurveyPass({ survey, layout, onExit, onSettled }: PassProps) {
   const pass = useSurveyPass(survey, onSettled);
-  const heading = useRef<HTMLHeadingElement>(null);
-  const step = `${pass.screen}:${pass.index}`;
-  const shownStep = useRef(step);
-
-  // A new step starts at the top, and screen readers read its title.
-  useEffect(() => {
-    if (shownStep.current === step) return;
-    shownStep.current = step;
-    window.scrollTo({ top: 0 });
-    heading.current?.focus({ preventScroll: true });
-  }, [step]);
+  const heading = useStepHeading(`${pass.screen}:${pass.index}`);
 
   if (pass.screen === "intro") {
     return <SurveyIntro survey={survey} layout={layout} headingRef={heading} onExit={onExit} onStart={pass.start} />;
@@ -52,18 +42,7 @@ function SurveyPass({ survey, layout, onExit, onSettled }: PassProps) {
   if (pass.screen === "question") {
     return <SurveyQuestionStep survey={survey} layout={layout} headingRef={heading} onExit={onExit} pass={pass} />;
   }
-  if (pass.screen === "sent") {
-    return (
-      <SurveyResult
-        layout={layout}
-        tile="success"
-        icon={<Check />}
-        title="Ответы отправлены"
-        description="Ваши ответы помогут сделать Workflow удобнее"
-        actions={<ToSurveysButton layout={layout} />}
-      />
-    );
-  }
+  if (pass.screen === "sent") return <SurveySentResult layout={layout} actions={<ToSurveysButton layout={layout} />} />;
 
   const desktop = layout === "desktop";
   const action = { size: desktop ? ("md" as const) : ("block" as const), className: desktop ? DESKTOP_ACTION : undefined };
@@ -91,7 +70,8 @@ function SurveyPass({ survey, layout, onExit, onSettled }: PassProps) {
   );
 }
 
-function SurveySkeleton({ layout }: { layout: SurveyLayout }) {
+/** A survey on its way: the shape of its intro. */
+export function SurveySkeleton({ layout }: { layout: SurveyLayout }) {
   if (layout === "desktop") {
     return (
       <div role="status" aria-label="Загружаем опрос" className="flex flex-col gap-[18px] px-10 pb-12 pt-8">
@@ -118,7 +98,7 @@ function SurveySkeleton({ layout }: { layout: SurveyLayout }) {
 type LoadErrorProps = { layout: SurveyLayout; error: string | null; onRetry: () => void; onExit: () => void };
 
 /** The survey did not load: the reason and «Повторить», as at the list of surveys. */
-function SurveyLoadError({ layout, error, onRetry, onExit }: LoadErrorProps) {
+export function SurveyLoadError({ layout, error, onRetry, onExit }: LoadErrorProps) {
   const state = (
     <div role="alert">
       <EmptyState

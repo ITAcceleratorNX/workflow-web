@@ -2,31 +2,42 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Eye, ListChecks, Loader2, Plus } from "lucide-react";
+import { AlertCircle, Eye, ListChecks, Loader2, Plus, Send } from "lucide-react";
 import { AdminWorkerManagementMobileLayout } from "@/components/admin-worker/management/admin-worker-management-mobile-layout";
 import { DesktopManagementPage } from "@/components/layout/desktop-management-page";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FieldInput, FieldLabel, FieldTextarea } from "@/components/ui/field";
+import { FieldError, FieldInput, FieldLabel, FieldTextarea } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useSurveyConstructor, type UseSurveyConstructorResult } from "@/hooks/use-survey-constructor";
-import { DRAFT_LIMITS, hasQuestionProblems, newQuestion, questionProblems, type DraftQuestion } from "@/lib/surveys/draft";
-import { responseModeHint } from "@/lib/surveys/format";
+import {
+  DRAFT_LIMITS,
+  hasQuestionProblems,
+  newQuestion,
+  questionProblems,
+  type DraftProblems,
+  type DraftQuestion,
+} from "@/lib/surveys/draft";
+import { durationLabel, publishConfirmText, questionsCountLabel, responseModeHint } from "@/lib/surveys/format";
+import { estimateMinutes, previewFromDraft } from "@/lib/surveys/preview";
 import { ADMIN_SURVEYS_HREF } from "@/lib/surveys/routes";
-import type { SurveyQuestionType } from "@/lib/surveys/types";
+import type { SurveyQuestionType, SurveyToTake } from "@/lib/surveys/types";
 import { cn } from "@/lib/utils";
 import { DESKTOP_ACTION, SurveyRetryButton, type SurveyLayout } from "../survey-frame";
+import { SurveyPreview, SurveyPreviewDialog } from "../survey-preview";
 import { OfficesField } from "./offices-field";
-import { FieldError, QuestionEditor, type QuestionEditorHandle } from "./question-editor";
+import { QuestionEditor, type QuestionEditorHandle } from "./question-editor";
 import { QuestionList } from "./question-list";
 import { QuestionTypeMenu } from "./question-type-menu";
 
 type FormProps = { builder: UseSurveyConstructorResult; layout: SurveyLayout };
 
+type FieldRefs = { titleRef: React.Ref<HTMLInputElement>; officesRef: React.Ref<HTMLButtonElement> };
+
 /** Заголовок, описание, офисы и режим ответов. */
-function SurveyFields({ builder, layout, titleRef }: FormProps & { titleRef: React.Ref<HTMLInputElement> }) {
+function SurveyFields({ builder, layout, titleRef, officesRef }: FormProps & FieldRefs) {
   const { draft, problems, patch, chooseAllOffices, chooseOffice } = builder;
   const titleId = useId();
   const titleErrorId = useId();
@@ -68,6 +79,8 @@ function SurveyFields({ builder, layout, titleRef }: FormProps & { titleRef: Rea
         officeIds={draft.officeIds}
         onToggleAll={chooseAllOffices}
         onToggle={chooseOffice}
+        error={problems?.offices}
+        buttonRef={officesRef}
       />
       <div className="flex flex-col gap-2">
         <p id={modeId} className="text-[13px] font-medium text-ui-fg/55">
@@ -97,18 +110,24 @@ type QuestionsBlockProps = FormProps & {
   addQuestion: (type: SurveyQuestionType) => void;
   selectedKey: string | null;
   openQuestion: (key: string) => void;
+  /** «Добавить вопрос»: the focus of «Опубликовать» without questions. */
+  addRef: React.Ref<HTMLButtonElement>;
 };
 
 /** «Вопросы»: пусто — подсказка; иначе список и «Добавить вопрос» с выбором типа. */
-function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestion }: QuestionsBlockProps) {
+function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestion, addRef }: QuestionsBlockProps) {
   const desktop = layout === "desktop";
   const { draft, problems, reorderQuestion, deleteQuestion } = builder;
   const [menu, setMenu] = useState(false);
+  const errorId = useId();
   const count = draft.questions.length;
   const full = count >= DRAFT_LIMITS.questions;
+  const error = problems?.noQuestions;
+  const addProps = { ref: addRef, "aria-describedby": error ? errorId : undefined };
 
   const addButton = count ? (
     <Button
+      {...addProps}
       variant="accent-outline"
       disabled={full}
       onClick={desktop ? undefined : () => setMenu(true)}
@@ -118,12 +137,13 @@ function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestio
       Добавить вопрос
     </Button>
   ) : desktop ? (
-    <Button variant="accent" size="md" className={DESKTOP_ACTION}>
+    <Button {...addProps} variant="accent" size="md" className={DESKTOP_ACTION}>
       <Plus aria-hidden />
       Добавить вопрос
     </Button>
   ) : (
     <Button
+      {...addProps}
       variant="raised"
       onClick={() => setMenu(true)}
       className="h-[50px] w-full rounded-[14px] bg-ui-accent-soft text-base text-ui-accent-on-soft hover:bg-ui-accent-soft hover:brightness-125"
@@ -151,7 +171,7 @@ function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestio
           onDelete={deleteQuestion}
         />
       ) : (
-        <div className="rounded-4pt-lg border border-dashed border-ui-fg/20 px-4 py-7">
+        <div className={cn("rounded-4pt-lg border border-dashed px-4 py-7", error ? "border-ui-danger/70" : "border-ui-fg/20")}>
           <EmptyState
             tile="neutral"
             icon={<ListChecks />}
@@ -162,26 +182,36 @@ function QuestionsBlock({ builder, layout, addQuestion, selectedKey, openQuestio
         </div>
       )}
       {count || !desktop ? add : null}
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
     </div>
   );
 }
 
-/** «Предпросмотр», «Сохранить черновик», «Опубликовать»; предпросмотр и публикация — шаг 14. */
-function SurveyActions({ builder, layout, onSave }: FormProps & { onSave: () => void }) {
+type ActionsProps = FormProps & { onPreview: () => void; onSave: () => void; onPublish: () => void };
+
+/** «Предпросмотр», «Сохранить черновик», «Опубликовать». */
+function SurveyActions({ builder, layout, onPreview, onSave, onPublish }: ActionsProps) {
   const desktop = layout === "desktop";
+  const busy = builder.saving || builder.publishing;
   const action = { size: desktop ? ("md" as const) : ("block" as const), className: desktop ? DESKTOP_ACTION : undefined };
   return (
     <div className={cn("flex", desktop ? "justify-end gap-2.5 border-t border-ui-fg/10 pt-[18px]" : "flex-col gap-2.5 pt-1")}>
       {/* On the raised card of Mobile a filled button would not show: outlined, as in the mockup. */}
-      <Button variant={desktop ? "raised" : "neutral-outline"} {...action} disabled>
+      <Button
+        variant={desktop ? "raised" : "neutral-outline"}
+        {...action}
+        onClick={onPreview}
+        // Without questions there is nothing to show: the empty block says what to add.
+        disabled={busy || !builder.draft.questions.length}
+      >
         <Eye aria-hidden />
         Предпросмотр
       </Button>
-      <Button variant="neutral-outline" {...action} onClick={onSave} disabled={builder.saving} aria-busy={builder.saving}>
+      <Button variant="neutral-outline" {...action} onClick={onSave} disabled={busy} aria-busy={builder.saving}>
         {builder.saving ? <Loader2 aria-hidden className="animate-spin" /> : null}
         Сохранить черновик
       </Button>
-      <Button variant="accent" {...action} disabled>
+      <Button variant="accent" {...action} onClick={onPublish} disabled={busy}>
         Опубликовать
       </Button>
     </div>
@@ -215,10 +245,10 @@ function ConstructorPage({ layout, title, onBack, children }: PageProps) {
 }
 
 /**
- * Конструктор опроса Администратора (Figma «Новый опрос — пустая форма» … «Все 5 вопросов
- * добавлены»): поля, офисы и режим, вопросы пяти типов и «Сохранить черновик». На Mobile вопрос
- * правится на экране «Вопрос N» со своей записью в истории (браузерное «Назад» закрывает его без
- * сохранения), на Desktop — сразу в панели справа.
+ * Конструктор опроса Администратора (Figma «Новый опрос — пустая форма» … «Опубликовать опрос?»):
+ * поля, офисы и режим, вопросы пяти типов, «Предпросмотр», «Сохранить черновик» и «Опубликовать»
+ * с подтверждением. На Mobile вопрос правится на экране «Вопрос N» со своей записью в истории
+ * (браузерное «Назад» закрывает его без сохранения), на Desktop — сразу в панели справа.
  */
 export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
   const layout: SurveyLayout = useIsDesktop() ? "desktop" : "mobile";
@@ -229,7 +259,11 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
   const builder = useSurveyConstructor(surveyId);
   const { draft, nextKey, saveQuestion } = builder;
   const titleRef = useRef<HTMLInputElement>(null);
+  const officesRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
   const [leaving, setLeaving] = useState(false);
+  const [preview, setPreview] = useState<SurveyToTake | null>(null);
+  const [publishAsked, setPublishAsked] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editing, setEditing] = useState<DraftQuestion | null>(null);
   const [editorProblems, setEditorProblems] = useState(false);
@@ -278,15 +312,60 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
     if (question) openEditor(question);
   };
 
-  const saveDraft = async () => {
-    const problems = await builder.save();
-    if (!problems) return;
+  /** Errors found by a check: an invalid question opens in the panel; the first error takes the focus, in the order of the form. */
+  const showProblems = (problems: DraftProblems) => {
     const invalid = draft.questions.find((question) => problems.questions[question.key]);
     if (invalid && desktop) setSelectedKey(invalid.key);
-    // The first error takes the focus: the title, else the question in the panel.
     if (problems.title) titleRef.current?.focus();
+    else if (problems.offices) officesRef.current?.focus();
+    else if (problems.noQuestions) addRef.current?.focus();
     else if (invalid && desktop) focusEditor();
   };
+
+  const saveDraft = async () => {
+    const problems = await builder.save();
+    if (problems) showProblems(problems);
+  };
+
+  // «Предпросмотр» shows the form as it is now, unsaved edits too. Mobile: a screen of its own with
+  // an entry in the history, so «Назад» of the browser closes it; Desktop: a window over the form.
+  const openPreview = () => {
+    const problems = builder.check("draft");
+    if (problems) {
+      showProblems(problems);
+      return;
+    }
+    setPreview(previewFromDraft(draft));
+    if (!desktop) window.history.pushState(null, "", `${pathname}?preview=1`);
+  };
+  const closePreview = () => (desktop ? setPreview(null) : window.history.back());
+  const previewOpen = !desktop && preview != null && searchParams.get("preview") === "1";
+
+  const askPublish = () => {
+    const problems = builder.check("publish");
+    if (problems) showProblems(problems);
+    else setPublishAsked(true);
+  };
+  const minutes = estimateMinutes(draft.questions.map((question) => question.type));
+  const publishDialog = (
+    <ConfirmDialog
+      open={publishAsked}
+      onOpenChange={setPublishAsked}
+      icon={<Send />}
+      tone="accent"
+      title="Опубликовать опрос?"
+      description={publishConfirmText(draft.title.trim(), layout)}
+      facts={[questionsCountLabel(draft.questions.length), ...(minutes == null ? [] : [durationLabel(minutes)])]}
+      confirmLabel="Опубликовать"
+      busy={builder.publishing}
+      onConfirm={() => {
+        void builder.publish().then((published) => {
+          // A success leaves for the list of surveys; after a failure (in the notice) the form is back in view.
+          if (!published) setPublishAsked(false);
+        });
+      }}
+    />
+  );
 
   const leaveDialog = (
     <ConfirmDialog
@@ -326,6 +405,8 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
     );
   }
 
+  if (previewOpen && preview) return <SurveyPreview survey={preview} layout="mobile" onClose={closePreview} />;
+
   if (editorOpen && editing) {
     const index = draft.questions.findIndex((question) => question.key === editing.key);
     const problems = questionProblems(editing);
@@ -362,15 +443,25 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
   const selectedNumber = selected ? draft.questions.indexOf(selected) + 1 : 0;
   const form = (
     <>
-      <SurveyFields builder={builder} layout={layout} titleRef={titleRef} />
+      <SurveyFields builder={builder} layout={layout} titleRef={titleRef} officesRef={officesRef} />
       <QuestionsBlock
         builder={builder}
         layout={layout}
         addQuestion={addQuestion}
         selectedKey={selectedKey}
         openQuestion={openQuestion}
+        addRef={addRef}
       />
     </>
+  );
+  const actions = (
+    <SurveyActions
+      builder={builder}
+      layout={layout}
+      onPreview={openPreview}
+      onSave={() => void saveDraft()}
+      onPublish={askPublish}
+    />
   );
 
   return (
@@ -398,15 +489,17 @@ export function SurveyConstructor({ surveyId }: { surveyId: number | null }) {
               </section>
             ) : null}
           </div>
-          <SurveyActions builder={builder} layout={layout} onSave={() => void saveDraft()} />
+          {actions}
+          <SurveyPreviewDialog survey={preview} onClose={closePreview} />
         </>
       ) : (
         <>
           {form}
-          <SurveyActions builder={builder} layout={layout} onSave={() => void saveDraft()} />
+          {actions}
         </>
       )}
       {leaveDialog}
+      {publishDialog}
     </ConstructorPage>
   );
 }

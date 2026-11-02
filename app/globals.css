@@ -54,6 +54,9 @@
     --ui-success: 160 84% 39%; /* #10B981 — «Задача выполнена» */
     --ui-success-soft: 136 57% 15%; /* #103A1A */
     --ui-done: 135 59% 49%; /* #34C759 — отметка выполненной задачи */
+    --ui-info: 213 94% 68%; /* #60A5FA — значок и ссылка на плашке-подсказке */
+    --ui-info-soft: 216 59% 15%; /* #10233F — фон плашки «Предпросмотр» */
+    --ui-info-on-soft: 213 97% 87%; /* #BFDBFE — текст на info-soft */
 
     /* ── shadcn/ui (mobile light semantics) ── */
     --background: var(--surface);

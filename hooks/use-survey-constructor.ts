@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toastDraftSaveFailed, toastDraftSaved, toastQuestionDeleted } from "@/components/surveys/survey-toasts";
+import {
+  toastDraftSaveFailed,
+  toastDraftSaved,
+  toastPublishFailed,
+  toastQuestionDeleted,
+  toastSurveyPublished,
+} from "@/components/surveys/survey-toasts";
 import { useToast } from "@/hooks/use-toast";
 import {
   draftFromSurvey,
@@ -12,6 +18,7 @@ import {
   emptyDraft,
   hasDraftProblems,
   moveQuestion,
+  publishProblems,
   putQuestion,
   removeQuestion,
   restoreQuestion,
@@ -26,11 +33,16 @@ import { ADMIN_SURVEYS_HREF, adminSurveyEditHref } from "@/lib/surveys/routes";
 
 type DraftFields = Partial<Pick<SurveyDraft, "title" | "description" | "anonymous">>;
 
+/** Что проверяет форма: «Сохранить черновик» и «Предпросмотр» — черновик, «Опубликовать» — ещё офисы и вопросы. */
+export type DraftCheck = "draft" | "publish";
+
+const problemsOf = (check: DraftCheck, draft: SurveyDraft) => (check === "publish" ? publishProblems(draft) : draftProblems(draft));
+
 /**
- * Конструктор опроса (docs/surveys-plan.md, шаг 13): новый опрос или сохранённый черновик, его
- * вопросы и «Сохранить черновик». Первое сохранение нового опроса создаёт его, и адрес становится
- * адресом черновика (`/surveys/{id}/edit`); следующие заменяют черновик целиком. Опубликованный
- * опрос не правится: его адрес ведёт к списку опросов.
+ * Конструктор опроса (docs/surveys-plan.md, шаги 13–14): новый опрос или сохранённый черновик, его
+ * вопросы, «Сохранить черновик» и «Опубликовать». Первое сохранение нового опроса создаёт его, и адрес
+ * становится адресом черновика (`/surveys/{id}/edit`); следующие заменяют черновик целиком.
+ * Опубликованный опрос не правится: его адрес ведёт к списку опросов.
  */
 export function useSurveyConstructor(surveyId: number | null) {
   const router = useRouter();
@@ -41,8 +53,9 @@ export function useSurveyConstructor(surveyId: number | null) {
   const [loading, setLoading] = useState(surveyId != null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  // Ошибки полей видны после первого «Сохранить черновик», который их нашёл, и дальше следуют за правками.
-  const [showProblems, setShowProblems] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  // Ошибки полей видны после проверки, которая их нашла, и дальше следуют за правками; проверка без ошибок их прячет.
+  const [checked, setChecked] = useState<DraftCheck | null>(null);
   const request = useRef<AbortController | null>(null);
   const keys = useRef(0);
 
@@ -115,33 +128,69 @@ export function useSurveyConstructor(surveyId: number | null) {
     [draft, toast],
   );
 
-  /**
-   * «Сохранить черновик»: с ошибками ничего не уходит, форма их показывает (их возвращает и вызов);
-   * иначе POST нового опроса или PUT черновика.
-   */
-  const save = useCallback(async (): Promise<DraftProblems | null> => {
-    const problems = draftProblems(draft);
-    if (hasDraftProblems(problems)) {
-      setShowProblems(true);
-      return problems;
-    }
-    setSaving(true);
+  /** Проверка формы: ошибки остаются на виду и возвращаются; null — ошибок нет. */
+  const check = useCallback(
+    (kind: DraftCheck): DraftProblems | null => {
+      const problems = problemsOf(kind, draft);
+      const found = hasDraftProblems(problems);
+      setChecked(found ? kind : null);
+      return found ? problems : null;
+    },
+    [draft],
+  );
+
+  /** POST нового опроса или PUT черновика; новый опрос получает адрес черновика. */
+  const persist = useCallback(async () => {
     const input = draftInput(draft);
     const result = id == null ? await surveysApi.createSurvey(input) : await surveysApi.updateSurvey(id, input);
-    setSaving(false);
-    if (!result.ok) {
-      toastDraftSaveFailed(toast, result.error);
-      return null;
-    }
+    if (!result.ok) return result;
     setSaved(JSON.stringify(input));
     if (id == null) {
       setId(result.data.id);
       // Адрес черновика без перехода: форма остаётся как есть, обновление страницы откроет черновик.
       window.history.replaceState(null, "", adminSurveyEditHref(result.data.id));
     }
-    toastDraftSaved(toast);
+    return result;
+  }, [draft, id]);
+
+  /** «Сохранить черновик»: с ошибками ничего не уходит, форма их показывает (их возвращает и вызов). */
+  const save = useCallback(async (): Promise<DraftProblems | null> => {
+    const problems = check("draft");
+    if (problems) return problems;
+    setSaving(true);
+    const result = await persist();
+    setSaving(false);
+    if (result.ok) toastDraftSaved(toast);
+    else toastDraftSaveFailed(toast, result.error);
     return null;
-  }, [draft, id, toast]);
+  }, [check, persist, toast]);
+
+  /**
+   * «Опубликовать» в подтверждении (форму уже проверил `check("publish")`): несохранённые правки
+   * уходят первыми, затем публикация и переход к списку опросов. false — не вышло, причина в уведомлении.
+   */
+  const publish = useCallback(async () => {
+    setPublishing(true);
+    let surveyId = id;
+    let failure: string | null = null;
+    if (surveyId == null || dirty) {
+      const result = await persist();
+      if (result.ok) surveyId = result.data.id;
+      else failure = result.error;
+    }
+    if (surveyId != null && !failure) {
+      const result = await surveysApi.publishSurvey(surveyId);
+      if (!result.ok) failure = result.error;
+    }
+    setPublishing(false);
+    if (failure) {
+      toastPublishFailed(toast, failure);
+      return false;
+    }
+    toastSurveyPublished(toast);
+    router.replace(ADMIN_SURVEYS_HREF);
+    return true;
+  }, [id, dirty, persist, toast, router]);
 
   return {
     /** null — опрос ещё не сохранён. */
@@ -151,9 +200,10 @@ export function useSurveyConstructor(surveyId: number | null) {
     loadError,
     reload: load,
     saving,
+    publishing,
     dirty,
     /** Ошибки полей, если их пора показывать. */
-    problems: showProblems ? draftProblems(draft) : null,
+    problems: checked ? problemsOf(checked, draft) : null,
     nextKey,
     patch,
     chooseAllOffices,
@@ -161,7 +211,9 @@ export function useSurveyConstructor(surveyId: number | null) {
     saveQuestion,
     reorderQuestion,
     deleteQuestion,
+    check,
     save,
+    publish,
   };
 }
 

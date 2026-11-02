@@ -5,7 +5,30 @@ import { newRequestId } from "@/lib/request-id";
 import { surveysApi } from "@/lib/surveys-api";
 import { submissionAnswers, submitOutcome, type AnswerDraft } from "@/lib/surveys/answers";
 import { INITIAL_PASS, passReducer, type PassAction, type PassState } from "@/lib/surveys/pass";
-import type { ClientSurveyDetail } from "@/lib/surveys/types";
+import type { SurveyQuestion, SurveyToTake } from "@/lib/surveys/types";
+
+/** Шаги прохождения (lib/surveys/pass.ts): экран, ответы, «Далее», «Назад». */
+function usePassSteps(questions: SurveyQuestion[]) {
+  const [state, dispatch] = useReducer(
+    (current: PassState, action: PassAction) => passReducer(questions, current, action),
+    INITIAL_PASS,
+  );
+  const answer = useCallback(
+    (questionId: number, value: AnswerDraft) => dispatch({ type: "answer", questionId, answer: value }),
+    [],
+  );
+  const steps = {
+    ...state,
+    question: questions[state.index],
+    total: questions.length,
+    start: () => dispatch({ type: "start" }),
+    next: () => dispatch({ type: "next" }),
+    back: () => dispatch({ type: "back" }),
+    review: () => dispatch({ type: "review" }),
+    answer,
+  };
+  return { state, dispatch, steps };
+}
 
 /**
  * Прохождение опроса клиентом (lib/surveys/pass.ts) и отправка ответов. Все попытки одного
@@ -13,12 +36,9 @@ import type { ClientSurveyDetail } from "@/lib/surveys/types";
  * получит прежний успех, а не «уже пройден». `onSettled` — опрос больше не принимает ответы
  * (завершён, пройден с другого устройства, недоступен): экран перечитывает его состояние.
  */
-export function useSurveyPass(survey: ClientSurveyDetail, onSettled: () => void) {
+export function useSurveyPass(survey: SurveyToTake, onSettled: () => void) {
   const { id: surveyId, questions } = survey;
-  const [state, dispatch] = useReducer(
-    (current: PassState, action: PassAction) => passReducer(questions, current, action),
-    INITIAL_PASS,
-  );
+  const { state, dispatch, steps } = usePassSteps(questions);
   const requestId = useRef<string | null>(null);
   const inFlight = useRef(false);
 
@@ -37,24 +57,19 @@ export function useSurveyPass(survey: ClientSurveyDetail, onSettled: () => void)
       dispatch({ type: "settled" });
       onSettled();
     }
-  }, [questions, state.answers, surveyId, onSettled]);
+  }, [questions, state.answers, surveyId, onSettled, dispatch]);
 
-  const answer = useCallback(
-    (questionId: number, value: AnswerDraft) => dispatch({ type: "answer", questionId, answer: value }),
-    [],
-  );
+  return { ...steps, send };
+}
 
-  return {
-    ...state,
-    question: questions[state.index],
-    total: questions.length,
-    start: () => dispatch({ type: "start" }),
-    next: () => dispatch({ type: "next" }),
-    back: () => dispatch({ type: "back" }),
-    review: () => dispatch({ type: "review" }),
-    answer,
-    send,
-  };
+/**
+ * Предпросмотр Администратора (шаг 14): те же шаги, что у клиента, а «Отправить» ничего не
+ * отправляет — сразу «Ответы отправлены».
+ */
+export function usePreviewPass(survey: SurveyToTake) {
+  const { dispatch, steps } = usePassSteps(survey.questions);
+  const send = useCallback(async () => dispatch({ type: "sent" }), [dispatch]);
+  return { ...steps, send };
 }
 
 export type UseSurveyPassResult = ReturnType<typeof useSurveyPass>;

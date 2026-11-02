@@ -19,6 +19,15 @@ export function FieldLabel({ htmlFor, id, children }: { htmlFor?: string; id?: s
   );
 }
 
+/** An error under a field; the field names it in `aria-describedby`, so it is read with the field. */
+export function FieldError({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} className="text-[13px] text-ui-danger">
+      {children}
+    </p>
+  );
+}
+
 export const FieldInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function FieldInput(
   { className, ...props },
   ref,

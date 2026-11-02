@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, Ref } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import { ChevronLeft, ChevronRight, Clock, Info, List, Loader2, Send, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,38 @@ import { StepProgress } from "@/components/ui/step-progress";
 import type { UseSurveyPassResult } from "@/hooks/use-survey-pass";
 import { isAnswered } from "@/lib/surveys/answers";
 import { durationLabel, questionCounter, questionHint } from "@/lib/surveys/format";
-import type { ClientSurveyDetail } from "@/lib/surveys/types";
+import type { SurveyToTake } from "@/lib/surveys/types";
 import { cn } from "@/lib/utils";
 import { SurveyAnswerField } from "./survey-answer-field";
-import { DESKTOP_ACTION, SurveyBackButton, SurveyDesktopScreen, SurveyMobileScreen, type SurveyLayout } from "./survey-frame";
+import {
+  DESKTOP_ACTION,
+  SurveyBackButton,
+  SurveyDesktopScreen,
+  SurveyMobileScreen,
+  useSurveyPreviewBanner,
+  type SurveyLayout,
+} from "./survey-frame";
+
+/**
+ * The title of the step on the screen (`step` names the step): a new step starts at the top — of
+ * the window it is shown in (the preview on Desktop) or of the page — and screen readers read it.
+ */
+export function useStepHeading(step: string) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    const dialog = heading.current?.closest('[role="dialog"]');
+    if (dialog) dialog.scrollTop = 0;
+    else window.scrollTo({ top: 0 });
+    heading.current?.focus({ preventScroll: true });
+  }, [step]);
+  return heading;
+}
 
 type StepProps = {
-  survey: ClientSurveyDetail;
+  survey: SurveyToTake;
   layout: SurveyLayout;
   /** The title of the step: the screen focuses it when the step changes. */
   headingRef: Ref<HTMLHeadingElement>;
@@ -102,6 +127,8 @@ export function SurveyQuestionStep({ survey, layout, headingRef, onExit, pass }:
   const { question, index, total, sending } = pass;
   const answer = pass.answers[question.id];
   const desktop = layout === "desktop";
+  // Figma «Предпросмотр» on Desktop: the banner with «Закрыть» stands for the title and «Выйти».
+  const inPreview = useSurveyPreviewBanner() != null;
   const counter = questionCounter(index, total);
   const progressLabel = `Вопрос ${counter}`;
   const action = { size: desktop ? ("md" as const) : ("block" as const), className: desktop ? DESKTOP_ACTION : undefined };
@@ -148,17 +175,19 @@ export function SurveyQuestionStep({ survey, layout, headingRef, onExit, pass }:
   if (desktop) {
     return (
       <SurveyDesktopScreen>
-        <div className="flex items-center justify-between gap-4 text-sm text-ui-fg/60">
-          <p className="min-w-0 truncate">{survey.title}</p>
-          <button
-            type="button"
-            onClick={onExit}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-4pt-xs transition-colors hover:text-ui-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
-          >
-            <X aria-hidden className="size-4" />
-            Выйти
-          </button>
-        </div>
+        {inPreview ? null : (
+          <div className="flex items-center justify-between gap-4 text-sm text-ui-fg/60">
+            <p className="min-w-0 truncate">{survey.title}</p>
+            <button
+              type="button"
+              onClick={onExit}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-4pt-xs transition-colors hover:text-ui-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-fg/70"
+            >
+              <X aria-hidden className="size-4" />
+              Выйти
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <StepProgress total={total} current={index + 1} label={progressLabel} surface="raised" className="flex-1" />
           <span aria-hidden className="text-sm font-semibold">{counter}</span>

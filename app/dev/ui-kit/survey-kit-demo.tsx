@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, Eye, PenLine, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Eye, PenLine, Send, TriangleAlert, X } from "lucide-react";
 import { ActionBar } from "@/components/ui/action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipTabs } from "@/components/ui/chip-tabs";
 import { ChoiceCard } from "@/components/ui/choice-card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconActions } from "@/components/ui/icon-actions";
+import { InfoBanner } from "@/components/ui/info-banner";
 import { RatingScale } from "@/components/ui/rating-scale";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { DragHandle, SortableItem, SortableList } from "@/components/ui/sortable-list";
@@ -32,6 +34,7 @@ export function SurveyKitDemo() {
   const [yes, setYes] = useState<boolean | null>(true);
   const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>("all");
   const [order, setOrder] = useState(OPTIONS);
+  const [publishAsked, setPublishAsked] = useState(false);
 
   return (
     <section className="mb-8 space-y-5 rounded-2xl bg-ui-canvas p-4 text-ui-fg">
@@ -73,6 +76,31 @@ export function SurveyKitDemo() {
           { label: "Изменить", icon: <PenLine aria-hidden />, onClick: () => undefined },
           { label: "Предпросмотр", icon: <Eye aria-hidden />, onClick: () => undefined },
         ]}
+      />
+
+      <InfoBanner icon={<Eye />} action={{ label: "Закрыть", onClick: () => undefined }}>
+        Предпросмотр — так опрос увидит клиент. Ответы не сохраняются.
+      </InfoBanner>
+      <div className="overflow-hidden rounded-4pt-lg bg-ui-raised">
+        <InfoBanner variant="strip" icon={<Eye />} action={{ label: "Закрыть", onClick: () => undefined }}>
+          Предпросмотр — так опрос увидит клиент. Ответы не сохраняются.
+        </InfoBanner>
+        <div className="h-16" />
+      </div>
+
+      <Button variant="accent" size="md" onClick={() => setPublishAsked(true)}>
+        Опубликовать
+      </Button>
+      <ConfirmDialog
+        open={publishAsked}
+        onOpenChange={setPublishAsked}
+        icon={<Send />}
+        tone="accent"
+        title="Опубликовать опрос?"
+        description="«Удобство раздела «Задачи»» появится у клиентов в «Все новости → Опросы». После публикации вопросы нельзя будет изменить."
+        facts={["5 вопросов", "~2 минуты"]}
+        confirmLabel="Опубликовать"
+        onConfirm={() => setPublishAsked(false)}
       />
 
       <SortableList ids={order} onMove={(id, overId) => setOrder((items) => arrayMove(items, items.indexOf(id), items.indexOf(overId)))}>

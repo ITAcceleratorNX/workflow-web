@@ -32,5 +32,11 @@ export function useAdminSurveys() {
     return () => request.current?.abort();
   }, [reload]);
 
-  return { surveys, loading, error, reload };
+  /** Опрос, каким его вернул сервер после изменения (например, «Завершить опрос»): на своём месте списка. */
+  const replace = useCallback(
+    (survey: AdminSurvey) => setSurveys((current) => current.map((item) => (item.id === survey.id ? survey : item))),
+    [],
+  );
+
+  return { surveys, loading, error, reload, replace };
 }

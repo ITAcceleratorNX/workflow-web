@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId } from "react";
-import { ChevronRight, Eye, PenLine } from "lucide-react";
+import { ChevronRight, CircleStop, Eye, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { IconActions } from "@/components/ui/icon-actions";
 import { formatNewsDisplayDate } from "@/constants/news-filters";
@@ -17,6 +17,8 @@ type AdminSurveyCardProps = {
   /** Today in the time zone of the app, YYYY-MM-DD: «сегодня». */
   todayKey: string;
   layout: "mobile" | "desktop";
+  /** «Завершить опрос» of a published survey (not in the mockups — ТЗ: in the existing interface). */
+  onCloseSurvey: () => void;
 };
 
 /** «сегодня» or «20 окт 2026»; with the time — «сегодня, 10:40». */
@@ -28,10 +30,10 @@ function momentLabel(iso: string, todayKey: string, withTime: boolean): string {
 
 /**
  * A survey in «Управление новостями» → «Опросы» (Figma «Список после публикации»): its status and
- * when it changed; a draft opens in the constructor or the preview, a published or closed survey
- * shows its answers under the card.
+ * when it changed; a draft opens in the constructor or the preview, a published survey can be
+ * ended; a published or closed survey shows its answers under the card.
  */
-export function AdminSurveyCard({ survey, todayKey, layout }: AdminSurveyCardProps) {
+export function AdminSurveyCard({ survey, todayKey, layout, onCloseSurvey }: AdminSurveyCardProps) {
   const titleId = useId();
   const desktop = layout === "desktop";
   const draft = survey.status === "draft";
@@ -48,6 +50,8 @@ export function AdminSurveyCard({ survey, todayKey, layout }: AdminSurveyCardPro
         { label: "Предпросмотр", icon: <Eye aria-hidden />, href: adminSurveyPreviewHref(survey.id) },
       ]}
     />
+  ) : survey.status === "published" ? (
+    <IconActions actions={[{ label: "Завершить опрос", icon: <CircleStop aria-hidden />, onClick: onCloseSurvey }]} />
   ) : null;
   const title = (
     <h3 id={titleId} className={cn("font-bold text-ui-fg", desktop ? "text-[17px] leading-[21px]" : "text-lg leading-[23px]")}>

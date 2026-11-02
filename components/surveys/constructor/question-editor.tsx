@@ -4,7 +4,7 @@ import { useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode
 import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipTabs } from "@/components/ui/chip-tabs";
-import { FieldButton, FieldInput, FieldLabel, FieldTextarea } from "@/components/ui/field";
+import { FieldButton, FieldError, FieldInput, FieldLabel, FieldTextarea } from "@/components/ui/field";
 import { DragHandle, SortableItem, SortableList } from "@/components/ui/sortable-list";
 import {
   addOption,
@@ -28,13 +28,6 @@ const TYPE_TABS = QUESTION_TYPE_ORDER.map((type) => ({ value: type, label: quest
 /** A label above a block that is not one input. */
 const BlockLabel = ({ id, children }: { id?: string; children: ReactNode }) => (
   <p id={id} className="text-[13px] font-medium text-ui-fg/55">
-    {children}
-  </p>
-);
-
-/** An error under a field, read with it (aria-describedby). */
-export const FieldError = ({ id, children }: { id: string; children: ReactNode }) => (
-  <p id={id} className="text-[13px] text-ui-danger">
     {children}
   </p>
 );

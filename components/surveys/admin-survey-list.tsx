@@ -5,15 +5,20 @@ import { useEffect, useState } from "react";
 import { AlertCircle, ClipboardList, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipTabs } from "@/components/ui/chip-tabs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAdminSurveys } from "@/hooks/use-admin-surveys";
+import { useToast } from "@/hooks/use-toast";
 import { getTodayAppDateISO } from "@/lib/dateTimeUtils";
+import { surveysApi } from "@/lib/surveys-api";
 import { ADMIN_SURVEY_FILTERS, adminSurveysEmpty, type AdminSurveyFilter } from "@/lib/surveys/format";
 import { filterAdminSurveys } from "@/lib/surveys/list";
 import { ADMIN_SURVEY_NEW_HREF } from "@/lib/surveys/routes";
+import type { AdminSurvey } from "@/lib/surveys/types";
 import { cn } from "@/lib/utils";
 import { AdminSurveyCard } from "./admin-survey-card";
 import { SurveyRetryButton } from "./survey-frame";
+import { toastCloseFailed, toastSurveyClosed } from "./survey-toasts";
 
 const LIST_ID = "admin-surveys-list";
 
@@ -29,12 +34,29 @@ type AdminSurveyListProps = {
  */
 export function AdminSurveyList({ layout, onRegisterRefresh }: AdminSurveyListProps) {
   const desktop = layout === "desktop";
-  const { surveys, loading, error, reload } = useAdminSurveys();
+  const { surveys, loading, error, reload, replace } = useAdminSurveys();
+  const { toast } = useToast();
   const [filter, setFilter] = useState<AdminSurveyFilter>("all");
+  // «Завершить опрос»: the survey asked about, and the request on its way.
+  const [closing, setClosing] = useState<AdminSurvey | null>(null);
+  const [closingBusy, setClosingBusy] = useState(false);
 
   useEffect(() => {
     onRegisterRefresh?.(reload);
   }, [onRegisterRefresh, reload]);
+
+  const closeSurvey = async (survey: AdminSurvey) => {
+    setClosingBusy(true);
+    const result = await surveysApi.closeSurvey(survey.id);
+    setClosingBusy(false);
+    setClosing(null);
+    if (!result.ok) {
+      toastCloseFailed(toast, result.error);
+      return;
+    }
+    replace(result.data);
+    toastSurveyClosed(toast);
+  };
 
   const shown = filterAdminSurveys(surveys, filter);
   let content;
@@ -73,7 +95,7 @@ export function AdminSurveyList({ layout, onRegisterRefresh }: AdminSurveyListPr
       <ul className={cn("flex flex-col", desktop ? "gap-[18px]" : "gap-3.5")}>
         {shown.map((survey) => (
           <li key={survey.id}>
-            <AdminSurveyCard survey={survey} todayKey={todayKey} layout={layout} />
+            <AdminSurveyCard survey={survey} todayKey={todayKey} layout={layout} onCloseSurvey={() => setClosing(survey)} />
           </li>
         ))}
       </ul>
@@ -108,6 +130,18 @@ export function AdminSurveyList({ layout, onRegisterRefresh }: AdminSurveyListPr
       </Button>
 
       <div id={LIST_ID}>{content}</div>
+
+      <ConfirmDialog
+        open={closing != null}
+        onOpenChange={(open) => (open ? undefined : setClosing(null))}
+        title="Завершить опрос?"
+        description="Клиенты больше не смогут ответить. Ответы и результаты сохранятся."
+        confirmLabel="Завершить"
+        busy={closingBusy}
+        onConfirm={() => {
+          if (closing) void closeSurvey(closing);
+        }}
+      />
     </div>
   );
 }

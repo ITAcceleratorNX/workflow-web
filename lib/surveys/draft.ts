@@ -157,6 +157,10 @@ export const hasQuestionProblems = (problems: QuestionProblems) => Boolean(probl
 
 export type DraftProblems = {
   title?: string;
+  /** Только для публикации: ни одного офиса и не «Все офисы». */
+  offices?: string;
+  /** Только для публикации: вопросов нет. */
+  noQuestions?: string;
   /** По ключу вопроса — только вопросы с ошибками. */
   questions: Record<string, QuestionProblems>;
 };
@@ -171,7 +175,17 @@ export function draftProblems(draft: SurveyDraft): DraftProblems {
   return { title: hasVisibleText(draft.title) ? undefined : DRAFT_MESSAGES.title, questions };
 }
 
-export const hasDraftProblems = (problems: DraftProblems) => Boolean(problems.title) || Object.keys(problems.questions).length > 0;
+/** Что мешает опубликовать: то же, что сохранить, и ещё аудитория и хотя бы один вопрос — как у сервера (surveyPublishProblems). */
+export function publishProblems(draft: SurveyDraft): DraftProblems {
+  return {
+    ...draftProblems(draft),
+    offices: draft.allOffices || draft.officeIds.length ? undefined : DRAFT_MESSAGES.offices,
+    noQuestions: draft.questions.length ? undefined : DRAFT_MESSAGES.noQuestions,
+  };
+}
+
+export const hasDraftProblems = (problems: DraftProblems) =>
+  Boolean(problems.title || problems.offices || problems.noQuestions) || Object.keys(problems.questions).length > 0;
 
 /** Пункт «Все офисы» включает все офисы разом и так же снимает. */
 export const toggleAllOffices = (draft: SurveyDraft): SurveyDraft => ({ ...draft, allOffices: !draft.allOffices, officeIds: [] });

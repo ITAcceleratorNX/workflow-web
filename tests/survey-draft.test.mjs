@@ -14,6 +14,7 @@ function load(name, dependencies = {}) {
 // Объекты из модуля созданы в другом realm: сравниваем их как данные.
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const draft = load('draft', { './answers': load('answers'), './format': load('format') });
+const preview = load('preview', { './draft': draft });
 
 /** Ключи новых строк, как их выдаёт конструктор. */
 const keys = () => {
@@ -117,6 +118,48 @@ test('a draft needs a title; problems are kept by question', () => {
   const problems = plain(draft.draftProblems(broken));
   assert.deepEqual(problems, { title: 'Введите заголовок', questions: { q11: { text: 'Введите текст вопроса' } } });
   assert.equal(draft.hasDraftProblems(draft.draftProblems(broken)), true);
+});
+
+test('publishing needs offices and a question on top of what saving needs, as the server does', () => {
+  const form = draft.draftFromSurvey(saved);
+  assert.equal(draft.hasDraftProblems(draft.publishProblems(form)), false);
+  const empty = { ...draft.emptyDraft(), title: 'Бронь' };
+  assert.equal(draft.hasDraftProblems(draft.draftProblems(empty)), false);
+  assert.deepEqual(plain(draft.publishProblems(empty)), { offices: 'Выберите офисы', noQuestions: 'Добавьте хотя бы один вопрос', questions: {} });
+  assert.equal(draft.hasDraftProblems(draft.publishProblems({ ...form, allOffices: true, officeIds: [] })), false);
+});
+
+test('the preview of the form is the survey as the client gets it: trimmed texts, filled options, «Да / Нет»', () => {
+  const form = draft.draftFromSurvey(saved);
+  const question = { ...draft.newQuestion('multiple_choice', keys()), text: ' Что мешает? ' };
+  question.options = [{ key: 'a', text: ' Нет комнат ' }, { key: 'b', text: '  ' }, { key: 'c', text: 'Неудобно' }];
+  const survey = plain(preview.previewFromDraft({ ...form, title: ' Задачи ', description: '', questions: [...form.questions, question] }));
+  assert.equal(survey.title, 'Задачи');
+  assert.equal(survey.description, null);
+  assert.equal(survey.questions_count, 4);
+  assert.deepEqual(survey.questions.map((q) => [q.id, q.type, q.text, q.options.map((o) => `${o.id}:${o.text}`)]), [
+    [1, 'single_choice', 'Как часто?', ['1:Каждый день', '2:Реже']],
+    [2, 'rating', 'Насколько удобно?', []],
+    [3, 'yes_no', 'Находите сразу?', ['1:Да', '2:Нет']],
+    [4, 'multiple_choice', 'Что мешает?', ['1:Нет комнат', '2:Неудобно']],
+  ]);
+  assert.deepEqual([survey.questions[1].scale_min_label, survey.questions[1].scale_max_label], ['Плохо', 'Отлично']);
+  // 15 + 10 + 10 + 20 секунд — одна минута, как посчитает сервер.
+  assert.equal(survey.estimated_minutes, 1);
+});
+
+test('minutes of a survey follow the server: types add up, at least one, none without questions', () => {
+  assert.equal(preview.estimateMinutes([]), null);
+  assert.equal(preview.estimateMinutes(['yes_no']), 1);
+  assert.equal(preview.estimateMinutes(['single_choice', 'multiple_choice', 'rating', 'yes_no', 'text']), 2);
+  assert.equal(preview.estimateMinutes(['text', 'text', 'single_choice']), 3);
+});
+
+test('the preview of a saved survey keeps the ids of the server', () => {
+  const survey = plain(preview.previewFromSurvey({ ...saved, questions_count: 3, estimated_minutes: 1 }));
+  assert.deepEqual(survey.questions.map((q) => [q.id, q.options.map((o) => o.id)]), [[11, [101, 102]], [13, []], [14, [401, 402]]]);
+  assert.deepEqual(Object.keys(survey.questions[0].options[0]), ['id', 'text']);
+  assert.equal(survey.estimated_minutes, 1);
 });
 
 test('«Все офисы» takes every office at once; unticking one keeps the others', () => {
