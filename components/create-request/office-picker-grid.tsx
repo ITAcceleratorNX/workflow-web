@@ -31,12 +31,17 @@ export function officePlaceLine(office: Pick<PickerOffice, "block" | "floor">): 
 
 /** Офисы по городам в исходном порядке; без города — «Другие». */
 export function groupOfficesByCity<T extends PickerOffice>(offices: T[]): { city: string; offices: T[] }[] {
-  const groups = new Map<string, T[]>();
+  const groups = new Map<string, { city: string; offices: T[] }>();
   for (const office of offices) {
-    const city = office.city?.trim() || "Другие";
-    groups.set(city, [...(groups.get(city) ?? []), office]);
+    const cityInput = office.city?.trim().split(",")[0]?.trim() || "Другие";
+    const cityKey = cityInput.toLocaleLowerCase("ru");
+    const city = cityKey === "almaty" || cityKey === "алматы" ? "Алматы" : cityInput;
+    const key = city.toLocaleLowerCase("ru");
+    const group = groups.get(key) ?? { city, offices: [] };
+    group.offices.push(office);
+    groups.set(key, group);
   }
-  return [...groups].map(([city, list]) => ({ city, offices: list }));
+  return [...groups.values()];
 }
 
 /** Фото офиса; без фото или при ошибке загрузки — заглушка с иконкой здания. */
