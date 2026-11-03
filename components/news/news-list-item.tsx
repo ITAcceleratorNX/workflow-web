@@ -39,7 +39,6 @@ export function NewsListItem({
             <ImageIcon className="h-[34px] w-[34px] text-[#8E8E93]" />
           </div>
         )}
-        {rightSlot ? <div className="absolute right-2.5 top-2.5">{rightSlot}</div> : null}
       </div>
       <div className="p-3 space-y-2">
         <div className="flex items-center justify-between gap-2.5">
@@ -61,7 +60,7 @@ export function NewsListItem({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[#3A3A3C] bg-[#2C2C2E] overflow-hidden",
+        "relative rounded-2xl border border-[#3A3A3C] bg-[#2C2C2E] overflow-hidden",
         className,
       )}
     >
@@ -72,6 +71,7 @@ export function NewsListItem({
       ) : (
         topBlock
       )}
+      {rightSlot ? <div className="absolute right-2.5 top-2.5 z-10">{rightSlot}</div> : null}
       {footerSlot ? <div className="px-3 pt-3 pb-3 border-t border-[#3A3A3C]">{footerSlot}</div> : null}
     </div>
   );
