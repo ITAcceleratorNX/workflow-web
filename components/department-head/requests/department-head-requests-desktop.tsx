@@ -46,14 +46,15 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
         userRole="department-head"
         variant="desktop"
         error={props.error}
-              isFiltered={props.isFiltered}
-              onRetry={props.handleRefresh}
-              onResetFilters={props.resetFilters}
-              loading={loading}
+        isFiltered={props.isFiltered}
+        onRetry={props.handleRefresh}
+        onResetFilters={props.resetFilters}
+        loading={loading}
         loadingMore={loadingMore}
         hasMore={hasMore}
         requests={activeList}
         emptyMessage={DEPARTMENT_HEAD_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
+        emptyFilteredHint="Измените статус или тип — или сбросьте фильтры"
         onCardClick={handleCardClick}
         renderCardHeader={renderCardHeader}
         onLoadMore={handleLoadMore}
@@ -72,6 +73,8 @@ export function DepartmentHeadRequestsDesktop(props: DepartmentHeadRequestsDeskt
           statusFilterOptions={statusFilterOptions}
         />
       }
+      isFiltered={props.isFiltered}
+      onResetFilters={props.resetFilters}
       tabsSlot={
         <DepartmentHeadRequestsTabs
           variant="desktop"

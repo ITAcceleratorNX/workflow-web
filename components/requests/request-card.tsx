@@ -11,8 +11,12 @@ import {
   formatServiceCategoryDisplayName,
   getStatusLabel,
   getTypeLabel,
+  isLongTermRequestGroup,
 } from "@/constants/requests"
-import { getPrimarySubRequest } from "@/lib/request-utils"
+import { RQ_DESKTOP_ROW, RQ_DESKTOP_THUMB } from "@/constants/requests-desktop-ui"
+import { getFirstPhotoUrl, getPrimarySubRequest } from "@/lib/request-utils"
+import { cn } from "@/lib/utils"
+import { LongTermBadge } from "./long-term-badge"
 
 interface RequestCardProps {
   request: RequestGroup
@@ -22,7 +26,8 @@ interface RequestCardProps {
   lastElementRef?: ((node: HTMLDivElement | null) => void) | React.RefObject<HTMLDivElement | null> | null
   clientRating?: any
   userRole?: string
-  variant?: 'default' | 'compact' // Новый пропс для выбора стиля карточки
+  /** compact — список на телефоне, row — строка списка на десктопе, default — прежняя карточка. */
+  variant?: 'default' | 'compact' | 'row'
 }
 
 // Компонент для ленивой загрузки изображений с IntersectionObserver
@@ -71,12 +76,17 @@ function LazyImage({ src, alt, className }: { src: string; alt: string; classNam
   )
 }
 
-/** Превью заявки 84×84; без фото или если оно не загрузилось — иконка. */
-function RequestThumb({ url, alt }: { url: string | null; alt: string }) {
+/** Превью заявки (на телефоне 84×84); без фото или если оно не загрузилось — иконка. */
+function RequestThumb({ url, alt, className, iconClassName }: {
+  url: string | null
+  alt: string
+  className?: string
+  iconClassName?: string
+}) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const src = url ? getThumbnailUrl(url) : null
   return (
-    <div className="flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#222222]">
+    <div className={cn("flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#222222]", className)}>
       {src && failedUrl !== src ? (
         // eslint-disable-next-line @next/next/no-img-element -- внешние Cloudinary-превью, onError нужен для заглушки
         <img
@@ -88,7 +98,7 @@ function RequestThumb({ url, alt }: { url: string | null; alt: string }) {
           onError={() => setFailedUrl(src)}
         />
       ) : (
-        <ImageIcon className="h-6 w-6 text-white/70" aria-hidden />
+        <ImageIcon className={cn("h-6 w-6 text-white/70", iconClassName)} aria-hidden />
       )}
     </div>
   )
@@ -159,11 +169,54 @@ function RequestCardComponent({
     </span>
   )
 
+  const showType = Boolean(request.request_type && request.request_type !== 'normal')
+  const typeBadge = showType ? (
+    <span className="shrink-0 rounded-xl bg-[#0E3B2B] px-[7px] py-[5px] text-[11px] font-semibold leading-[13px] text-[#22C55E]">
+      {requestTypeLabel}
+    </span>
+  ) : null
+
+  // Row — строка списка на десктопе (макет «Заявки»): превью 60 px, номер, статус, направление · офис, дата.
+  if (variant === 'row') {
+    const title = getPrimarySubRequest(request)?.title
+    return (
+      <div
+        ref={isLast ? lastElementRef : null}
+        className={RQ_DESKTOP_ROW}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`Открыть заявку №${request.id}${title ? `: ${title}` : ""}`}
+        aria-describedby={descriptionId}
+        onKeyDown={handleKeyDown}
+      >
+        {accessibleDescription}
+        <RequestThumb
+          url={getFirstPhotoUrl(request)}
+          alt={`Заявка #${request.id}`}
+          className={RQ_DESKTOP_THUMB}
+          iconClassName="h-5 w-5 text-[#8E8E93]"
+        />
+        {/* Одна строка на широком экране; в узкой колонке (открыта заявка) части переносятся,
+            а длинные статус и офис сокращаются многоточием — номер и дата видны всегда. */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-0.5 leading-[22px]">
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="text-[17px] font-bold text-ui-fg">#{request.id}</span>
+            {typeBadge}
+            {isLongTermRequestGroup(request) ? <LongTermBadge /> : null}
+          </span>
+          <span className="min-w-0 max-w-full truncate text-[15px] text-[#A1A1A6]">{statusLabel}</span>
+          <span className="min-w-0 max-w-full truncate text-[15px] text-[#D1D1D6]">{serviceAndOffice}</span>
+          <span className="ml-auto shrink-0 text-sm text-[#8E8E93]">{formattedDateShort}</span>
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-[#D1D1D6]" aria-hidden />
+      </div>
+    )
+  }
+
   // Compact — список заявок на телефоне (макет «Заявки — список»): превью 84 px, номер, тип, статус.
   if (variant === 'compact') {
     const sub = getPrimarySubRequest(request)
-    const firstPhotoUrl = request.photos?.[0]?.photo_url ?? sub?.photos?.[0]?.photo_url ?? null
-    const showType = Boolean(request.request_type && request.request_type !== 'normal')
 
     return (
       <div
@@ -177,23 +230,19 @@ function RequestCardComponent({
         onKeyDown={handleKeyDown}
       >
         {accessibleDescription}
-        <RequestThumb url={firstPhotoUrl} alt={`Заявка #${request.id}`} />
+        <RequestThumb url={getFirstPhotoUrl(request)} alt={`Заявка #${request.id}`} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 text-[17px] font-bold leading-5 text-foreground">#{request.id}</span>
-            {showType && (
-              <span className="shrink-0 rounded-xl bg-[#0E3B2B] px-[7px] py-[5px] text-[11px] font-semibold leading-[13px] text-[#22C55E]">
-                {requestTypeLabel}
-              </span>
-            )}
-            <span className="min-w-0 truncate text-[13px] leading-4 text-foreground/55">{statusLabel}</span>
+            {typeBadge}
+            <span className="min-w-0 truncate text-[13px] leading-4 text-foreground/60">{statusLabel}</span>
           </div>
-          <p className="truncate text-sm leading-[17px] text-foreground/55">{serviceAndOffice}</p>
+          <p className="truncate text-sm leading-[17px] text-foreground/60">{serviceAndOffice}</p>
           <p className="text-xs leading-[14px] text-foreground/40">{formattedDateShort}</p>
         </div>
 
-        <ChevronRight className="h-5 w-5 shrink-0 text-foreground" aria-hidden />
+        <ChevronRight className="h-5 w-5 shrink-0 text-foreground/55" aria-hidden />
       </div>
     )
   }

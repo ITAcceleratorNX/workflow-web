@@ -2,8 +2,19 @@
 
 import { AdminManagerRequestsDesktopFrame } from "@/components/layout/AdminManagerRequestsDesktopFrame";
 import { RequestDetails } from "@/components/requests";
+import { RequestsExportButton, RequestsExportNotice } from "@/components/requests/requests-export";
 import { RequestsTabs } from "@/components/requests/requests-tabs";
+import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
 import type { UseManagerRequestsListResult } from "@/hooks/use-manager-requests-list";
+import { useRequestExport } from "@/hooks/use-request-export";
+import {
+  requestExportFileName,
+  requestExportMeta,
+  requestExportParams,
+  requestExportSummary,
+  requestPeriodRange,
+  type RequestExportConditions,
+} from "@/lib/request-export";
 import { useManagerRequestCardHeader } from "./manager-request-card-header";
 import { ManagerRequestsFilters } from "./manager-requests-filters";
 import { RequestsListContent } from "@/components/requests/requests-list-content";
@@ -14,6 +25,9 @@ import dynamic from "next/dynamic";
 const LogsViewer = dynamic(() => import("@/components/logs-viewer").then((mod) => ({ default: mod.LogsViewer })), { ssr: false });
 
 type ManagerRequestsDesktopProps = UseManagerRequestsListResult;
+
+const optionLabel = (options: readonly { value: string; label: string }[], value: string) =>
+  options.find((option) => option.value === value)?.label ?? null;
 
 export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
   const {
@@ -34,6 +48,7 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
     loadingMore,
     hasMore,
     filteredRequests,
+    matchedCount,
     handleCardClick,
     displayRequest,
     handleClosePanel,
@@ -42,8 +57,30 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
   } = props;
 
   const renderCardHeader = useManagerRequestCardHeader();
+  const requestExport = useRequestExport();
 
   const showRequestList = activeTab !== "deleted" && activeTab !== "logs";
+  const isRejectedTab = activeTab === "rejected";
+
+  const exportConditions: RequestExportConditions = {
+    tab: isRejectedTab ? "rejected" : "all",
+    office,
+    officeName: offices.find((o) => String(o.id) === office)?.name ?? null,
+    period,
+    status: filterStatus,
+    statusLabel: optionLabel(statusFilterOptions, filterStatus),
+    type: filterType,
+    typeLabel: optionLabel(REQUEST_TYPE_FILTER_OPTIONS, filterType),
+  };
+
+  const downloadExport = () => {
+    const now = new Date();
+    const range = requestPeriodRange(period, now);
+    requestExport.download(
+      requestExportParams(exportConditions, range),
+      requestExportFileName(exportConditions, range, now),
+    );
+  };
 
   return (
     <AdminManagerRequestsDesktopFrame
@@ -61,9 +98,26 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
             onFilterTypeChange={setFilterType}
             offices={offices}
             statusFilterOptions={statusFilterOptions}
-            hideStatusFilter={activeTab === "rejected"}
+            hideStatusFilter={isRejectedTab}
           />
         ) : null
+      }
+      isFiltered={showRequestList && props.isFiltered}
+      onResetFilters={props.resetFilters}
+      toolbarEndSlot={
+        showRequestList ? (
+          <RequestsExportButton
+            count={matchedCount}
+            loading={loading}
+            summary={requestExportSummary(exportConditions, requestPeriodRange(period))}
+            meta={requestExportMeta(matchedCount, exportConditions.tab)}
+            preparing={requestExport.state.status === "preparing"}
+            onDownload={downloadExport}
+          />
+        ) : null
+      }
+      noticeSlot={
+        <RequestsExportNotice state={requestExport.state} onRetry={requestExport.retry} onDismiss={requestExport.dismiss} />
       }
       tabsSlot={
         <RequestsTabs variant="desktop" tabs={MANAGER_DESKTOP_REQUEST_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -85,7 +139,12 @@ export function ManagerRequestsDesktop(props: ManagerRequestsDesktopProps) {
             renderCardHeader={renderCardHeader}
             onLoadMore={handleLoadMore}
             bulkDelete={bulkDelete}
-            emptyMessage={activeTab === "rejected" ? "Отклонённых заявок нет" : undefined}
+            emptyMessage={isRejectedTab ? "Отклонённых заявок нет" : undefined}
+            emptyFilteredHint={
+              isRejectedTab
+                ? "Измените офис, период или тип — или сбросьте фильтры"
+                : "Измените офис, период, статус или тип — или сбросьте фильтры"
+            }
           />
         ) : activeTab === "logs" ? (
           <LogsViewer userRole="manager" isDesktop dark />

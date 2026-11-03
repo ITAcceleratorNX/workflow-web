@@ -3,6 +3,7 @@
  * Синхронизировано с workflow-mobile app/(tabs)/requests/index.tsx
  */
 
+import { managerPeriodStart } from "@/lib/manager-period";
 import { completedAfterSla } from "@/lib/request-overdue";
 import { isLongTermRequestGroup } from '@/constants/requests';
 import type { RequestGroup, SubRequest } from '@/lib/types/request';
@@ -74,18 +75,7 @@ export function matchesRequestTypeFilter(
 }
 
 function getPeriodStartDate(period: RequestFilterOptions['period']): Date | null {
-  if (!period || period === 'all') return null;
-  const now = new Date();
-  switch (period) {
-    case 'week':
-      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    case 'month':
-      return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-    case 'year':
-      return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-    default:
-      return null;
-  }
+  return !period || period === 'all' ? null : managerPeriodStart(period);
 }
 
 export function filterRequestGroups(

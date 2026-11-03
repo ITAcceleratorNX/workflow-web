@@ -31,12 +31,17 @@ export function officePlaceLine(office: Pick<PickerOffice, "block" | "floor">): 
 
 /** Офисы по городам в исходном порядке; без города — «Другие». */
 export function groupOfficesByCity<T extends PickerOffice>(offices: T[]): { city: string; offices: T[] }[] {
-  const groups = new Map<string, T[]>();
+  const groups = new Map<string, { city: string; offices: T[] }>();
   for (const office of offices) {
-    const city = office.city?.trim() || "Другие";
-    groups.set(city, [...(groups.get(city) ?? []), office]);
+    const cityInput = office.city?.trim().split(",")[0]?.trim() || "Другие";
+    const cityKey = cityInput.toLocaleLowerCase("ru");
+    const city = cityKey === "almaty" || cityKey === "алматы" ? "Алматы" : cityInput;
+    const key = city.toLocaleLowerCase("ru");
+    const group = groups.get(key) ?? { city, offices: [] };
+    group.offices.push(office);
+    groups.set(key, group);
   }
-  return [...groups].map(([city, list]) => ({ city, offices: list }));
+  return [...groups.values()];
 }
 
 /** Фото офиса; без фото или при ошибке загрузки — заглушка с иконкой здания. */
@@ -99,21 +104,24 @@ export function OfficePickerGrid<T extends PickerOffice>({
                     "flex min-w-0 flex-col overflow-hidden rounded-[18px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#040404]",
                     selected
                       ? "border-2 border-[#E35B21] bg-[#E35B21]/[0.18]"
-                      : "border border-white/20 bg-white/10 hover:bg-white/[0.14]",
+                      : "border border-white/[0.28] bg-white/10 hover:bg-white/[0.14]",
                   )}
                 >
                   <OfficePhoto office={office} />
-                  <div className="flex min-w-0 flex-col gap-[5px] px-[11px] pb-[13px] pt-[11px]">
+                  <div className="flex min-w-0 flex-1 flex-col gap-[5px] px-[11px] pb-[13px] pt-[11px]">
                     <span className="line-clamp-2 text-[15px] font-semibold leading-[19px] text-white">
                       {office.name}
                     </span>
-                    {office.address && (
-                      <span className="flex min-w-0 items-center gap-[3px] text-xs text-white/[0.78]">
-                        <MapPin className="h-3 w-3 shrink-0 text-white/70" aria-hidden />
-                        <span className="truncate">{office.address}</span>
-                      </span>
-                    )}
-                    {place && <span className="text-[11px] font-medium text-white/55">{place}</span>}
+                    {/* Адрес и этаж внизу карточки: в ряду они на одной линии, даже если название в две строки. */}
+                    <span className="mt-auto flex min-w-0 flex-col gap-[5px]">
+                      {office.address && (
+                        <span className="flex min-w-0 items-center gap-[3px] text-xs text-white/[0.78]">
+                          <MapPin className="h-3 w-3 shrink-0 text-white/70" aria-hidden />
+                          <span className="truncate">{office.address}</span>
+                        </span>
+                      )}
+                      {place && <span className="text-[11px] font-medium text-white/55">{place}</span>}
+                    </span>
                   </div>
                 </button>
               );

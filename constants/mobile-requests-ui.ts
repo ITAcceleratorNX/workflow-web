@@ -22,29 +22,12 @@ export const REQUESTS_DESKTOP_SELECT_ITEM =
 export const REQUESTS_DESKTOP_OUTLINE_BTN =
   "border-[#3A3A3C] bg-transparent text-white hover:bg-white/10 hover:text-white";
 
-export function mobileRequestsFilterTrigger(
-  variant: "mobile" | "desktop",
-  extraClass?: string,
-) {
-  if (variant === "desktop") {
-    return cn(extraClass ?? "w-[140px]", REQUESTS_DESKTOP_SELECT_TRIGGER);
-  }
+/** Фильтр списка заявок на телефоне (десктоп — RQ_DESKTOP_FILTER_TRIGGER). */
+export function mobileRequestsFilterTrigger(extraClass?: string) {
   return cn("flex-1 min-w-0", MOBILE_REQUESTS_FILTER_TRIGGER, extraClass);
 }
 
-export function mobileRequestsFilterContent(variant: "mobile" | "desktop") {
-  if (variant === "desktop") {
-    return REQUESTS_DESKTOP_SELECT_CONTENT;
-  }
-  return "bg-popover border border-border text-popover-foreground";
-}
-
-export function mobileRequestsFilterItem(variant: "mobile" | "desktop") {
-  if (variant === "desktop") {
-    return REQUESTS_DESKTOP_SELECT_ITEM;
-  }
-  return undefined;
-}
+export const MOBILE_REQUESTS_FILTER_CONTENT = "bg-popover border border-border text-popover-foreground";
 
 /** RN requests tab row */
 export const MOBILE_REQUESTS_TABS_ROW =

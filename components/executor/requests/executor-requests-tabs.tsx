@@ -4,6 +4,7 @@ import {
   MOBILE_REQUESTS_TABS_ROW,
   mobileRequestsTabClass,
 } from "@/constants/mobile-requests-ui";
+import { RequestsTabs } from "@/components/requests/requests-tabs";
 import { cn } from "@/lib/utils";
 import {
   EXECUTOR_REQUEST_TABS,
@@ -22,26 +23,7 @@ export function ExecutorRequestsTabs({
   variant = "mobile",
 }: ExecutorRequestsTabsProps) {
   if (variant === "desktop") {
-    return (
-      <>
-        {EXECUTOR_REQUEST_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            aria-pressed={activeTab === tab.key}
-            onClick={() => onTabChange(tab.key)}
-            className={cn(
-              "min-h-11 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              activeTab === tab.key
-                ? "bg-[hsl(var(--action-background))] text-[hsl(var(--action-foreground))]"
-                : "text-white/70 hover:bg-white/10"
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </>
-    );
+    return <RequestsTabs variant="desktop" tabs={EXECUTOR_REQUEST_TABS} activeTab={activeTab} onTabChange={onTabChange} />;
   }
 
   return (

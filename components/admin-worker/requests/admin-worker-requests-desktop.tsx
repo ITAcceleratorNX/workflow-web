@@ -49,6 +49,11 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
       hasMore={hasMore}
       requests={activeList}
       emptyMessage={ADMIN_WORKER_EMPTY_MESSAGES[activeTab] ?? "Нет заявок"}
+      emptyFilteredHint={
+        activeTab === "rejected"
+          ? "Измените тип или офис — или сбросьте фильтры"
+          : "Измените статус, тип или офис — или сбросьте фильтры"
+      }
       onCardClick={handleCardClick}
       renderCardHeader={renderCardHeader}
       onLoadMore={handleLoadMore}
@@ -71,6 +76,8 @@ export function AdminWorkerRequestsDesktop(props: AdminWorkerRequestsDesktopProp
           hideStatusFilter={activeTab === "rejected"}
         />
       }
+      isFiltered={props.isFiltered}
+      onResetFilters={props.resetFilters}
       tabsSlot={
         <AdminWorkerRequestsTabs
           variant="desktop"

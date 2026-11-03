@@ -9,11 +9,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  mobileRequestsFilterContent,
-  mobileRequestsFilterItem,
+  MOBILE_REQUESTS_FILTER_CONTENT,
   mobileRequestsFilterTrigger,
 } from "@/constants/mobile-requests-ui";
+import {
+  RQ_DESKTOP_FILTER_LABEL,
+  RQ_DESKTOP_FILTER_TRIGGER,
+  RQ_DESKTOP_FILTER_VALUE,
+  RQ_DESKTOP_MENU,
+  RQ_DESKTOP_MENU_ITEM,
+} from "@/constants/requests-desktop-ui";
 import { REQUEST_TYPE_FILTER_OPTIONS } from "@/constants/requests";
+import { cn } from "@/lib/utils";
 
 export interface RequestsFilterOption {
   value: string;
@@ -22,15 +29,18 @@ export interface RequestsFilterOption {
 
 type Variant = "mobile" | "desktop";
 
+/** Значение «без фильтра» у всех фильтров списка заявок. */
+const NO_FILTER = "all";
+
 interface RequestsFilterSelectProps {
   value: string;
   onChange: (value: string) => void;
   options: readonly RequestsFilterOption[];
   variant: Variant;
-  /** «Статус», «Тип» — подпись перед выбранным значением; без неё — только значение. */
+  /** «Офис», «Статус» — подпись перед выбранным значением на десктопе; на телефоне — только значение. */
   label?: ReactNode;
   placeholder?: string;
-  /** Ширина/растяжение триггера (по умолчанию — как у остальных фильтров списка заявок). */
+  /** Ширина/растяжение триггера на телефоне; на десктопе — дополнительные классы. */
   triggerClassName?: string;
   /** Пункт меню на mobile, если тема страницы его не задаёт. */
   mobileItemClassName?: string;
@@ -47,25 +57,33 @@ export function RequestsFilterSelect({
   triggerClassName,
   mobileItemClassName,
 }: RequestsFilterSelectProps) {
-  const itemClass = mobileRequestsFilterItem(variant) ?? mobileItemClassName;
+  const isDesktop = variant === "desktop";
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
-        className={triggerClassName ?? mobileRequestsFilterTrigger(variant)}
+        data-active={isDesktop && value !== NO_FILTER ? "true" : undefined}
+        className={isDesktop ? cn(RQ_DESKTOP_FILTER_TRIGGER, triggerClassName) : triggerClassName ?? mobileRequestsFilterTrigger()}
         aria-label={typeof label === "string" ? label : placeholder}
       >
         {/* На телефоне — только значение, как в макете; подпись остаётся для экранных читалок. */}
-        {label && variant === "desktop" ? (
+        {label && isDesktop ? (
           <span className="min-w-0 truncate">
-            {label}: <SelectValue placeholder={placeholder} />
+            <span className={RQ_DESKTOP_FILTER_LABEL}>{label}:</span>{" "}
+            <span className={RQ_DESKTOP_FILTER_VALUE}>
+              <SelectValue placeholder={placeholder} />
+            </span>
           </span>
         ) : (
           <SelectValue placeholder={placeholder} />
         )}
       </SelectTrigger>
-      <SelectContent className={mobileRequestsFilterContent(variant)}>
+      <SelectContent align={isDesktop ? "start" : undefined} className={isDesktop ? RQ_DESKTOP_MENU : MOBILE_REQUESTS_FILTER_CONTENT}>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} className={itemClass}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            className={isDesktop ? RQ_DESKTOP_MENU_ITEM : mobileItemClassName}
+          >
             {option.label}
           </SelectItem>
         ))}
@@ -108,6 +126,7 @@ export function RequestOfficeFilter({
 }) {
   return (
     <RequestsFilterSelect
+      label="Офис"
       value={value}
       onChange={onChange}
       placeholder="Офис"

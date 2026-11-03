@@ -4,16 +4,16 @@ import {
   MOBILE_REQUESTS_TABS_ROW,
   mobileRequestsTabClass,
 } from "@/constants/mobile-requests-ui";
-import { cn } from "@/lib/utils";
+import { RQ_DESKTOP_TABS, rqDesktopTabClass } from "@/constants/requests-desktop-ui";
 
 interface RequestsTabsProps<T extends string> {
-  tabs: { key: T; label: string }[];
+  tabs: readonly { key: T; label: string }[];
   activeTab: T;
   onTabChange: (tab: T) => void;
   variant?: "mobile" | "desktop";
 }
 
-/** Вкладки раздела «Заявки» (Администратор, Руководитель). */
+/** Вкладки раздела «Заявки» всех ролей; на десктопе — сегменты в общей плашке. */
 export function RequestsTabs<T extends string>({
   tabs,
   activeTab,
@@ -21,24 +21,21 @@ export function RequestsTabs<T extends string>({
   variant = "mobile",
 }: RequestsTabsProps<T>) {
   if (variant === "desktop") {
+    // aria-pressed, а не role="tab": легаси-правила [role="tab"] перекрашивают вкладки на тёмных страницах.
     return (
-      <>
+      <div className={RQ_DESKTOP_TABS} aria-label="Разделы заявок">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             type="button"
+            aria-pressed={activeTab === tab.key}
             onClick={() => onTabChange(tab.key)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              activeTab === tab.key
-                ? "bg-[#E85D2B] text-white"
-                : "text-white/70 hover:bg-white/10"
-            )}
+            className={rqDesktopTabClass(activeTab === tab.key)}
           >
             {tab.label}
           </button>
         ))}
-      </>
+      </div>
     );
   }
 

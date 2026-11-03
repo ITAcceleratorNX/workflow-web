@@ -611,8 +611,8 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
     background-color: transparent !important;
     border-color: transparent !important;
   }
-  /* Radix Select trigger — not covered by input/select rules above */
-  .desktop-main-content .client-desktop-content [role="combobox"] {
+  /* Radix Select trigger — not covered by input/select rules above (фильтры заявок *-ui-* красятся сами) */
+  .desktop-main-content .client-desktop-content [role="combobox"]:where(:not([class*="-ui-"])) {
     border-color: var(--client-border, #3A3A3C) !important;
     background-color: var(--client-bg-muted, #1C1C1E) !important;
     color: #ffffff !important;
@@ -691,10 +691,11 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .management-modal-dark .text-muted-foreground {
     color: #8e8e93 !important;
   }
+  /* Фильтры раздела «Заявки» (классы *-ui-*) красятся сами: выбранный фильтр подсвечен. */
   .management-modal-dark input,
   .management-modal-dark textarea,
   .management-modal-dark select,
-  .management-modal-dark [role="combobox"] {
+  .management-modal-dark [role="combobox"]:where(:not([class*="-ui-"])) {
     border-color: #3a3a3c !important;
     background-color: #2c2c2e !important;
     color: #ffffff !important;
@@ -708,7 +709,7 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   }
   .management-modal-dark .border-border,
   .management-modal-dark .border-input,
-  .management-modal-dark .border {
+  .management-modal-dark .border:where(:not([class*="-ui-"])) {
     border-color: #3a3a3c !important;
   }
   .management-modal-dark .bg-card,

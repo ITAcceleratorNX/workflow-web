@@ -44,11 +44,8 @@ export function ManagerRequestsFilters({
   hideStatusFilter = false,
   variant = "mobile",
 }: ManagerRequestsFiltersProps) {
-  const filterTriggerClass = mobileRequestsFilterTrigger(variant, "min-w-[120px]");
-  const periodTriggerClass = mobileRequestsFilterTrigger(
-    variant,
-    variant === "desktop" ? "w-[120px]" : "min-w-[120px]",
-  );
+  // На десктопе фильтр по ширине содержимого; на телефоне — не уже 120px в ряду.
+  const triggerClassName = variant === "mobile" ? mobileRequestsFilterTrigger("min-w-[120px]") : undefined;
 
   return (
     <>
@@ -57,15 +54,16 @@ export function ManagerRequestsFilters({
         onChange={onOfficeChange}
         offices={offices}
         variant={variant}
-        triggerClassName={filterTriggerClass}
+        triggerClassName={triggerClassName}
       />
       <RequestsFilterSelect
+        label="Период"
         value={period}
         onChange={(v) => onPeriodChange(v as ManagerRequestPeriod)}
         options={MANAGER_PERIOD_OPTIONS}
         placeholder="Период"
         variant={variant}
-        triggerClassName={periodTriggerClass}
+        triggerClassName={triggerClassName}
       />
       {!hideStatusFilter && (
         <RequestStatusFilter
@@ -73,14 +71,14 @@ export function ManagerRequestsFilters({
           onChange={onFilterStatusChange}
           options={statusFilterOptions}
           variant={variant}
-          triggerClassName={filterTriggerClass}
+          triggerClassName={triggerClassName}
         />
       )}
       <RequestTypeFilter
         value={filterType}
         onChange={onFilterTypeChange}
         variant={variant}
-        triggerClassName={filterTriggerClass}
+        triggerClassName={triggerClassName}
       />
     </>
   );
