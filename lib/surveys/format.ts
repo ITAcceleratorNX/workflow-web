@@ -1,4 +1,12 @@
-import type { AdminSurvey, ClientSurvey, SurveyQuestion, SurveyQuestionType, SurveyStatus } from "./types";
+import type {
+  AdminSurvey,
+  ClientSurvey,
+  NamedAnswer,
+  SurveyQuestion,
+  SurveyQuestionType,
+  SurveyRespondent,
+  SurveyStatus,
+} from "./types";
 
 /**
  * Слова экранов опросов (Figma «workflow», клиент Mobile и Desktop): одни на мобильную и десктопную
@@ -134,6 +142,57 @@ export function adminSurveyMeta(survey: AdminSurveyMoments, when: (iso: string) 
 
 /** «Ответы: 23» — под опубликованным и завершённым опросом. */
 export const adminResponsesLabel = (count: number) => `Ответы: ${count}`;
+
+// ─── Администратор: результаты (Figma 54-2701 / 54-5745; тексты без макета согласованы 03.11.2026) ───
+
+/**
+ * Последняя дата опроса в сводке результатов: у завершённого важнее, когда перестали принимать
+ * ответы. null — опрос ещё не опубликован.
+ */
+export function resultsMoment(survey: Pick<AdminSurvey, "status" | "published_at" | "closed_at">): { label: string; iso: string } | null {
+  if (survey.status === "closed" && survey.closed_at) return { label: "Завершён", iso: survey.closed_at };
+  return survey.published_at ? { label: "Опубликован", iso: survey.published_at } : null;
+}
+
+/**
+ * Дата в сводке результатов: «сегодня, 09:15», иначе «22 октября 2026» на Desktop и «22 октября» на
+ * Mobile (год — если он не текущий). Дата — ключ YYYY-MM-DD, время — «09:15», в часовом поясе приложения.
+ */
+export function resultsDateLabel(dateKey: string, time: string, todayKey: string, layout: "mobile" | "desktop"): string {
+  if (dateKey === todayKey) return `сегодня, ${time}`;
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const yearPart = layout === "desktop" || String(year) !== todayKey.slice(0, 4) ? ` ${year}` : "";
+  return `${day} ${MONTHS_GENITIVE[month - 1]}${yearPart}`;
+}
+
+/** «Вопрос 1 · Один вариант» над итогами вопроса. */
+export const questionResultHeading = (index: number, type: SurveyQuestionType) => `Вопрос ${index + 1} · ${questionTypeLabel(type)}`;
+
+/** Под «Несколько вариантов»: доли — от ответивших, поэтому их сумма больше 100 %. */
+export const MULTIPLE_RESULT_HINT = "Можно было выбрать несколько вариантов — сумма больше 100%";
+
+/** «3,8» — средняя оценка с одним знаком после запятой. */
+export const averageLabel = (average: number) => average.toFixed(1).replace(".", ",");
+
+/** «14 текстовых ответов». */
+export const textAnswersLabel = (count: number) =>
+  `${count} ${pluralRu(count, ["текстовый ответ", "текстовых ответа", "текстовых ответов"])}`;
+
+/** «Показать все 14 ответов». */
+export const showAllAnswersLabel = (count: number) => `Показать все ${count} ${pluralRu(count, ["ответ", "ответа", "ответов"])}`;
+
+/** Автор ответа в именном опросе; если аккаунта уже нет, ответы остаются. */
+export const respondentLabel = (respondent: SurveyRespondent | null) => respondent?.full_name ?? "Аккаунт удалён";
+
+/** Вопрос, на который в анкете человека нет ответа. */
+export const NO_ANSWER = "Без ответа";
+
+/** Ответ человека одной строкой: «Список задач, Календарь», «4 из 5» или его текст. */
+export function namedAnswerText(answer: NamedAnswer): string {
+  if ("options" in answer) return answer.options.map((option) => option.text).join(", ");
+  if ("rating" in answer) return `${answer.rating} из 5`;
+  return answer.text;
+}
 
 // ─── Администратор: конструктор опроса ─────────────────────────────────────
 

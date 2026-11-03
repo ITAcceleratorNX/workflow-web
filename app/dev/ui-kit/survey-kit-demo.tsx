@@ -13,7 +13,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { IconActions } from "@/components/ui/icon-actions";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { RatingScale } from "@/components/ui/rating-scale";
+import { SectionTabs } from "@/components/ui/section-tabs";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { ShareBar } from "@/components/ui/share-bar";
 import { DragHandle, SortableItem, SortableList } from "@/components/ui/sortable-list";
 import { StepProgress } from "@/components/ui/step-progress";
 
@@ -35,6 +37,7 @@ export function SurveyKitDemo() {
   const [status, setStatus] = useState<(typeof STATUSES)[number]["value"]>("all");
   const [order, setOrder] = useState(OPTIONS);
   const [publishAsked, setPublishAsked] = useState(false);
+  const [resultsTab, setResultsTab] = useState<"questions" | "results">("results");
 
   return (
     <section className="mb-8 space-y-5 rounded-2xl bg-ui-canvas p-4 text-ui-fg">
@@ -77,6 +80,28 @@ export function SurveyKitDemo() {
           { label: "Предпросмотр", icon: <Eye aria-hidden />, onClick: () => undefined },
         ]}
       />
+
+      <SectionTabs
+        ariaLabel="Раздел опроса"
+        layout="mobile"
+        value={resultsTab}
+        onChange={setResultsTab}
+        options={[
+          { value: "questions", label: "Вопросы" },
+          { value: "results", label: "Результаты" },
+        ]}
+      />
+      <div className="flex flex-col gap-3 rounded-4pt-xl bg-ui-surface p-4">
+        <ShareBar parts={[{ percent: 52, tone: "accent" }]} />
+        <ShareBar parts={[{ percent: 4, tone: "accent" }]} />
+        <ShareBar
+          thick
+          parts={[
+            { percent: 65, tone: "accent" },
+            { percent: 35, tone: "neutral" },
+          ]}
+        />
+      </div>
 
       <InfoBanner icon={<Eye />} action={{ label: "Закрыть", onClick: () => undefined }}>
         Предпросмотр — так опрос увидит клиент. Ответы не сохраняются.

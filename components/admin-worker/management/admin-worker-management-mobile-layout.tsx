@@ -5,6 +5,8 @@ import { ADMIN_WORKER_MANAGEMENT_BACK_HREF } from "@/hooks/use-admin-worker-mana
 
 interface AdminWorkerManagementMobileLayoutProps {
   title: string;
+  /** Над заголовком: например, статус опроса. */
+  eyebrow?: React.ReactNode;
   children: React.ReactNode;
   onRefresh?: () => Promise<void>;
   rightSlot?: React.ReactNode;
@@ -16,6 +18,7 @@ interface AdminWorkerManagementMobileLayoutProps {
 
 export function AdminWorkerManagementMobileLayout({
   title,
+  eyebrow,
   children,
   onRefresh,
   rightSlot,
@@ -26,6 +29,7 @@ export function AdminWorkerManagementMobileLayout({
   return (
     <MobilePageLayout
       title={title}
+      eyebrow={eyebrow}
       backHref={backHref}
       onBack={onBack}
       background="default"

@@ -21,8 +21,8 @@ type AdminSurveyCardProps = {
   onCloseSurvey: () => void;
 };
 
-/** «сегодня» or «20 окт 2026»; with the time — «сегодня, 10:40». */
-function momentLabel(iso: string, todayKey: string, withTime: boolean): string {
+/** «сегодня» or «20 окт 2026»; with the time — «сегодня, 10:40». Also when a person answered a named survey. */
+export function momentLabel(iso: string, todayKey: string, withTime: boolean): string {
   const dateKey = toAppDateKey(iso);
   const day = dateKey === todayKey ? "сегодня" : formatNewsDisplayDate(dateKey);
   return withTime ? `${day}, ${formatTimeOnly(iso)}` : day;

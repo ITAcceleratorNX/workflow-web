@@ -21,8 +21,18 @@ import {
   durationAboutLabel,
   durationLabel,
   durationShortLabel,
+  averageLabel,
+  MULTIPLE_RESULT_HINT,
+  namedAnswerText,
+  NO_ANSWER,
   officesLabel,
   QUESTION_TYPE_ORDER,
+  questionResultHeading,
+  respondentLabel,
+  resultsDateLabel,
+  resultsMoment,
+  showAllAnswersLabel,
+  textAnswersLabel,
   questionCounter,
   questionEditorHint,
   questionSummary,
@@ -33,6 +43,7 @@ import {
   questionsCountLabel,
   scaleLabels,
 } from '../lib/surveys/format.ts';
+import { answersByQuestion, hasNoResponses, ratingRows } from '../lib/surveys/results.ts';
 import {
   availableSurveys,
   completedSurveys,
@@ -210,4 +221,51 @@ test('the constructor says which offices and which mode the survey has', () => {
   assert.equal(officesLabel(false, []), null);
   assert.equal(responseModeHint(true), 'Вы не увидите, кто как ответил');
   assert.equal(responseModeHint(false), 'Вы увидите имена рядом с ответами');
+});
+
+test('the results say when the survey was published or, once closed, when it was closed', () => {
+  const published = { status: 'published', published_at: '2026-10-22T04:15:00.000Z', closed_at: null };
+  assert.deepEqual(resultsMoment(published), { label: 'Опубликован', iso: '2026-10-22T04:15:00.000Z' });
+  assert.deepEqual(resultsMoment({ ...published, status: 'closed', closed_at: '2026-10-30T10:00:00.000Z' }), {
+    label: 'Завершён',
+    iso: '2026-10-30T10:00:00.000Z',
+  });
+  assert.equal(resultsMoment({ status: 'draft', published_at: null, closed_at: null }), null);
+  assert.equal(resultsDateLabel('2026-11-03', '09:15', '2026-11-03', 'desktop'), 'сегодня, 09:15');
+  assert.equal(resultsDateLabel('2026-10-22', '09:15', '2026-11-03', 'desktop'), '22 октября 2026');
+  assert.equal(resultsDateLabel('2026-10-22', '09:15', '2026-11-03', 'mobile'), '22 октября');
+  assert.equal(resultsDateLabel('2025-12-31', '09:15', '2026-11-03', 'mobile'), '31 декабря 2025');
+});
+
+test('the results name each question and count its answers in the words of the mockups', () => {
+  assert.equal(questionResultHeading(0, 'single_choice'), 'Вопрос 1 · Один вариант');
+  assert.equal(questionResultHeading(4, 'text'), 'Вопрос 5 · Открытый ответ');
+  assert.equal(MULTIPLE_RESULT_HINT, 'Можно было выбрать несколько вариантов — сумма больше 100%');
+  assert.deepEqual([3.8, 4, 4.25].map(averageLabel), ['3,8', '4,0', '4,3']);
+  assert.deepEqual([1, 3, 14, 21].map(textAnswersLabel), ['1 текстовый ответ', '3 текстовых ответа', '14 текстовых ответов', '21 текстовый ответ']);
+  assert.deepEqual([14, 22, 21].map(showAllAnswersLabel), ['Показать все 14 ответов', 'Показать все 22 ответа', 'Показать все 21 ответ']);
+});
+
+test('the answers of a named survey: who answered and what, in the order of the questions', () => {
+  assert.equal(respondentLabel({ id: 2, full_name: 'Айдана А.' }), 'Айдана А.');
+  assert.equal(respondentLabel(null), 'Аккаунт удалён');
+  assert.equal(namedAnswerText({ question_id: 1, options: [{ id: 1, text: 'Список задач' }, { id: 2, text: 'Календарь' }] }), 'Список задач, Календарь');
+  assert.equal(namedAnswerText({ question_id: 2, rating: 4 }), '4 из 5');
+  assert.equal(namedAnswerText({ question_id: 3, text: 'Быстрее менять срок' }), 'Быстрее менять срок');
+  const questions = [{ id: 1, text: 'Что используете?' }, { id: 2, text: 'Удобно?' }, { id: 3, text: 'Что улучшить?' }];
+  const response = { id: 9, respondent: null, submitted_at: '2026-11-03T04:00:00.000Z', answers: [{ question_id: 3, text: 'Фильтр' }, { question_id: 1, options: [] }] };
+  assert.deepEqual(answersByQuestion(questions, response).map(({ question, answer }) => [question.id, answer ? namedAnswerText(answer) : NO_ANSWER]), [
+    [1, ''],
+    [2, 'Без ответа'],
+    [3, 'Фильтр'],
+  ]);
+});
+
+test('ratings go from 5 down to 1, and a survey without responses has no results to draw', () => {
+  const distribution = [1, 2, 3, 4, 5].map((value) => ({ value, count: value, percent: value * 5 }));
+  const rating = { id: 3, position: 2, type: 'rating', text: 'Удобно?', answered_count: 15, average: 3.7, scale_min_label: null, scale_max_label: null, distribution };
+  assert.deepEqual(ratingRows(rating).map((row) => row.value), [5, 4, 3, 2, 1]);
+  assert.deepEqual(rating.distribution.map((row) => row.value), [1, 2, 3, 4, 5]);
+  assert.equal(hasNoResponses({ survey: { responses_count: 0 }, questions: [] }), true);
+  assert.equal(hasNoResponses({ survey: { responses_count: 23 }, questions: [] }), false);
 });

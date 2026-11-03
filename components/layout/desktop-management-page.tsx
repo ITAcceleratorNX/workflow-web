@@ -7,6 +7,8 @@ import { DesktopContentPage } from "./desktop-content-page";
 
 type DesktopManagementPageProps = {
   title: string;
+  /** Next to the title: e.g. the status of a survey. */
+  titleAside?: ReactNode;
   description?: string;
   backHref: string;
   backLabel?: string;
@@ -21,6 +23,7 @@ const BACK_CLASS = "inline-flex items-center gap-2 text-sm text-[#E25B21] hover:
 /** CRUD page wrapper inside RoleDesktopShell. */
 export function DesktopManagementPage({
   title,
+  titleAside,
   description,
   backHref,
   backLabel = "Назад",
@@ -37,6 +40,7 @@ export function DesktopManagementPage({
   return (
     <DesktopContentPage
       title={title}
+      titleAside={titleAside}
       description={description}
       actions={actions}
       dark

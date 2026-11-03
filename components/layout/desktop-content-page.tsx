@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 type DesktopContentPageProps = {
   title: string;
+  /** Next to the title: e.g. the status of a survey. */
+  titleAside?: ReactNode;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -16,12 +18,18 @@ type DesktopContentPageProps = {
 /** Standard page header + content inside desktop shell. */
 export function DesktopContentPage({
   title,
+  titleAside,
   description,
   actions,
   children,
   className,
   dark = true,
 }: DesktopContentPageProps) {
+  const heading = (
+    <h1 className={cn("text-2xl font-bold", dark ? "text-white" : "text-foreground")}>
+      {title}
+    </h1>
+  );
   return (
     <div
       className={cn(
@@ -32,9 +40,14 @@ export function DesktopContentPage({
     >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className={cn("text-2xl font-bold", dark ? "text-white" : "text-foreground")}>
-            {title}
-          </h1>
+          {titleAside ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {heading}
+              {titleAside}
+            </div>
+          ) : (
+            heading
+          )}
           {description ? (
             <p className={cn("text-sm mt-1", dark ? "text-white/60" : "text-muted-foreground")}>
               {description}
