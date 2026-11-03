@@ -5,6 +5,7 @@ import { useIsDesktop } from "@/hooks/use-media-query";
 import { MobilePageLayout } from "@/components/layout/MobilePageLayout";
 import { PageLoader } from "@/components/ui/page-loader";
 import { StatRow } from "@/components/ui/stat-row";
+import { SurveyKitDemo } from "./survey-kit-demo";
 
 /**
  * Smoke-страница для UI Kit (2.1 + 2.2).
@@ -58,6 +59,8 @@ export default function UiKitSmokePage() {
             <StatRow label="Статус" value="OK" valueClassName="text-success" />
           </div>
         </section>
+
+        <SurveyKitDemo />
 
         <p className="text-sm text-white/70">
           Потяните вниз для PullToRefresh + PageLoader.

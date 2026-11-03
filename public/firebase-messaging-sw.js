@@ -1,6 +1,12 @@
 // Service Worker для Web Push уведомлений
 // Этот файл должен быть в папке public для доступности по URL
 
+// Новая версия воркера начинает работать сразу и берёт открытые вкладки под себя: иначе нажатие
+// на уведомление не смогло бы перевести уже открытую вкладку на его адрес. Запросы страниц воркер
+// не перехватывает, поэтому больше это ничего не меняет.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
+
 // Обработка push-событий (когда приходит уведомление с сервера)
 self.addEventListener('push', (event) => {
   console.log('📬 [SW] Push event received:', event);
@@ -50,29 +56,35 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Обработка клика по уведомлению
+// Обработка клика по уведомлению: открыть его адрес (`data.url` — опрос, задача…). Вкладка с этим
+// адресом выходит вперёд; другая вкладка Workflow выходит вперёд и переходит на адрес; иначе —
+// новое окно.
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 [SW] Notification clicked:', event.notification);
-  
+
   event.notification.close();
-  
+
   const data = event.notification.data || {};
-  const urlToOpen = data.url || '/';
-  
+  const target = new URL(data.url || '/', self.location.origin);
+  const openWindow = () => (clients.openWindow ? clients.openWindow(target.href) : undefined);
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Если окно уже открыто, фокусируемся на нем
-        for (const client of clientList) {
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
-          }
-        }
-        // Иначе открываем новое окно
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
-      })
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      if (target.origin !== self.location.origin) return openWindow();
+      const appTabs = clientList.filter((client) => new URL(client.url).origin === target.origin);
+      const opened = appTabs.find((client) => client.url === target.href);
+      if (opened) return opened.focus();
+      const tab =
+        appTabs.find((client) => client.focused) ||
+        appTabs.find((client) => client.visibilityState === 'visible') ||
+        appTabs[0];
+      if (!tab) return openWindow();
+      // navigate() есть только у вкладки под этим воркером; другой вкладке — новое окно.
+      return tab
+        .focus()
+        .then((focused) => focused.navigate(target.href))
+        .catch(openWindow);
+    })
   );
 });
 

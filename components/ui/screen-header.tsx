@@ -9,6 +9,8 @@ export interface ScreenHeaderProps {
   title: string;
   /** Подзаголовок под title (только если не inlineTitle). */
   subtitle?: string;
+  /** Над title (только если не inlineTitle): например, статус опроса. */
+  eyebrow?: React.ReactNode;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
   /** Скрыть текст «Назад», оставить только иконку */
@@ -28,6 +30,7 @@ export interface ScreenHeaderProps {
 export function ScreenHeader({
   title,
   subtitle,
+  eyebrow,
   onBack,
   rightSlot,
   hideBackLabel = false,
@@ -93,6 +96,7 @@ export function ScreenHeader({
 
       {!inlineTitle ? (
         <>
+          {eyebrow ? <div className="mb-2">{eyebrow}</div> : null}
           <h1 className={cn("text-xl font-bold leading-tight", titleClassName)}>
             {title}
           </h1>
