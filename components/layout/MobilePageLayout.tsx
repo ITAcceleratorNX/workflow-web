@@ -11,6 +11,8 @@ export type MobilePageBackground = "default" | "booking";
 export interface MobilePageLayoutProps {
   title: string;
   subtitle?: string;
+  /** Над заголовком: например, статус опроса. */
+  eyebrow?: React.ReactNode;
   children: React.ReactNode;
   /** Pull-to-refresh handler; если не передан — без обёртки PTR */
   onRefresh?: () => Promise<void>;
@@ -33,6 +35,7 @@ export interface MobilePageLayoutProps {
 export function MobilePageLayout({
   title,
   subtitle,
+  eyebrow,
   children,
   onRefresh,
   onBack,
@@ -74,6 +77,7 @@ export function MobilePageLayout({
         <ScreenHeader
           title={title}
           subtitle={subtitle}
+          eyebrow={eyebrow}
           onBack={handleBack}
           rightSlot={rightSlot}
           hideBackLabel={hideBackLabel}

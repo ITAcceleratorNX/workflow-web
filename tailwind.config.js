@@ -135,6 +135,9 @@ module.exports = {
           success: "hsl(var(--ui-success) / <alpha-value>)",
           "success-soft": "hsl(var(--ui-success-soft) / <alpha-value>)",
           done: "hsl(var(--ui-done) / <alpha-value>)",
+          info: "hsl(var(--ui-info) / <alpha-value>)",
+          "info-soft": "hsl(var(--ui-info-soft) / <alpha-value>)",
+          "info-on-soft": "hsl(var(--ui-info-on-soft) / <alpha-value>)",
         },
         desktop: {
           bg: "hsl(var(--desktop-bg))",

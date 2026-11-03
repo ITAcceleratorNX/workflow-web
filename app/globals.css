@@ -54,6 +54,9 @@
     --ui-success: 160 84% 39%; /* #10B981 — «Задача выполнена» */
     --ui-success-soft: 136 57% 15%; /* #103A1A */
     --ui-done: 135 59% 49%; /* #34C759 — отметка выполненной задачи */
+    --ui-info: 213 94% 68%; /* #60A5FA — значок и ссылка на плашке-подсказке */
+    --ui-info-soft: 216 59% 15%; /* #10233F — фон плашки «Предпросмотр» */
+    --ui-info-on-soft: 213 97% 87%; /* #BFDBFE — текст на info-soft */
 
     /* ── shadcn/ui (mobile light semantics) ── */
     --background: var(--surface);
@@ -215,7 +218,8 @@ html {
   .admin-management-content .border-green-200,
   .admin-management-content .border-yellow-200,
   .admin-management-content .border-red-200,
-  .admin-management-content .border {
+  /* Элемент с токеном рамки (border-ui-*) задаёт её цвет сам. */
+  .admin-management-content .border:where(:not([class*="border-ui-"])) {
     border-color: #3A3A3C !important;
   }
   .admin-management-content .border-l-blue-500 {
@@ -258,7 +262,8 @@ html {
   .admin-management-content [class*="bg-green-700"] {
     background-color: #E04D0F !important;
   }
-  .admin-management-content button:not([class*="bg-blue-600"]):not([class*="bg-green-600"]):hover {
+  /* Кнопки продуктового UI (классы токенов *-ui-*) задают фон, рамку и цвет сами — правила ниже их не трогают. */
+  .admin-management-content button:not([class*="bg-blue-600"]):not([class*="bg-green-600"]):where(:not([class*="-ui-"])):hover {
     background-color: #3A3A3C !important;
   }
   .admin-management-content button[class*="bg-blue-600"]:hover,
@@ -268,10 +273,11 @@ html {
   .admin-management-content .text-yellow-500 {
     color: #F35713 !important;
   }
-  .admin-management-content input,
-  .admin-management-content select,
-  .admin-management-content textarea,
-  .admin-management-content [role="combobox"] {
+  /* Поля продуктового UI (классы токенов *-ui-*, components/ui/field.tsx) раскрашены сами. */
+  .admin-management-content input:where(:not([class*="-ui-"])),
+  .admin-management-content select:where(:not([class*="-ui-"])),
+  .admin-management-content textarea:where(:not([class*="-ui-"])),
+  .admin-management-content [role="combobox"]:where(:not([class*="-ui-"])) {
     background-color: #1C1C1E !important;
     border-color: #3A3A3C !important;
     color: #ffffff !important;
@@ -279,8 +285,8 @@ html {
   .admin-management-content select {
     color-scheme: dark;
   }
-  .admin-management-content input:focus,
-  .admin-management-content select:focus {
+  .admin-management-content input:where(:not([class*="-ui-"])):focus,
+  .admin-management-content select:where(:not([class*="-ui-"])):focus {
     border-color: #F35713 !important;
     outline: none;
   }
@@ -296,10 +302,11 @@ html {
   }
   /* Outline buttons/badges - dark theme */
   .admin-management-content [class*="border-input"],
-  .admin-management-content button[class*="border"] {
+  .admin-management-content button[class*="border"]:where(:not([class*="-ui-"])) {
     border-color: #3A3A3C !important;
   }
-  .admin-management-content button[class*="outline"]:not([class*="bg-primary"]) {
+  /* «outline» есть и в focus-visible:outline-none у кнопок продуктового UI. */
+  .admin-management-content button[class*="outline"]:not([class*="bg-primary"]):where(:not([class*="-ui-"])) {
     color: #ffffff !important;
     background-color: transparent !important;
   }
@@ -452,12 +459,13 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   }
 }
 
-/* Client desktop: тёмная тема контента (как у admin/manager), только десктоп */
+/* Client desktop: тёмная тема контента (как у admin/manager), только десктоп.
+   Элементы продуктового UI (классы токенов *-ui-*) задают фон и рамку сами — правило их не трогает. */
 @media (min-width: 768px) {
-  .client-desktop-content .rounded-lg.border,
+  .client-desktop-content .rounded-lg.border:not([class*="-ui-"]),
   .client-desktop-content .bg-white,
   .client-desktop-content [class*="bg-card"],
-  .client-desktop-content .border {
+  .client-desktop-content .border:not([class*="-ui-"]) {
     background-color: #2C2C2E !important;
     border-color: #3A3A3C !important;
   }
@@ -503,11 +511,11 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
     --client-border: hsl(var(--desktop-border));
     --client-border-subtle: hsl(var(--desktop-border-subtle));
   }
-  .client-desktop-dark .rounded-lg.border,
+  .client-desktop-dark .rounded-lg.border:not([class*="-ui-"]),
   .client-desktop-dark .bg-white,
   .client-desktop-dark [class*="bg-card"],
-  .client-desktop-dark .border,
-  .client-desktop-dark .border-2 {
+  .client-desktop-dark .border:not([class*="-ui-"]),
+  .client-desktop-dark .border-2:not([class*="-ui-"]) {
     background-color: var(--client-bg-card) !important;
     border-color: var(--client-border) !important;
   }
@@ -574,23 +582,24 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
     background-color: var(--client-accent) !important;
     color: #ffffff !important;
   }
-  .client-desktop-dark [role="tablist"] {
+  /* Вкладки Radix; вкладки продуктового UI (классы токенов *-ui-*) раскрашены сами — и их список тоже. */
+  .client-desktop-dark [role="tablist"]:where(:not(:has(> [class*="-ui-"]))) {
     background-color: var(--client-bg-card) !important;
     border-color: var(--client-border);
   }
-  .client-desktop-dark [role="tab"]:not([data-state="active"]) {
+  .client-desktop-dark [role="tab"]:not([data-state="active"]):where(:not([class*="-ui-"])) {
     color: #8E8E93 !important;
   }
-  /* Клиент десктоп: инпуты/селекты как на мобильном */
-  .client-desktop-content input,
-  .client-desktop-content select,
-  .client-desktop-content textarea {
+  /* Клиент десктоп: инпуты/селекты как на мобильном; поля продуктового UI (*-ui-*) раскрашены сами. */
+  .client-desktop-content input:where(:not([class*="-ui-"])),
+  .client-desktop-content select:where(:not([class*="-ui-"])),
+  .client-desktop-content textarea:where(:not([class*="-ui-"])) {
     border-color: var(--client-border-subtle, #212121) !important;
     background-color: var(--client-bg-muted, #1C1C1E) !important;
     color: #ffffff !important;
   }
-  .client-desktop-content input::placeholder,
-  .client-desktop-content textarea::placeholder {
+  .client-desktop-content input:where(:not([class*="-ui-"]))::placeholder,
+  .client-desktop-content textarea:where(:not([class*="-ui-"]))::placeholder {
     color: #8E8E93 !important;
   }
   /* The search wrapper owns the surface; avoid a second rectangle inside it. */
@@ -611,7 +620,7 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .desktop-main-content .client-desktop-content [role="combobox"] span[data-placeholder] {
     color: #8E8E93 !important;
   }
-  .client-desktop-content label {
+  .client-desktop-content label:where(:not([class*="-ui-"])) {
     color: #ffffff !important;
   }
   .client-desktop-content button[class*="bg-"].bg-primary,
@@ -644,8 +653,12 @@ body.department-head-management [data-radix-select-viewport] [data-highlighted] 
   .desktop-main-content .client-desktop-dark .bg-card {
     background-color: hsl(var(--desktop-surface-card)) !important;
   }
-  .desktop-main-content .client-desktop-content .border-border,
-  .desktop-main-content .client-desktop-dark .border-border {
+  /*
+   * База `* { @apply border-border }` копирует это правило на каждый элемент (`… .client-desktop-content *`)
+   * и красит все рамки страниц Desktop. Элемент с токеном рамки (border-ui-*) задаёт её цвет сам.
+   */
+  .desktop-main-content .client-desktop-content .border-border:where(:not([class*="border-ui-"])),
+  .desktop-main-content .client-desktop-dark .border-border:where(:not([class*="border-ui-"])) {
     border-color: hsl(var(--desktop-border)) !important;
   }
   /* Switch thumb uses bg-background — overridden to transparent above */

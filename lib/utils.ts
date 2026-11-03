@@ -1,5 +1,11 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+// Шкала радиусов 4pt из tailwind.config.js: без неё `cn("rounded-xl", "rounded-4pt-lg")` оставляет оба
+// класса, и побеждает тот, что позже в CSS, а не переданный последним.
+const twMerge = extendTailwindMerge({
+  extend: { theme: { borderRadius: ["4pt-xs", "4pt-sm", "4pt-md", "4pt-lg", "4pt-xl", "4pt-pill"] } },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

@@ -120,7 +120,8 @@ export function isClientDesktopNavActive(
     case 'cabinet':
       return path === '/client' && (!tab || tab === 'cabinet');
     case 'news':
-      return path.startsWith('/client/news');
+      // Опросы — вкладка «Все новости»: экран опроса остаётся в этом разделе.
+      return path.startsWith('/client/news') || path.startsWith('/client/surveys');
     case 'tasks':
       return path.startsWith('/client/tasks') || path.startsWith('/client/teams');
     case 'wellness':

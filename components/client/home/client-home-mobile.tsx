@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, Heart, Home, Sparkles } from "lucide-react";
 import PullToRefresh from "@/components/pull-to-refresh";
+import { NewSurveyCallout } from "@/components/surveys/new-survey-callout";
 import { TasksSection } from "@/components/tasks/tasks-section";
 import type { UseClientHomeResult } from "@/hooks/use-client-home";
 import { useClientHomeNews } from "@/hooks/use-client-home-news";
+import { useClientSurveys } from "@/hooks/use-client-surveys";
 import type { NewsDisplayItem } from "@/lib/news-api";
+import { latestAvailableSurvey } from "@/lib/surveys/list";
 import { NotificationBellBadge } from "@/components/notification/notification-bell-badge";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 type ClientHomeMobileProps = UseClientHomeResult;
 
@@ -68,9 +72,15 @@ function NewsCarousel({ items, loading }: { items: NewsDisplayItem[]; loading: b
 export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
   const router = useRouter();
   const { items, loading, refreshNews } = useClientHomeNews();
+  const token = useAuthStore((s) => s.token);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  // «Новый опрос» — for a signed-in client: a guest has no surveys.
+  const signedIn = Boolean(token) && !isGuest;
+  const surveys = useClientSurveys({ enabled: signedIn });
+  const newSurvey = latestAvailableSurvey(surveys.surveys);
 
   const onRefresh = async () => {
-    await Promise.all([handleRefresh(), refreshNews()]);
+    await Promise.all([handleRefresh(), refreshNews(), signedIn ? surveys.reload() : undefined]);
   };
 
   return (
@@ -97,6 +107,8 @@ export function ClientHomeMobile({ handleRefresh }: ClientHomeMobileProps) {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+
+          {newSurvey ? <NewSurveyCallout layout="card" survey={newSurvey} className="mb-3.5" /> : null}
 
           <NewsCarousel items={items} loading={loading} />
 

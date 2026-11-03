@@ -3,7 +3,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { ApiResult, TaskCommentsApi } from './api';
 import { localFailure, type TaskCommentFailure } from './errors';
 import { applyFresh, compareComments, holdsDraft, mergeComments, sameDraft } from './feed';
-import { newRequestId as randomRequestId } from './request-id';
+import { newRequestId as randomRequestId } from '../request-id';
 import type { CommentDraft, CommentPage, TaskComment } from './types';
 
 /** Первая страница и догрузка истории — по умолчанию контракта. */
