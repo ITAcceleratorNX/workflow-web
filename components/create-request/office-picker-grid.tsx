@@ -115,9 +115,9 @@ export function OfficePickerGrid<T extends PickerOffice>({
                     {/* Адрес и этаж внизу карточки: в ряду они на одной линии, даже если название в две строки. */}
                     <span className="mt-auto flex min-w-0 flex-col gap-[5px]">
                       {office.address && (
-                        <span className="flex min-w-0 items-center gap-[3px] text-xs text-white/[0.78]">
-                          <MapPin className="h-3 w-3 shrink-0 text-white/70" aria-hidden />
-                          <span className="truncate">{office.address}</span>
+                        <span className="flex min-w-0 items-start gap-[5px] text-[13px] leading-[18px] text-white/[0.78]">
+                          <MapPin className="mt-[2px] h-3 w-3 shrink-0 text-white/70" aria-hidden />
+                          <span className="min-w-0 break-words">{office.address}</span>
                         </span>
                       )}
                       {place && <span className="text-[11px] font-medium text-white/55">{place}</span>}
