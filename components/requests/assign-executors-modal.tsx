@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge"
 import { Users, User, Trash2, CheckCircle, AlertTriangle, X, Plus, Crown } from "lucide-react"
 import api from "@/lib/api"
 import { formatExecutorSpecialty } from "@/constants/requests"
-import { useRequestStore } from "@/stores/useRequestStore"
 
 interface User {
   id: number
@@ -127,73 +126,18 @@ export function AssignExecutorsModal({
     setError(null)
 
     try {
-      // Оптимистичное обновление - сразу обновляем UI
-      const { updateSubRequestExecutors } = useRequestStore.getState();
-      
-      // Находим группу заявок, к которой принадлежит подзаявка
-      const allRequests = [
-        ...useRequestStore.getState().requests,
-        ...useRequestStore.getState().myRequests,
-        ...useRequestStore.getState().incomingRequests,
-        ...useRequestStore.getState().assignedRequests,
-        ...useRequestStore.getState().completedRequests
-      ];
-      
-      const requestGroup = allRequests.find(group => 
-        group.requests.some(subReq => subReq.id === subRequest.id)
-      );
-      
-      if (requestGroup) {
-        // Преобразуем selectedExecutors в формат, который ожидает компонент Executors
-        const executorsForUpdate = selectedExecutors.map(executorData => {
-          const executor = executors.find(e => e.id === executorData.id);
-          if (!executor) return null;
-          
-          return {
-            user: executor.user,
-            RequestExecutor: { role: executorData.role }
-          };
-        }).filter((executor): executor is NonNullable<typeof executor> => executor !== null);
-        
-        updateSubRequestExecutors(requestGroup.id, subRequest.id, executorsForUpdate);
-        
-        // Также обновляем статус группы заявок
-        const { updateRequestGroupStatus } = useRequestStore.getState();
-        updateRequestGroupStatus(requestGroup.id);
+      // При первичном назначении сервер ожидает awaiting_assignment; для замены
+      // существующей команды предназначен отдельный маршрут изменения.
+      const url = `/request-executors/${subRequest.id}`;
+      if (subRequest.status === 'assigned') {
+        await api.put(`${url}/change`, { executors: selectedExecutors });
+      } else {
+        await api.post(`${url}/assign`, { executors: selectedExecutors });
       }
-      
-      // Отправляем запрос на сервер
-      await api.post(`/request-executors/${subRequest.id}/assign`, {
-        executors: selectedExecutors
-      })
 
       onSuccess()
       onClose()
     } catch (error: any) {
-      // В случае ошибки откатываем изменения
-      const { updateSubRequestExecutors } = useRequestStore.getState();
-      
-      const allRequests = [
-        ...useRequestStore.getState().requests,
-        ...useRequestStore.getState().myRequests,
-        ...useRequestStore.getState().incomingRequests,
-        ...useRequestStore.getState().assignedRequests,
-        ...useRequestStore.getState().completedRequests
-      ];
-      
-      const requestGroup = allRequests.find(group => 
-        group.requests.some(subReq => subReq.id === subRequest.id)
-      );
-      
-      if (requestGroup) {
-        // Возвращаем пустой массив исполнителей и статус awaiting_assignment
-        updateSubRequestExecutors(requestGroup.id, subRequest.id, [], 'awaiting_assignment');
-        
-        // Также обновляем статус группы заявок
-        const { updateRequestGroupStatus } = useRequestStore.getState();
-        updateRequestGroupStatus(requestGroup.id);
-      }
-      
       console.error("Ошибка при назначении исполнителей:", error)
       setError(error.response?.data?.message || error.response?.data?.error || "Не удалось назначить исполнителей")
     } finally {
