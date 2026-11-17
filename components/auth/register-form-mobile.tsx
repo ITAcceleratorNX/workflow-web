@@ -64,7 +64,7 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
     smsSkipped,
     isStep1Valid,
     handlePhoneChange,
-    handleMobileStep1Next,
+    handleStep1Next,
     handleVerifyCode,
     handleResendCode,
     handleSkipSms,
@@ -196,11 +196,11 @@ export function RegisterFormMobile(props: RegisterFormMobileProps) {
               ) : null}
               <button
                 type="button"
-                onClick={() => void handleMobileStep1Next()}
+                onClick={() => void handleStep1Next()}
                 disabled={!isStep1Valid || isSendingCode}
                 className="flex min-h-12 px-4 py-3 w-full items-center justify-center rounded-lg bg-[hsl(var(--action-background))] text-base font-medium text-white disabled:opacity-50"
               >
-                Далее
+                {isSendingCode ? "Отправка..." : "Далее"}
               </button>
               {smsSendFailed ? (
                 <button

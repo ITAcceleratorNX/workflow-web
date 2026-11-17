@@ -140,7 +140,8 @@ export function useRegister() {
         return true;
       }
       setFormErrors(result.message || 'Ошибка при отправке SMS. Попробуйте позже.');
-      setSmsSendFailed(true);
+      // Номер занят (пользователь или запрос в ожидании) — без SMS запрос тоже не пройдёт.
+      setSmsSendFailed(!result.phoneConflict);
       return false;
     } catch {
       setFormErrors('Ошибка при отправке SMS. Попробуйте позже.');
@@ -151,28 +152,24 @@ export function useRegister() {
     }
   }, [formData.phone]);
 
-  /** Desktop: переход на шаг 2 сразу, SMS в фоне (прежнее поведение). */
-  const handleDesktopStep1Next = useCallback(() => {
+  /**
+   * Шаг 1 → шаг кода только после того, как SMS ушло (как в мобильном приложении). Ошибку —
+   * номер уже занят или SMS не отправилось — пользователь видит здесь, на шаге с номером.
+   */
+  const handleStep1Next = useCallback(async () => {
     const parsed = registerStep1Schema.safeParse(formData);
     if (!parsed.success) {
       setFormErrors(getZodErrorMessage(parsed.error));
       return;
     }
-    setStep(2);
-    setFormErrors(null);
-    if (!codeSent) void sendCode();
+    // Вернулись с шага кода, номер тот же: код уже отправлен, повторно — кнопкой на шаге 2.
+    if (codeSent) {
+      setFormErrors(null);
+      setStep(2);
+      return;
+    }
+    if (await sendCode()) setStep(2);
   }, [formData, codeSent, sendCode]);
-
-  /** Mobile: как RN — SMS успешно → шаг 2. */
-  const handleMobileStep1Next = useCallback(async () => {
-    const parsed = registerStep1Schema.safeParse(formData);
-    if (!parsed.success) {
-      setFormErrors(getZodErrorMessage(parsed.error));
-      return;
-    }
-    const ok = await sendCode();
-    if (ok) setStep(2);
-  }, [formData, sendCode]);
 
   const handleVerifyCode = useCallback(async () => {
     const parsed = registerOtpSchema.safeParse({ verificationCode });
@@ -327,8 +324,7 @@ export function useRegister() {
     smsSkipped,
     isStep1Valid,
     handlePhoneChange,
-    handleDesktopStep1Next,
-    handleMobileStep1Next,
+    handleStep1Next,
     handleVerifyCode,
     handleResendCode,
     handleSkipSms,

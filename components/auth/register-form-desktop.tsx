@@ -55,10 +55,11 @@ export function RegisterFormDesktop({
   setVerificationCode,
   isSendingCode,
   countdown,
+  smsSendFailed,
   smsSkipped,
   isStep1Valid,
   handlePhoneChange,
-  handleDesktopStep1Next,
+  handleStep1Next,
   handleVerifyCode,
   handleResendCode,
   handleSkipSms,
@@ -246,8 +247,8 @@ export function RegisterFormDesktop({
 
               <button
                 type="button"
-                onClick={handleDesktopStep1Next}
-                disabled={!isStep1Valid}
+                onClick={() => void handleStep1Next()}
+                disabled={!isStep1Valid || isSendingCode}
                 className="w-full flex justify-center items-center disabled:opacity-50"
                 style={{
                   height: "48px",
@@ -266,9 +267,30 @@ export function RegisterFormDesktop({
                     textAlign: "center",
                   }}
                 >
-                  Далее
+                  {isSendingCode ? "Отправка..." : "Далее"}
                 </span>
               </button>
+
+              {smsSendFailed ? (
+                <button
+                  type="button"
+                  onClick={handleSkipSms}
+                  className="w-full flex justify-center items-center"
+                  style={{ minHeight: "48px", padding: "12px", background: "transparent", borderRadius: "8px" }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: 500,
+                      fontSize: "16px",
+                      lineHeight: "24px",
+                      color: "#F35713",
+                    }}
+                  >
+                    Продолжить без SMS
+                  </span>
+                </button>
+              ) : null}
             </>
           )}
 

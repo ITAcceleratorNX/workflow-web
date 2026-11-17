@@ -130,9 +130,19 @@ export function generateVerificationCode(length: number = 6): string {
   return code;
 }
 
+export interface SendVerificationCodeResult {
+  success: boolean;
+  message?: string;
+  /**
+   * 409: номер нельзя зарегистрировать — уже есть пользователь с ним или запрос, ожидающий
+   * решения. Дело не в доставке SMS, поэтому «Отправить запрос без SMS» не поможет.
+   */
+  phoneConflict?: boolean;
+}
+
 // Функция для отправки кода верификации (для использования на клиенте)
 // Код теперь генерируется на сервере и сохраняется в БД
-export async function sendVerificationCode(phone: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<{ success: boolean; message?: string }> {
+export async function sendVerificationCode(phone: string, purpose: 'registration' | 'password_reset' = 'registration'): Promise<SendVerificationCodeResult> {
   try {
     // Отправляем запрос на бэкенд, который сгенерирует код, сохранит в БД и отправит SMS
     const response = await fetch(`${API_BASE_URL}/auth/send-verification-code`, {
@@ -150,9 +160,10 @@ export async function sendVerificationCode(phone: string, purpose: 'registration
     } else {
       // Бэкенд возвращает ошибки в формате details: [{ message }] или message
       const errorMessage = data.details?.[0]?.message || data.message || 'Ошибка при отправке SMS';
-      return { 
-        success: false, 
-        message: errorMessage
+      return {
+        success: false,
+        message: errorMessage,
+        phoneConflict: response.status === 409,
       };
     }
   } catch (error: any) {
