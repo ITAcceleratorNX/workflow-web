@@ -10,13 +10,38 @@ import { AppProviders } from "@/components/theme/app-providers"
 import { ColorSchemeInitScript } from "@/components/theme/color-scheme-init-script"
 import { Toaster } from "@/components/ui/toaster"
 import { ConfirmDialogHost } from "@/components/confirm-dialog-host"
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site"
 
 export const metadata: Metadata = {
-  title: "WorkFlow App - Internal Service Request Management",
-  description:
-    "Mobile-first internal solution for Kcell employees to submit and manage cleaning and maintenance requests across office buildings.",
-  keywords: "Kcell, service requests, maintenance, internal app, Kazakhstan telecom",
-    generator: 'v0.dev'
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s — ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "Workflow",
+    "TMK Workflow",
+    "TMK Techno Horizon",
+    "заявки на обслуживание офиса",
+    "заявки на уборку",
+    "заявки на ремонт",
+    "бронирование переговорных",
+    "Казахстан",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "ru_RU",
+    images: [{ url: "/app-icon.png", alt: SITE_NAME }],
+  },
+  icons: { icon: "/app-icon.png", apple: "/app-icon.png" },
+  // Коды подтверждения владения из Google Search Console и Яндекс Вебмастера.
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || undefined,
+  },
 }
 
 export const viewport: Viewport = {
