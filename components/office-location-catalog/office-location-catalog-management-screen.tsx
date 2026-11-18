@@ -431,7 +431,7 @@ export function OfficeLocationCatalogManagementScreen({
       <button
         type="button"
         onClick={openAdd}
-        className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] right-5 z-[190] flex h-14 w-14 items-center justify-center rounded-full bg-[#F35713] text-white shadow-lg active:scale-95"
+        className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#F35713] text-white shadow-lg active:scale-95"
         aria-label="Добавить шаблон"
       >
         <Plus className="h-7 w-7" />

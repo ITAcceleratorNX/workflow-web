@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav
       aria-label="Основная навигация"
-      className="md:hidden fixed left-0 right-0 bottom-0 z-50 flex flex-row justify-between items-center rounded-t-[28px] border border-b-0 border-white/[0.08] px-2"
+      className="md:hidden fixed left-0 right-0 bottom-0 z-40 flex flex-row justify-between items-center rounded-t-[28px] border border-b-0 border-white/[0.08] px-2"
       style={{
         paddingTop: BOTTOM_NAV_TOP_PAD,
         paddingBottom: getBottomNavBottomPadding(),

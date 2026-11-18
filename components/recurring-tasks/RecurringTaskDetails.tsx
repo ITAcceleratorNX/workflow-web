@@ -21,6 +21,7 @@ import { AssignExecutorsModal } from '@/components/requests';
 import { CommentsModal } from '@/components/requests';
 import { formatServiceCategoryDisplayName } from '@/constants/requests';
 import { useToast } from '@/hooks/use-toast';
+import { OVERLAY_LAYERS, OverlayLayerProvider } from '@/components/ui/overlay-layer';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getSubRequestDisplayId } from '@/lib/subRequestUtils';
 import { formatDateTime } from '@/lib/dateTimeUtils';
@@ -259,7 +260,9 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
     });
   };
 
+      // Окна из карточки (история, удаление, назначение) открываются выше неё, а не на том же слое.
       return (
+      <OverlayLayerProvider level={OVERLAY_LAYERS.dialog}>
       <div className={`${isDesktop ? 'dark fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50' : 'fixed inset-0 bg-background z-50'} ${isDesktop ? '' : 'flex flex-col'}`} onClick={() => {
         if (isDesktop) onClose();
       }}>
@@ -744,5 +747,6 @@ export const RecurringTaskDetails: React.FC<RecurringTaskDetailsProps> = ({
         )
       )}
     </div>
+      </OverlayLayerProvider>
   );
 };

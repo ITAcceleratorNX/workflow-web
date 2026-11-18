@@ -239,7 +239,7 @@ export function ChangeExecutorsModal({
                   <SelectTrigger className={`w-full h-11 ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "border-gray-200 focus:border-[#114A65] focus:ring-[#114A65]"}`}>
                     <SelectValue placeholder="Выберите исполнителя" />
                   </SelectTrigger>
-                  <SelectContent className={`z-[110] ${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
+                  <SelectContent className={`${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
                     {availableExecutors.length === 0 ? (
                       <SelectItem value="no-executors" disabled>
                         Все исполнители уже назначены
@@ -305,7 +305,7 @@ export function ChangeExecutorsModal({
                               <SelectTrigger className={`w-24 h-8 text-xs ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "border-gray-200"}`}>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className={`z-[110] ${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
+                              <SelectContent className={`${isDark ? "bg-[#2C2C2E] border-white/10" : ""}`}>
                                 <SelectItem value="executor">Исполнитель</SelectItem>
                                 <SelectItem value="leader">Лидер</SelectItem>
                               </SelectContent>

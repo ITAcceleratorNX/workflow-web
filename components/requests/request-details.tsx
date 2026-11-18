@@ -2,6 +2,7 @@
 
 import NextImage from "next/image";
 import React, { useState, useEffect } from "react";
+import { OVERLAY_LAYERS, OverlayLayerProvider } from "@/components/ui/overlay-layer";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -590,11 +591,19 @@ export function RequestDetails({
   if (!subRequest) {
     const wrapperClass = embedInPanel
       ? "flex flex-col h-full bg-[#1C1C1E]"
-      : "fixed inset-0 z-[100] bg-[#040404] flex flex-col";
+      : "fixed inset-0 bg-[#040404] flex flex-col";
     return (
       <div
         className={wrapperClass}
-        style={embedInPanel ? undefined : { paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={
+          embedInPanel
+            ? undefined
+            : {
+                zIndex: OVERLAY_LAYERS.screen,
+                paddingTop: "env(safe-area-inset-top)",
+                paddingBottom: "env(safe-area-inset-bottom)",
+              }
+        }
       >
         {!embedInPanel && (
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
@@ -727,16 +736,24 @@ export function RequestDetails({
 
   const wrapperClass = embedInPanel
     ? "flex flex-col h-full bg-[#1C1C1E] min-h-0"
-    : "fixed inset-0 z-[100] bg-[#040404] flex flex-col";
-  const wrapperStyle = embedInPanel
+    : "fixed inset-0 bg-[#040404] flex flex-col";
+  const wrapperStyle: React.CSSProperties | undefined = embedInPanel
     ? undefined
-    : { paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" };
+    : {
+        zIndex: OVERLAY_LAYERS.screen,
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      };
   const contentPaddingBottom = embedInPanel
     ? "pb-4"
     : "pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]";
 
+  // Полноэкранные детали (телефон) лежат на слое screen: окна из них (поделиться, фото,
+  // решения по заявке, выпадающие списки) должны открываться выше, а не под экраном.
+  // Встроенные в панель детали слой не задают: остаётся слой родителя.
+  const LayerScope = embedInPanel ? React.Fragment : ScreenLayerScope;
   return (
-    <>
+    <LayerScope>
       <div className={wrapperClass} style={wrapperStyle}>
         <div className="flex flex-col h-full min-h-0">
           {!embedInPanel && (
@@ -1282,6 +1299,10 @@ export function RequestDetails({
         }}
         onSubmit={handleEditRequestGroup}
       />
-    </>
+    </LayerScope>
   );
+}
+
+function ScreenLayerScope({ children }: { children: React.ReactNode }) {
+  return <OverlayLayerProvider level={OVERLAY_LAYERS.screen}>{children}</OverlayLayerProvider>;
 }

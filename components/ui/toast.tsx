@@ -6,19 +6,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { OVERLAY_LAYERS } from "@/components/ui/overlay-layer"
 
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Viewport>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <ToastPrimitives.Viewport
     ref={ref}
       className={cn(
-        "fixed top-0 z-[100] flex max-h-screen w-full flex-col p-4 sm:right-0 sm:flex-col md:max-w-[420px]",
+        "fixed top-0 flex max-h-screen w-full flex-col p-4 sm:right-0 sm:flex-col md:max-w-[420px]",
         className
       )}
+    style={{ zIndex: OVERLAY_LAYERS.toast, ...style }}
     {...props}
   />
 ))
