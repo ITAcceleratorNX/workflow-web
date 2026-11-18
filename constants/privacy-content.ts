@@ -156,7 +156,7 @@ SMS-верификация используется только при реги
       },
       {
         heading: '12. Изменения политики',
-        content: `Мы можем обновлять эту Политику. Актуальная версия публикуется на сайте Компании: https://workflow-service-front.vercel.app/privacy
+        content: `Мы можем обновлять эту Политику. Актуальная версия публикуется на сайте Компании: https://app.tmk-workflow.kz/privacy
 Дата обновления указывается в начале документа.`,
       },
       {
@@ -315,7 +315,7 @@ In demo mode (guest access), the user may stop using the demo by exiting demo mo
       {
         heading: '12. Policy Changes',
         content: `We may update this Privacy Policy. The latest version is published on the Company's website:
-https://workflow-service-front.vercel.app/privacy
+https://app.tmk-workflow.kz/privacy
 
 The update date is indicated at the beginning of this document.`,
       },
