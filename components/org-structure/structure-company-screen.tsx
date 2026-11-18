@@ -874,7 +874,7 @@ function AddEmployeeDialog({
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[300]">
+            <SelectContent>
               <SelectItem value={NONE_VALUE}>Без отдела</SelectItem>
               {departments.map((d) => (
                 <SelectItem key={d.id} value={String(d.id)}>
@@ -942,7 +942,7 @@ function MoveEmployeeDialog({
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[300]">
+            <SelectContent>
               <SelectItem value={NONE_VALUE}>Без отдела</SelectItem>
               {departments.map((d) => (
                 <SelectItem key={d.id} value={String(d.id)}>

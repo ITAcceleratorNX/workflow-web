@@ -1788,7 +1788,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                                   <SelectTrigger>
                                     <SelectValue placeholder="Выберите исполнителя для добавления" />
                                   </SelectTrigger>
-                                  <SelectContent position="popper" className="z-[110] max-h-[300px] w-[var(--radix-select-trigger-width)]">
+                                  <SelectContent position="popper" className="max-h-[300px] w-[var(--radix-select-trigger-width)]">
                                     {executors
                                       .filter(executor => !subRequest.executors?.some(e => e.id === executor.id))
                                       .map(executor => (
@@ -1854,7 +1854,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                                             <SelectTrigger className="w-28 h-8 text-xs">
                                               <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent position="popper" className="z-[110] max-h-[200px]">
+                                            <SelectContent position="popper" className="max-h-[200px]">
                                               <SelectItem value="executor">Исполнитель</SelectItem>
                                               <SelectItem value="leader">Лидер</SelectItem>
                                             </SelectContent>

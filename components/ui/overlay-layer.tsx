@@ -4,12 +4,27 @@ import { createContext, useContext, useRef, type CSSProperties, type ReactNode, 
 
 /** Shared layers for body portals. Child dialogs advance one step above their parent. */
 export const OVERLAY_LAYERS = {
+  /**
+   * Постоянные элементы страницы (нижняя навигация, плавающие кнопки): ниже любого окна,
+   * включая самодельные модалки и шторки на z-50.
+   */
+  pageChrome: 40,
   dialog: 50,
   taskPicker: 60,
   request: 110,
   popup: 120,
   management: 200,
   confirmation: 210,
+  /**
+   * Полноэкранные экраны без Dialog (детали заявки на телефоне). Окна, открытые из них,
+   * получают слой выше через OverlayLayerProvider.
+   */
+  screen: 100,
+  /**
+   * Тосты выше любого оверлея, включая вложенные модалки (+10 на уровень) и старые меню
+   * заявок с z-[99999]/z-[100001]: ошибку сохранения видно поверх открытой модалки.
+   */
+  toast: 100_010,
 } as const;
 
 const OverlayLayerContext = createContext<number | null>(null);

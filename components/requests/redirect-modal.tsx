@@ -62,8 +62,8 @@ export function RedirectRequestModal({
       onClose={onClose}
       usePortal={usePortal}
       overlayClassName={cn(
-        "z-[99999] bg-black/50 backdrop-blur-none",
-        !isDark && "z-[100] bg-black/60"
+        "bg-black/50 backdrop-blur-none",
+        !isDark && "bg-black/60"
       )}
     >
       <Card
@@ -99,7 +99,7 @@ export function RedirectRequestModal({
                 <SelectValue placeholder="Выберите категорию" />
               </SelectTrigger>
               <SelectContent
-                className={cn("z-[100001]", isDark && "bg-[#2C2C2E] border-white/10")}
+                className={cn(isDark && "bg-[#2C2C2E] border-white/10")}
               >
                 {categories
                   .filter((category) => category.id !== currentCategoryId)

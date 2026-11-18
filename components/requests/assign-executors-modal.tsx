@@ -215,7 +215,7 @@ export function AssignExecutorsModal({
                       <SelectTrigger className={`h-9 sm:h-10 md:h-12 rounded-lg transition-colors ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "bg-white border border-gray-300 hover:border-gray-400"}`}>
                         <SelectValue placeholder="Выберите исполнителя" />
                       </SelectTrigger>
-                      <SelectContent className={`z-[110] rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
+                      <SelectContent className={`rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
                         {availableExecutors.length === 0 ? (
                           <SelectItem value="no-executors" disabled className={isDark ? "text-gray-500" : ""}>
                             Нет доступных исполнителей
@@ -293,7 +293,7 @@ export function AssignExecutorsModal({
                                     <SelectTrigger className={`w-16 sm:w-20 md:w-24 h-7 sm:h-8 md:h-9 rounded-md transition-colors ${isDark ? "bg-[#2C2C2E] border-white/10 text-white" : "bg-white border border-gray-300 hover:border-gray-400"}`}>
                                       <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className={`z-[110] rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
+                                    <SelectContent className={`rounded-lg shadow-lg ${isDark ? "bg-[#2C2C2E] border-white/10" : "border border-gray-200"}`}>
                                       <SelectItem value="executor" className={isDark ? "rounded-md hover:bg-white/10" : "rounded-md hover:bg-gray-50"}>
                                         Исполнитель
                                       </SelectItem>
