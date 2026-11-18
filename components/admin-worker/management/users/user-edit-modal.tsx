@@ -16,6 +16,7 @@ import type { Company } from "@/lib/companies-api";
 import type { Office, ServiceCategory } from "@/lib/service-categories-api";
 import {
   changeUserPassword,
+  EXECUTOR_RECORD_MISSING_HINT,
   getExecutorByUserId,
   getExecutors,
   updateExecutor,
@@ -206,7 +207,15 @@ function UserEditForm({
     },
   );
 
+  const [executorMissing, setExecutorMissing] = useState(
+    editUser.role === "executor" && !editingExecutor && !!editUser.executor_record_missing,
+  );
+
   const isExecutorForm = newRole === "executor";
+  // Роль остаётся «Исполнитель», но записи Исполнителя нет (прежние ошибки): при сохранении
+  // с категориями сервер восстанавливает запись, затем сохраняются офисы и специальность.
+  const executorRecordMissing =
+    executorMissing && editUser.role === "executor" && newRole === "executor";
   const roleOptions = isAdmin ? Object.keys(USER_ROLE_LABELS) : [...OFFICE_STAFF_ROLES];
 
   useEffect(() => {
@@ -226,7 +235,12 @@ function UserEditForm({
     if (!isExecutorForm || editingExecutor || editUser.role !== "executor") return;
     let cancelled = false;
     void getExecutorByUserId(editUser.id).then((res) => {
-      if (cancelled || !res.ok) return;
+      if (cancelled) return;
+      if (!res.ok) {
+        if (res.notFound) setExecutorMissing(true);
+        return;
+      }
+      setExecutorMissing(false);
       onExecutorLoaded?.(editUser.id, res.data);
       applyExecutor(res.data);
     });
@@ -370,7 +384,9 @@ function UserEditForm({
     const demotingFromExecutor = roleChanged && initialRole === "executor" && newRole !== "executor";
 
     const useExecutorApiForProfile =
-      isExecutorForm && !demotingFromExecutor && (!!editingExecutor || promotingToExecutor);
+      isExecutorForm &&
+      !demotingFromExecutor &&
+      (!!editingExecutor || promotingToExecutor || executorRecordMissing);
 
     const executorFieldsChanged =
       useExecutorApiForProfile &&
@@ -419,7 +435,8 @@ function UserEditForm({
       !executorFieldsChanged &&
       !promotingToExecutor &&
       !companyChanged &&
-      !officeAccessChanged
+      !officeAccessChanged &&
+      !executorRecordMissing
     ) {
       toast({ title: "Нет изменений", variant: "info" });
       return;
@@ -478,7 +495,31 @@ function UserEditForm({
         ? draftOfficeNumeric
         : editUser.office_id;
 
+    // Запись Исполнителя восстанавливается при смене основного офиса (с категориями нового
+    // офиса), иначе — повторным сохранением роли «Исполнитель» с категориями.
+    if (executorRecordMissing && !officeChanged) {
+      const restoreRes = await updateUserRole(editUser.id, "executor", {
+        category_ids: selectedCategoryIds,
+        specialty: specialty.trim(),
+      });
+      if (!restoreRes.ok) {
+        setSaving(false);
+        setRoleError(restoreRes.error);
+        return;
+      }
+    }
+
     let executorRecord = editingExecutor;
+    if (executorRecordMissing && !executorRecord) {
+      const restored = await getExecutorByUserId(editUser.id);
+      if (!restored.ok) {
+        setSaving(false);
+        setRoleError(restored.error);
+        return;
+      }
+      executorRecord = restored.data;
+      setExecutorMissing(false);
+    }
     if (promotingToExecutor && !executorRecord) {
       const execRes = await getExecutors(undefined, resolverOfficeId);
       if (execRes.ok) {
@@ -581,6 +622,11 @@ function UserEditForm({
             ))}
           </div>
           {roleError ? <p className="mt-1 text-sm text-destructive">{roleError}</p> : null}
+          {executorRecordMissing ? (
+            <p className="mt-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-sm text-destructive">
+              {EXECUTOR_RECORD_MISSING_HINT}
+            </p>
+          ) : null}
         </div>
 
         {isAdmin && isExecutorForm && sortedOffices.length > 0 ? (

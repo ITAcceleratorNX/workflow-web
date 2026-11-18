@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Building2,
   ChevronRight,
   Filter,
@@ -379,6 +380,12 @@ export function AdminUserManagementTab({
                 <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Phone className="h-3.5 w-3.5" />
                   {user.phone}
+                </div>
+              ) : null}
+              {user.role === "executor" && user.executor_record_missing ? (
+                <div className="flex items-center gap-1.5 text-sm text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Нет профиля Исполнителя
                 </div>
               ) : null}
               {user.role === "executor" && user.executor_office_access ? (
