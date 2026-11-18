@@ -19,7 +19,17 @@ export interface OfficeUser {
   company?: { id: number; name: string } | null;
   /** Офисы, на заявки которых Исполнителя можно назначить (только для роли executor). */
   executor_office_access?: ExecutorOfficeAccess | null;
+  /**
+   * Роль executor, но записи Исполнителя (таблица executors) нет. Сохранение роли с
+   * категориями (или смена основного офиса с категориями) восстанавливает запись.
+   */
+  executor_record_missing?: boolean;
 }
+
+/** Подсказка в карточке пользователя с ролью executor без записи Исполнителя. */
+export const EXECUTOR_RECORD_MISSING_HINT =
+  "У пользователя нет профиля Исполнителя. Укажите специальность и категории услуг и сохраните — " +
+  "профиль восстановится вместе с выбранными офисами.";
 
 export interface ExecutorInCategory {
   id: number;
@@ -83,7 +93,21 @@ function normalizeManagementUser(raw: unknown): OfficeUser | null {
   }
   const executor_office_access =
     role === "executor" ? readExecutorOfficeAccess(o, office_id ?? null) : null;
-  return { id, full_name, phone, role, office_id, office, company_id, company, executor_office_access };
+  // Список пользователей отдаёт `executor: null`, когда записи Исполнителя нет. Если поля
+  // нет вовсе (другой эндпоинт), о наличии записи ничего не известно.
+  const executor_record_missing = role === "executor" && "executor" in o && o.executor == null;
+  return {
+    id,
+    full_name,
+    phone,
+    role,
+    office_id,
+    office,
+    company_id,
+    company,
+    executor_office_access,
+    executor_record_missing,
+  };
 }
 
 export function normalizeExecutorInCategory(raw: unknown): ExecutorInCategory | null {
@@ -240,14 +264,17 @@ export async function getExecutors(
 
 export async function getExecutorByUserId(
   userId: number,
-): Promise<{ ok: true; data: ExecutorInCategory } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; data: ExecutorInCategory } | { ok: false; error: string; notFound?: boolean }
+> {
   try {
     const res = await api.get<unknown>(`/executors/${userId}/user`);
     const normalized = normalizeExecutorInCategory(res.data);
     if (!normalized) return { ok: false, error: "Некорректный ответ сервера" };
     return { ok: true, data: normalized };
   } catch (error) {
-    return { ok: false, error: extractError(error) };
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    return { ok: false, error: extractError(error), notFound: status === 404 };
   }
 }
 
